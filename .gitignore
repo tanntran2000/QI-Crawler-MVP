@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environment
+.venv/
+venv/
+
+# Cấu hình cục bộ và secrets
+.env
+.env.*
+!.env.example
+config.yaml
+
+# Database
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Dữ liệu vận hành không đưa lên Git
+data/downloads/*
+!data/downloads/.gitkeep
+
+data/discovery/*
+!data/discovery/.gitkeep
+
+data/raw/*
+!data/raw/.gitkeep
+
+data/rejects/*
+!data/rejects/.gitkeep
+
+data/reports/*
+!data/reports/.gitkeep
+
+# File demo được tạo khi chạy
+data/demo/*.xlsx
+data/demo/du-lieu-mau.csv
+
+# Log và file tải tạm
+*.log
+*.tmp
+*.part
+
+# Playwright / testing
+test-results/
+playwright-report/
+
+# IDE và hệ điều hành
+.vscode/
+.DS_Store
+Thumbs.db

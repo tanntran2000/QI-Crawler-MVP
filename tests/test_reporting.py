@@ -1,0 +1,36 @@
+from datetime import date, timedelta
+from pathlib import Path
+
+from openpyxl import load_workbook
+
+from egp_crawler.db import Database
+from egp_crawler.models import Notice
+from egp_crawler.reporting import build_daily_report
+
+
+def test_build_daily_report(tmp_path: Path):
+    db = Database(f"sqlite:///{tmp_path / 'report.db'}")
+    db.create_all()
+    with db.session() as session:
+        session.add(
+            Notice(
+                source_url="import://sample#1",
+                url_hash="a" * 64,
+                notice_code="IB260001",
+                title="Mua thiết bị mạng",
+                closing_at=(date.today() + timedelta(days=2)).isoformat(),
+            )
+        )
+    output = build_daily_report(db, tmp_path / "daily.xlsx", days_ahead=7)
+    workbook = load_workbook(output, read_only=True)
+    try:
+        assert workbook.sheetnames == [
+            "Gói thầu mới",
+            "Sắp đóng thầu",
+            "Tất cả gói thầu",
+            "Tệp tải lỗi",
+            "Chất lượng dữ liệu",
+        ]
+        assert workbook["Sắp đóng thầu"].max_row == 2
+    finally:
+        workbook.close()

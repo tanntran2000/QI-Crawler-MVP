@@ -1,0 +1,60 @@
+project_name: egp-public-crawler
+allowed_domains:
+  - muasamcong.mpi.gov.vn
+seed_urls:
+  - https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=search
+
+compliance:
+  obey_robots_txt: true
+  stop_on_captcha: true
+  identify_user_agent: "EGPResearchCrawler/0.2 (internal research; contact: replace-me@example.com)"
+
+crawl:
+  requests_per_minute: 12
+  concurrency: 1
+  request_timeout_seconds: 30
+  browser_timeout_seconds: 45
+  max_retries: 3
+  use_browser_fallback: true
+  render_wait_ms: 2500
+  max_pages_per_run: 100
+
+storage:
+  database_url: sqlite:///./data/egp.db
+  download_dir: ./data/downloads
+  discovery_dir: ./data/discovery
+  raw_dir: ./data/raw
+  rejects_dir: ./data/rejects
+  report_dir: ./data/reports
+  download_attachments: true
+  max_attachment_mb: 50
+  allowed_attachment_extensions:
+    - .pdf
+    - .doc
+    - .docx
+    - .xls
+    - .xlsx
+    - .zip
+
+# Selector phải được cấu hình riêng cho nguồn mà doanh nghiệp được phép tự động truy cập.
+selectors:
+  search_input: null
+  search_button: null
+  result_ready: null
+  list_item: "a[href*='contractor-selection']"
+  detail_link: "a"
+  next_page: "a[aria-label='Next'], a[title='Next'], a:has-text('Sau')"
+  page_ready: "body"
+  attachment_rows: null
+  attachment_download_button: null
+  attachment_name: null
+
+reporting:
+  days_ahead: 7
+  smtp_host: null
+  smtp_port: 587
+  smtp_username: null
+  smtp_password: null  # Khuyến nghị đặt EGP_SMTP_PASSWORD trong file .env
+  smtp_use_tls: true
+  email_from: null
+  email_to: []
