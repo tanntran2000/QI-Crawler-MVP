@@ -1,13 +1,14 @@
-project_name: egp-public-crawler
+project_name: qi-crawler
 allowed_domains:
   - muasamcong.mpi.gov.vn
+  - www.contractsfinder.service.gov.uk
 seed_urls:
   - https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=search
 
 compliance:
   obey_robots_txt: true
   stop_on_captcha: true
-  identify_user_agent: "EGPResearchCrawler/0.2 (internal research; contact: replace-me@example.com)"
+  identify_user_agent: "QIResearchCrawler/0.2 (internal research; contact: replace-me@example.com)"
 
 crawl:
   requests_per_minute: 12
@@ -54,7 +55,7 @@ reporting:
   smtp_host: null
   smtp_port: 587
   smtp_username: null
-  smtp_password: null  # Khuyến nghị đặt EGP_SMTP_PASSWORD trong file .env
+  smtp_password: null  # Khuyến nghị đặt QI_CRAWLER_SMTP_PASSWORD trong file .env
   smtp_use_tls: true
   email_from: null
   email_to: []

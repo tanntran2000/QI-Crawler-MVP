@@ -3,9 +3,9 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from egp_crawler.db import Database
-from egp_crawler.models import Notice
-from egp_crawler.reporting import build_daily_report
+from qi_crawler.db import Database
+from qi_crawler.models import Notice
+from qi_crawler.reporting import build_daily_report
 
 
 def test_build_daily_report(tmp_path: Path):

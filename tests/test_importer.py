@@ -3,10 +3,10 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from egp_crawler.config import AppConfig
-from egp_crawler.crawler import CrawlerService
-from egp_crawler.importer import import_file
-from egp_crawler.models import Notice
+from qi_crawler.config import AppConfig
+from qi_crawler.crawler import CrawlerService
+from qi_crawler.importer import import_file
+from qi_crawler.models import Notice
 
 
 def test_import_csv_and_reject_invalid_row(tmp_path: Path):

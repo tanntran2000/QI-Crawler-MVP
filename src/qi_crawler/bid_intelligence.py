@@ -5,6 +5,7 @@ import json
 import re
 import unicodedata
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import delete, select
@@ -73,7 +74,16 @@ class WinEstimate:
     mandatory_coverage_percent: float
     evidence_coverage_percent: float
     risk_factors: list[str]
+    gate_status: str
     model_version: str = "heuristic-mvp-1"
+
+
+@dataclass
+class BidGateResult:
+    status: str
+    mandatory_total: int
+    mandatory_confirmed: int
+    blockers: list[str]
 
 
 def import_evidence_csv(db: Database, path: Path) -> int:
@@ -125,6 +135,11 @@ def analyze_bid_document(
                 normalized_text=normalized,
                 keywords=json.dumps(keywords, ensure_ascii=False),
                 mandatory=any(marker in source_text.lower() for marker in MANDATORY_MARKERS),
+                requirement_type=(
+                    "mandatory"
+                    if any(marker in source_text.lower() for marker in MANDATORY_MARKERS)
+                    else "reference"
+                ),
                 source_reference=f"{path.name}:line-{index}",
             )
             session.add(requirement)
@@ -151,6 +166,10 @@ def analyze_bid_document(
                     if item else "Chưa tìm thấy bằng chứng nội bộ phù hợp."
                 ),
                 requires_human_confirmation=True,
+                variance_type="none" if status == "covered" else "unverified",
+                variance_impact=(
+                    None if status == "covered" else "Chưa đủ bằng chứng để kết luận đáp ứng."
+                ),
             ))
     total = len(statuses)
     covered = statuses.count("covered")
@@ -159,11 +178,72 @@ def analyze_bid_document(
     return AssessmentSummary(total, covered, partial, gaps, round(100 * covered / total, 2) if total else 0.0)
 
 
+def evaluate_bid_gate(db: Database, notice_id: int | None = None) -> BidGateResult:
+    with db.session() as session:
+        rows = session.execute(
+            select(ComplianceAssessment, BidRequirement)
+            .join(BidRequirement, BidRequirement.id == ComplianceAssessment.requirement_id)
+            .where(BidRequirement.notice_id == notice_id)
+        ).all()
+    if not rows:
+        raise ValueError("Chưa có ma trận compliance. Hãy chạy analyze-bid trước.")
+    mandatory = [(item, req) for item, req in rows if req.requirement_type == "mandatory"]
+    blockers: list[str] = []
+    hard_gaps = [(item, req) for item, req in mandatory if item.status == "gap"]
+    if hard_gaps:
+        blockers.extend(
+            f"{req.requirement_code}: tiêu chí bắt buộc chưa có bằng chứng đáp ứng."
+            for _, req in hard_gaps
+        )
+        status = "NO-GO"
+    else:
+        unresolved = [
+            (item, req)
+            for item, req in mandatory
+            if item.status != "covered" or item.requires_human_confirmation
+        ]
+        if unresolved:
+            blockers.extend(
+                f"{req.requirement_code}: cần người kiểm tra độc lập xác nhận bằng chứng/spec."
+                for _, req in unresolved
+            )
+            status = "HOLD"
+        else:
+            status = "GO"
+    confirmed = sum(
+        1
+        for item, _ in mandatory
+        if item.status == "covered" and not item.requires_human_confirmation
+    )
+    return BidGateResult(status, len(mandatory), confirmed, blockers)
+
+
+def confirm_assessment(
+    db: Database, assessment_id: int, reviewer: str, decision: str, note: str | None = None
+) -> None:
+    if decision not in {"covered", "partial", "gap"}:
+        raise ValueError("decision phải là covered, partial hoặc gap")
+    if not reviewer.strip():
+        raise ValueError("Cần ghi tên người kiểm tra độc lập")
+    with db.session() as session:
+        assessment = session.get(ComplianceAssessment, assessment_id)
+        if assessment is None:
+            raise ValueError(f"Không tìm thấy assessment id={assessment_id}")
+        assessment.status = decision
+        assessment.reviewer_decision = decision
+        assessment.confirmed_by = reviewer.strip()
+        assessment.confirmed_at = datetime.now(UTC)
+        assessment.requires_human_confirmation = False
+        if note:
+            assessment.explanation = f"{assessment.explanation} Reviewer: {note.strip()}"
+
+
 def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEstimate:
     """Estimate bid readiness from evidence coverage, not competitor or price knowledge.
 
     The output is deliberately capped because this MVP has no calibrated historical outcome data.
     """
+    gate = evaluate_bid_gate(db, notice_id)
     with db.session() as session:
         statement = (
             select(ComplianceAssessment, BidRequirement)
@@ -191,12 +271,17 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
 
         # Conservative proxy until won/lost bids, price position and competitor data are available.
         estimated = round(min(80.0, max(5.0, 10.0 + readiness * 0.7)), 2)
+        if gate.status == "NO-GO":
+            estimated = min(estimated, 5.0)
+        elif gate.status == "HOLD":
+            estimated = min(estimated, 35.0)
         sample_confidence = min(20.0, len(rows) * 1.5)
         confidence = round(min(35.0, 15.0 + sample_confidence), 2)
         risks = [
             "Chưa có dữ liệu giá dự thầu và vị trí giá so với đối thủ.",
             "Chưa có dữ liệu lịch sử thắng/thua để hiệu chỉnh xác suất.",
         ]
+        risks[0:0] = gate.blockers
         if mandatory_gaps:
             risks.insert(0, f"Có {mandatory_gaps} yêu cầu bắt buộc chưa có bằng chứng.")
         if partial_count:
@@ -208,6 +293,7 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
             readiness_score=readiness,
             estimated_win_percent=estimated,
             confidence_percent=confidence,
+            gate_status=gate.status,
             mandatory_coverage_percent=round(mandatory_coverage, 2),
             evidence_coverage_percent=round(evidence_coverage, 2),
             risk_factors=json.dumps(risks, ensure_ascii=False),
@@ -231,4 +317,5 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
         mandatory_coverage_percent=round(mandatory_coverage, 2),
         evidence_coverage_percent=round(evidence_coverage, 2),
         risk_factors=risks,
+        gate_status=gate.status,
     )

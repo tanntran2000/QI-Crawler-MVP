@@ -194,7 +194,7 @@ def send_report_email(
     message["To"] = ", ".join(settings.email_to)
     message.set_content(
         body
-        or "Báo cáo tự động từ hệ thống EGP Crawler. Vui lòng xem tệp Excel đính kèm."
+        or "Báo cáo tự động từ hệ thống QI Crawler. Vui lòng xem tệp Excel đính kèm."
     )
     content = report_path.read_bytes()
     message.add_attachment(
@@ -209,6 +209,6 @@ def send_report_email(
             smtp.starttls()
         if settings.smtp_username:
             if not settings.smtp_password:
-                raise ValueError("Thiếu mật khẩu SMTP; hãy đặt EGP_SMTP_PASSWORD trong .env")
+                raise ValueError("Thiếu mật khẩu SMTP; hãy đặt QI_CRAWLER_SMTP_PASSWORD trong .env")
             smtp.login(settings.smtp_username, settings.smtp_password)
         smtp.send_message(message)

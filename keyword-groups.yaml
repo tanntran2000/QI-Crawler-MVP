@@ -1,0 +1,55 @@
+categories:
+  - name: Vật liệu xây dựng
+    aliases:
+      - VLXD
+      - construction materials
+      - building materials
+    signals:
+      - cát
+      - xi măng
+      - bê tông
+      - gạch
+      - đá xây dựng
+      - thép xây dựng
+      - construction
+      - cement
+      - concrete
+      - sand
+    products:
+      - name: cát trắng
+        aliases:
+          - white sand
+          - silica sand
+      - name: xi măng
+        aliases:
+          - cement
+
+  - name: Công nghệ thông tin
+    aliases:
+      - CNTT
+      - IT
+      - information technology
+      - ICT
+    signals:
+      - mạng
+      - máy chủ
+      - phần mềm
+      - dữ liệu
+      - viễn thông
+      - 5G
+      - router
+      - switch
+      - server
+      - software
+      - network
+      - telecom
+    products:
+      - name: mô đun 5G
+        aliases:
+          - module 5G
+          - modul 5G
+          - 5G module
+      - name: bộ định tuyến
+        aliases:
+          - router
+          - network router

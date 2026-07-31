@@ -1,361 +1,180 @@
-# EGP Crawler Python 0.2 — Crawler, ETL và báo cáo đấu thầu
+# QI-Crawler MVP
 
-Bộ mã này là nền tảng Python bất đồng bộ để thu thập **dữ liệu đấu thầu từ các nguồn mà doanh nghiệp được phép tự động truy cập**, nhập dữ liệu Excel/CSV, tải tệp đính kèm, lưu database và tạo báo cáo hằng ngày.
+QI-Crawler là công cụ nội bộ hỗ trợ QI Technologies tìm kiếm, sàng lọc và theo dõi cơ hội đấu thầu.
+Người dùng có thể tìm gói theo tên Việt/Anh, thu thập dữ liệu từ nguồn công khai hoặc website cần đăng nhập,
+xuất Excel và đánh giá sơ bộ khả năng đáp ứng.
 
-> Hệ thống giữ nguyên các hàng rào tuân thủ: domain allowlist, `robots.txt`, rate limit và dừng khi phát hiện CAPTCHA/trang chặn. Bản này **không** xoay proxy dân cư, giả mạo User-Agent, né phát hiện bot hoặc tự động giải CAPTCHA.
+> QI-Crawler không tự nộp hồ sơ, không vượt CAPTCHA và không tạo bằng chứng năng lực. Kết quả tìm kiếm,
+> phân loại và tỷ lệ dự đoán luôn cần người phụ trách kiểm tra trước khi sử dụng.
 
-## 1. Thành phần đã nâng cấp
+## Tính năng hiện tại
 
-- Playwright bất đồng bộ (`async_playwright`).
-- Tìm kiếm động và phân trang bằng selector cấu hình.
-- Bắt sự kiện tải tệp bằng `page.expect_download()`.
-- Tải HTTP cho URL trực tiếp; tải Playwright cho nút sinh file bằng JavaScript/session.
-- Tên file an toàn, chống ghi đè, giới hạn dung lượng, allowlist phần mở rộng và SHA-256.
-- Trạng thái attachment: `pending`, `downloading`, `downloaded`, `failed`, `manual_review`.
-- Retry tệp tải lỗi.
-- Import `.csv` và `.xlsx`, chuẩn hóa cột tiếng Việt/tiếng Anh, chống trùng và xuất dòng lỗi.
-- Lưu HTML gốc trong `data/raw/`.
-- Theo dõi `crawl_runs`: số bản ghi mới, cập nhật và lỗi.
-- Báo cáo Excel nhiều sheet và gửi email SMTP tùy chọn.
-- REST API FastAPI.
-- Migration cộng thêm cho database SQLite/PostgreSQL cũ của bản MVP.
-- GitHub Actions chạy test và Ruff.
+- Tìm gói còn hạn trên UK Contracts Finder.
+- Kết nối trang danh sách gói thầu khác bằng URL.
+- Cho phép người dùng tự đăng nhập, nhập OTP/CAPTCHA và lưu phiên cục bộ.
+- Tìm bằng tên Việt, tên Anh, tên viết tắt và biến thể chính tả.
+- Tự phân loại từ khóa mới theo nhóm ngành với hàng chờ xác nhận khi chưa chắc chắn.
+- Lưu dữ liệu vào SQLite và xuất báo cáo Excel.
+- Đối chiếu yêu cầu với bằng chứng năng lực.
+- Trả kết luận `GO`, `HOLD`, `NO-GO` và tỷ lệ dự đoán hỗ trợ sàng lọc.
+- Giữ các hàng rào an toàn: domain allowlist, robots.txt, rate limit và dừng khi gặp chặn truy cập.
 
-## 2. Cài đặt trên Windows/VS Code
+## Cài đặt trên Windows
+
+Mở thư mục dự án bằng VS Code, chọn **Terminal > New Terminal**, rồi chạy từng dòng:
 
 ```powershell
-cd "C:\duong-dan\egp-crawler-python"
-
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
-python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 python -m playwright install chromium
-
-Copy-Item config.example.yaml config.yaml -Force
-egp-crawler init-db
 ```
 
-
-Nếu PowerShell chặn kích hoạt môi trường:
+Khi terminal hiện `(.venv)`, kiểm tra chương trình:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\.venv\Scripts\Activate.ps1
+QI-Crawler bat-dau
 ```
 
-## 3. Kiểm thử
+Nếu `.venv` đã tồn tại, những lần sau chỉ cần:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONUTF8="1"
+```
+
+## Trợ giúp
+
+Xem danh sách lệnh và ví dụ:
+
+```powershell
+QI-Crawler -help
+```
+
+Cũng có thể dùng:
+
+```powershell
+QI-Crawler -h
+QI-Crawler help
+QI-Crawler tim-goi -help
+```
+
+Không gõ riêng `-help`, vì PowerShell yêu cầu dòng lệnh bắt đầu bằng tên chương trình.
+
+## Quy trình nhanh: tìm và xuất Excel
+
+### Tìm gói trên Contracts Finder
+
+```powershell
+QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
+QI-Crawler xuat-bao-cao --tep data\bao-cao-switch.xlsx
+```
+
+QI-Crawler chỉ lưu các gói còn hạn trong phạm vi dữ liệu đã đọc.
+
+### Tìm trên website cần đăng nhập
+
+Khai báo URL trang danh sách một lần:
+
+```powershell
+QI-Crawler them-nguon `
+  --ten muasamcong `
+  --url "URL_TRANG_DANH_SACH_GOI_THAU"
+```
+
+Mở trình duyệt do QI-Crawler quản lý và tự đăng nhập:
+
+```powershell
+QI-Crawler dang-nhap --ten muasamcong
+```
+
+Sau khi đăng nhập, đi tới trang danh sách, quay lại terminal và nhấn Enter. Tiếp theo:
+
+```powershell
+QI-Crawler tim-tren-web --ten muasamcong --tu-khoa "xi măng" --so-luong 100
+QI-Crawler xuat-bao-cao --tep data\goi-thau-xi-mang.xlsx
+```
+
+Phiên đăng nhập được lưu trong `data/sessions/`, không được đưa lên Git. QI-Crawler không lưu mật khẩu và
+không tự vượt CAPTCHA. Website có cấu trúc đặc biệt có thể cần cấu hình selector riêng.
+
+## Từ khóa thông minh và nhóm ngành
+
+Từ điển [keyword-groups.yaml](keyword-groups.yaml) chứa nhóm ngành, tên sản phẩm và tên tương đương.
+
+Ví dụ `cát trắng` được mở rộng thành:
+
+- `cát trắng`, `white sand`, `silica sand`;
+- nhóm `Vật liệu xây dựng/VLXD`.
+
+Ví dụ `mô đun 5G` được mở rộng thành:
+
+- `mô đun 5G`, `module 5G`, `modul 5G`, `5G module`;
+- nhóm `Công nghệ thông tin/CNTT`.
+
+Nhóm ngành dùng để phân loại và giải thích, không dùng để lấy mọi gói trong cả ngành. Vì vậy tìm `cát trắng`
+không tự động lấy các gói thép hoặc gạch.
+
+### Thêm và tự phân loại từ khóa mới
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "cáp mạng ngoài trời" `
+  --ten-khac "outdoor network cable" `
+  --ten-khac "outdoor LAN cable" `
+  --mo-ta "Cáp kết nối switch, router và thiết bị mạng"
+```
+
+Nếu tín hiệu đủ rõ, từ khóa được cập nhật vào đúng nhóm. Nếu chưa rõ, nó được đưa vào `pending_keywords`.
+Người phụ trách có thể xác nhận thủ công:
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "tên sản phẩm" `
+  --ten-khac "tên tiếng Anh" `
+  --nhom "Công nghệ thông tin"
+```
+
+## Đánh giá khả năng đáp ứng
+
+Tạo file `data\yeu-cau.txt`, mỗi yêu cầu một dòng, rồi chạy:
+
+```powershell
+QI-Crawler danh-gia data\yeu-cau.txt
+```
+
+Ý nghĩa kết quả:
+
+- `GO`: tiêu chí bắt buộc đã có bằng chứng và được xác nhận.
+- `HOLD`: thiếu bằng chứng, thông số chưa rõ hoặc chưa có người kiểm tra.
+- `NO-GO`: có ít nhất một tiêu chí bắt buộc không đáp ứng.
+
+Tỷ lệ dự đoán chỉ hỗ trợ ưu tiên cơ hội; không phải xác suất thống kê đã hiệu chỉnh và không cam kết trúng thầu.
+
+## Dữ liệu và bảo mật
+
+Không đưa các nội dung sau lên GitHub hoặc gửi qua email/chat:
+
+- `data/sessions/`: cookie và token phiên đăng nhập;
+- `.env`, `config.yaml`: cấu hình cục bộ hoặc secret;
+- database và dữ liệu đầu ra nội bộ;
+- tài liệu năng lực hoặc hồ sơ dự thầu chưa được phép chia sẻ.
+
+Database mặc định vẫn dùng `data/egp.db` để bảo toàn dữ liệu từ phiên bản cũ. Đây chỉ là tên file tương thích,
+không phải tên sản phẩm hiện tại.
+
+## Tài liệu và lịch sử phiên bản
+
+- [Hướng dẫn sử dụng chi tiết](HUONG_DAN_SU_DUNG.md)
+- [Lịch sử cập nhật](CHANGELOG.md)
+
+## Kiểm tra kỹ thuật
 
 ```powershell
 python -m pytest -q
+python -m ruff check src tests --no-cache
 ```
 
-Kết quả của bản phát hành này:
-
-```text
-8 passed
-```
-
-## 4. Cấu hình quan trọng
-
-Sửa `config.yaml`:
-
-```yaml
-compliance:
-  obey_robots_txt: true
-  stop_on_captcha: true
-  identify_user_agent: "EGPResearchCrawler/0.2 (contact: email-cong-ty@example.com)"
-
-crawl:
-  requests_per_minute: 12
-  concurrency: 1
-  max_pages_per_run: 100
-```
-
-Selector được tách khỏi code:
-
-```yaml
-selectors:
-  search_input: "input[name='keyword']"
-  search_button: "button:has-text('Tìm kiếm')"
-  result_ready: "table tbody tr"
-  list_item: "table tbody tr"
-  detail_link: "a.detail-link"
-  next_page: "button:has-text('Sau')"
-
-  attachment_rows: "table.attachments tbody tr"
-  attachment_download_button: "button.download"
-  attachment_name: "td.file-name"
-```
-
-Các selector trên chỉ là ví dụ. Phải thay bằng selector của nguồn thực tế được phép sử dụng. Ưu tiên `data-testid`, role hoặc nhãn ổn định; tránh XPath tuyệt đối.
-
-## 5. Import Excel/CSV
-
-Các tên cột được nhận diện:
-
-- `Mã TBMT` / `notice_code`
-- `Tên gói thầu` / `title`
-- `Bên mời thầu` / `buyer`
-- `Chủ đầu tư` / `investor`
-- `Giá gói thầu` / `package_price`
-- `Ngày đăng tải` / `published_at`
-- `Thời điểm đóng thầu` / `closing_at`
-- `URL` / `source_url`
-- `Tệp đính kèm` / `attachments`
-
-Chạy:
-
-```powershell
-egp-crawler import-file data\input.xlsx
-egp-crawler import-file data\input.csv
-```
-
-Dòng thiếu cả mã TBMT hoặc tên gói thầu bị loại và ghi vào:
-
-```text
-data/rejects/
-```
-
-## 6. Crawl một hoặc nhiều URL
-
-```powershell
-egp-crawler crawl "URL_CHI_TIET_DUOC_PHEP"
-```
-
-Từ file URL:
-
-```powershell
-egp-crawler crawl-file data\urls.txt
-```
-
-HTML gốc được lưu trong `data/raw/html/` để kiểm tra lại parser.
-
-## 7. Tìm kiếm động và phân trang
-
-Sau khi cấu hình selector:
-
-```powershell
-egp-crawler collect-dynamic `
-  "URL_TRANG_DANH_SACH_DUOC_PHEP" `
-  --keyword "thiết bị mạng" `
-  --max-pages 10 `
-  --output data\urls.txt `
-  --headed
-```
-
-Luồng này:
-
-1. Mở trang bằng Playwright.
-2. Nhập từ khóa và bấm tìm kiếm.
-3. Chờ bảng kết quả.
-4. Thu URL chi tiết.
-5. Bấm trang tiếp theo đến giới hạn cấu hình.
-6. Dừng nếu trang không thay đổi hoặc nút Next bị vô hiệu hóa.
-
-## 8. Tải file bằng sự kiện Playwright
-
-Dùng khi tệp chỉ được tạo sau khi click hoặc cần cookie/session của Browser Context:
-
-```powershell
-egp-crawler download-page `
-  "URL_TRANG_CHI_TIET_DUOC_PHEP" `
-  --package-id "IB2600012345" `
-  --headed
-```
-
-Tệp được lưu theo cấu trúc:
-
-```text
-data/downloads/IB2600012345/
-  HSMT.pdf
-  Danh_muc_hang_hoa.xlsx
-```
-
-Metadata được lưu trong bảng `attachments`, gồm đường dẫn, SHA-256, dung lượng, phương thức tải và trạng thái.
-
-Retry các URL tải trực tiếp bị lỗi:
-
-```powershell
-egp-crawler retry-downloads --limit 100
-```
-
-Tệp cần click động phải chạy lại `download-page`; crawler không tự đoán nút download khi selector chưa được cấu hình.
-
-## 9. Discovery JSON/XHR
-
-```powershell
-egp-crawler discover `
-  "URL_DUOC_PHEP" `
-  --seconds 90 `
-  --headed
-```
-
-Phản hồi JSON cùng domain được lưu trong `data/discovery/`. Đây là công cụ khảo sát cấu trúc API công khai, không bỏ qua `robots.txt`.
-
-## 10. Xuất dữ liệu và báo cáo
-
-Xuất toàn bộ dữ liệu:
-
-```powershell
-egp-crawler export --format xlsx --output data\notices.xlsx
-egp-crawler export --format csv --output data\notices.csv
-```
-
-Báo cáo hằng ngày:
-
-```powershell
-egp-crawler report-daily
-```
-
-Các sheet:
-
-- Gói thầu mới
-- Sắp đóng thầu
-- Tất cả gói thầu
-- Tệp tải lỗi
-- Chất lượng dữ liệu
-
-Chọn ngày và khoảng sắp đóng thầu:
-
-```powershell
-egp-crawler report-daily --date 2026-07-28 --days-ahead 7
-```
-
-## 11. Gửi email báo cáo
-
-Trong `config.yaml`:
-
-```yaml
-reporting:
-  smtp_host: smtp.example.com
-  smtp_port: 587
-  smtp_username: bidding-bot@example.com
-  smtp_use_tls: true
-  email_from: bidding-bot@example.com
-  email_to:
-    - sales@example.com
-    - bidding@example.com
-```
-
-Trong `.env`:
-
-```env
-EGP_SMTP_USERNAME=bidding-bot@example.com
-EGP_SMTP_PASSWORD=mat-khau-ung-dung
-```
-
-Gửi báo cáo:
-
-```powershell
-egp-crawler report-daily --send-email
-```
-
-Không commit `.env` lên GitHub.
-
-## 12. REST API
-
-```powershell
-egp-crawler serve --host 127.0.0.1 --port 8000
-```
-
-Mở:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Endpoint:
-
-- `GET /health`
-- `GET /notices`
-- `GET /notices/{id}`
-- `GET /crawl-runs`
-- `GET /stats`
-- `GET /bid-compliance`
-
-## 13. Trợ lý compliance cho hồ sơ dự thầu
-
-Tính năng này tạo ma trận yêu cầu–bằng chứng có truy vết. Điểm keyword chỉ dùng để ưu tiên rà soát;
-không phải kết luận pháp lý hoặc bảo đảm trúng thầu. Trạng thái `covered` chỉ được tạo khi bằng chứng
-đã đánh dấu `verified`; mọi kết quả vẫn cần người có thẩm quyền xác nhận.
-
-Tạo CSV bằng chứng với các cột:
-
-```text
-evidence_code,title,evidence_type,description,keywords,source_path,valid_until,verified
-```
-
-Sau đó chạy:
-
-```powershell
-egp-crawler import-evidence data\company-evidence.csv
-egp-crawler analyze-bid data\ehsmt-requirements.txt --notice-id 1
-egp-crawler predict-win --notice-id 1
-```
-
-Mỗi dòng có nội dung trong `ehsmt-requirements.txt` được coi là một yêu cầu. Kết quả được lưu vào
-`bid_requirements` và `compliance_assessments`, có thể đọc qua API `GET /bid-compliance`.
-Ước tính được lưu trong `bid_predictions` và đọc qua `GET /bid-predictions`.
-Xem hướng dẫn đầy đủ tại `HUONG_DAN_MVP_AI_DAU_THAU.md`.
-
-## 14. PostgreSQL
-
-```powershell
-docker compose up -d postgres
-```
-
-`.env`:
-
-```env
-EGP_DATABASE_URL=postgresql+psycopg://egp:egp@localhost:5432/egp
-```
-
-```powershell
-python -m pip install -e ".[postgres,dev]"
-egp-crawler init-db
-```
-
-## 15. Lập lịch 8 giờ sáng trên Windows
-
-Tạo `run_daily.ps1`:
-
-```powershell
-Set-Location "C:\duong-dan\egp-crawler-python"
-.\.venv\Scripts\Activate.ps1
-
-egp-crawler import-file data\input.xlsx
-egp-crawler report-daily --send-email
-```
-
-Dùng **Windows Task Scheduler** để chạy file này lúc 08:00. Không lập lịch crawl một nguồn chưa được cho phép tự động truy cập.
-
-## 16. Đưa lên GitHub
-
-Repository đã loại khỏi Git:
-
-- `.venv/`
-- `.env`
-- database SQLite
-- file tải xuống
-- dữ liệu raw/discovery/reject/report
-- cache và `*.egg-info`
-
-```powershell
-git init
-git add .
-git commit -m "Upgrade crawler ETL downloads reporting"
-git branch -M main
-git remote add origin URL_REPOSITORY
-git push -u origin main
-```
-
-## 17. Giới hạn và hướng production
-
-- Cần adapter riêng cho API/file xuất chính thức của từng nguồn.
-- Selector DOM có thể thay đổi và phải được kiểm thử định kỳ.
-- Migration cộng thêm hiện phù hợp MVP; production nên chuyển sang Alembic.
-- Nên lưu file trên S3/MinIO và quét malware trước khi phân tích.
-- Cần quản lý secrets bằng Vault/Secret Manager khi triển khai công ty.
-- CAPTCHA, HTTP 403/429 và chính sách từ chối truy cập được chuyển sang trạng thái dừng/manual review, không tự động vượt qua.
+Trạng thái kiểm thử cục bộ gần nhất: 22 bài kiểm thử đạt. GitHub Actions có thể khác Windows về cách hiển thị
+Unicode trong terminal; lỗi CI cần được xử lý trước khi hợp nhất Pull Request.

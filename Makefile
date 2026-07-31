@@ -11,20 +11,20 @@ lint:
 	python -m ruff check src tests
 
 init:
-	egp-crawler init-db
+	QI-Crawler init-db
 
 discover:
-	egp-crawler discover "https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=search" --seconds 90 --headed
+	QI-Crawler discover "https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=search" --seconds 90 --headed
 
 export:
-	egp-crawler export --format xlsx --output data/notices.xlsx
+	QI-Crawler export --format xlsx --output data/notices.xlsx
 
 report:
-	egp-crawler report-daily
+	QI-Crawler report-daily
 
 serve:
-	egp-crawler serve
+	QI-Crawler serve
 
 clean:
 	python -c "import pathlib,shutil; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]"
-	python -c "import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['.pytest_cache','.ruff_cache','src/egp_crawler.egg-info']]"
+	python -c "import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['.pytest_cache','.ruff_cache','src/qi_crawler.egg-info']]"
