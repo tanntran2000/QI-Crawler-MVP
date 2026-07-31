@@ -6,9 +6,24 @@ from pathlib import Path
 
 import typer
 
-from .bid_intelligence import analyze_bid_document, estimate_win_likelihood, import_evidence_csv
+from .authenticated_sources import (
+    WebSource,
+    allow_source_domain,
+    collect_authenticated_source,
+    create_login_session,
+    load_source,
+    save_source,
+)
+from .bid_intelligence import (
+    analyze_bid_document,
+    confirm_assessment,
+    estimate_win_likelihood,
+    evaluate_bid_gate,
+    import_evidence_csv,
+)
 from .browser import BrowserFetcher
 from .config import EnvSettings, load_config
+from .contracts_finder import collect_contracts_finder
 from .crawler import CrawlerService
 from .db import Database
 from .exporter import export_csv, export_xlsx
@@ -262,7 +277,7 @@ def serve(
 ) -> None:
     import uvicorn
 
-    uvicorn.run("egp_crawler.api:app", host=host, port=port, reload=False)
+    uvicorn.run("qi_crawler.api:app", host=host, port=port, reload=False)
 
 
 @app.command("import-evidence")
@@ -305,6 +320,7 @@ def predict_win(
     db = Database(cfg.storage.database_url)
     db.create_all()
     result = estimate_win_likelihood(db, notice_id=notice_id)
+    typer.echo(f"Cổng SOP: {result.gate_status}")
     typer.echo(f"Điểm sẵn sàng hồ sơ: {result.readiness_score}%")
     typer.echo(
         f"Tỷ lệ trúng thầu ước tính: {result.estimated_win_percent}% "
@@ -315,6 +331,221 @@ def predict_win(
     for risk in result.risk_factors:
         typer.echo(f"  - {risk}")
     typer.echo("Cảnh báo: đây là ước tính MVP, không phải xác suất đã kiểm định hay bảo đảm trúng thầu.")
+
+
+@app.command("bid-gate")
+def bid_gate(
+    notice_id: int | None = typer.Option(None, "--notice-id", min=1),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Apply the SOP mandatory-requirement GO/HOLD/NO-GO gate."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    result = evaluate_bid_gate(db, notice_id)
+    typer.echo(
+        f"Kết luận SOP: {result.status}; bắt buộc={result.mandatory_total}; "
+        f"đã xác nhận={result.mandatory_confirmed}"
+    )
+    for blocker in result.blockers:
+        typer.echo(f"  - {blocker}")
+
+
+@app.command("confirm-assessment")
+def confirm_assessment_command(
+    assessment_id: int = typer.Argument(..., min=1),
+    reviewer: str = typer.Option(..., "--reviewer"),
+    decision: str = typer.Option(..., "--decision"),
+    note: str | None = typer.Option(None, "--note"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Record an independent reviewer decision for one compliance item."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    confirm_assessment(db, assessment_id, reviewer, decision, note)
+    typer.echo(f"Đã xác nhận assessment {assessment_id}: {decision} bởi {reviewer}.")
+
+
+@app.command("collect-contracts-finder")
+def collect_contracts_finder_command(
+    keyword: str | None = typer.Option(None, "--keyword", "-k"),
+    published_from: str | None = typer.Option(None, "--from", help="YYYY-MM-DD"),
+    limit: int = typer.Option(20, "--limit", min=1, max=500),
+    max_pages: int = typer.Option(10, "--max-pages", min=1, max=100),
+    only_open: bool = typer.Option(True, "--only-open/--include-closed"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Collect public UK procurement notices from the official OCDS API."""
+    cfg = _config(config)
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            result = await collect_contracts_finder(
+                service,
+                keyword=keyword,
+                published_from=date.fromisoformat(published_from) if published_from else None,
+                limit=limit,
+                max_pages=max_pages,
+                only_open=only_open,
+            )
+            typer.echo(
+                f"Contracts Finder: đọc={result.fetched}, khớp={result.matched}, "
+                f"mới={result.inserted}, cập nhật={result.updated}, "
+                f"bỏ qua hết hạn={result.expired_skipped}"
+            )
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+# ---------------------------------------------------------------------------
+# Lệnh đơn giản cho người mới. Các lệnh kỹ thuật phía trên vẫn được giữ để
+# vận hành nâng cao và tương thích với quy trình cũ.
+
+
+@app.command("bat-dau")
+def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
+    """Khởi tạo MVP và hiển thị ba bước sử dụng cơ bản."""
+    cfg = _config(config)
+    Database(cfg.storage.database_url).create_all()
+    typer.echo("MVP QI đã sẵn sàng.")
+    typer.echo("1. Tìm gói:       QI-Crawler tim-goi --tu-khoa \"network switch\"")
+    typer.echo("2. Xuất báo cáo: QI-Crawler xuat-bao-cao")
+    typer.echo("3. Đánh giá:     QI-Crawler danh-gia data\\yeu-cau.txt")
+
+
+@app.command("tim-goi")
+def tim_goi(
+    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Từ khóa tiếng Anh"),
+    tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="YYYY-MM-DD; mặc định 30 ngày"),
+    so_luong: int = typer.Option(20, "--so-luong", min=1, max=200),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Tìm và lưu các gói Contracts Finder còn hạn."""
+    cfg = _config(config)
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            result = await collect_contracts_finder(
+                service,
+                keyword=tu_khoa,
+                published_from=date.fromisoformat(tu_ngay) if tu_ngay else None,
+                limit=so_luong,
+                only_open=True,
+            )
+            typer.echo(f"Đã lưu {result.matched} gói còn hạn phù hợp từ khóa '{tu_khoa}'.")
+            typer.echo(f"Đã bỏ qua {result.expired_skipped} gói hết hạn.")
+            typer.echo("Bước tiếp theo: QI-Crawler xuat-bao-cao")
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+@app.command("xuat-bao-cao")
+def xuat_bao_cao(
+    output: Path = typer.Option(Path("data/bao-cao-goi-thau.xlsx"), "--tep", "-o"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Xuất danh sách gói thầu ra Excel."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    path = export_xlsx(db, output)
+    typer.echo(f"Đã tạo báo cáo: {path}")
+
+
+@app.command("danh-gia")
+def danh_gia(
+    yeu_cau: Path = typer.Argument(..., exists=True, readable=True),
+    notice_id: int | None = typer.Option(None, "--ma-noi-bo", min=1),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Phân tích file yêu cầu và trả kết luận GO/HOLD/NO-GO."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    summary = analyze_bid_document(db, yeu_cau, notice_id=notice_id)
+    gate = evaluate_bid_gate(db, notice_id)
+    typer.echo(
+        f"Đã đọc {summary.total} yêu cầu: đáp ứng={summary.covered}, "
+        f"cần kiểm tra={summary.partial}, thiếu={summary.gaps}."
+    )
+    typer.echo(f"Kết luận hiện tại: {gate.status}")
+    for blocker in gate.blockers[:10]:
+        typer.echo(f"  - {blocker}")
+    if gate.status != "GO":
+        typer.echo("Cần người phụ trách kiểm tra bằng chứng trước khi trình duyệt.")
+
+
+@app.command("them-nguon")
+def them_nguon(
+    ten: str = typer.Option(..., "--ten", help="Tên ngắn, ví dụ: muasamcong"),
+    url: str = typer.Option(..., "--url", help="Địa chỉ trang danh sách gói thầu"),
+    item_selector: str = typer.Option("a[href]", "--vung-ket-qua", hidden=True),
+    link_selector: str = typer.Option("a", "--link", hidden=True),
+    next_selector: str | None = typer.Option(None, "--trang-sau", hidden=True),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Thêm một website có trang danh sách gói thầu."""
+    source = WebSource(
+        name=ten,
+        list_url=url,
+        item_selector=item_selector,
+        link_selector=link_selector,
+        next_selector=next_selector,
+    )
+    config_path = config or EnvSettings().config_path
+    allow_source_domain(config_path, source.domain)
+    path = save_source(source)
+    typer.echo(f"Đã thêm nguồn '{source.name}': {source.domain}")
+    typer.echo(f"Cấu hình cục bộ: {path}")
+    typer.echo(f"Bước tiếp theo: QI-Crawler dang-nhap --ten {source.name}")
+
+
+@app.command("dang-nhap")
+def dang_nhap(
+    ten: str = typer.Option(..., "--ten"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Mở trình duyệt để người dùng tự đăng nhập và lưu phiên cục bộ."""
+    cfg = _config(config)
+    source = load_source(ten)
+    path = asyncio.run(create_login_session(cfg, source))
+    typer.echo(f"Đã lưu phiên đăng nhập cục bộ cho '{source.name}': {path}")
+    typer.echo("Không gửi file session cho người khác và không đưa file này lên Git.")
+
+
+@app.command("tim-tren-web")
+def tim_tren_web(
+    ten: str = typer.Option(..., "--ten"),
+    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k"),
+    so_luong: int = typer.Option(50, "--so-luong", min=1, max=500),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Tìm link gói thầu bằng phiên đăng nhập đã lưu."""
+    cfg = _config(config)
+    source = load_source(ten)
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            result = await collect_authenticated_source(
+                service, source, keyword=tu_khoa, limit=so_luong
+            )
+            typer.echo(
+                f"Đã xem {result.scanned} mục, lưu {result.matched} gói phù hợp "
+                f"(mới={result.inserted}, cập nhật={result.updated})."
+            )
+            typer.echo("Bước tiếp theo: QI-Crawler xuat-bao-cao")
+        finally:
+            await service.close()
+
+    asyncio.run(run())
 
 
 if __name__ == "__main__":

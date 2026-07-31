@@ -2,18 +2,18 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: egp
-      POSTGRES_USER: egp
-      POSTGRES_PASSWORD: egp
+      POSTGRES_DB: qi_crawler
+      POSTGRES_USER: qi_crawler
+      POSTGRES_PASSWORD: qi_crawler
     ports:
       - "5432:5432"
     volumes:
-      - egp_pgdata:/var/lib/postgresql/data
+      - qi_crawler_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U egp -d egp"]
+      test: ["CMD-SHELL", "pg_isready -U qi_crawler -d qi_crawler"]
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  egp_pgdata:
+  qi_crawler_pgdata:

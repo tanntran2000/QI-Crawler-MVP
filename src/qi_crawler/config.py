@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ComplianceConfig(BaseModel):
     obey_robots_txt: bool = True
     stop_on_captcha: bool = True
-    identify_user_agent: str = "EGPResearchCrawler/0.2 (contact: replace-me@example.com)"
+    identify_user_agent: str = "QIResearchCrawler/0.2 (contact: replace-me@example.com)"
 
 
 class CrawlConfig(BaseModel):
@@ -77,7 +77,7 @@ class ReportingConfig(BaseModel):
 
 
 class AppConfig(BaseModel):
-    project_name: str = "egp-public-crawler"
+    project_name: str = "qi-crawler"
     allowed_domains: list[str] = Field(default_factory=lambda: ["muasamcong.mpi.gov.vn"])
     seed_urls: list[str] = Field(default_factory=list)
     compliance: ComplianceConfig = Field(default_factory=ComplianceConfig)
@@ -93,7 +93,7 @@ class AppConfig(BaseModel):
 
 
 class EnvSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="EGP_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="QI_CRAWLER_", env_file=".env", extra="ignore")
     database_url: str | None = None
     config_path: Path = Path("./config.yaml")
     log_level: str = "INFO"

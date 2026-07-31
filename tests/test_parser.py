@@ -1,4 +1,4 @@
-from egp_crawler.parser import extract_detail_links, parse_money, parse_notice_html
+from qi_crawler.parser import extract_detail_links, parse_money, parse_notice_html
 
 
 def test_parse_money_vnd():

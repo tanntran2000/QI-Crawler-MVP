@@ -2,14 +2,15 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from egp_crawler.bid_intelligence import (
+from qi_crawler.bid_intelligence import (
     analyze_bid_document,
     estimate_win_likelihood,
+    evaluate_bid_gate,
     extract_keywords,
     import_evidence_csv,
 )
-from egp_crawler.db import Database
-from egp_crawler.models import BidRequirement, ComplianceAssessment
+from qi_crawler.db import Database
+from qi_crawler.models import BidRequirement, ComplianceAssessment
 
 
 def test_extract_keywords_normalizes_vietnamese():
@@ -45,3 +46,7 @@ def test_evidence_backed_assessment(tmp_path: Path):
     assert 5 <= prediction.estimated_win_percent <= 80
     assert prediction.confidence_percent <= 35
     assert prediction.readiness_score < 100
+    assert prediction.gate_status == "NO-GO"
+    gate = evaluate_bid_gate(db)
+    assert gate.status == "NO-GO"
+    assert gate.blockers

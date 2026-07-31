@@ -39,6 +39,12 @@ data/rejects/*
 data/reports/*
 !data/reports/.gitkeep
 
+# Phiên đăng nhập trình duyệt chứa cookie/token, tuyệt đối không đưa lên Git
+data/sessions/
+
+# Cấu hình nguồn cục bộ có thể chứa URL nội bộ
+data/sources/
+
 # File demo được tạo khi chạy
 data/demo/*.xlsx
 data/demo/du-lieu-mau.csv

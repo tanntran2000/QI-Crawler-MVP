@@ -18,7 +18,7 @@ from .models import (
 config = load_config()
 db = Database(config.storage.database_url)
 db.create_all()
-app = FastAPI(title="EGP Crawler API", version="0.2.0")
+app = FastAPI(title="QI Crawler API", version="0.2.0")
 
 
 @app.get("/health")
@@ -179,6 +179,7 @@ def bid_compliance(
                 "category": requirement.category,
                 "source_text": requirement.source_text,
                 "mandatory": requirement.mandatory,
+                "requirement_type": requirement.requirement_type,
                 "source_reference": requirement.source_reference,
                 "status": assessment.status,
                 "score": assessment.score,
@@ -186,6 +187,11 @@ def bid_compliance(
                 "matched_keywords": assessment.matched_keywords,
                 "explanation": assessment.explanation,
                 "requires_human_confirmation": assessment.requires_human_confirmation,
+                "variance_type": assessment.variance_type,
+                "variance_impact": assessment.variance_impact,
+                "reviewer_decision": assessment.reviewer_decision,
+                "confirmed_by": assessment.confirmed_by,
+                "confirmed_at": assessment.confirmed_at,
             }
             for assessment, requirement in rows
         ]
@@ -206,6 +212,7 @@ def bid_predictions(notice_id: int | None = None, limit: int = Query(default=20,
                 "readiness_score": item.readiness_score,
                 "estimated_win_percent": item.estimated_win_percent,
                 "confidence_percent": item.confidence_percent,
+                "gate_status": item.gate_status,
                 "mandatory_coverage_percent": item.mandatory_coverage_percent,
                 "evidence_coverage_percent": item.evidence_coverage_percent,
                 "risk_factors": item.risk_factors,

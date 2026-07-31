@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from egp_crawler.downloads import normalize_extension, safe_filename, unique_destination
+from qi_crawler.downloads import normalize_extension, safe_filename, unique_destination
 
 
 def test_safe_filename_removes_path_and_windows_characters():

@@ -30,6 +30,17 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "records_failed": "INTEGER NOT NULL DEFAULT 0",
         "error_message": "TEXT",
     },
+    "bid_requirements": {
+        "requirement_type": "VARCHAR(32) NOT NULL DEFAULT 'mandatory'",
+    },
+    "compliance_assessments": {
+        "variance_type": "VARCHAR(32) NOT NULL DEFAULT 'none'",
+        "variance_impact": "TEXT",
+        "reviewer_decision": "VARCHAR(32)",
+    },
+    "bid_predictions": {
+        "gate_status": "VARCHAR(32) NOT NULL DEFAULT 'HOLD'",
+    },
 }
 
 

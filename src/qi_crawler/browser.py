@@ -43,16 +43,27 @@ class BrowserFetcher:
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
 
-    async def start(self, headed: bool = False) -> None:
+    async def start(self, headed: bool = False, storage_state: Path | None = None) -> None:
         if self._browser and self._context:
             return
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(headless=not headed)
+        context_options = {
+            "user_agent": self.config.compliance.identify_user_agent,
+            "locale": "vi-VN",
+            "accept_downloads": True,
+        }
+        if storage_state and storage_state.exists():
+            context_options["storage_state"] = str(storage_state)
         self._context = await self._browser.new_context(
-            user_agent=self.config.compliance.identify_user_agent,
-            locale="vi-VN",
-            accept_downloads=True,
+            **context_options,
         )
+
+    async def save_storage_state(self, path: Path) -> None:
+        if not self._context:
+            raise RuntimeError("Trình duyệt chưa được khởi động")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        await self._context.storage_state(path=str(path))
 
     async def close(self) -> None:
         if self._context:
