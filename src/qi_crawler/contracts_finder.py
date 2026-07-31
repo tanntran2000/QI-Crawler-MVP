@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from .crawler import CrawlerService
+from .keywords import matches_any_keyword
 from .parser import ParsedAttachment, ParsedNotice
 
 API_URL = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search"
@@ -80,21 +81,21 @@ def release_to_notice(release: dict) -> ParsedNotice | None:
     )
 
 
-def release_matches(release: dict, keyword: str | None) -> bool:
+def release_matches(release: dict, keyword: str | tuple[str, ...] | None) -> bool:
     if not keyword:
         return True
     tender = release.get("tender") or {}
     buyer = release.get("buyer") or {}
     haystack = " ".join(
         [str(tender.get("title") or ""), str(tender.get("description") or ""), str(buyer.get("name") or "")]
-    ).casefold()
-    terms = [term.casefold() for term in keyword.split() if term.strip()]
-    return all(term in haystack for term in terms)
+    )
+    terms = (keyword,) if isinstance(keyword, str) else keyword
+    return matches_any_keyword(haystack, terms)
 
 
 async def collect_contracts_finder(
     service: CrawlerService,
-    keyword: str | None = None,
+    keyword: str | tuple[str, ...] | None = None,
     published_from: date | None = None,
     limit: int = 20,
     max_pages: int = 10,

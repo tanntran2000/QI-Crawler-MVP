@@ -28,13 +28,66 @@ from .crawler import CrawlerService
 from .db import Database
 from .exporter import export_csv, export_xlsx
 from .importer import import_file as import_data_file
+from .keywords import KeywordExpansion, expand_keyword, learn_keyword
 from .logging_utils import configure_logging
 from .reporting import build_daily_report, send_report_email
 
+
+def _show_keyword_plan(expansion: KeywordExpansion) -> None:
+    typer.echo(f"Từ khóa sản phẩm: {', '.join(expansion.product_terms)}")
+    if expansion.category:
+        typer.echo(
+            f"Nhóm ngành: {expansion.category} "
+            f"({', '.join(expansion.category_terms)})"
+        )
+
+
+def _expand_and_learn(keyword: str) -> KeywordExpansion:
+    expansion = expand_keyword(keyword)
+    if expansion.category is None:
+        learned = learn_keyword(keyword)
+        if learned.status == "updated":
+            typer.echo(
+                f"Đã tự phân loại từ khóa mới vào nhóm '{learned.category}' "
+                f"(độ tin cậy {learned.confidence:.0%})."
+            )
+            expansion = expand_keyword(keyword)
+        else:
+            typer.echo(
+                "Từ khóa mới chưa đủ thông tin để phân loại; đã đưa vào "
+                "pending_keywords để người phụ trách kiểm tra."
+            )
+    return expansion
+
 app = typer.Typer(
     no_args_is_help=True,
+    context_settings={"help_option_names": ["-help", "--help", "-h"]},
     help="Crawler dữ liệu đấu thầu công khai: allowlist, robots.txt, rate limit và audit.",
+    epilog="""
+LỆNH MẪU CHO NGƯỜI MỚI:
+
+  QI-Crawler bat-dau
+
+  QI-Crawler tim-goi --tu-khoa "xi măng"
+
+  QI-Crawler xuat-bao-cao
+
+  QI-Crawler them-nguon --ten muasamcong --url "URL_TRANG_DANH_SACH"
+
+  QI-Crawler dang-nhap --ten muasamcong
+
+  QI-Crawler tim-tren-web --ten muasamcong --tu-khoa "xi măng"
+
+Dùng QI-Crawler TEN-LENH -help để xem hướng dẫn riêng của một lệnh.
+""",
 )
+
+
+@app.command("help")
+def show_help(ctx: typer.Context) -> None:
+    """Hiện danh sách lệnh và ví dụ sử dụng."""
+    if ctx.parent is not None:
+        typer.echo(ctx.parent.get_help())
 
 
 def _config(path: Path | None):
@@ -419,20 +472,24 @@ def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -
 
 @app.command("tim-goi")
 def tim_goi(
-    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Từ khóa tiếng Anh"),
+    tu_khoa: str = typer.Option(
+        ..., "--tu-khoa", "-k", help="Tên sản phẩm tiếng Việt hoặc tiếng Anh"
+    ),
     tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="YYYY-MM-DD; mặc định 30 ngày"),
     so_luong: int = typer.Option(20, "--so-luong", min=1, max=200),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     """Tìm và lưu các gói Contracts Finder còn hạn."""
     cfg = _config(config)
+    expansion = _expand_and_learn(tu_khoa)
+    _show_keyword_plan(expansion)
 
     async def run() -> None:
         service = CrawlerService(cfg)
         try:
             result = await collect_contracts_finder(
                 service,
-                keyword=tu_khoa,
+                keyword=expansion.search_terms,
                 published_from=date.fromisoformat(tu_ngay) if tu_ngay else None,
                 limit=so_luong,
                 only_open=True,
@@ -507,6 +564,33 @@ def them_nguon(
     typer.echo(f"Bước tiếp theo: QI-Crawler dang-nhap --ten {source.name}")
 
 
+@app.command("them-tu-khoa")
+def them_tu_khoa(
+    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Tên sản phẩm mới"),
+    ten_khac: list[str] = typer.Option(
+        [], "--ten-khac", help="Tên Anh/viết tắt; có thể nhập nhiều lần"
+    ),
+    mo_ta: str = typer.Option("", "--mo-ta", help="Mô tả ngắn giúp xác định nhóm ngành"),
+    nhom: str | None = typer.Option(None, "--nhom", help="Chỉ định nhóm nếu muốn xác nhận thủ công"),
+) -> None:
+    """Tự phân loại và cập nhật một từ khóa sản phẩm mới."""
+    result = learn_keyword(
+        tu_khoa,
+        aliases=tuple(ten_khac),
+        description=mo_ta,
+        category_name=nhom,
+    )
+    if result.status == "updated":
+        typer.echo(f"Đã cập nhật '{result.keyword}' vào nhóm '{result.category}'.")
+        typer.echo(f"Độ tin cậy phân loại: {result.confidence:.0%}")
+        if result.matched_signals:
+            typer.echo(f"Tín hiệu nhận diện: {', '.join(result.matched_signals)}")
+    else:
+        typer.echo("Chưa xác định được nhóm ngành một cách an toàn.")
+        typer.echo("Từ khóa đã được lưu vào pending_keywords trong keyword-groups.yaml.")
+        typer.echo("Chạy lại với --nhom \"TÊN NHÓM\" sau khi người phụ trách xác nhận.")
+
+
 @app.command("dang-nhap")
 def dang_nhap(
     ten: str = typer.Option(..., "--ten"),
@@ -530,12 +614,14 @@ def tim_tren_web(
     """Tìm link gói thầu bằng phiên đăng nhập đã lưu."""
     cfg = _config(config)
     source = load_source(ten)
+    expansion = _expand_and_learn(tu_khoa)
+    _show_keyword_plan(expansion)
 
     async def run() -> None:
         service = CrawlerService(cfg)
         try:
             result = await collect_authenticated_source(
-                service, source, keyword=tu_khoa, limit=so_luong
+                service, source, keyword=expansion.search_terms, limit=so_luong
             )
             typer.echo(
                 f"Đã xem {result.scanned} mục, lưu {result.matched} gói phù hợp "

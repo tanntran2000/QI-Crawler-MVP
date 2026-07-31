@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from .browser import BrowserFetcher
 from .config import AppConfig
 from .crawler import CrawlerService
+from .keywords import matches_any_keyword
 from .parser import ParsedNotice
 
 SOURCE_DIR = Path("data/sources")
@@ -105,15 +106,10 @@ async def create_login_session(config: AppConfig, source: WebSource) -> Path:
         await browser.close()
 
 
-def _matches(text: str, keyword: str) -> bool:
-    folded = text.casefold()
-    return all(term.casefold() in folded for term in keyword.split() if term.strip())
-
-
 async def collect_authenticated_source(
     service: CrawlerService,
     source: WebSource,
-    keyword: str,
+    keyword: str | tuple[str, ...],
     limit: int = 50,
 ) -> AuthenticatedCollectionSummary:
     state = session_path(source.name)
@@ -128,7 +124,8 @@ async def collect_authenticated_source(
         await page.goto(source.list_url, wait_until="domcontentloaded")
         await page.locator(source.page_ready).first.wait_for(state="visible")
         if source.search_input and source.search_button:
-            await page.locator(source.search_input).first.fill(keyword)
+            search_value = keyword if isinstance(keyword, str) else keyword[0]
+            await page.locator(source.search_input).first.fill(search_value)
             await page.locator(source.search_button).first.click()
             await page.wait_for_timeout(service.config.crawl.render_wait_ms)
         for _ in range(source.max_pages):
@@ -138,7 +135,8 @@ async def collect_authenticated_source(
             for index in range(count):
                 item = items.nth(index)
                 text = (await item.inner_text()).strip()
-                if not text or not _matches(text, keyword):
+                terms = (keyword,) if isinstance(keyword, str) else keyword
+                if not text or not matches_any_keyword(text, terms):
                     continue
                 candidate = item.locator(source.link_selector).first
                 link = candidate if await candidate.count() else item

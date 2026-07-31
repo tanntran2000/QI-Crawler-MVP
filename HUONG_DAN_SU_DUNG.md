@@ -307,12 +307,97 @@ Người dùng thông thường chỉ cần nhớ bốn việc:
 QI-Crawler tim-goi --tu-khoa "TỪ KHÓA TIẾNG ANH"
 QI-Crawler xuat-bao-cao
 QI-Crawler danh-gia data\yeu-cau.txt
-QI-Crawler --help
+QI-Crawler -help
 ```
 
 Với website cần tài khoản, thay lệnh `tim-goi` bằng `tim-tren-web` sau khi đã thực hiện `them-nguon` và `dang-nhap`.
 
-## 11. Lệnh nâng cao
+## 11. Tìm bằng tên Việt, tên Anh và nhóm ngành
+
+Người dùng chỉ cần nhập tên quen thuộc. QI-Crawler tự tìm bằng tên đã nhập và các tên tương đương trong
+`keyword-groups.yaml`.
+
+Ví dụ:
+
+```powershell
+QI-Crawler tim-goi --tu-khoa "cát trắng"
+```
+
+Chương trình sẽ thông báo:
+
+```text
+Từ khóa sản phẩm: cát trắng, white sand, silica sand
+Nhóm ngành: Vật liệu xây dựng (Vật liệu xây dựng, VLXD, construction materials, building materials)
+```
+
+Một ví dụ khác:
+
+```powershell
+QI-Crawler tim-goi --tu-khoa "mô đun 5G"
+```
+
+MVP sẽ kiểm tra đồng thời các cách viết `mô đun 5G`, `module 5G`, `modul 5G` và `5G module`, sau đó gắn
+ngữ cảnh nhóm `Công nghệ thông tin/CNTT`. Việc so khớp không phân biệt chữ hoa, chữ thường hoặc dấu tiếng Việt.
+
+Nhóm ngành chỉ dùng để phân loại và giải thích. MVP không lấy tất cả gói trong `VLXD` khi người dùng chỉ tìm
+`cát trắng`, vì làm vậy sẽ đưa vào nhiều gói không phù hợp như thép, gạch hoặc sơn.
+
+### Thêm sản phẩm mới mà không sửa code
+
+Mở file `keyword-groups.yaml`. Trong đúng nhóm ngành, thêm sản phẩm theo mẫu:
+
+```yaml
+      - name: tên tiếng Việt
+        aliases:
+          - tên tiếng Anh
+          - tên viết tắt
+          - cách viết thường gặp khác
+```
+
+Ví dụ thêm thiết bị tường lửa vào nhóm Công nghệ thông tin:
+
+```yaml
+      - name: thiết bị tường lửa
+        aliases:
+          - firewall
+          - network firewall
+          - next generation firewall
+```
+
+Giữ nguyên khoảng trắng đầu dòng như các sản phẩm có sẵn. Sau khi lưu file, chạy lại `tim-goi` hoặc
+`tim-tren-web`; không cần cài lại chương trình.
+
+### Để QI-Crawler tự phân loại và cập nhật
+
+Ví dụ thêm một loại cáp mạng mới:
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "cáp mạng ngoài trời" `
+  --ten-khac "outdoor network cable" `
+  --ten-khac "outdoor LAN cable" `
+  --mo-ta "Cáp kết nối switch, router và thiết bị mạng"
+```
+
+QI-Crawler đọc tên, tên khác và mô tả, sau đó so với các `signals` của từng nhóm ngành. Nếu đủ tin cậy,
+sản phẩm được thêm ngay vào đúng nhóm trong `keyword-groups.yaml`. Các lần tìm sau tự động sử dụng toàn bộ
+tên tương đương.
+
+Nếu từ khóa quá chung hoặc có thể thuộc nhiều ngành, chương trình không tự đoán. Nó lưu từ khóa vào
+`pending_keywords` để người phụ trách xem lại. Sau khi xác nhận, chạy:
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "tên sản phẩm" `
+  --ten-khac "tên tiếng Anh" `
+  --nhom "Công nghệ thông tin"
+```
+
+Khi chạy `tim-goi` hoặc `tim-tren-web` với một từ khóa chưa có, MVP cũng thử phân loại tự động. Chỉ trường hợp
+có tín hiệu rõ mới được cập nhật; trường hợp chưa rõ luôn đi vào hàng chờ. QI-Crawler không tự dịch tên sản phẩm
+không có căn cứ: người dùng nên cung cấp `--ten-khac` hoặc kiểm tra lại tên do nhà sản xuất công bố.
+
+## 12. Lệnh nâng cao
 
 Các lệnh kỹ thuật cũ vẫn được giữ cho người quản trị:
 
@@ -324,10 +409,10 @@ confirm-assessment, bid-gate, predict-win, report-daily, serve
 Xem toàn bộ bằng:
 
 ```powershell
-QI-Crawler --help
+QI-Crawler -help
 ```
 
-## 12. Khắc phục lỗi thường gặp
+## 13. Khắc phục lỗi thường gặp
 
 - `gh is not recognized`: mở terminal mới sau khi cài GitHub CLI.
 - Terminal hiện `>>`: nhấn `Ctrl+C`.
