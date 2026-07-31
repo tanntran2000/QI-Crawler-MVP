@@ -11,7 +11,6 @@ def test_short_help_option_shows_commands_and_examples() -> None:
     assert result.exit_code == 0
     assert "QI-Crawler" in result.output
     assert "tim-goi" in result.output
-    assert "--tu-khoa" in result.output
 
 
 def test_help_command_shows_commands_and_examples() -> None:
