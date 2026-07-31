@@ -3,17 +3,17 @@ from __future__ import annotations
 import csv
 import re
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from openpyxl import load_workbook
 
 from .crawler import CrawlerService
 from .models import CrawlRun
 from .parser import ParsedAttachment, ParsedNotice, parse_money
-
 
 COLUMN_ALIASES: dict[str, set[str]] = {
     "notice_code": {"notice_code", "ma_tbmt", "ma_thong_bao", "so_tbmt", "ma_goi_thau"},
@@ -166,7 +166,7 @@ def import_file(service: CrawlerService, path: Path) -> ImportSummary:
                 summary.updated += 1
             else:
                 summary.unchanged += 1
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - reject one bad source row and continue the batch
             summary.rejected += 1
             message = f"Dòng {row_number}: {exc}"
             summary.errors.append(message)

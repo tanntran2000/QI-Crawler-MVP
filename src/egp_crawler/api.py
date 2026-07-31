@@ -6,7 +6,14 @@ from sqlalchemy.orm import selectinload
 
 from .config import load_config
 from .db import Database
-from .models import Attachment, CrawlRun, Notice
+from .models import (
+    Attachment,
+    BidPrediction,
+    BidRequirement,
+    ComplianceAssessment,
+    CrawlRun,
+    Notice,
+)
 
 config = load_config()
 db = Database(config.storage.database_url)
@@ -147,3 +154,63 @@ def stats() -> dict[str, int]:
             "attachments_downloaded": downloaded,
             "attachments_failed": failed,
         }
+
+
+@app.get("/bid-compliance")
+def bid_compliance(
+    notice_id: int | None = None,
+    status: str | None = Query(default=None, pattern="^(covered|partial|gap)$"),
+) -> list[dict]:
+    with db.session() as session:
+        statement = (
+            select(ComplianceAssessment, BidRequirement)
+            .join(BidRequirement, BidRequirement.id == ComplianceAssessment.requirement_id)
+            .order_by(BidRequirement.id.asc())
+        )
+        if notice_id is not None:
+            statement = statement.where(BidRequirement.notice_id == notice_id)
+        if status:
+            statement = statement.where(ComplianceAssessment.status == status)
+        rows = session.execute(statement).all()
+        return [
+            {
+                "requirement_id": requirement.id,
+                "requirement_code": requirement.requirement_code,
+                "category": requirement.category,
+                "source_text": requirement.source_text,
+                "mandatory": requirement.mandatory,
+                "source_reference": requirement.source_reference,
+                "status": assessment.status,
+                "score": assessment.score,
+                "evidence_id": assessment.evidence_id,
+                "matched_keywords": assessment.matched_keywords,
+                "explanation": assessment.explanation,
+                "requires_human_confirmation": assessment.requires_human_confirmation,
+            }
+            for assessment, requirement in rows
+        ]
+
+
+@app.get("/bid-predictions")
+def bid_predictions(notice_id: int | None = None, limit: int = Query(default=20, ge=1, le=200)) -> list[dict]:
+    with db.session() as session:
+        statement = select(BidPrediction).order_by(BidPrediction.id.desc()).limit(limit)
+        if notice_id is not None:
+            statement = statement.where(BidPrediction.notice_id == notice_id)
+        items = session.scalars(statement).all()
+        return [
+            {
+                "id": item.id,
+                "notice_id": item.notice_id,
+                "model_version": item.model_version,
+                "readiness_score": item.readiness_score,
+                "estimated_win_percent": item.estimated_win_percent,
+                "confidence_percent": item.confidence_percent,
+                "mandatory_coverage_percent": item.mandatory_coverage_percent,
+                "evidence_coverage_percent": item.evidence_coverage_percent,
+                "risk_factors": item.risk_factors,
+                "assumptions": item.assumptions,
+                "created_at": item.created_at,
+            }
+            for item in items
+        ]

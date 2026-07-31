@@ -43,9 +43,11 @@ def _extract_label_value(lines: list[str], labels: tuple[str, ...]) -> str | Non
     for idx, line in enumerate(lines):
         folded = _fold(line)
         for label, folded_label in zip(labels, folded_labels):
-            if folded == folded_label.rstrip(":") or folded == f"{folded_label.rstrip(':')}:" :
-                if idx + 1 < len(lines):
-                    return lines[idx + 1]
+            if (
+                folded == folded_label.rstrip(":")
+                or folded == f"{folded_label.rstrip(':')}:"
+            ) and idx + 1 < len(lines):
+                return lines[idx + 1]
             if folded.startswith(folded_label):
                 value = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", line, flags=re.IGNORECASE)
                 if value and value != line:

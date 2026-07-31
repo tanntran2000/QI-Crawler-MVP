@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -18,7 +18,7 @@ def test_build_daily_report(tmp_path: Path):
                 url_hash="a" * 64,
                 notice_code="IB260001",
                 title="Mua thiết bị mạng",
-                closing_at=(date.today() + timedelta(days=2)).isoformat(),
+                closing_at=(datetime.now(UTC).date() + timedelta(days=2)).isoformat(),
             )
         )
     output = build_daily_report(db, tmp_path / "daily.xlsx", days_ahead=7)

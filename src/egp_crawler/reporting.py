@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import smtplib
-from datetime import date, datetime, timedelta
+from collections.abc import Iterable
+from datetime import UTC, date, datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Iterable
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -14,7 +14,6 @@ from sqlalchemy.orm import selectinload
 from .config import AppConfig
 from .db import Database
 from .models import Attachment, Notice
-
 
 NOTICE_HEADERS = [
     "id",
@@ -45,11 +44,11 @@ def _parse_datetime(value: str | None) -> datetime | None:
     )
     for pattern in patterns:
         try:
-            return datetime.strptime(text[:19], pattern)
+            return datetime.strptime(text[:19], pattern).replace(tzinfo=UTC)
         except ValueError:
             continue
     try:
-        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return datetime.fromisoformat(text)
     except ValueError:
         return None
 
@@ -93,7 +92,7 @@ def build_daily_report(
     report_date: date | None = None,
     days_ahead: int = 7,
 ) -> Path:
-    report_date = report_date or date.today()
+    report_date = report_date or datetime.now(UTC).date()
     closing_end = report_date + timedelta(days=days_ahead)
     with db.session() as session:
         notices = list(
@@ -190,7 +189,7 @@ def send_report_email(
         raise ValueError(f"Thiếu cấu hình email: {', '.join(missing)}")
 
     message = EmailMessage()
-    message["Subject"] = subject or f"Báo cáo gói thầu ngày {date.today().isoformat()}"
+    message["Subject"] = subject or f"Báo cáo gói thầu ngày {datetime.now(UTC).date().isoformat()}"
     message["From"] = settings.email_from
     message["To"] = ", ".join(settings.email_to)
     message.set_content(

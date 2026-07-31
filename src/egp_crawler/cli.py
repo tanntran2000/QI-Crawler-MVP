@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import typer
 
+from .bid_intelligence import analyze_bid_document, estimate_win_likelihood, import_evidence_csv
 from .browser import BrowserFetcher
 from .config import EnvSettings, load_config
 from .crawler import CrawlerService
@@ -238,7 +239,7 @@ def report_daily(
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     cfg = _config(config)
-    selected_date = date.fromisoformat(report_date) if report_date else date.today()
+    selected_date = date.fromisoformat(report_date) if report_date else datetime.now(UTC).date()
     path = output or cfg.storage.report_dir / f"bao-cao-dau-thau-{selected_date.isoformat()}.xlsx"
     db = Database(cfg.storage.database_url)
     db.create_all()
@@ -262,6 +263,58 @@ def serve(
     import uvicorn
 
     uvicorn.run("egp_crawler.api:app", host=host, port=port, reload=False)
+
+
+@app.command("import-evidence")
+def import_evidence(
+    input_file: Path = typer.Argument(..., exists=True, readable=True),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Import verified company capabilities used to support bid requirements."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    count = import_evidence_csv(db, input_file)
+    typer.echo(f"Đã nhập/cập nhật {count} bằng chứng năng lực.")
+
+
+@app.command("analyze-bid")
+def analyze_bid(
+    input_file: Path = typer.Argument(..., exists=True, readable=True),
+    notice_id: int | None = typer.Option(None, "--notice-id", min=1),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Build an evidence-backed compliance matrix from a plain-text E-HSMT extract."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    result = analyze_bid_document(db, input_file, notice_id=notice_id)
+    typer.echo(
+        f"Phân tích {result.total} yêu cầu: đáp ứng={result.covered}, "
+        f"một phần={result.partial}, thiếu={result.gaps}, coverage={result.coverage_percent}%"
+    )
+
+
+@app.command("predict-win")
+def predict_win(
+    notice_id: int | None = typer.Option(None, "--notice-id", min=1),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Estimate readiness and win likelihood with explicit low-confidence caveats."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    result = estimate_win_likelihood(db, notice_id=notice_id)
+    typer.echo(f"Điểm sẵn sàng hồ sơ: {result.readiness_score}%")
+    typer.echo(
+        f"Tỷ lệ trúng thầu ước tính: {result.estimated_win_percent}% "
+        f"(độ tin cậy: {result.confidence_percent}%)"
+    )
+    typer.echo(f"Coverage yêu cầu bắt buộc: {result.mandatory_coverage_percent}%")
+    typer.echo("Rủi ro chính:")
+    for risk in result.risk_factors:
+        typer.echo(f"  - {risk}")
+    typer.echo("Cảnh báo: đây là ước tính MVP, không phải xác suất đã kiểm định hay bảo đảm trúng thầu.")
 
 
 if __name__ == "__main__":

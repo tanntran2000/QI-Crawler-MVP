@@ -273,8 +273,34 @@ Endpoint:
 - `GET /notices/{id}`
 - `GET /crawl-runs`
 - `GET /stats`
+- `GET /bid-compliance`
 
-## 13. PostgreSQL
+## 13. Trợ lý compliance cho hồ sơ dự thầu
+
+Tính năng này tạo ma trận yêu cầu–bằng chứng có truy vết. Điểm keyword chỉ dùng để ưu tiên rà soát;
+không phải kết luận pháp lý hoặc bảo đảm trúng thầu. Trạng thái `covered` chỉ được tạo khi bằng chứng
+đã đánh dấu `verified`; mọi kết quả vẫn cần người có thẩm quyền xác nhận.
+
+Tạo CSV bằng chứng với các cột:
+
+```text
+evidence_code,title,evidence_type,description,keywords,source_path,valid_until,verified
+```
+
+Sau đó chạy:
+
+```powershell
+egp-crawler import-evidence data\company-evidence.csv
+egp-crawler analyze-bid data\ehsmt-requirements.txt --notice-id 1
+egp-crawler predict-win --notice-id 1
+```
+
+Mỗi dòng có nội dung trong `ehsmt-requirements.txt` được coi là một yêu cầu. Kết quả được lưu vào
+`bid_requirements` và `compliance_assessments`, có thể đọc qua API `GET /bid-compliance`.
+Ước tính được lưu trong `bid_predictions` và đọc qua `GET /bid-predictions`.
+Xem hướng dẫn đầy đủ tại `HUONG_DAN_MVP_AI_DAU_THAU.md`.
+
+## 14. PostgreSQL
 
 ```powershell
 docker compose up -d postgres
@@ -291,7 +317,7 @@ python -m pip install -e ".[postgres,dev]"
 egp-crawler init-db
 ```
 
-## 14. Lập lịch 8 giờ sáng trên Windows
+## 15. Lập lịch 8 giờ sáng trên Windows
 
 Tạo `run_daily.ps1`:
 
@@ -305,7 +331,7 @@ egp-crawler report-daily --send-email
 
 Dùng **Windows Task Scheduler** để chạy file này lúc 08:00. Không lập lịch crawl một nguồn chưa được cho phép tự động truy cập.
 
-## 15. Đưa lên GitHub
+## 16. Đưa lên GitHub
 
 Repository đã loại khỏi Git:
 
@@ -325,7 +351,7 @@ git remote add origin URL_REPOSITORY
 git push -u origin main
 ```
 
-## 16. Giới hạn và hướng production
+## 17. Giới hạn và hướng production
 
 - Cần adapter riêng cho API/file xuất chính thức của từng nguồn.
 - Selector DOM có thể thay đổi và phải được kiểm thử định kỳ.
