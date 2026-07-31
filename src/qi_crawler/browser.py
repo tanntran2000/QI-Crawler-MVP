@@ -61,7 +61,7 @@ class BrowserFetcher:
 
     async def save_storage_state(self, path: Path) -> None:
         if not self._context:
-            raise RuntimeError("Trình duyệt chưa được khởi động")
+            raise RuntimeError("Trinh duyet chua duoc khoi dong")
         path.parent.mkdir(parents=True, exist_ok=True)
         await self._context.storage_state(path=str(path))
 
@@ -78,7 +78,7 @@ class BrowserFetcher:
 
     async def new_page(self) -> Page:
         if not self._context:
-            raise RuntimeError("BrowserFetcher.start() chưa được gọi")
+            raise RuntimeError("BrowserFetcher.start() chua duoc goi")
         page = await self._context.new_page()
         page.set_default_timeout(self.config.crawl.browser_timeout_seconds * 1000)
         return page
@@ -92,7 +92,7 @@ class BrowserFetcher:
             follow_redirects=True,
         ) as client:
             if not await self.policy.allowed_by_robots(client, url):
-                raise AccessDenied(f"robots.txt không cho phép tự động truy cập URL: {url}")
+                raise AccessDenied(f"robots.txt khong cho phep tu dong truy cap URL: {url}")
 
     async def fetch_html(self, url: str) -> str:
         self.policy.validate_domain(url)
@@ -133,7 +133,7 @@ class BrowserFetcher:
             if keyword:
                 if not self.config.selectors.search_input or not self.config.selectors.search_button:
                     raise ValueError(
-                        "Cần cấu hình selectors.search_input và selectors.search_button để tìm kiếm."
+                        "Can cau hinh selectors.search_input va selectors.search_button de tim kiem."
                     )
                 await page.locator(self.config.selectors.search_input).first.fill(keyword)
                 await self.limiter.wait(page.url)
@@ -158,7 +158,7 @@ class BrowserFetcher:
                     if item not in seen:
                         seen.add(item)
                         links.append(item)
-                logger.info("Trang %s: tổng cộng %s link duy nhất", page_number, len(links))
+                logger.info("Trang %s: tong cong %s link duy nhat", page_number, len(links))
 
                 if page_number >= page_limit:
                     break
@@ -182,7 +182,7 @@ class BrowserFetcher:
                 current_first = page.locator(self.config.selectors.list_item).first
                 current_href = await current_first.get_attribute("href") if await current_first.count() else None
                 if previous_href and current_href == previous_href:
-                    logger.warning("Nút Next không làm thay đổi trang; dừng phân trang.")
+                    logger.warning("Nut Next khong lam thay doi trang; dung phan trang.")
                     break
         finally:
             await page.close()
@@ -208,7 +208,7 @@ class BrowserFetcher:
         download = await download_info.value
         failure = await download.failure()
         if failure:
-            raise RuntimeError(f"Playwright download thất bại: {failure}")
+            raise RuntimeError(f"Playwright download that bai: {failure}")
 
         suggested = safe_filename(download.suggested_filename or filename_hint)
         filename = normalize_extension(
@@ -229,7 +229,7 @@ class BrowserFetcher:
             max_bytes = self.config.storage.max_attachment_mb * 1024 * 1024
             if size > max_bytes:
                 raise ValueError(
-                    f"Tệp {filename} vượt giới hạn {self.config.storage.max_attachment_mb} MB"
+                    f"Tep {filename} vuot gioi han {self.config.storage.max_attachment_mb} MB"
                 )
             sha256 = calculate_sha256(temporary)
             temporary.replace(destination)
@@ -240,7 +240,7 @@ class BrowserFetcher:
         source_url = download.url
         if source_url.startswith(("http://", "https://")):
             self.policy.validate_domain(source_url)
-        logger.info("Đã tải bằng Playwright: %s", destination)
+        logger.info("Da tai bang Playwright: %s", destination)
         return DownloadedFile(
             file_name=filename,
             local_path=destination,
@@ -261,7 +261,7 @@ class BrowserFetcher:
         button_selector = self.config.selectors.attachment_download_button
         if not rows_selector or not button_selector:
             raise ValueError(
-                "Cần cấu hình selectors.attachment_rows và "
+                "Can cau hinh selectors.attachment_rows va "
                 "selectors.attachment_download_button."
             )
 
@@ -281,7 +281,7 @@ class BrowserFetcher:
             rows = page.locator(rows_selector)
             count = await rows.count()
             if count == 0:
-                logger.warning("Không tìm thấy hàng attachment bằng selector: %s", rows_selector)
+                logger.warning("Khong tim thay hang attachment bang selector: %s", rows_selector)
             for index in range(count):
                 row = rows.nth(index)
                 button = row.locator(button_selector).first
@@ -303,12 +303,12 @@ class BrowserFetcher:
                     )
                     downloaded.append(item)
                 except PlaywrightTimeoutError:
-                    message = f"Hàng {index + 1}: click không phát sinh sự kiện download"
+                    message = f"Hang {index + 1}: click khong phat sinh su kien download"
                     logger.exception(message)
                     errors.append(message)
                 except Exception as exc:
-                    message = f"Hàng {index + 1}: {exc}"
-                    logger.exception("Tải attachment động thất bại")
+                    message = f"Hang {index + 1}: {exc}"
+                    logger.exception("Tai attachment dong that bai")
                     errors.append(message)
         finally:
             await page.close()
@@ -316,7 +316,7 @@ class BrowserFetcher:
 
     async def discover_json(self, url: str, duration_seconds: int, headed: bool) -> list[Path]:
         if not headed:
-            logger.info("Discovery headless: chỉ ghi phản hồi tự động phát sinh khi mở trang.")
+            logger.info("Discovery headless: chi ghi phan hoi tu dong phat sinh khi mo trang.")
         await self.ensure_browser_access_allowed(url)
         await self.start(headed=headed)
         page = await self.new_page()
@@ -352,9 +352,9 @@ class BrowserFetcher:
                 }
                 path.write_text(json.dumps(envelope, ensure_ascii=False, indent=2), encoding="utf-8")
                 saved.append(path)
-                logger.info("Đã ghi JSON: %s", path)
+                logger.info("Da ghi JSON: %s", path)
             except Exception as exc:  # noqa: BLE001 - malformed third-party responses are isolated
-                logger.debug("Bỏ qua response discovery: %s", exc)
+                logger.debug("Bo qua response discovery: %s", exc)
 
         def on_response(response) -> None:
             pending.append(asyncio.create_task(capture(response)))
@@ -364,7 +364,7 @@ class BrowserFetcher:
             await self.limiter.wait(url)
             await page.goto(url, wait_until="domcontentloaded")
             logger.info(
-                "Discovery đang chạy. Với --headed, hãy thao tác tìm kiếm trên cửa sổ trình duyệt."
+                "Discovery dang chay. Voi --headed, hay thao tac tim kiem tren cua so trinh duyet."
             )
             await page.wait_for_timeout(duration_seconds * 1000)
             self.policy.detect_block_page(await page.content())

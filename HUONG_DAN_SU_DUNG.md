@@ -1,19 +1,19 @@
-# Hướng dẫn sử dụng QI Tender Assistant MVP
+# Huong dan su dung QI Tender Assistant MVP
 
-## 1. MVP làm được gì?
+## 1. MVP lam duoc gi?
 
-MVP hỗ trợ bốn việc:
+MVP ho tro bon viec:
 
-1. Tìm gói thầu công khai trên UK Contracts Finder.
-2. Lưu thông tin vào database nội bộ.
-3. Xuất danh sách ra Excel để trình và phân công xử lý.
-4. Đối chiếu yêu cầu với bằng chứng, trả kết luận GO/HOLD/NO-GO.
+1. Tim goi thau cong khai tren UK Contracts Finder.
+2. Luu thong tin vao database noi bo.
+3. Xuat danh sach ra Excel de trinh va phan cong xu ly.
+4. Doi chieu yeu cau voi bang chung, tra ket luan GO/HOLD/NO-GO.
 
-MVP không tự nộp hồ sơ, không vượt CAPTCHA và không tự xác nhận doanh nghiệp đủ điều kiện pháp lý.
+MVP khong tu nop ho so, khong vuot CAPTCHA va khong tu xac nhan doanh nghiep du dieu kien phap ly.
 
-## 2. Mở chương trình
+## 2. Mo chuong trinh
 
-Trong terminal VS Code, chạy từng dòng:
+Trong terminal VS Code, chay tung dong:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -21,15 +21,15 @@ $env:PYTHONUTF8="1"
 QI-Crawler bat-dau
 ```
 
-Nếu terminal hiện `>>`, nhấn `Ctrl+C` rồi nhập lại lệnh.
+Neu terminal hien `>>`, nhan `Ctrl+C` roi nhap lai lenh.
 
-## 3. Tìm gói thầu
+## 3. Tim goi thau
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "network switch"
 ```
 
-Tùy chọn:
+Tuy chon:
 
 ```powershell
 QI-Crawler tim-goi `
@@ -38,100 +38,289 @@ QI-Crawler tim-goi `
   --so-luong 50
 ```
 
-MVP chỉ lưu gói còn hạn. Từ khóa Contracts Finder nên viết bằng tiếng Anh và đủ cụ thể.
+MVP chi luu goi con han. Tu khoa Contracts Finder nen viet bang tieng Anh va du cu the.
 
-## 4. Xuất Excel
+## 4. Xuat Excel
 
 ```powershell
 QI-Crawler xuat-bao-cao
 ```
 
-Hoặc chọn tên file:
+Hoac chon ten file:
 
 ```powershell
 QI-Crawler xuat-bao-cao --tep data\bao-cao-network.xlsx
 ```
 
-Các cột quan trọng:
+Cac cot quan trong:
 
-- `title`: tên gói.
-- `buyer`: đơn vị mua sắm.
-- `package_price` và `currency`: giá trị ước tính.
-- `closing_at`: hạn phản hồi.
-- `source_url`: trang thông báo gốc.
-- `source_kind`: nguồn dữ liệu.
+- `title`: ten goi.
+- `buyer`: don vi mua sam.
+- `package_price` va `currency`: gia tri uoc tinh.
+- `closing_at`: han phan hoi.
+- `source_url`: trang thong bao goc.
+- `source_kind`: nguon du lieu.
+- `requested_quantity_details`: ten hang, so luong va don vi QI-Crawler doc duoc.
+- `response_table`: tom tat tinh trang dap ung ton kho cua tung goi.
 
-## 5. Chuẩn bị bằng chứng năng lực
+File Excel co them sheet `Response Table`. Day la bang dap ung chi tiet, gom so luong yeu cau,
+so luong ton, phan thieu, SKU duoc ghep va nguon cua con so.
 
-File `data\company-evidence.csv` gồm:
+## 4A. Import ton kho QI va kiem tra so luong
+
+Mo file mau `qi-inventory-template.xlsx`, hoac sao chep
+`templates\qi-inventory-template.csv`. Moi mat hang de tren mot dong va dung cac cot sau:
+
+- `SKU`: ma hang QI duy nhat; bat buoc.
+- `Product Name`: ten san pham chuan bang tieng Anh; bat buoc.
+- `Aliases`: cac ten tuong duong, ngan cach bang dau cham phay.
+- `Quantity Available`: so luong ton co the su dung; bat buoc va khong duoc am.
+- `Unit`: don vi, vi du `pieces`, `sets`, `kg`, `tonnes`, `metres`.
+- `Warehouse`: vi tri kho.
+- `Verified`: chi dien `yes` sau khi da kiem tra so ton thuc te.
+
+Lenh import ngan gon:
+
+```powershell
+QI-Crawler nhap-ton-kho data\qi-inventory.xlsx
+```
+
+### Vi du day du 1 - Import file Excel nam ngoai thu muc du an
+
+Gia su file ton kho duoc luu tai:
+
+```text
+C:\Users\Admin\Documents\QI Data\qi-stock.xlsx
+```
+
+File can co cac cot sau:
+
+```text
+SKU,Product Name,Aliases,Quantity Available,Unit,Warehouse,Verified
+RTR-5G-001,5G Router,router 5g; cellular router,10,pieces,Main Warehouse,yes
+SAND-W-001,White Sand,sand; silica sand; cat trang,25,tonnes,Materials Yard,yes
+```
+
+Trong VS Code, mo Terminal. Neu chua thay `(.venv)`, chay:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Sau do import file bang dung lenh:
+
+```powershell
+QI-Crawler nhap-ton-kho "C:\Users\Admin\Documents\QI Data\qi-stock.xlsx"
+```
+
+Dau ngoac kep la bat buoc khi duong dan co khoang trang, vi du thu muc `QI Data`.
+Neu thanh cong, terminal se hien ket qua tuong tu:
+
+```text
+Inventory import completed: rows=20, inserted=18, updated=2, rejected=0.
+```
+
+Y nghia:
+
+- `rows=20`: QI-Crawler da doc 20 dong;
+- `inserted=18`: them moi 18 mat hang;
+- `updated=2`: cap nhat 2 mat hang da co cung SKU;
+- `rejected=0`: khong co dong loi.
+
+Neu `rejected` lon hon `0`, kiem tra lai `SKU`, `Product Name`, `Quantity Available` va dam bao so luong
+khong am.
+
+### Vi du day du 2 - Import file nam trong thu muc QI-Crawler
+
+Tao thu muc `data\imports\inventory`, sau do chep file vao:
+
+```text
+data\imports\inventory\qi-stock-2026-07-31.xlsx
+```
+
+Chay:
+
+```powershell
+QI-Crawler nhap-ton-kho "data\imports\inventory\qi-stock-2026-07-31.xlsx"
+```
+
+Sau khi import ton kho, xuat bao cao:
+
+```powershell
+QI-Crawler xuat-bao-cao --tep "data\tender-stock-response.xlsx"
+```
+
+Mo file vua tao va xem sheet `Response Table` de kiem tra so luong yeu cau, so ton va phan con thieu.
+
+QI-Crawler tu doc so luong khi website co du lieu cau truc. Neu so luong chi nam trong BOQ Excel/CSV,
+tim `id` noi bo cua goi thau trong sheet `Notices`, sau do chay:
+
+```powershell
+QI-Crawler nhap-boq 12 data\tender-boq.xlsx
+QI-Crawler xuat-bao-cao --tep data\tender-stock-response.xlsx
+```
+
+### Vi du day du 3 - Import BOQ tu thu muc Documents
+
+1. Chay `QI-Crawler xuat-bao-cao` va mo sheet `Notices`.
+2. Tim cot `id` cua goi thau. Gia su goi can kiem tra co `id=12`.
+3. Luu file BOQ tai `C:\Users\Admin\Documents\QI Data\tender-12-boq.xlsx`.
+4. Chay lenh:
+
+```powershell
+QI-Crawler nhap-boq 12 "C:\Users\Admin\Documents\QI Data\tender-12-boq.xlsx"
+```
+
+5. Xuat lai bao cao:
+
+```powershell
+QI-Crawler xuat-bao-cao --tep "data\tender-12-response.xlsx"
+```
+
+6. Mo `data\tender-12-response.xlsx` va kiem tra ba sheet:
+
+- `Notices`: tom tat goi thau va cot `response_table`;
+- `Response Table`: tung san pham, so luong yeu cau, so ton va so con thieu;
+- `QI Inventory`: du lieu ton kho duoc dung de doi chieu.
+
+Dung `templates\tender-boq-template.csv` lam file BOQ mau. Cac cot gom:
+
+```text
+Item Code,Product Name,Quantity,Unit,Specification
+1,5G Router,25,pieces,Three antenna ports
+2,Network Switch,10,pieces,24 Gigabit ports
+```
+
+Cach doc trang thai:
+
+- `MEETS_STOCK`: ton kho da xac minh du so luong.
+- `STOCK_SHORTAGE`: da tim thay hang nhung van thieu so luong.
+- `REVIEW_REQUIRED_QUANTITY`: chua doc duoc so luong yeu cau.
+- `REVIEW_UNIT_MISMATCH`: don vi goi thau khac don vi ton kho.
+- `NOT_IN_VERIFIED_STOCK`: khong tim thay mat hang ton kho da xac minh du tuong dong.
+- `NO_QUANTITY_DATA`: goi thau chua co du lieu so luong chi tiet.
+
+Khong dung trang thai tren nhu phe duyet cuoi cung neu chua kiem tra file ton kho moi nhat, phien ban BOQ,
+hang da giu cho don khac, lich giao hang va tai lieu goc. MVP chua tu doc BOQ PDF/Word; can chuyen va
+kiem tra du lieu sang Excel/CSV truoc khi import.
+
+### Neu file la catalog san pham
+
+Catalog PDF/Word nen luu tai `data\imports\catalogs`, vi du:
+
+```text
+data\imports\catalogs\airpro-product-guide-2026.pdf
+```
+
+MVP hien tai chua co lenh import catalog PDF/Word tu dong. Neu catalog la Excel va co so ton thuc te,
+hay tao mot sheet theo dung cac cot ton kho roi chay:
+
+```powershell
+QI-Crawler nhap-ton-kho "C:\Users\Admin\Documents\QI Data\product-catalog-stock.xlsx"
+```
+
+Neu catalog chi chua thong so ky thuat va khong co so ton, khong dien thong so do thanh
+`Quantity Available`. Ton kho va catalog ky thuat la hai nguon du lieu khac nhau.
+
+## 5. Chuan bi bang chung nang luc
+
+File `data\company-evidence.csv` gom:
 
 ```text
 evidence_code,title,evidence_type,description,keywords,source_path,valid_until,verified
 ```
 
-Nhập bằng chứng:
+Nhap bang chung:
 
 ```powershell
 QI-Crawler import-evidence data\company-evidence.csv
 ```
 
-Chỉ đặt `verified=true` sau khi đã kiểm tra tài liệu gốc và hiệu lực.
+Chi dat `verified=true` sau khi da kiem tra tai lieu goc va hieu luc.
 
-## 6. Đánh giá một gói
+## 6. Danh gia mot goi
 
-Tạo `data\yeu-cau.txt`, mỗi yêu cầu một dòng:
+Tao `data\yeu-cau.txt`, moi yeu cau mot dong:
 
 ```text
-Nhà thầu phải cung cấp switch Layer 3 có tối thiểu 24 cổng Gigabit.
-Thiết bị phải có ít nhất 4 cổng uplink 10Gbps.
-Nhà thầu phải cung cấp bảo hành tối thiểu 36 tháng.
+Nha thau phai cung cap switch Layer 3 co toi thieu 24 cong Gigabit.
+Thiet bi phai co it nhat 4 cong uplink 10Gbps.
+Nha thau phai cung cap bao hanh toi thieu 36 thang.
 ```
 
-Chạy:
+Chay:
 
 ```powershell
 QI-Crawler danh-gia data\yeu-cau.txt
 ```
 
-Ý nghĩa kết quả:
+Y nghia ket qua:
 
-- `GO`: toàn bộ yêu cầu bắt buộc đã covered và có người xác nhận.
-- `HOLD`: chưa đủ bằng chứng, chưa rõ spec hoặc chưa có người kiểm tra độc lập.
-- `NO-GO`: có ít nhất một tiêu chí bắt buộc không đáp ứng.
+- `GO`: toan bo yeu cau bat buoc da covered va co nguoi xac nhan.
+- `HOLD`: chua du bang chung, chua ro spec hoac chua co nguoi kiem tra doc lap.
+- `NO-GO`: co it nhat mot tieu chi bat buoc khong dap ung.
 
-## 7. Xác nhận sau khi kiểm tra
+## 7. Xac nhan sau khi kiem tra
 
 ```powershell
 QI-Crawler confirm-assessment 12 `
   --reviewer "Nguyen Van A" `
   --decision covered `
-  --note "Đã kiểm tra datasheet trang 5"
+  --note "Da kiem tra datasheet trang 5"
 ```
 
-Sau đó:
+Sau do:
 
 ```powershell
 QI-Crawler bid-gate
 QI-Crawler predict-win
 ```
 
-Không xác nhận `covered` nếu model, BOM, license, phụ kiện hoặc trang bằng chứng chưa rõ.
+Khong xac nhan `covered` neu model, BOM, license, phu kien hoac trang bang chung chua ro.
 
-## 8. Quy trình làm việc khuyến nghị
+## 8. Quy trinh lam viec khuyen nghi
 
-1. Tìm gói bằng từ khóa cụ thể.
-2. Mở `source_url` và tải đủ tài liệu còn hiệu lực.
-3. Loại gói đã đóng hoặc không thuộc phạm vi QI.
-4. Tách từng yêu cầu bắt buộc thành một dòng.
-5. Đối chiếu model, BOM và bằng chứng.
-6. Người lập và người kiểm tra phải là hai bước độc lập.
-7. Chỉ trình cấp có thẩm quyền khi không còn blocker.
+1. Tim goi bang tu khoa cu the.
+2. Mo `source_url` va tai du tai lieu con hieu luc.
+3. Loai goi da dong hoac khong thuoc pham vi QI.
+4. Tach tung yeu cau bat buoc thanh mot dong.
+5. Doi chieu model, BOM va bang chung.
+6. Nguoi lap va nguoi kiem tra phai la hai buoc doc lap.
+7. Chi trinh cap co tham quyen khi khong con blocker.
 
-## 9. Website cần đăng nhập hoặc xác thực
+## 9. Website can dang nhap hoac xac thuc
 
-### Bước 1 - Thêm nguồn
+### Cach nhanh cho e-GP Viet Nam
 
-Sao chép URL của trang hiển thị danh sách gói thầu:
+Chay lan luot:
+
+```powershell
+QI-Crawler them-egp
+QI-Crawler dang-nhap --ten egp-vietnam
+```
+
+Trinh duyet se mo. Nguoi dung tu dang nhap, nhap OTP/CAPTCHA va di den trang hien danh sach goi thau. Khi
+da thay danh sach, quay lai terminal va nhan Enter. QI-Crawler se luu phien cuc bo va ghi nho URL hien tai.
+
+Kiem tra cau truc trang truoc khi tim:
+
+```powershell
+QI-Crawler kiem-tra-nguon --ten egp-vietnam
+```
+
+Chi khi terminal bao `Nguon da san sang de tim goi`, moi chay:
+
+```powershell
+QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "cap quang" --so-luong 100
+QI-Crawler xuat-bao-cao --tep data\egp-cap-quang.xlsx
+```
+
+Neu terminal bao `Chua san sang`, khong tiep tuc crawl. Hay dang nhap lai, di dung trang danh sach va nho
+nguoi ky thuat cap nhat selector neu e-GP da thay doi giao dien.
+
+### Buoc 1 - Them nguon
+
+Sao chep URL cua trang hien thi danh sach goi thau:
 
 ```powershell
 QI-Crawler them-nguon `
@@ -139,25 +328,25 @@ QI-Crawler them-nguon `
   --url "URL_TRANG_DANH_SACH_GOI_THAU"
 ```
 
-Tên nguồn nên ngắn, không dấu, ví dụ `muasamcong`, `portal-a`, `khach-hang-b`.
+Ten nguon nen ngan, khong dau, vi du `muasamcong`, `portal-a`, `khach-hang-b`.
 
-### Bước 2 - Đăng nhập thủ công
+### Buoc 2 - Dang nhap thu cong
 
 ```powershell
 QI-Crawler dang-nhap --ten muasamcong
 ```
 
-Một cửa sổ Chromium sẽ mở. Bạn tự thực hiện:
+Mot cua so Chromium se mo. Ban tu thuc hien:
 
-1. Nhập tài khoản và mật khẩu.
-2. Nhập OTP hoặc CAPTCHA nếu website yêu cầu.
-3. Đi tới đúng trang danh sách gói thầu.
-4. Quay lại terminal và nhấn Enter.
+1. Nhap tai khoan va mat khau.
+2. Nhap OTP hoac CAPTCHA neu website yeu cau.
+3. Di toi dung trang danh sach goi thau.
+4. Quay lai terminal va nhan Enter.
 
-MVP chỉ lưu cookie/session cục bộ tại `data\sessions`. Thư mục này không được đưa lên Git.
-Không gửi file session qua email/chat vì nó có thể cho phép truy cập tài khoản trong thời gian còn hiệu lực.
+MVP chi luu cookie/session cuc bo tai `data\sessions`. Thu muc nay khong duoc dua len Git.
+Khong gui file session qua email/chat vi no co the cho phep truy cap tai khoan trong thoi gian con hieu luc.
 
-### Bước 3 - Tìm trên phiên đã đăng nhập
+### Buoc 3 - Tim tren phien da dang nhap
 
 ```powershell
 QI-Crawler tim-tren-web `
@@ -166,62 +355,62 @@ QI-Crawler tim-tren-web `
   --so-luong 50
 ```
 
-Sau đó xuất Excel:
+Sau do xuat Excel:
 
 ```powershell
 QI-Crawler xuat-bao-cao
 ```
 
-Nếu website đăng xuất hoặc báo phiên hết hạn, chạy lại `dang-nhap`. MVP sẽ dừng nếu gặp CAPTCHA,
-HTTP 403/429 hoặc robots.txt không cho phép tự động truy cập.
+Neu website dang xuat hoac bao phien het han, chay lai `dang-nhap`. MVP se dung neu gap CAPTCHA,
+HTTP 403/429 hoac robots.txt khong cho phep tu dong truy cap.
 
-### Giới hạn của chế độ tự động
+### Gioi han cua che do tu dong
 
-Mặc định MVP tìm keyword trong nội dung link trên trang. Website có cấu trúc đặc biệt, iframe,
-API nội bộ hoặc nút phân trang riêng có thể cần cấu hình selector một lần bởi người kỹ thuật.
-Không có parser duy nhất hoạt động chính xác trên mọi website.
+Mac dinh MVP tim keyword trong noi dung link tren trang. Website co cau truc dac biet, iframe,
+API noi bo hoac nut phan trang rieng co the can cau hinh selector mot lan boi nguoi ky thuat.
+Khong co parser duy nhat hoat dong chinh xac tren moi website.
 
-## 10. Ví dụ thực hành dành cho người mới
+## 10. Vi du thuc hanh danh cho nguoi moi
 
-Trước khi làm ví dụ, hãy mở đúng thư mục dự án trong VS Code, chọn **Terminal > New Terminal**, rồi chạy:
+Truoc khi lam vi du, hay mo dung thu muc du an trong VS Code, chon **Terminal > New Terminal**, roi chay:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 $env:PYTHONUTF8="1"
 ```
 
-Khi thấy `(.venv)` ở đầu dòng terminal, chương trình đã sẵn sàng.
+Khi thay `(.venv)` o dau dong terminal, chuong trinh da san sang.
 
-### Ví dụ A - Tìm thiết bị mạng trên Contracts Finder
+### Vi du A - Tim thiet bi mang tren Contracts Finder
 
-Mục tiêu: tìm các gói có nội dung liên quan đến switch mạng và xuất danh sách ra Excel.
+Muc tieu: tim cac goi co noi dung lien quan den switch mang va xuat danh sach ra Excel.
 
-**Bước 1:** chạy lệnh tìm kiếm:
+**Buoc 1:** chay lenh tim kiem:
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
 ```
 
-Chờ đến khi terminal thông báo đã đọc và lưu kết quả. Nếu không có kết quả, thử từ khóa rộng hơn:
+Cho den khi terminal thong bao da doc va luu ket qua. Neu khong co ket qua, thu tu khoa rong hon:
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "network equipment" --so-luong 100
 ```
 
-**Bước 2:** xuất Excel:
+**Buoc 2:** xuat Excel:
 
 ```powershell
 QI-Crawler xuat-bao-cao --tep data\bao-cao-switch.xlsx
 ```
 
-**Bước 3:** trong Explorer của VS Code, mở thư mục `data`, sau đó mở file `bao-cao-switch.xlsx`.
-Kiểm tra lần lượt `title`, `closing_at`, `package_price` và `source_url`. Bấm `source_url` để đọc thông báo gốc
-trước khi trình cấp quản lý.
+**Buoc 3:** trong Explorer cua VS Code, mo thu muc `data`, sau do mo file `bao-cao-switch.xlsx`.
+Kiem tra lan luot `title`, `closing_at`, `package_price` va `source_url`. Bam `source_url` de doc thong bao goc
+truoc khi trinh cap quan ly.
 
-### Ví dụ B - Tìm gói cho sản phẩm Wi-Fi
+### Vi du B - Tim goi cho san pham Wi-Fi
 
-Giả sử QI có access point Wi-Fi 6, hỗ trợ PoE và quản lý tập trung. Không nên tìm bằng một câu quá dài.
-Hãy tìm từng nhóm từ khóa:
+Gia su QI co access point Wi-Fi 6, ho tro PoE va quan ly tap trung. Khong nen tim bang mot cau qua dai.
+Hay tim tung nhom tu khoa:
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "WiFi 6 access point" --so-luong 50
@@ -230,193 +419,278 @@ QI-Crawler tim-goi --tu-khoa "managed wireless LAN" --so-luong 50
 QI-Crawler xuat-bao-cao --tep data\bao-cao-wifi.xlsx
 ```
 
-Các kết quả được lưu chung trong database; chương trình không tạo bản ghi trùng khi cùng một gói được tìm thấy nhiều lần.
-Sau khi xuất Excel, người phụ trách vẫn phải mở hồ sơ gốc để kiểm tra số lượng, chứng chỉ, bảo hành, thời hạn và địa điểm giao hàng.
+Cac ket qua duoc luu chung trong database; chuong trinh khong tao ban ghi trung khi cung mot goi duoc tim thay nhieu lan.
+Sau khi xuat Excel, nguoi phu trach van phai mo ho so goc de kiem tra so luong, chung chi, bao hanh, thoi han va dia diem giao hang.
 
-### Ví dụ C - Website cần đăng nhập
+### Vi du C - Website can dang nhap
 
-Giả sử trang danh sách gói thầu sau khi đăng nhập có địa chỉ:
-`https://example-tender.com/tenders/list`. Hãy thay địa chỉ mẫu bằng URL thật của website bạn được phép truy cập.
+Gia su trang danh sach goi thau sau khi dang nhap co dia chi:
+`https://example-tender.com/tenders/list`. Hay thay dia chi mau bang URL that cua website ban duoc phep truy cap.
 
-**Bước 1 - Khai báo website một lần:**
+**Buoc 1 - Khai bao website mot lan:**
 
 ```powershell
 QI-Crawler them-nguon --ten example-tender --url "https://example-tender.com/tenders/list"
 ```
 
-Nếu thành công, terminal sẽ hướng dẫn chạy `dang-nhap`.
+Neu thanh cong, terminal se huong dan chay `dang-nhap`.
 
-**Bước 2 - Tự đăng nhập:**
+**Buoc 2 - Tu dang nhap:**
 
 ```powershell
 QI-Crawler dang-nhap --ten example-tender
 ```
 
-Một cửa sổ trình duyệt mở ra. Bạn nhập tài khoản, mật khẩu, OTP hoặc CAPTCHA như bình thường. Sau khi nhìn thấy
-danh sách gói thầu, quay lại terminal và nhấn **Enter**. Không đóng trình duyệt trước khi nhấn Enter.
+Mot cua so trinh duyet mo ra. Ban nhap tai khoan, mat khau, OTP hoac CAPTCHA nhu binh thuong. Sau khi nhin thay
+danh sach goi thau, quay lai terminal va nhan **Enter**. Khong dong trinh duyet truoc khi nhan Enter.
 
-**Bước 3 - Tìm bằng phiên vừa lưu:**
+**Buoc 3 - Tim bang phien vua luu:**
 
 ```powershell
 QI-Crawler tim-tren-web --ten example-tender --tu-khoa "air purifier" --so-luong 50
 ```
 
-**Bước 4 - Xuất kết quả:**
+**Buoc 4 - Xuat ket qua:**
 
 ```powershell
 QI-Crawler xuat-bao-cao --tep data\bao-cao-air-purifier.xlsx
 ```
 
-Lần tìm kiếm sau thường không cần đăng nhập lại. Nếu website đưa về trang đăng nhập hoặc báo hết phiên, chạy lại:
+Lan tim kiem sau thuong khong can dang nhap lai. Neu website dua ve trang dang nhap hoac bao het phien, chay lai:
 
 ```powershell
 QI-Crawler dang-nhap --ten example-tender
 ```
 
-### Ví dụ D - Đánh giá khả năng đáp ứng một gói
+### Vi du D - Danh gia kha nang dap ung mot goi
 
-Tạo file `data\yeu-cau-switch.txt` và nhập mỗi yêu cầu trên một dòng, ví dụ:
+Tao file `data\yeu-cau-switch.txt` va nhap moi yeu cau tren mot dong, vi du:
 
 ```text
-Switch phải có tối thiểu 24 cổng Gigabit Ethernet.
-Switch phải có tối thiểu 4 cổng uplink 10Gbps.
-Thiết bị phải được bảo hành tối thiểu 36 tháng.
-Nhà thầu phải có tài liệu chứng minh xuất xứ sản phẩm.
+Switch phai co toi thieu 24 cong Gigabit Ethernet.
+Switch phai co toi thieu 4 cong uplink 10Gbps.
+Thiet bi phai duoc bao hanh toi thieu 36 thang.
+Nha thau phai co tai lieu chung minh xuat xu san pham.
 ```
 
-Lưu file rồi chạy:
+Luu file roi chay:
 
 ```powershell
 QI-Crawler danh-gia data\yeu-cau-switch.txt
 ```
 
-Đọc kết quả theo nguyên tắc:
+Doc ket qua theo nguyen tac:
 
-- `GO`: có thể chuyển sang bước kiểm tra và phê duyệt nội bộ.
-- `HOLD`: chưa đủ thông tin; cần bổ sung datasheet, chứng chỉ hoặc người xác nhận.
-- `NO-GO`: có yêu cầu bắt buộc mà sản phẩm hoặc doanh nghiệp không đáp ứng.
+- `GO`: co the chuyen sang buoc kiem tra va phe duyet noi bo.
+- `HOLD`: chua du thong tin; can bo sung datasheet, chung chi hoac nguoi xac nhan.
+- `NO-GO`: co yeu cau bat buoc ma san pham hoac doanh nghiep khong dap ung.
 
-Phần trăm dự đoán chỉ là chỉ báo hỗ trợ sàng lọc, không phải cam kết trúng thầu. Không được đổi một tiêu chí thành
-`covered` chỉ để tăng điểm nếu chưa có tài liệu chứng minh.
+Phan tram du doan chi la chi bao ho tro sang loc, khong phai cam ket trung thau. Khong duoc doi mot tieu chi thanh
+`covered` chi de tang diem neu chua co tai lieu chung minh.
 
-### Mẫu công việc hằng ngày ngắn gọn
+### Mau cong viec hang ngay ngan gon
 
-Người dùng thông thường chỉ cần nhớ bốn việc:
+Nguoi dung thong thuong chi can nho bon viec:
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "TỪ KHÓA TIẾNG ANH"
+QI-Crawler tim-goi --tu-khoa "TU KHOA TIENG ANH"
 QI-Crawler xuat-bao-cao
 QI-Crawler danh-gia data\yeu-cau.txt
 QI-Crawler -help
 ```
 
-Với website cần tài khoản, thay lệnh `tim-goi` bằng `tim-tren-web` sau khi đã thực hiện `them-nguon` và `dang-nhap`.
+Voi website can tai khoan, thay lenh `tim-goi` bang `tim-tren-web` sau khi da thuc hien `them-nguon` va `dang-nhap`.
 
-## 11. Tìm bằng tên Việt, tên Anh và nhóm ngành
+## 11. Tim bang ten Viet, ten Anh va nhom nganh
 
-Người dùng chỉ cần nhập tên quen thuộc. QI-Crawler tự tìm bằng tên đã nhập và các tên tương đương trong
+Nguoi dung chi can nhap ten quen thuoc. QI-Crawler tu tim bang ten da nhap va cac ten tuong duong trong
 `keyword-groups.yaml`.
 
-Ví dụ:
+Vi du:
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "cát trắng"
+QI-Crawler tim-goi --tu-khoa "sand"
 ```
 
-Chương trình sẽ thông báo:
+Chuong trinh se thong bao:
 
 ```text
-Từ khóa sản phẩm: cát trắng, white sand, silica sand
-Nhóm ngành: Vật liệu xây dựng (Vật liệu xây dựng, VLXD, construction materials, building materials)
+Product keywords: sand, cat, cat trang, white sand, silica sand
+Category: Construction Materials (Vat lieu xay dung, VLXD, building materials)
 ```
 
-Một ví dụ khác:
+Mot vi du khac:
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "mô đun 5G"
+QI-Crawler tim-goi --tu-khoa "mo dun 5G"
 ```
 
-MVP sẽ kiểm tra đồng thời các cách viết `mô đun 5G`, `module 5G`, `modul 5G` và `5G module`, sau đó gắn
-ngữ cảnh nhóm `Công nghệ thông tin/CNTT`. Việc so khớp không phân biệt chữ hoa, chữ thường hoặc dấu tiếng Việt.
+MVP se kiem tra dong thoi cac cach viet `5G module`, `mo dun 5G`, `module 5G` va `modul 5G`, sau do gan
+ngu canh nhom `Information Technology` (`Cong nghe thong tin/CNTT`). Viec so khop khong phan biet chu hoa,
+chu thuong hoac dau tieng Viet.
 
-Nhóm ngành chỉ dùng để phân loại và giải thích. MVP không lấy tất cả gói trong `VLXD` khi người dùng chỉ tìm
-`cát trắng`, vì làm vậy sẽ đưa vào nhiều gói không phù hợp như thép, gạch hoặc sơn.
+Nhom nganh chi dung de phan loai va giai thich. MVP khong lay tat ca goi trong `VLXD` khi nguoi dung chi tim
+`sand`, vi lam vay se dua vao nhieu goi khong phu hop nhu thep, gach hoac son.
 
-### Thêm sản phẩm mới mà không sửa code
+### Them san pham moi ma khong sua code
 
-Mở file `keyword-groups.yaml`. Trong đúng nhóm ngành, thêm sản phẩm theo mẫu:
+Mo file `keyword-groups.yaml`. Trong dung nhom nganh, them san pham theo mau:
 
 ```yaml
-      - name: tên tiếng Việt
+      - name: ten tieng Viet
         aliases:
-          - tên tiếng Anh
-          - tên viết tắt
-          - cách viết thường gặp khác
+          - ten tieng Anh
+          - ten viet tat
+          - cach viet thuong gap khac
 ```
 
-Ví dụ thêm thiết bị tường lửa vào nhóm Công nghệ thông tin:
+Vi du them thiet bi tuong lua vao nhom Information Technology:
 
 ```yaml
-      - name: thiết bị tường lửa
+      - name: thiet bi tuong lua
         aliases:
           - firewall
           - network firewall
           - next generation firewall
 ```
 
-Giữ nguyên khoảng trắng đầu dòng như các sản phẩm có sẵn. Sau khi lưu file, chạy lại `tim-goi` hoặc
-`tim-tren-web`; không cần cài lại chương trình.
+Giu nguyen khoang trang dau dong nhu cac san pham co san. Sau khi luu file, chay lai `tim-goi` hoac
+`tim-tren-web`; khong can cai lai chuong trinh.
 
-### Để QI-Crawler tự phân loại và cập nhật
+### De QI-Crawler tu phan loai va cap nhat
 
-Ví dụ thêm một loại cáp mạng mới:
+Vi du them mot loai cap mang moi:
 
 ```powershell
 QI-Crawler them-tu-khoa `
-  --tu-khoa "cáp mạng ngoài trời" `
+  --tu-khoa "cap mang ngoai troi" `
   --ten-khac "outdoor network cable" `
   --ten-khac "outdoor LAN cable" `
-  --mo-ta "Cáp kết nối switch, router và thiết bị mạng"
+  --mo-ta "Cap ket noi switch, router va thiet bi mang"
 ```
 
-QI-Crawler đọc tên, tên khác và mô tả, sau đó so với các `signals` của từng nhóm ngành. Nếu đủ tin cậy,
-sản phẩm được thêm ngay vào đúng nhóm trong `keyword-groups.yaml`. Các lần tìm sau tự động sử dụng toàn bộ
-tên tương đương.
+QI-Crawler doc ten, ten khac va mo ta, sau do so voi cac `signals` cua tung nhom nganh. Neu du tin cay,
+san pham duoc them ngay vao dung nhom trong `keyword-groups.yaml`. Cac lan tim sau tu dong su dung toan bo
+ten tuong duong.
 
-Nếu từ khóa quá chung hoặc có thể thuộc nhiều ngành, chương trình không tự đoán. Nó lưu từ khóa vào
-`pending_keywords` để người phụ trách xem lại. Sau khi xác nhận, chạy:
+Neu tu khoa qua chung hoac co the thuoc nhieu nganh, chuong trinh khong tu doan. No luu tu khoa vao
+`pending_keywords` de nguoi phu trach xem lai. Sau khi xac nhan, chay:
 
 ```powershell
 QI-Crawler them-tu-khoa `
-  --tu-khoa "tên sản phẩm" `
-  --ten-khac "tên tiếng Anh" `
-  --nhom "Công nghệ thông tin"
+  --tu-khoa "ten san pham" `
+  --ten-khac "ten tieng Anh" `
+  --nhom "Information Technology"
 ```
 
-Khi chạy `tim-goi` hoặc `tim-tren-web` với một từ khóa chưa có, MVP cũng thử phân loại tự động. Chỉ trường hợp
-có tín hiệu rõ mới được cập nhật; trường hợp chưa rõ luôn đi vào hàng chờ. QI-Crawler không tự dịch tên sản phẩm
-không có căn cứ: người dùng nên cung cấp `--ten-khac` hoặc kiểm tra lại tên do nhà sản xuất công bố.
+Khi chay `tim-goi` hoac `tim-tren-web` voi mot tu khoa chua co, MVP cung thu phan loai tu dong. Chi truong hop
+co tin hieu ro moi duoc cap nhat; truong hop chua ro luon di vao hang cho. QI-Crawler khong tu dich ten san pham
+khong co can cu: nguoi dung nen cung cap `--ten-khac` hoac kiem tra lai ten do nha san xuat cong bo.
 
-## 12. Lệnh nâng cao
+## 12. Theo doi tu dong khi de may chay
 
-Các lệnh kỹ thuật cũ vẫn được giữ cho người quản trị:
+### Buoc 1 - Tao cau hinh
+
+```powershell
+Copy-Item monitoring.example.yaml monitoring.yaml
+```
+
+Mo `monitoring.yaml` va sua:
+
+- `interval_minutes`: so phut giua hai luot quet, toi thieu 5 phut.
+- `keywords`: cac san pham QI muon theo doi.
+- `contracts_finder`: bat/tat Contracts Finder.
+- `authenticated_sources`: ten cac website da chay `them-nguon` va `dang-nhap`.
+- `output`: vi tri bao cao Excel xep hang.
+
+### Buoc 2 - Chay thu mot luot
+
+```powershell
+QI-Crawler theo-doi --mot-lan
+```
+
+Mo `data\reports\co-hoi-kha-thi.xlsx` va kiem tra ket qua. Cac trang thai gom:
+
+- `KHA_THI_SO_BO`: khop san pham, co bang chung da xac minh va du diem so bo.
+- `CAN_XEM`: co lien quan nhung thieu bang chung hoac thong tin; can nguoi phu trach xem.
+- `THAP`: do phu hop thap.
+- `HET_HAN`: khong dua vao danh sach co hoi dang xu ly.
+
+### Buoc 3 - Chay lien tuc
+
+```powershell
+QI-Crawler theo-doi
+```
+
+Giu terminal mo, may co Internet va khong de Windows tu Sleep. Nhan `Ctrl+C` de dung an toan. Neu phien cua
+website dang nhap het han, chay lai `QI-Crawler dang-nhap --ten TEN-NGUON`.
+
+De van hanh on dinh, nen cau hinh Windows Task Scheduler chay lenh sau moi gio:
+
+```powershell
+QI-Crawler theo-doi --mot-lan
+```
+
+Moi luot quet cap nhat ban ghi trung thay vi tao them ban sao. Diem kha thi chi de xep hang uu tien, khong thay
+the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
+
+## 13. Lenh nang cao
+
+Cac lenh hang ngay nam trong `QI-Crawler -help`. Cac lenh ky thuat duoc tach rieng de nguoi moi khong bi
+roi. Nguoi van hanh xem bang:
+
+```powershell
+QI-Crawler -adv
+```
+
+Bang nang cao co cac nhom lenh crawl truc tiep, import/xuat ky thuat, doi chieu bang chung, kiem tra selector
+website va quan ly data warehouse. Vi du:
 
 ```text
 collect-contracts-finder, import-file, export, analyze-bid,
-confirm-assessment, bid-gate, predict-win, report-daily, serve
+confirm-assessment, bid-gate, predict-win, kiem-tra-nguon,
+warehouse-status, report-daily
 ```
 
-Xem toàn bộ bằng:
+Xem tham so cua mot lenh cu the:
 
 ```powershell
-QI-Crawler -help
+QI-Crawler kiem-tra-nguon -help
+QI-Crawler warehouse-status -help
 ```
 
-## 13. Khắc phục lỗi thường gặp
+## 13A. Cong viec bat buoc tai T-7 ngay
 
-- `gh is not recognized`: mở terminal mới sau khi cài GitHub CLI.
-- Terminal hiện `>>`: nhấn `Ctrl+C`.
-- Không tìm thấy gói: dùng từ khóa rộng hơn hoặc tăng khoảng ngày.
-- Kết quả luôn `HOLD`: chưa có người kiểm tra xác nhận bằng chứng.
-- File Excel không cập nhật: đóng file đang mở rồi xuất lại.
-- Website yêu cầu đăng nhập lại: phiên đã hết hạn; chạy lại `dang-nhap`.
+Tai T-7 ngay truoc han nop, nhan su phu trach QI-Crawler thuc hien theo thu tu:
+
+```powershell
+QI-Crawler kiem-tra-nguon --ten egp-vietnam
+QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "TU KHOA SAN PHAM"
+QI-Crawler xuat-bao-cao --tep data\bao-cao-T7.xlsx
+```
+
+Sau do kiem tra du phien ban E-HSMT/sua doi/lam ro va ban giao bon bang chung: bao cao Excel, thu muc
+E-HSMT, nhat ky chay, danh muc phien ban kem ngay gio tai. Neu selector chua san sang hoac thieu tai lieu,
+khong danh dau hoan tat T-7.
+
+## 13B. Kiem tra tieng Viet tren Windows
+
+QI-Crawler chap nhan tu khoa co dau nhu `Lanh Binh Thang` va `Cap quang` (khi go thuc te co the dung day du
+dau tieng Viet). Logic tim kiem tu chuan hoa chu co dau; file Excel van giu chu co dau de nguoi dung doc.
+Neu terminal hien sai font, chay truoc:
+
+```powershell
+$env:PYTHONUTF8="1"
+```
+
+Sau khi xuat Excel, mo file va kiem tra ten goi/ben moi thau; khong ket luan loi du lieu chi dua vao font cua
+terminal.
+
+## 14. Khac phuc loi thuong gap
+
+- `gh is not recognized`: mo terminal moi sau khi cai GitHub CLI.
+- Terminal hien `>>`: nhan `Ctrl+C`.
+- Khong tim thay goi: dung tu khoa rong hon hoac tang khoang ngay.
+- Ket qua luon `HOLD`: chua co nguoi kiem tra xac nhan bang chung.
+- File Excel khong cap nhat: dong file dang mo roi xuat lai.
+- Website yeu cau dang nhap lai: phien da het han; chay lai `dang-nhap`.

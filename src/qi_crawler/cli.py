@@ -11,8 +11,10 @@ from .authenticated_sources import (
     allow_source_domain,
     collect_authenticated_source,
     create_login_session,
+    egp_vietnam_source,
     load_source,
     save_source,
+    validate_authenticated_source,
 )
 from .bid_intelligence import (
     analyze_bid_document,
@@ -28,16 +30,19 @@ from .crawler import CrawlerService
 from .db import Database
 from .exporter import export_csv, export_xlsx
 from .importer import import_file as import_data_file
+from .inventory import import_inventory, import_tender_items
 from .keywords import KeywordExpansion, expand_keyword, learn_keyword
 from .logging_utils import configure_logging
+from .monitoring import load_monitoring_config, monitor_forever, run_monitoring_cycle
 from .reporting import build_daily_report, send_report_email
+from .warehouse import BACKUP_DIR, WAREHOUSE_PATH, WarehouseManager
 
 
 def _show_keyword_plan(expansion: KeywordExpansion) -> None:
-    typer.echo(f"Từ khóa sản phẩm: {', '.join(expansion.product_terms)}")
+    typer.echo(f"Tu khoa san pham: {', '.join(expansion.product_terms)}")
     if expansion.category:
         typer.echo(
-            f"Nhóm ngành: {expansion.category} "
+            f"Nhom nganh: {expansion.category} "
             f"({', '.join(expansion.category_terms)})"
         )
 
@@ -48,44 +53,89 @@ def _expand_and_learn(keyword: str) -> KeywordExpansion:
         learned = learn_keyword(keyword)
         if learned.status == "updated":
             typer.echo(
-                f"Đã tự phân loại từ khóa mới vào nhóm '{learned.category}' "
-                f"(độ tin cậy {learned.confidence:.0%})."
+                f"Da tu phan loai tu khoa moi vao nhom '{learned.category}' "
+                f"(do tin cay {learned.confidence:.0%})."
             )
             expansion = expand_keyword(keyword)
         else:
             typer.echo(
-                "Từ khóa mới chưa đủ thông tin để phân loại; đã đưa vào "
-                "pending_keywords để người phụ trách kiểm tra."
+                "Tu khoa moi chua du thong tin de phan loai; da dua vao "
+                "pending_keywords de nguoi phu trach kiem tra."
             )
     return expansion
 
 app = typer.Typer(
     no_args_is_help=True,
+    invoke_without_command=True,
+    add_completion=False,
     context_settings={"help_option_names": ["-help", "--help", "-h"]},
-    help="Crawler dữ liệu đấu thầu công khai: allowlist, robots.txt, rate limit và audit.",
+    help="Cong cu QI tim, theo doi, kiem tra va xuat bao cao goi thau.",
     epilog="""
-LỆNH MẪU CHO NGƯỜI MỚI:
+BAT DAU NHANH:
 
-  QI-Crawler bat-dau
+  1. Chuan bi:       QI-Crawler bat-dau
 
-  QI-Crawler tim-goi --tu-khoa "xi măng"
+  2. Tim goi:        QI-Crawler tim-goi --tu-khoa "network switch"
 
-  QI-Crawler xuat-bao-cao
+  3. Nhap ton kho:   QI-Crawler nhap-ton-kho "C:\\duong-dan\\qi-stock.xlsx"
 
-  QI-Crawler them-nguon --ten muasamcong --url "URL_TRANG_DANH_SACH"
+  4. Nhap BOQ:       QI-Crawler nhap-boq 12 "C:\\duong-dan\\tender-boq.xlsx"
 
-  QI-Crawler dang-nhap --ten muasamcong
+  5. Xuat Excel:     QI-Crawler xuat-bao-cao
 
-  QI-Crawler tim-tren-web --ten muasamcong --tu-khoa "xi măng"
-
-Dùng QI-Crawler TEN-LENH -help để xem hướng dẫn riêng của một lệnh.
+Can huong dan mot lenh: QI-Crawler TEN-LENH -help
 """,
 )
 
+ADVANCED_HELP = """
+LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
 
-@app.command("help")
+  init-db                    Khoi tao hoac cap nhat database
+  crawl URL                  Doc truc tiep mot trang chi tiet
+  crawl-file TEP             Doc danh sach URL tu file
+  collect-links URL          Lay link chi tiet tu trang danh sach
+  collect-dynamic URL        Lay link tu website JavaScript
+  download-page URL          Tai tep dinh kem tu trang chi tiet
+  retry-downloads            Tai lai cac tep bi loi
+  discover URL               Quan sat API/JSON cua website
+  import-file TEP            Nhap du lieu goi thau CSV/Excel
+  export                     Xuat du lieu ky thuat CSV/Excel
+  report-daily               Tao bao cao van hanh hang ngay
+  import-evidence TEP        Nhap bang chung nang luc QI
+  analyze-bid TEP            Tao bang doi chieu yeu cau
+  predict-win                Uoc tinh muc do san sang/trung thau
+  bid-gate                   Kiem tra cong GO/HOLD/NO-GO
+  confirm-assessment         Ghi nhan ket qua kiem tra doc lap
+  collect-contracts-finder   Thu thap truc tiep tu Contracts Finder
+  kiem-tra-nguon             Kiem tra phien dang nhap va selector website
+  warehouse-init             Khoi tao data warehouse cuc bo
+  warehouse-status           Kiem tra data warehouse
+  warehouse-backup           Sao luu data warehouse
+  warehouse-review           Ghi nhan de xuat luu tru du lieu
+
+Xem chi tiet: QI-Crawler TEN-LENH -help
+"""
+
+
+@app.callback()
+def main_callback(
+    advanced: bool = typer.Option(
+        False,
+        "-adv",
+        "--advanced",
+        is_eager=True,
+        help="Hien danh sach lenh nang cao",
+    ),
+) -> None:
+    """Dieu huong tro giup cho nguoi moi va nguoi van hanh ky thuat."""
+    if advanced:
+        typer.echo(ADVANCED_HELP.strip())
+        raise typer.Exit()
+
+
+@app.command("help", rich_help_panel="LENH CHO NGUOI MOI")
 def show_help(ctx: typer.Context) -> None:
-    """Hiện danh sách lệnh và ví dụ sử dụng."""
+    """Xem danh sach lenh va vi du ngan gon."""
     if ctx.parent is not None:
         typer.echo(ctx.parent.get_help())
 
@@ -96,16 +146,16 @@ def _config(path: Path | None):
     return load_config(path)
 
 
-@app.command("init-db")
+@app.command("init-db", hidden=True)
 def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     cfg = _config(config)
     Database(cfg.storage.database_url).create_all()
-    typer.echo(f"Đã khởi tạo/cập nhật database: {cfg.storage.database_url}")
+    typer.echo(f"Da khoi tao/cap nhat database: {cfg.storage.database_url}")
 
 
-@app.command("crawl")
+@app.command("crawl", hidden=True)
 def crawl(
-    urls: list[str] = typer.Argument(..., help="Một hoặc nhiều URL chi tiết được phép crawl"),
+    urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     cfg = _config(config)
@@ -114,14 +164,14 @@ def crawl(
         service = CrawlerService(cfg)
         try:
             ok, failed = await service.crawl_urls(urls)
-            typer.echo(f"Hoàn tất: thành công={ok}, lỗi={failed}")
+            typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("crawl-file")
+@app.command("crawl-file", hidden=True)
 def crawl_file(
     input_file: Path = typer.Argument(..., exists=True, readable=True),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -134,14 +184,14 @@ def crawl_file(
         service = CrawlerService(cfg)
         try:
             ok, failed = await service.crawl_urls(urls, source_name=f"file:{input_file.name}")
-            typer.echo(f"Hoàn tất: thành công={ok}, lỗi={failed}")
+            typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("collect-links")
+@app.command("collect-links", hidden=True)
 def collect_links(
     list_url: str = typer.Argument(...),
     output: Path = typer.Option(Path("data/urls.txt"), "--output", "-o"),
@@ -155,16 +205,16 @@ def collect_links(
             links = await service.collect_links(list_url)
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text("\n".join(links) + ("\n" if links else ""), encoding="utf-8")
-            typer.echo(f"Đã ghi {len(links)} URL vào {output}")
+            typer.echo(f"Da ghi {len(links)} URL vao {output}")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("collect-dynamic")
+@app.command("collect-dynamic", hidden=True)
 def collect_dynamic(
-    list_url: str = typer.Argument(..., help="Trang danh sách động được phép tự động truy cập"),
+    list_url: str = typer.Argument(..., help="Trang danh sach dong duoc phep tu dong truy cap"),
     keyword: str | None = typer.Option(None, "--keyword", "-k"),
     max_pages: int = typer.Option(10, "--max-pages", min=1, max=1000),
     output: Path = typer.Option(Path("data/urls.txt"), "--output", "-o"),
@@ -184,16 +234,16 @@ def collect_dynamic(
             )
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text("\n".join(links) + ("\n" if links else ""), encoding="utf-8")
-            typer.echo(f"Đã ghi {len(links)} URL vào {output}")
+            typer.echo(f"Da ghi {len(links)} URL vao {output}")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("download-page")
+@app.command("download-page", hidden=True)
 def download_page(
-    url: str = typer.Argument(..., help="Trang chi tiết có nút tải file được phép tự động hóa"),
+    url: str = typer.Argument(..., help="Trang chi tiet co nut tai file duoc phep tu dong hoa"),
     package_id: str | None = typer.Option(None, "--package-id"),
     headed: bool = typer.Option(False, "--headed/--headless"),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -209,7 +259,7 @@ def download_page(
                 headed=headed,
             )
             typer.echo(
-                f"Notice id={notice.id}: tải thành công={len(downloaded)}, lỗi={len(errors)}"
+                f"Notice id={notice.id}: tai thanh cong={len(downloaded)}, loi={len(errors)}"
             )
             for item in downloaded:
                 typer.echo(f"  OK  {item.local_path}")
@@ -221,7 +271,7 @@ def download_page(
     asyncio.run(run())
 
 
-@app.command("retry-downloads")
+@app.command("retry-downloads", hidden=True)
 def retry_downloads(
     limit: int = typer.Option(100, "--limit", min=1, max=10000),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -232,16 +282,16 @@ def retry_downloads(
         service = CrawlerService(cfg)
         try:
             ok, failed = await service.retry_failed_attachments(limit=limit)
-            typer.echo(f"Retry hoàn tất: thành công={ok}, lỗi={failed}")
+            typer.echo(f"Retry hoan tat: thanh cong={ok}, loi={failed}")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("discover")
+@app.command("discover", hidden=True)
 def discover(
-    url: str = typer.Argument(..., help="Trang công khai cần quan sát JSON/XHR"),
+    url: str = typer.Argument(..., help="Trang cong khai can quan sat JSON/XHR"),
     seconds: int = typer.Option(60, "--seconds", min=5, max=600),
     headed: bool = typer.Option(True, "--headed/--headless"),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -252,14 +302,14 @@ def discover(
         browser = BrowserFetcher(cfg)
         try:
             saved = await browser.discover_json(url, seconds, headed)
-            typer.echo(f"Đã lưu {len(saved)} phản hồi JSON vào {cfg.storage.discovery_dir}")
+            typer.echo(f"Da luu {len(saved)} phan hoi JSON vao {cfg.storage.discovery_dir}")
         finally:
             await browser.close()
 
     asyncio.run(run())
 
 
-@app.command("import-file")
+@app.command("import-file", hidden=True)
 def import_file_command(
     input_file: Path = typer.Argument(..., exists=True, readable=True),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -269,17 +319,17 @@ def import_file_command(
     try:
         summary = import_data_file(service, input_file)
         typer.echo(
-            "Import hoàn tất: "
-            f"tổng={summary.rows_found}, mới={summary.inserted}, cập nhật={summary.updated}, "
-            f"không đổi={summary.unchanged}, loại={summary.rejected}"
+            "Import hoan tat: "
+            f"tong={summary.rows_found}, moi={summary.inserted}, cap nhat={summary.updated}, "
+            f"khong doi={summary.unchanged}, loai={summary.rejected}"
         )
         if summary.reject_file:
-            typer.echo(f"Dữ liệu lỗi: {summary.reject_file}")
+            typer.echo(f"Du lieu loi: {summary.reject_file}")
     finally:
         asyncio.run(service.close())
 
 
-@app.command("export")
+@app.command("export", hidden=True)
 def export(
     output: Path = typer.Option(Path("data/notices.xlsx"), "--output", "-o"),
     format: str = typer.Option("xlsx", "--format", case_sensitive=False),
@@ -294,11 +344,11 @@ def export(
     elif fmt == "csv":
         path = export_csv(db, output)
     else:
-        raise typer.BadParameter("Format phải là xlsx hoặc csv")
-    typer.echo(f"Đã xuất: {path}")
+        raise typer.BadParameter("Format phai la xlsx hoac csv")
+    typer.echo(f"Da xuat: {path}")
 
 
-@app.command("report-daily")
+@app.command("report-daily", hidden=True)
 def report_daily(
     output: Path | None = typer.Option(None, "--output", "-o"),
     report_date: str | None = typer.Option(None, "--date", help="YYYY-MM-DD"),
@@ -317,13 +367,13 @@ def report_daily(
         report_date=selected_date,
         days_ahead=days_ahead or cfg.reporting.days_ahead,
     )
-    typer.echo(f"Đã tạo báo cáo: {report_path}")
+    typer.echo(f"Da tao bao cao: {report_path}")
     if send_email:
         send_report_email(cfg, report_path)
-        typer.echo("Đã gửi email báo cáo.")
+        typer.echo("Da gui email bao cao.")
 
 
-@app.command("serve")
+@app.command("serve", hidden=True)
 def serve(
     host: str = typer.Option("127.0.0.1", "--host"),
     port: int = typer.Option(8000, "--port", min=1, max=65535),
@@ -333,7 +383,7 @@ def serve(
     uvicorn.run("qi_crawler.api:app", host=host, port=port, reload=False)
 
 
-@app.command("import-evidence")
+@app.command("import-evidence", hidden=True)
 def import_evidence(
     input_file: Path = typer.Argument(..., exists=True, readable=True),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -343,10 +393,10 @@ def import_evidence(
     db = Database(cfg.storage.database_url)
     db.create_all()
     count = import_evidence_csv(db, input_file)
-    typer.echo(f"Đã nhập/cập nhật {count} bằng chứng năng lực.")
+    typer.echo(f"Da nhap/cap nhat {count} bang chung nang luc.")
 
 
-@app.command("analyze-bid")
+@app.command("analyze-bid", hidden=True)
 def analyze_bid(
     input_file: Path = typer.Argument(..., exists=True, readable=True),
     notice_id: int | None = typer.Option(None, "--notice-id", min=1),
@@ -358,12 +408,12 @@ def analyze_bid(
     db.create_all()
     result = analyze_bid_document(db, input_file, notice_id=notice_id)
     typer.echo(
-        f"Phân tích {result.total} yêu cầu: đáp ứng={result.covered}, "
-        f"một phần={result.partial}, thiếu={result.gaps}, coverage={result.coverage_percent}%"
+        f"Phan tich {result.total} yeu cau: dap ung={result.covered}, "
+        f"mot phan={result.partial}, thieu={result.gaps}, coverage={result.coverage_percent}%"
     )
 
 
-@app.command("predict-win")
+@app.command("predict-win", hidden=True)
 def predict_win(
     notice_id: int | None = typer.Option(None, "--notice-id", min=1),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -373,20 +423,20 @@ def predict_win(
     db = Database(cfg.storage.database_url)
     db.create_all()
     result = estimate_win_likelihood(db, notice_id=notice_id)
-    typer.echo(f"Cổng SOP: {result.gate_status}")
-    typer.echo(f"Điểm sẵn sàng hồ sơ: {result.readiness_score}%")
+    typer.echo(f"Cong SOP: {result.gate_status}")
+    typer.echo(f"Diem san sang ho so: {result.readiness_score}%")
     typer.echo(
-        f"Tỷ lệ trúng thầu ước tính: {result.estimated_win_percent}% "
-        f"(độ tin cậy: {result.confidence_percent}%)"
+        f"Ty le trung thau uoc tinh: {result.estimated_win_percent}% "
+        f"(do tin cay: {result.confidence_percent}%)"
     )
-    typer.echo(f"Coverage yêu cầu bắt buộc: {result.mandatory_coverage_percent}%")
-    typer.echo("Rủi ro chính:")
+    typer.echo(f"Coverage yeu cau bat buoc: {result.mandatory_coverage_percent}%")
+    typer.echo("Rui ro chinh:")
     for risk in result.risk_factors:
         typer.echo(f"  - {risk}")
-    typer.echo("Cảnh báo: đây là ước tính MVP, không phải xác suất đã kiểm định hay bảo đảm trúng thầu.")
+    typer.echo("Canh bao: day la uoc tinh MVP, khong phai xac suat da kiem dinh hay bao dam trung thau.")
 
 
-@app.command("bid-gate")
+@app.command("bid-gate", hidden=True)
 def bid_gate(
     notice_id: int | None = typer.Option(None, "--notice-id", min=1),
     config: Path | None = typer.Option(None, "--config", exists=True),
@@ -397,14 +447,14 @@ def bid_gate(
     db.create_all()
     result = evaluate_bid_gate(db, notice_id)
     typer.echo(
-        f"Kết luận SOP: {result.status}; bắt buộc={result.mandatory_total}; "
-        f"đã xác nhận={result.mandatory_confirmed}"
+        f"Ket luan SOP: {result.status}; bat buoc={result.mandatory_total}; "
+        f"da xac nhan={result.mandatory_confirmed}"
     )
     for blocker in result.blockers:
         typer.echo(f"  - {blocker}")
 
 
-@app.command("confirm-assessment")
+@app.command("confirm-assessment", hidden=True)
 def confirm_assessment_command(
     assessment_id: int = typer.Argument(..., min=1),
     reviewer: str = typer.Option(..., "--reviewer"),
@@ -417,10 +467,10 @@ def confirm_assessment_command(
     db = Database(cfg.storage.database_url)
     db.create_all()
     confirm_assessment(db, assessment_id, reviewer, decision, note)
-    typer.echo(f"Đã xác nhận assessment {assessment_id}: {decision} bởi {reviewer}.")
+    typer.echo(f"Da xac nhan assessment {assessment_id}: {decision} boi {reviewer}.")
 
 
-@app.command("collect-contracts-finder")
+@app.command("collect-contracts-finder", hidden=True)
 def collect_contracts_finder_command(
     keyword: str | None = typer.Option(None, "--keyword", "-k"),
     published_from: str | None = typer.Option(None, "--from", help="YYYY-MM-DD"),
@@ -444,9 +494,9 @@ def collect_contracts_finder_command(
                 only_open=only_open,
             )
             typer.echo(
-                f"Contracts Finder: đọc={result.fetched}, khớp={result.matched}, "
-                f"mới={result.inserted}, cập nhật={result.updated}, "
-                f"bỏ qua hết hạn={result.expired_skipped}"
+                f"Contracts Finder: doc={result.fetched}, khop={result.matched}, "
+                f"moi={result.inserted}, cap nhat={result.updated}, "
+                f"bo qua het han={result.expired_skipped}"
             )
         finally:
             await service.close()
@@ -455,31 +505,31 @@ def collect_contracts_finder_command(
 
 
 # ---------------------------------------------------------------------------
-# Lệnh đơn giản cho người mới. Các lệnh kỹ thuật phía trên vẫn được giữ để
-# vận hành nâng cao và tương thích với quy trình cũ.
+# Lenh don gian cho nguoi moi. Cac lenh ky thuat phia tren van duoc giu de
+# van hanh nang cao va tuong thich voi quy trinh cu.
 
 
-@app.command("bat-dau")
+@app.command("bat-dau", rich_help_panel="LENH CHO NGUOI MOI")
 def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
-    """Khởi tạo MVP và hiển thị ba bước sử dụng cơ bản."""
+    """Chuan bi QI-Crawler cho lan su dung dau tien."""
     cfg = _config(config)
     Database(cfg.storage.database_url).create_all()
-    typer.echo("MVP QI đã sẵn sàng.")
-    typer.echo("1. Tìm gói:       QI-Crawler tim-goi --tu-khoa \"network switch\"")
-    typer.echo("2. Xuất báo cáo: QI-Crawler xuat-bao-cao")
-    typer.echo("3. Đánh giá:     QI-Crawler danh-gia data\\yeu-cau.txt")
+    typer.echo("MVP QI da san sang.")
+    typer.echo("1. Tim goi:       QI-Crawler tim-goi --tu-khoa \"network switch\"")
+    typer.echo("2. Xuat bao cao: QI-Crawler xuat-bao-cao")
+    typer.echo("3. Danh gia:     QI-Crawler danh-gia data\\yeu-cau.txt")
 
 
-@app.command("tim-goi")
+@app.command("tim-goi", rich_help_panel="LENH CHO NGUOI MOI")
 def tim_goi(
     tu_khoa: str = typer.Option(
-        ..., "--tu-khoa", "-k", help="Tên sản phẩm tiếng Việt hoặc tiếng Anh"
+        ..., "--tu-khoa", "-k", help="Ten san pham tieng Viet hoac tieng Anh"
     ),
-    tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="YYYY-MM-DD; mặc định 30 ngày"),
+    tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="YYYY-MM-DD; mac dinh 30 ngay"),
     so_luong: int = typer.Option(20, "--so-luong", min=1, max=200),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Tìm và lưu các gói Contracts Finder còn hạn."""
+    """Tim va luu goi thau con han theo tu khoa."""
     cfg = _config(config)
     expansion = _expand_and_learn(tu_khoa)
     _show_keyword_plan(expansion)
@@ -494,61 +544,155 @@ def tim_goi(
                 limit=so_luong,
                 only_open=True,
             )
-            typer.echo(f"Đã lưu {result.matched} gói còn hạn phù hợp từ khóa '{tu_khoa}'.")
-            typer.echo(f"Đã bỏ qua {result.expired_skipped} gói hết hạn.")
-            typer.echo("Bước tiếp theo: QI-Crawler xuat-bao-cao")
+            typer.echo(f"Da luu {result.matched} goi con han phu hop tu khoa '{tu_khoa}'.")
+            typer.echo(f"Da bo qua {result.expired_skipped} goi het han.")
+            typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("xuat-bao-cao")
+@app.command("xuat-bao-cao", rich_help_panel="LENH CHO NGUOI MOI")
 def xuat_bao_cao(
     output: Path = typer.Option(Path("data/bao-cao-goi-thau.xlsx"), "--tep", "-o"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Xuất danh sách gói thầu ra Excel."""
+    """Xuat danh sach va bang dap ung ra Excel."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
     db.create_all()
     path = export_xlsx(db, output)
-    typer.echo(f"Đã tạo báo cáo: {path}")
+    typer.echo(f"Da tao bao cao: {path}")
 
 
-@app.command("danh-gia")
+@app.command("nhap-ton-kho", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("import-inventory", hidden=True)
+def import_inventory_command(
+    input_file: Path = typer.Argument(
+        ...,
+        exists=True,
+        readable=True,
+        metavar="TEP_TON_KHO",
+        help="File Excel/CSV ton kho QI",
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Nhap file Excel/CSV ton kho de kiem tra so luong."""
+    cfg = _config(config)
+    summary = import_inventory(Database(cfg.storage.database_url), input_file)
+    typer.echo(
+        "Nhap ton kho xong: "
+        f"tong={summary.rows}, them-moi={summary.inserted}, "
+        f"cap-nhat={summary.updated}, loi={summary.rejected}."
+    )
+    typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
+
+
+@app.command("nhap-boq", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("import-tender-items", hidden=True)
+def import_tender_items_command(
+    notice_id: int = typer.Argument(
+        ..., min=1, metavar="MA_GOI", help="Cot id cua goi trong sheet Notices"
+    ),
+    input_file: Path = typer.Argument(
+        ...,
+        exists=True,
+        readable=True,
+        metavar="TEP_BOQ",
+        help="File Excel/CSV bang so luong BOQ",
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Nhap bang so luong BOQ cho mot goi thau."""
+    cfg = _config(config)
+    try:
+        summary = import_tender_items(
+            Database(cfg.storage.database_url), notice_id, input_file
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(
+        "Nhap BOQ xong: "
+        f"tong={summary.rows}, them-moi={summary.inserted}, "
+        f"cap-nhat={summary.updated}, loi={summary.rejected}."
+    )
+    typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
+
+
+@app.command("theo-doi", rich_help_panel="LENH CHO NGUOI MOI")
+def theo_doi(
+    cau_hinh: Path = typer.Option(
+        Path("monitoring.yaml"), "--cau-hinh", "-c", help="File cau hinh theo doi"
+    ),
+    mot_lan: bool = typer.Option(
+        False, "--mot-lan", help="Quet mot luot roi dung; phu hop Windows Task Scheduler"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Tu dong tim va xep hang co hoi theo chu ky."""
+    cfg = _config(config)
+    settings = load_monitoring_config(cau_hinh)
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            if mot_lan:
+                summary = await run_monitoring_cycle(service, settings)
+                typer.echo(
+                    f"Quet xong: thu thap={summary.collected}, "
+                    f"kha thi so bo={summary.feasible}, can xem={summary.review}, "
+                    f"thap={summary.low}."
+                )
+                typer.echo(f"Bao cao: {summary.output}")
+            else:
+                typer.echo(
+                    f"Bat dau theo doi moi {settings.interval_minutes} phut. "
+                    "Nhan Ctrl+C de dung."
+                )
+                await monitor_forever(service, settings)
+        finally:
+            await service.close()
+
+    try:
+        asyncio.run(run())
+    except KeyboardInterrupt:
+        typer.echo("Da dung theo doi an toan.")
+
+
+@app.command("danh-gia", rich_help_panel="LENH CHO NGUOI MOI")
 def danh_gia(
     yeu_cau: Path = typer.Argument(..., exists=True, readable=True),
     notice_id: int | None = typer.Option(None, "--ma-noi-bo", min=1),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Phân tích file yêu cầu và trả kết luận GO/HOLD/NO-GO."""
+    """Kiem tra kha nang dap ung cua mot goi thau."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
     db.create_all()
     summary = analyze_bid_document(db, yeu_cau, notice_id=notice_id)
     gate = evaluate_bid_gate(db, notice_id)
     typer.echo(
-        f"Đã đọc {summary.total} yêu cầu: đáp ứng={summary.covered}, "
-        f"cần kiểm tra={summary.partial}, thiếu={summary.gaps}."
+        f"Da doc {summary.total} yeu cau: dap ung={summary.covered}, "
+        f"can kiem tra={summary.partial}, thieu={summary.gaps}."
     )
-    typer.echo(f"Kết luận hiện tại: {gate.status}")
+    typer.echo(f"Ket luan hien tai: {gate.status}")
     for blocker in gate.blockers[:10]:
         typer.echo(f"  - {blocker}")
     if gate.status != "GO":
-        typer.echo("Cần người phụ trách kiểm tra bằng chứng trước khi trình duyệt.")
+        typer.echo("Can nguoi phu trach kiem tra bang chung truoc khi trinh duyet.")
 
 
-@app.command("them-nguon")
+@app.command("them-nguon", rich_help_panel="LENH CHO NGUOI MOI")
 def them_nguon(
-    ten: str = typer.Option(..., "--ten", help="Tên ngắn, ví dụ: muasamcong"),
-    url: str = typer.Option(..., "--url", help="Địa chỉ trang danh sách gói thầu"),
+    ten: str = typer.Option(..., "--ten", help="Ten ngan, vi du: muasamcong"),
+    url: str = typer.Option(..., "--url", help="Dia chi trang danh sach goi thau"),
     item_selector: str = typer.Option("a[href]", "--vung-ket-qua", hidden=True),
     link_selector: str = typer.Option("a", "--link", hidden=True),
     next_selector: str | None = typer.Option(None, "--trang-sau", hidden=True),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Thêm một website có trang danh sách gói thầu."""
+    """Them website co danh sach goi thau."""
     source = WebSource(
         name=ten,
         list_url=url,
@@ -559,21 +703,64 @@ def them_nguon(
     config_path = config or EnvSettings().config_path
     allow_source_domain(config_path, source.domain)
     path = save_source(source)
-    typer.echo(f"Đã thêm nguồn '{source.name}': {source.domain}")
-    typer.echo(f"Cấu hình cục bộ: {path}")
-    typer.echo(f"Bước tiếp theo: QI-Crawler dang-nhap --ten {source.name}")
+    typer.echo(f"Da them nguon '{source.name}': {source.domain}")
+    typer.echo(f"Cau hinh cuc bo: {path}")
+    typer.echo(f"Buoc tiep theo: QI-Crawler dang-nhap --ten {source.name}")
 
 
-@app.command("them-tu-khoa")
-def them_tu_khoa(
-    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Tên sản phẩm mới"),
-    ten_khac: list[str] = typer.Option(
-        [], "--ten-khac", help="Tên Anh/viết tắt; có thể nhập nhiều lần"
+@app.command("them-egp", rich_help_panel="LENH CHO NGUOI MOI")
+def them_egp(
+    ten: str = typer.Option("egp-vietnam", "--ten", help="Ten nguon de ghi nho"),
+    url: str = typer.Option(
+        "https://muasamcong.mpi.gov.vn/vi/web/guest/contractor-selection",
+        "--url",
+        help="URL trang danh sach e-GP",
     ),
-    mo_ta: str = typer.Option("", "--mo-ta", help="Mô tả ngắn giúp xác định nhóm ngành"),
-    nhom: str | None = typer.Option(None, "--nhom", help="Chỉ định nhóm nếu muốn xác nhận thủ công"),
+    config: Path | None = typer.Option(None, "--config", exists=True, hidden=True),
 ) -> None:
-    """Tự phân loại và cập nhật một từ khóa sản phẩm mới."""
+    """Cau hinh nhanh nguon e-GP Viet Nam."""
+    source = egp_vietnam_source(name=ten, list_url=url)
+    config_path = config or EnvSettings().config_path
+    allow_source_domain(config_path, source.domain)
+    path = save_source(source)
+    typer.echo(f"Da tao nguon e-GP '{source.name}': {source.domain}")
+    typer.echo(f"Cau hinh cuc bo: {path}")
+    typer.echo(f"Buoc 1: QI-Crawler dang-nhap --ten {source.name}")
+    typer.echo(f"Buoc 2: QI-Crawler kiem-tra-nguon --ten {source.name}")
+    typer.echo(f"Buoc 3: QI-Crawler tim-tren-web --ten {source.name} --tu-khoa \"cap quang\"")
+
+
+@app.command("kiem-tra-nguon", hidden=True)
+def kiem_tra_nguon(
+    ten: str = typer.Option(..., "--ten", help="Ten nguon da khai bao"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Kiem tra phien dang nhap va selector truoc khi thu thap."""
+    cfg = _config(config)
+    source = load_source(ten)
+    result = asyncio.run(validate_authenticated_source(cfg, source))
+    typer.echo(f"Trang dang kiem tra: {result.current_url}")
+    typer.echo(f"Muc goi thau: {result.item_count}; link hop le: {result.link_count}")
+    if not result.ready:
+        typer.echo(
+            "Chua san sang. Hay dang-nhap lai, di toi trang danh sach goi thau "
+            "va luu lai phien.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    typer.echo("Nguon da san sang de tim goi.")
+
+
+@app.command("them-tu-khoa", rich_help_panel="LENH CHO NGUOI MOI")
+def them_tu_khoa(
+    tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Ten san pham moi"),
+    ten_khac: list[str] = typer.Option(
+        [], "--ten-khac", help="Ten Anh/viet tat; co the nhap nhieu lan"
+    ),
+    mo_ta: str = typer.Option("", "--mo-ta", help="Mo ta ngan giup xac dinh nhom nganh"),
+    nhom: str | None = typer.Option(None, "--nhom", help="Chi dinh nhom neu muon xac nhan thu cong"),
+) -> None:
+    """Them san pham va ten tim kiem moi."""
     result = learn_keyword(
         tu_khoa,
         aliases=tuple(ten_khac),
@@ -581,37 +768,37 @@ def them_tu_khoa(
         category_name=nhom,
     )
     if result.status == "updated":
-        typer.echo(f"Đã cập nhật '{result.keyword}' vào nhóm '{result.category}'.")
-        typer.echo(f"Độ tin cậy phân loại: {result.confidence:.0%}")
+        typer.echo(f"Da cap nhat '{result.keyword}' vao nhom '{result.category}'.")
+        typer.echo(f"Do tin cay phan loai: {result.confidence:.0%}")
         if result.matched_signals:
-            typer.echo(f"Tín hiệu nhận diện: {', '.join(result.matched_signals)}")
+            typer.echo(f"Tin hieu nhan dien: {', '.join(result.matched_signals)}")
     else:
-        typer.echo("Chưa xác định được nhóm ngành một cách an toàn.")
-        typer.echo("Từ khóa đã được lưu vào pending_keywords trong keyword-groups.yaml.")
-        typer.echo("Chạy lại với --nhom \"TÊN NHÓM\" sau khi người phụ trách xác nhận.")
+        typer.echo("Chua xac dinh duoc nhom nganh mot cach an toan.")
+        typer.echo("Tu khoa da duoc luu vao pending_keywords trong keyword-groups.yaml.")
+        typer.echo("Chay lai voi --nhom \"TEN NHOM\" sau khi nguoi phu trach xac nhan.")
 
 
-@app.command("dang-nhap")
+@app.command("dang-nhap", rich_help_panel="LENH CHO NGUOI MOI")
 def dang_nhap(
     ten: str = typer.Option(..., "--ten"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Mở trình duyệt để người dùng tự đăng nhập và lưu phiên cục bộ."""
+    """Mo trinh duyet de ban tu dang nhap website."""
     cfg = _config(config)
     source = load_source(ten)
     path = asyncio.run(create_login_session(cfg, source))
-    typer.echo(f"Đã lưu phiên đăng nhập cục bộ cho '{source.name}': {path}")
-    typer.echo("Không gửi file session cho người khác và không đưa file này lên Git.")
+    typer.echo(f"Da luu phien dang nhap cuc bo cho '{source.name}': {path}")
+    typer.echo("Khong gui file session cho nguoi khac va khong dua file nay len Git.")
 
 
-@app.command("tim-tren-web")
+@app.command("tim-tren-web", rich_help_panel="LENH CHO NGUOI MOI")
 def tim_tren_web(
     ten: str = typer.Option(..., "--ten"),
     tu_khoa: str = typer.Option(..., "--tu-khoa", "-k"),
     so_luong: int = typer.Option(50, "--so-luong", min=1, max=500),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Tìm link gói thầu bằng phiên đăng nhập đã lưu."""
+    """Tim goi thau tren website da dang nhap."""
     cfg = _config(config)
     source = load_source(ten)
     expansion = _expand_and_learn(tu_khoa)
@@ -624,14 +811,63 @@ def tim_tren_web(
                 service, source, keyword=expansion.search_terms, limit=so_luong
             )
             typer.echo(
-                f"Đã xem {result.scanned} mục, lưu {result.matched} gói phù hợp "
-                f"(mới={result.inserted}, cập nhật={result.updated})."
+                f"Da xem {result.scanned} muc, luu {result.matched} goi phu hop "
+                f"(moi={result.inserted}, cap nhat={result.updated})."
             )
-            typer.echo("Bước tiếp theo: QI-Crawler xuat-bao-cao")
+            typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
         finally:
             await service.close()
 
     asyncio.run(run())
+
+
+@app.command("warehouse-init", hidden=True)
+def warehouse_init(
+    path: Path = typer.Option(WAREHOUSE_PATH, "--path", help="DuckDB warehouse file"),
+) -> None:
+    """Create the local DuckDB warehouse and governance tables."""
+    manager = WarehouseManager(path)
+    manager.initialize()
+    typer.echo(f"Warehouse ready: {path.resolve()}")
+
+
+@app.command("warehouse-status", hidden=True)
+def warehouse_status(
+    path: Path = typer.Option(WAREHOUSE_PATH, "--path", help="DuckDB warehouse file"),
+) -> None:
+    """Check the local warehouse structure and review queue."""
+    status = WarehouseManager(path).status()
+    typer.echo(f"Warehouse: {status.path}")
+    typer.echo(f"Size: {status.size_bytes / (1024 * 1024):.2f} MB")
+    typer.echo(f"Schemas: {', '.join(status.schemas)}")
+    typer.echo(f"Tables: {len(status.tables)}")
+    typer.echo(f"Registered datasets: {status.datasets}")
+    typer.echo(f"Pending retention reviews: {status.pending_reviews}")
+
+
+@app.command("warehouse-backup", hidden=True)
+def warehouse_backup(
+    path: Path = typer.Option(WAREHOUSE_PATH, "--path", help="DuckDB warehouse file"),
+    output_dir: Path = typer.Option(BACKUP_DIR, "--output-dir", "-o"),
+) -> None:
+    """Create a timestamped local warehouse backup."""
+    backup = WarehouseManager(path).backup(output_dir)
+    typer.echo(f"Backup created: {backup}")
+
+
+@app.command("warehouse-review", hidden=True)
+def warehouse_review(
+    dataset_name: str = typer.Argument(..., help="Stable dataset name"),
+    decision: str = typer.Argument(..., help="KEEP, REVIEW, QUARANTINE or DROP_PROPOSED"),
+    reason: str = typer.Argument(..., help="Evidence-based reason for the decision"),
+    path: Path = typer.Option(WAREHOUSE_PATH, "--path", help="DuckDB warehouse file"),
+) -> None:
+    """Record a retention recommendation; this command never deletes data."""
+    try:
+        WarehouseManager(path).record_decision(dataset_name, decision, reason)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Recorded {decision.upper()} for dataset '{dataset_name}'. No data was deleted.")
 
 
 if __name__ == "__main__":

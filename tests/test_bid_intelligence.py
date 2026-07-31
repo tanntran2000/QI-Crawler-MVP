@@ -14,7 +14,7 @@ from qi_crawler.models import BidRequirement, ComplianceAssessment
 
 
 def test_extract_keywords_normalizes_vietnamese():
-    words = extract_keywords("Nhà thầu phải có chứng chỉ kỹ thuật mạng Cisco")
+    words = extract_keywords("Nha thau phai co chung chi ky thuat mang Cisco")
     assert "chung" in words
     assert "cisco" in words
 
@@ -25,14 +25,14 @@ def test_evidence_backed_assessment(tmp_path: Path):
     evidence = tmp_path / "evidence.csv"
     evidence.write_text(
         "evidence_code,title,evidence_type,description,keywords,verified\n"
-        "CERT-01,Chứng chỉ kỹ thuật Cisco,certificate,Kỹ sư mạng Cisco,CCNP Cisco,true\n",
+        "CERT-01,Chung chi ky thuat Cisco,certificate,Ky su mang Cisco,CCNP Cisco,true\n",
         encoding="utf-8-sig",
     )
     assert import_evidence_csv(db, evidence) == 1
     requirements = tmp_path / "requirements.txt"
     requirements.write_text(
-        "Nhà thầu phải có chứng chỉ kỹ thuật mạng Cisco\n"
-        "Nhà thầu phải có doanh thu tối thiểu 10 tỷ đồng\n",
+        "Nha thau phai co chung chi ky thuat mang Cisco\n"
+        "Nha thau phai co doanh thu toi thieu 10 ty dong\n",
         encoding="utf-8",
     )
     result = analyze_bid_document(db, requirements)

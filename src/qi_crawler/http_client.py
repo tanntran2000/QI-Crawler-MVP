@@ -34,7 +34,7 @@ class HttpFetcher:
     async def fetch(self, url: str) -> FetchResult:
         self.policy.validate_domain(url)
         if not await self.policy.allowed_by_robots(self.client, url):
-            raise AccessDenied(f"robots.txt không cho phép crawl URL: {url}")
+            raise AccessDenied(f"robots.txt khong cho phep crawl URL: {url}")
 
         attempts = self.config.crawl.max_retries + 1
         last_error: Exception | None = None
@@ -44,7 +44,7 @@ class HttpFetcher:
                 response = await self.client.get(url)
                 if response.status_code in {401, 403, 429}:
                     raise AccessDenied(
-                        f"Máy chủ từ chối/giới hạn truy cập HTTP {response.status_code}: {url}"
+                        f"May chu tu choi/gioi han truy cap HTTP {response.status_code}: {url}"
                     )
                 response.raise_for_status()
                 content_type = response.headers.get("content-type", "")

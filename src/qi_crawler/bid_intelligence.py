@@ -17,19 +17,19 @@ STOPWORDS = {
     "va", "hoac", "cac", "cua", "cho", "voi", "theo", "duoc", "phai", "co", "la",
     "trong", "tu", "den", "mot", "nhung", "nay", "do", "ve", "tai", "khi",
 }
-MANDATORY_MARKERS = ("phải", "bắt buộc", "tối thiểu", "không thấp hơn", "đáp ứng")
+MANDATORY_MARKERS = ("phai", "bat buoc", "toi thieu", "khong thap hon", "dap ung")
 CATEGORY_MARKERS = {
-    "legal": ("pháp lý", "đăng ký kinh doanh", "ủy quyền"),
-    "financial": ("doanh thu", "tài chính", "bảo lãnh", "tín dụng"),
-    "experience": ("kinh nghiệm", "hợp đồng tương tự", "đã thực hiện"),
-    "personnel": ("nhân sự", "chuyên gia", "chứng chỉ", "kỹ sư"),
-    "technical": ("kỹ thuật", "thông số", "tiêu chuẩn", "giải pháp", "thiết bị"),
-    "delivery": ("tiến độ", "giao hàng", "thời gian thực hiện"),
+    "legal": ("phap ly", "dang ky kinh doanh", "uy quyen"),
+    "financial": ("doanh thu", "tai chinh", "bao lanh", "tin dung"),
+    "experience": ("kinh nghiem", "hop dong tuong tu", "da thuc hien"),
+    "personnel": ("nhan su", "chuyen gia", "chung chi", "ky su"),
+    "technical": ("ky thuat", "thong so", "tieu chuan", "giai phap", "thiet bi"),
+    "delivery": ("tien do", "giao hang", "thoi gian thuc hien"),
 }
 
 
 def fold_text(value: str) -> str:
-    value = unicodedata.normalize("NFD", value.lower().replace("đ", "d"))
+    value = unicodedata.normalize("NFD", value.lower().replace("d", "d"))
     value = "".join(char for char in value if unicodedata.category(char) != "Mn")
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9+#./%-]+", " ", value)).strip()
 
@@ -52,7 +52,10 @@ def classify_requirement(text: str) -> str:
 
 
 def split_requirements(text: str) -> list[str]:
-    lines = [re.sub(r"^\s*(?:[-–•*]|\d+[.)])\s*", "", line).strip() for line in text.splitlines()]
+    lines = [
+        re.sub(r"^\s*(?:[-\u2013\u2022*]|\d+[.)])\s*", "", line).strip()
+        for line in text.splitlines()
+    ]
     return [line for line in lines if len(line) >= 12]
 
 
@@ -93,7 +96,7 @@ def import_evidence_csv(db: Database, path: Path) -> int:
             code = (row.get("evidence_code") or "").strip()
             title = (row.get("title") or "").strip()
             if not code or not title:
-                raise ValueError("Mỗi bằng chứng cần evidence_code và title")
+                raise ValueError("Moi bang chung can evidence_code va title")
             item = session.scalar(select(CompanyEvidence).where(CompanyEvidence.evidence_code == code))
             if item is None:
                 item = CompanyEvidence(evidence_code=code, title=title)
@@ -104,7 +107,7 @@ def import_evidence_csv(db: Database, path: Path) -> int:
             item.keywords = (row.get("keywords") or "").strip() or None
             item.source_path = (row.get("source_path") or "").strip() or None
             item.valid_until = (row.get("valid_until") or "").strip() or None
-            item.verified = (row.get("verified") or "").strip().lower() in {"1", "true", "yes", "có"}
+            item.verified = (row.get("verified") or "").strip().lower() in {"1", "true", "yes", "co"}
             count += 1
     return count
 
@@ -162,13 +165,13 @@ def analyze_bid_document(
                 score=round(score, 4),
                 matched_keywords=json.dumps(matched, ensure_ascii=False),
                 explanation=(
-                    f"Khớp {len(matched)}/{len(required)} keyword với bằng chứng {item.evidence_code}."
-                    if item else "Chưa tìm thấy bằng chứng nội bộ phù hợp."
+                    f"Khop {len(matched)}/{len(required)} keyword voi bang chung {item.evidence_code}."
+                    if item else "Chua tim thay bang chung noi bo phu hop."
                 ),
                 requires_human_confirmation=True,
                 variance_type="none" if status == "covered" else "unverified",
                 variance_impact=(
-                    None if status == "covered" else "Chưa đủ bằng chứng để kết luận đáp ứng."
+                    None if status == "covered" else "Chua du bang chung de ket luan dap ung."
                 ),
             ))
     total = len(statuses)
@@ -186,13 +189,13 @@ def evaluate_bid_gate(db: Database, notice_id: int | None = None) -> BidGateResu
             .where(BidRequirement.notice_id == notice_id)
         ).all()
     if not rows:
-        raise ValueError("Chưa có ma trận compliance. Hãy chạy analyze-bid trước.")
+        raise ValueError("Chua co ma tran compliance. Hay chay analyze-bid truoc.")
     mandatory = [(item, req) for item, req in rows if req.requirement_type == "mandatory"]
     blockers: list[str] = []
     hard_gaps = [(item, req) for item, req in mandatory if item.status == "gap"]
     if hard_gaps:
         blockers.extend(
-            f"{req.requirement_code}: tiêu chí bắt buộc chưa có bằng chứng đáp ứng."
+            f"{req.requirement_code}: tieu chi bat buoc chua co bang chung dap ung."
             for _, req in hard_gaps
         )
         status = "NO-GO"
@@ -204,7 +207,7 @@ def evaluate_bid_gate(db: Database, notice_id: int | None = None) -> BidGateResu
         ]
         if unresolved:
             blockers.extend(
-                f"{req.requirement_code}: cần người kiểm tra độc lập xác nhận bằng chứng/spec."
+                f"{req.requirement_code}: can nguoi kiem tra doc lap xac nhan bang chung/spec."
                 for _, req in unresolved
             )
             status = "HOLD"
@@ -222,13 +225,13 @@ def confirm_assessment(
     db: Database, assessment_id: int, reviewer: str, decision: str, note: str | None = None
 ) -> None:
     if decision not in {"covered", "partial", "gap"}:
-        raise ValueError("decision phải là covered, partial hoặc gap")
+        raise ValueError("decision phai la covered, partial hoac gap")
     if not reviewer.strip():
-        raise ValueError("Cần ghi tên người kiểm tra độc lập")
+        raise ValueError("Can ghi ten nguoi kiem tra doc lap")
     with db.session() as session:
         assessment = session.get(ComplianceAssessment, assessment_id)
         if assessment is None:
-            raise ValueError(f"Không tìm thấy assessment id={assessment_id}")
+            raise ValueError(f"Khong tim thay assessment id={assessment_id}")
         assessment.status = decision
         assessment.reviewer_decision = decision
         assessment.confirmed_by = reviewer.strip()
@@ -252,7 +255,7 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
         )
         rows = session.execute(statement).all()
         if not rows:
-            raise ValueError("Chưa có kết quả compliance để ước tính. Hãy chạy analyze-bid trước.")
+            raise ValueError("Chua co ket qua compliance de uoc tinh. Hay chay analyze-bid truoc.")
 
         weights = {"covered": 1.0, "partial": 0.45, "gap": 0.0}
         evidence_coverage = 100 * sum(weights[item.status] for item, _ in rows) / len(rows)
@@ -278,14 +281,14 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
         sample_confidence = min(20.0, len(rows) * 1.5)
         confidence = round(min(35.0, 15.0 + sample_confidence), 2)
         risks = [
-            "Chưa có dữ liệu giá dự thầu và vị trí giá so với đối thủ.",
-            "Chưa có dữ liệu lịch sử thắng/thua để hiệu chỉnh xác suất.",
+            "Chua co du lieu gia du thau va vi tri gia so voi doi thu.",
+            "Chua co du lieu lich su thang/thua de hieu chinh xac suat.",
         ]
         risks[0:0] = gate.blockers
         if mandatory_gaps:
-            risks.insert(0, f"Có {mandatory_gaps} yêu cầu bắt buộc chưa có bằng chứng.")
+            risks.insert(0, f"Co {mandatory_gaps} yeu cau bat buoc chua co bang chung.")
         if partial_count:
-            risks.append(f"Có {partial_count} yêu cầu mới chỉ đáp ứng một phần.")
+            risks.append(f"Co {partial_count} yeu cau moi chi dap ung mot phan.")
 
         prediction = BidPrediction(
             notice_id=notice_id,
@@ -299,9 +302,9 @@ def estimate_win_likelihood(db: Database, notice_id: int | None = None) -> WinEs
             risk_factors=json.dumps(risks, ensure_ascii=False),
             assumptions=json.dumps(
                 [
-                    "Bằng chứng verified là hợp lệ và còn hiệu lực.",
-                    "Keyword match chỉ là tín hiệu hỗ trợ, không thay thế chuyên gia đấu thầu.",
-                    "Ước tính không bao gồm giá, đối thủ, quan hệ thương mại hoặc quyết định tổ chuyên gia.",
+                    "Bang chung verified la hop le va con hieu luc.",
+                    "Keyword match chi la tin hieu ho tro, khong thay the chuyen gia dau thau.",
+                    "Uoc tinh khong bao gom gia, doi thu, quan he thuong mai hoac quyet dinh to chuyen gia.",
                 ],
                 ensure_ascii=False,
             ),

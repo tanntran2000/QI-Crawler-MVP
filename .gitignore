@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.tmp_pytest/
 .ruff_cache/
 .coverage
 .coverage.*
@@ -12,18 +13,29 @@ htmlcov/
 .venv/
 venv/
 
-# Cấu hình cục bộ và secrets
+# Cau hinh cuc bo va secrets
 .env
 .env.*
 !.env.example
 config.yaml
+monitoring.yaml
 
 # Database
 **/*.db
 **/*.sqlite
 **/*.sqlite3
+**/*.duckdb
+**/*.duckdb.wal
 
-# Dữ liệu vận hành không đưa lên Git
+# Warehouse files and local backups
+data/warehouse/parquet/*
+!data/warehouse/parquet/.gitkeep
+data/warehouse/backups/*
+!data/warehouse/backups/.gitkeep
+data/warehouse/quarantine/*
+!data/warehouse/quarantine/.gitkeep
+
+# Du lieu van hanh khong dua len Git
 data/downloads/*
 !data/downloads/.gitkeep
 
@@ -39,17 +51,18 @@ data/rejects/*
 data/reports/*
 !data/reports/.gitkeep
 
-# Phiên đăng nhập trình duyệt chứa cookie/token, tuyệt đối không đưa lên Git
+# Phien dang nhap trinh duyet chua cookie/token, tuyet doi khong dua len Git
 data/sessions/
 
-# Cấu hình nguồn cục bộ có thể chứa URL nội bộ
+# Cau hinh nguon cuc bo co the chua URL noi bo
 data/sources/
 
-# File demo được tạo khi chạy
+# File demo duoc tao khi chay
 data/demo/*.xlsx
 data/demo/du-lieu-mau.csv
+data/contracts-finder.xlsx
 
-# Log và file tải tạm
+# Log va file tai tam
 *.log
 *.tmp
 *.part
@@ -58,7 +71,7 @@ data/demo/du-lieu-mau.csv
 test-results/
 playwright-report/
 
-# IDE và hệ điều hành
+# IDE va he dieu hanh
 .vscode/
 .DS_Store
 Thumbs.db

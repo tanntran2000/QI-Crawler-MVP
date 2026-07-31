@@ -1,0 +1,10 @@
+interval_minutes: 60
+lookback_days: 14
+limit_per_keyword: 50
+contracts_finder: true
+authenticated_sources: []
+keywords:
+  - network switch
+  - 5G module
+  - sand
+output: data/reports/co-hoi-kha-thi.xlsx

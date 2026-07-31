@@ -10,6 +10,14 @@ SAMPLE_RELEASE = {
         "datePublished": "2026-07-30T10:00:00Z",
         "tenderPeriod": {"endDate": "2026-08-30T12:00:00Z"},
         "value": {"amount": 250000, "currency": "GBP"},
+        "items": [
+            {
+                "id": "line-1",
+                "description": "Network router",
+                "quantity": 25,
+                "unit": {"name": "pieces"},
+            }
+        ],
         "documents": [
             {
                 "documentType": "tenderNotice",
@@ -34,6 +42,9 @@ def test_release_to_notice():
     assert notice.currency == "GBP"
     assert notice.buyer == "Example Council"
     assert notice.attachments[0].file_name == "Specification.pdf"
+    assert notice.items[0].product_name == "Network router"
+    assert notice.items[0].quantity == 25
+    assert notice.items[0].unit == "pieces"
 
 
 def test_release_keyword_matching_requires_all_terms():

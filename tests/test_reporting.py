@@ -17,7 +17,7 @@ def test_build_daily_report(tmp_path: Path):
                 source_url="import://sample#1",
                 url_hash="a" * 64,
                 notice_code="IB260001",
-                title="Mua thiết bị mạng",
+                title="Mua thiet bi mang",
                 closing_at=(datetime.now(UTC).date() + timedelta(days=2)).isoformat(),
             )
         )
@@ -25,12 +25,12 @@ def test_build_daily_report(tmp_path: Path):
     workbook = load_workbook(output, read_only=True)
     try:
         assert workbook.sheetnames == [
-            "Gói thầu mới",
-            "Sắp đóng thầu",
-            "Tất cả gói thầu",
-            "Tệp tải lỗi",
-            "Chất lượng dữ liệu",
+            "Goi thau moi",
+            "Sap dong thau",
+            "Tat ca goi thau",
+            "Tep tai loi",
+            "Chat luong du lieu",
         ]
-        assert workbook["Sắp đóng thầu"].max_row == 2
+        assert workbook["Sap dong thau"].max_row == 2
     finally:
         workbook.close()

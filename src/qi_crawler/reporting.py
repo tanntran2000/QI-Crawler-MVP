@@ -125,16 +125,16 @@ def build_daily_report(
     output.parent.mkdir(parents=True, exist_ok=True)
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Gói thầu mới"
+    sheet.title = "Goi thau moi"
     _append_notices(sheet, new_notices)
 
-    sheet = workbook.create_sheet("Sắp đóng thầu")
+    sheet = workbook.create_sheet("Sap dong thau")
     _append_notices(sheet, closing_soon)
 
-    sheet = workbook.create_sheet("Tất cả gói thầu")
+    sheet = workbook.create_sheet("Tat ca goi thau")
     _append_notices(sheet, notices)
 
-    sheet = workbook.create_sheet("Tệp tải lỗi")
+    sheet = workbook.create_sheet("Tep tai loi")
     sheet.append(
         [
             "attachment_id",
@@ -162,7 +162,7 @@ def build_daily_report(
         )
     _format_sheet(sheet)
 
-    sheet = workbook.create_sheet("Chất lượng dữ liệu")
+    sheet = workbook.create_sheet("Chat luong du lieu")
     _append_notices(sheet, quality_issues)
 
     workbook.save(output)
@@ -186,15 +186,15 @@ def send_report_email(
         if not value
     ]
     if missing:
-        raise ValueError(f"Thiếu cấu hình email: {', '.join(missing)}")
+        raise ValueError(f"Thieu cau hinh email: {', '.join(missing)}")
 
     message = EmailMessage()
-    message["Subject"] = subject or f"Báo cáo gói thầu ngày {datetime.now(UTC).date().isoformat()}"
+    message["Subject"] = subject or f"Bao cao goi thau ngay {datetime.now(UTC).date().isoformat()}"
     message["From"] = settings.email_from
     message["To"] = ", ".join(settings.email_to)
     message.set_content(
         body
-        or "Báo cáo tự động từ hệ thống QI Crawler. Vui lòng xem tệp Excel đính kèm."
+        or "Bao cao tu dong tu he thong QI Crawler. Vui long xem tep Excel dinh kem."
     )
     content = report_path.read_bytes()
     message.add_attachment(
@@ -209,6 +209,6 @@ def send_report_email(
             smtp.starttls()
         if settings.smtp_username:
             if not settings.smtp_password:
-                raise ValueError("Thiếu mật khẩu SMTP; hãy đặt QI_CRAWLER_SMTP_PASSWORD trong .env")
+                raise ValueError("Thieu mat khau SMTP; hay dat QI_CRAWLER_SMTP_PASSWORD trong .env")
             smtp.login(settings.smtp_username, settings.smtp_password)
         smtp.send_message(message)

@@ -34,7 +34,7 @@ class KeywordLearningResult:
 
 
 def normalize_keyword(value: str) -> str:
-    value = value.replace("đ", "d").replace("Đ", "D")
+    value = value.replace("\u0111", "d").replace("\u0110", "D")
     value = "".join(
         character
         for character in unicodedata.normalize("NFKD", value)
@@ -60,9 +60,10 @@ def _unique_terms(values: tuple[str, ...]) -> tuple[str, ...]:
 def expand_keyword(
     keyword: str, groups_path: Path = DEFAULT_KEYWORD_GROUPS
 ) -> KeywordExpansion:
-    original = keyword.strip()
-    if not original:
-        raise ValueError("Từ khóa không được để trống")
+    raw_keyword = keyword.strip()
+    if not raw_keyword:
+        raise ValueError("Tu khoa khong duoc de trong")
+    original = normalize_keyword(raw_keyword)
     if not groups_path.exists():
         return KeywordExpansion(original=original, product_terms=(original,))
 
@@ -173,7 +174,7 @@ def learn_keyword(
                     "name": keyword,
                     "aliases": list(aliases),
                     "description": description or None,
-                    "reason": "Chưa đủ tín hiệu để xác định nhóm ngành",
+                    "reason": "Chua du tin hieu de xac dinh nhom nganh",
                 }
             )
         status = "needs_review"

@@ -45,7 +45,7 @@ class StorageConfig(BaseModel):
 
 
 class SelectorConfig(BaseModel):
-    # Trang danh sách / tìm kiếm
+    # Trang danh sach / tim kiem
     search_input: str | None = None
     search_button: str | None = None
     result_ready: str | None = None
@@ -54,7 +54,7 @@ class SelectorConfig(BaseModel):
     next_page: str = "a[aria-label='Next']"
     page_ready: str = "body"
 
-    # Trang chi tiết / tệp đính kèm. Đây là cấu hình theo từng nguồn, không hard-code.
+    # Trang chi tiet / tep dinh kem. Day la cau hinh theo tung nguon, khong hard-code.
     attachment_rows: str | None = None
     attachment_download_button: str | None = None
     attachment_name: str | None = None
@@ -106,7 +106,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
     config_path = Path(path or env.config_path)
     if not config_path.exists():
         raise FileNotFoundError(
-            f"Không tìm thấy {config_path}. Sao chép config.example.yaml thành config.yaml trước."
+            f"Khong tim thay {config_path}. Sao chep config.example.yaml thanh config.yaml truoc."
         )
     raw: dict[str, Any] = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     config = AppConfig.model_validate(raw)

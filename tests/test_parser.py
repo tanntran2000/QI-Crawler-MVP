@@ -10,21 +10,21 @@ def test_parse_money_vnd():
 def test_parse_notice_html():
     html = """
     <html><body>
-      <h1>Chi tiết thông báo</h1>
-      <div>Mã TBMT: IB2400012345</div>
-      <div>Tên gói thầu: Mua sắm thiết bị mạng</div>
-      <div>Bên mời thầu: Công ty A</div>
-      <div>Chủ đầu tư: Đơn vị B</div>
-      <div>Giá gói thầu: 2.500.000.000 VND</div>
-      <div>Ngày đăng tải: 01/01/2026</div>
-      <div>Thời điểm đóng thầu: 10:00 10/01/2026</div>
-      <a href="/files/hsmt.pdf">Tải HSMT</a>
+      <h1>Chi tiet thong bao</h1>
+      <div>Ma TBMT: IB2400012345</div>
+      <div>Ten goi thau: Mua sam thiet bi mang</div>
+      <div>Ben moi thau: Cong ty A</div>
+      <div>Chu dau tu: Don vi B</div>
+      <div>Gia goi thau: 2.500.000.000 VND</div>
+      <div>Ngay dang tai: 01/01/2026</div>
+      <div>Thoi diem dong thau: 10:00 10/01/2026</div>
+      <a href="/files/hsmt.pdf">Tai HSMT</a>
     </body></html>
     """
     notice = parse_notice_html(html, "https://muasamcong.mpi.gov.vn/detail/1")
     assert notice.notice_code == "IB2400012345"
-    assert notice.title == "Mua sắm thiết bị mạng"
-    assert notice.buyer == "Công ty A"
+    assert notice.title == "Mua sam thiet bi mang"
+    assert notice.buyer == "Cong ty A"
     assert notice.package_price == 2500000000.0
     assert len(notice.attachments) == 1
     assert notice.attachments[0].source_url == "https://muasamcong.mpi.gov.vn/files/hsmt.pdf"

@@ -97,7 +97,7 @@ def iter_rows(path: Path) -> Iterable[dict[str, Any]]:
     elif suffix == ".xlsx":
         yield from _iter_xlsx(path)
     else:
-        raise ValueError("Chỉ hỗ trợ import .csv hoặc .xlsx")
+        raise ValueError("Chi ho tro import .csv hoac .xlsx")
 
 
 def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -168,7 +168,7 @@ def import_file(service: CrawlerService, path: Path) -> ImportSummary:
                 summary.unchanged += 1
         except Exception as exc:  # noqa: BLE001 - reject one bad source row and continue the batch
             summary.rejected += 1
-            message = f"Dòng {row_number}: {exc}"
+            message = f"Dong {row_number}: {exc}"
             summary.errors.append(message)
             rejects.append(
                 {

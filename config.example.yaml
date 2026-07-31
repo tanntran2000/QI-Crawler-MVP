@@ -37,7 +37,7 @@ storage:
     - .xlsx
     - .zip
 
-# Selector phải được cấu hình riêng cho nguồn mà doanh nghiệp được phép tự động truy cập.
+# Selector phai duoc cau hinh rieng cho nguon ma doanh nghiep duoc phep tu dong truy cap.
 selectors:
   search_input: null
   search_button: null
@@ -55,7 +55,7 @@ reporting:
   smtp_host: null
   smtp_port: 587
   smtp_username: null
-  smtp_password: null  # Khuyến nghị đặt QI_CRAWLER_SMTP_PASSWORD trong file .env
+  smtp_password: null  # Khuyen nghi dat QI_CRAWLER_SMTP_PASSWORD trong file .env
   smtp_use_tls: true
   email_from: null
   email_to: []

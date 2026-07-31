@@ -44,7 +44,7 @@ def unique_destination(directory: Path, filename: str) -> Path:
         candidate = directory / f"{destination.stem}_{number}{destination.suffix}"
         if not candidate.exists():
             return candidate
-    raise RuntimeError(f"Không thể tạo tên file duy nhất trong {directory}")
+    raise RuntimeError(f"Khong the tao ten file duy nhat trong {directory}")
 
 
 def normalize_extension(
@@ -65,7 +65,7 @@ def normalize_extension(
     if guessed in allowed:
         return f"{filename}{guessed}"
 
-    raise ValueError(f"Loại tệp không được phép: {content_type or suffix or 'không xác định'}")
+    raise ValueError(f"Loai tep khong duoc phep: {content_type or suffix or 'khong xac dinh'}")
 
 
 def filename_from_url(url: str, fallback: str = "attachment.bin") -> str:

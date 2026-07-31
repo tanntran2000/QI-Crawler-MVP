@@ -39,6 +39,9 @@ class Notice(Base):
     attachments: Mapped[list[Attachment]] = relationship(
         back_populates="notice", cascade="all, delete-orphan"
     )
+    tender_items: Mapped[list[TenderItem]] = relationship(
+        back_populates="notice", cascade="all, delete-orphan"
+    )
 
 
 class Attachment(Base):
@@ -61,6 +64,51 @@ class Attachment(Base):
     downloaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     notice: Mapped[Notice] = relationship(back_populates="attachments")
+
+
+class TenderItem(Base):
+    """A requested product/line item with auditable quantity extraction."""
+
+    __tablename__ = "tender_items"
+    __table_args__ = (
+        UniqueConstraint("notice_id", "item_code", name="uq_tender_item_notice_code"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int] = mapped_column(
+        ForeignKey("notices.id", ondelete="CASCADE"), index=True
+    )
+    item_code: Mapped[str] = mapped_column(String(255))
+    product_name: Mapped[str] = mapped_column(Text)
+    specification: Mapped[str | None] = mapped_column(Text)
+    quantity: Mapped[float | None] = mapped_column(Float)
+    minimum_quantity: Mapped[float | None] = mapped_column(Float)
+    maximum_quantity: Mapped[float | None] = mapped_column(Float)
+    unit: Mapped[str | None] = mapped_column(String(64))
+    source_document: Mapped[str | None] = mapped_column(Text)
+    source_location: Mapped[str | None] = mapped_column(Text)
+    extraction_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    needs_human_review: Mapped[bool] = mapped_column(default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    notice: Mapped[Notice] = relationship(back_populates="tender_items")
+
+
+class InventoryItem(Base):
+    """A current QI stock balance imported from an approved inventory file."""
+
+    __tablename__ = "inventory_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sku: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    product_name: Mapped[str] = mapped_column(Text)
+    aliases: Mapped[str | None] = mapped_column(Text)
+    quantity_available: Mapped[float] = mapped_column(Float, default=0.0)
+    unit: Mapped[str | None] = mapped_column(String(64))
+    warehouse: Mapped[str | None] = mapped_column(Text)
+    source_file: Mapped[str | None] = mapped_column(Text)
+    verified: Mapped[bool] = mapped_column(default=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class CrawlRun(Base):
