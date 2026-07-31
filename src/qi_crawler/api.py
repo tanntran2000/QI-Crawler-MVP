@@ -18,7 +18,7 @@ from .models import (
 config = load_config()
 db = Database(config.storage.database_url)
 db.create_all()
-app = FastAPI(title="QI Crawler API", version="0.2.0")
+app = FastAPI(title="QI Crawler API", version="0.4.0")
 
 
 @app.get("/health")

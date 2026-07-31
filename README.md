@@ -1,87 +1,180 @@
-# QI Tender Assistant MVP
+# QI-Crawler MVP
 
-Công cụ nội bộ giúp QI tìm gói thầu công khai, lưu dữ liệu, xuất Excel và kiểm tra sơ bộ
-khả năng đáp ứng. MVP không tự nộp hồ sơ và không thay thế quyết định của người phụ trách.
+QI-Crawler là công cụ nội bộ hỗ trợ QI Technologies tìm kiếm, sàng lọc và theo dõi cơ hội đấu thầu.
+Người dùng có thể tìm gói theo tên Việt/Anh, thu thập dữ liệu từ nguồn công khai hoặc website cần đăng nhập,
+xuất Excel và đánh giá sơ bộ khả năng đáp ứng.
 
-## Bắt đầu nhanh
+> QI-Crawler không tự nộp hồ sơ, không vượt CAPTCHA và không tạo bằng chứng năng lực. Kết quả tìm kiếm,
+> phân loại và tỷ lệ dự đoán luôn cần người phụ trách kiểm tra trước khi sử dụng.
 
-Mở terminal VS Code tại thư mục dự án:
+## Tính năng hiện tại
+
+- Tìm gói còn hạn trên UK Contracts Finder.
+- Kết nối trang danh sách gói thầu khác bằng URL.
+- Cho phép người dùng tự đăng nhập, nhập OTP/CAPTCHA và lưu phiên cục bộ.
+- Tìm bằng tên Việt, tên Anh, tên viết tắt và biến thể chính tả.
+- Tự phân loại từ khóa mới theo nhóm ngành với hàng chờ xác nhận khi chưa chắc chắn.
+- Lưu dữ liệu vào SQLite và xuất báo cáo Excel.
+- Đối chiếu yêu cầu với bằng chứng năng lực.
+- Trả kết luận `GO`, `HOLD`, `NO-GO` và tỷ lệ dự đoán hỗ trợ sàng lọc.
+- Giữ các hàng rào an toàn: domain allowlist, robots.txt, rate limit và dừng khi gặp chặn truy cập.
+
+## Cài đặt trên Windows
+
+Mở thư mục dự án bằng VS Code, chọn **Terminal > New Terminal**, rồi chạy từng dòng:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m playwright install chromium
+```
+
+Khi terminal hiện `(.venv)`, kiểm tra chương trình:
+
+```powershell
+QI-Crawler bat-dau
+```
+
+Nếu `.venv` đã tồn tại, những lần sau chỉ cần:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 $env:PYTHONUTF8="1"
-python -m pip install -e ".[dev]"
-QI-Crawler bat-dau
 ```
 
-## Bốn lệnh chính
+## Trợ giúp
 
-### 1. Khởi tạo
+Xem danh sách lệnh và ví dụ:
 
 ```powershell
-QI-Crawler bat-dau
+QI-Crawler -help
 ```
 
-### 2. Tìm gói thầu còn hạn
-
-Contracts Finder sử dụng tiếng Anh:
+Cũng có thể dùng:
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 20
+QI-Crawler -h
+QI-Crawler help
+QI-Crawler tim-goi -help
 ```
 
-Có thể dùng các từ khóa như `PoE switch`, `wireless access point`, `Wi-Fi 7`, `firewall`,
-`server` hoặc `fiber optic`.
+Không gõ riêng `-help`, vì PowerShell yêu cầu dòng lệnh bắt đầu bằng tên chương trình.
 
-### 3. Xuất báo cáo Excel
+## Quy trình nhanh: tìm và xuất Excel
+
+### Tìm gói trên Contracts Finder
 
 ```powershell
-QI-Crawler xuat-bao-cao
+QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
+QI-Crawler xuat-bao-cao --tep data\bao-cao-switch.xlsx
 ```
 
-File mặc định: `data\bao-cao-goi-thau.xlsx`.
+QI-Crawler chỉ lưu các gói còn hạn trong phạm vi dữ liệu đã đọc.
 
-### 4. Đánh giá yêu cầu
+### Tìm trên website cần đăng nhập
 
-Tạo file văn bản UTF-8, mỗi yêu cầu một dòng, rồi chạy:
+Khai báo URL trang danh sách một lần:
+
+```powershell
+QI-Crawler them-nguon `
+  --ten muasamcong `
+  --url "URL_TRANG_DANH_SACH_GOI_THAU"
+```
+
+Mở trình duyệt do QI-Crawler quản lý và tự đăng nhập:
+
+```powershell
+QI-Crawler dang-nhap --ten muasamcong
+```
+
+Sau khi đăng nhập, đi tới trang danh sách, quay lại terminal và nhấn Enter. Tiếp theo:
+
+```powershell
+QI-Crawler tim-tren-web --ten muasamcong --tu-khoa "xi măng" --so-luong 100
+QI-Crawler xuat-bao-cao --tep data\goi-thau-xi-mang.xlsx
+```
+
+Phiên đăng nhập được lưu trong `data/sessions/`, không được đưa lên Git. QI-Crawler không lưu mật khẩu và
+không tự vượt CAPTCHA. Website có cấu trúc đặc biệt có thể cần cấu hình selector riêng.
+
+## Từ khóa thông minh và nhóm ngành
+
+Từ điển [keyword-groups.yaml](keyword-groups.yaml) chứa nhóm ngành, tên sản phẩm và tên tương đương.
+
+Ví dụ `cát trắng` được mở rộng thành:
+
+- `cát trắng`, `white sand`, `silica sand`;
+- nhóm `Vật liệu xây dựng/VLXD`.
+
+Ví dụ `mô đun 5G` được mở rộng thành:
+
+- `mô đun 5G`, `module 5G`, `modul 5G`, `5G module`;
+- nhóm `Công nghệ thông tin/CNTT`.
+
+Nhóm ngành dùng để phân loại và giải thích, không dùng để lấy mọi gói trong cả ngành. Vì vậy tìm `cát trắng`
+không tự động lấy các gói thép hoặc gạch.
+
+### Thêm và tự phân loại từ khóa mới
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "cáp mạng ngoài trời" `
+  --ten-khac "outdoor network cable" `
+  --ten-khac "outdoor LAN cable" `
+  --mo-ta "Cáp kết nối switch, router và thiết bị mạng"
+```
+
+Nếu tín hiệu đủ rõ, từ khóa được cập nhật vào đúng nhóm. Nếu chưa rõ, nó được đưa vào `pending_keywords`.
+Người phụ trách có thể xác nhận thủ công:
+
+```powershell
+QI-Crawler them-tu-khoa `
+  --tu-khoa "tên sản phẩm" `
+  --ten-khac "tên tiếng Anh" `
+  --nhom "Công nghệ thông tin"
+```
+
+## Đánh giá khả năng đáp ứng
+
+Tạo file `data\yeu-cau.txt`, mỗi yêu cầu một dòng, rồi chạy:
 
 ```powershell
 QI-Crawler danh-gia data\yeu-cau.txt
 ```
 
-Kết quả:
+Ý nghĩa kết quả:
 
-- `GO`: yêu cầu bắt buộc đã đáp ứng và được xác nhận.
-- `HOLD`: cần thêm bằng chứng hoặc người kiểm tra.
-- `NO-GO`: có yêu cầu bắt buộc không đáp ứng.
+- `GO`: tiêu chí bắt buộc đã có bằng chứng và được xác nhận.
+- `HOLD`: thiếu bằng chứng, thông số chưa rõ hoặc chưa có người kiểm tra.
+- `NO-GO`: có ít nhất một tiêu chí bắt buộc không đáp ứng.
 
-## Nguyên tắc an toàn
+Tỷ lệ dự đoán chỉ hỗ trợ ưu tiên cơ hội; không phải xác suất thống kê đã hiệu chỉnh và không cam kết trúng thầu.
 
-- Chỉ dùng tài liệu và năng lực có thật.
-- Không tự coi thông số cao hơn là bù được thông số bắt buộc bị thiếu.
-- Mỗi kết luận kỹ thuật cần ghi rõ tài liệu, trang và người kiểm tra.
-- Chỉ thu thập nguồn công khai trong allowlist và tôn trọng robots.txt/rate limit.
-- Tỷ lệ trúng thầu chỉ là ước tính hỗ trợ ưu tiên, không phải cam kết kết quả.
+## Dữ liệu và bảo mật
 
-## Website cần đăng nhập
+Không đưa các nội dung sau lên GitHub hoặc gửi qua email/chat:
 
-```powershell
-QI-Crawler them-nguon --ten muasamcong --url "URL_TRANG_DANH_SACH"
-QI-Crawler dang-nhap --ten muasamcong
-QI-Crawler tim-tren-web --ten muasamcong --tu-khoa "switch"
-QI-Crawler xuat-bao-cao
-```
+- `data/sessions/`: cookie và token phiên đăng nhập;
+- `.env`, `config.yaml`: cấu hình cục bộ hoặc secret;
+- database và dữ liệu đầu ra nội bộ;
+- tài liệu năng lực hoặc hồ sơ dự thầu chưa được phép chia sẻ.
 
-Bạn tự nhập tài khoản, mật khẩu, OTP hoặc CAPTCHA trong cửa sổ trình duyệt. MVP không lưu mật khẩu
-và không tự vượt cơ chế bảo vệ của website.
+Database mặc định vẫn dùng `data/egp.db` để bảo toàn dữ liệu từ phiên bản cũ. Đây chỉ là tên file tương thích,
+không phải tên sản phẩm hiện tại.
 
-## Tài liệu
+## Tài liệu và lịch sử phiên bản
 
-Xem [HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md) để biết quy trình chi tiết và các lệnh nâng cao.
+- [Hướng dẫn sử dụng chi tiết](HUONG_DAN_SU_DUNG.md)
+- [Lịch sử cập nhật](CHANGELOG.md)
 
 ## Kiểm tra kỹ thuật
 
 ```powershell
 python -m pytest -q
-python -m ruff check src tests
+python -m ruff check src tests --no-cache
 ```
+
+Trạng thái kiểm thử cục bộ gần nhất: 22 bài kiểm thử đạt. GitHub Actions có thể khác Windows về cách hiển thị
+Unicode trong terminal; lỗi CI cần được xử lý trước khi hợp nhất Pull Request.
