@@ -1,0 +1,4 @@
+Nhà thầu phải có tối thiểu một kỹ sư sở hữu chứng chỉ CCNP Cisco.
+Nhà thầu phải có kinh nghiệm triển khai hệ thống mạng LAN và thiết bị chuyển mạch.
+Nhà thầu phải có doanh thu bình quân tối thiểu 10 tỷ đồng.
+Nhà thầu phải có chứng chỉ ISO 27001 còn hiệu lực.

@@ -14,8 +14,10 @@ from playwright.async_api import (
     BrowserContext,
     Locator,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     async_playwright,
+)
+from playwright.async_api import (
+    TimeoutError as PlaywrightTimeoutError,
 )
 
 from .compliance import AccessDenied, AccessPolicy, DomainRateLimiter
@@ -340,7 +342,7 @@ class BrowserFetcher:
                 path.write_text(json.dumps(envelope, ensure_ascii=False, indent=2), encoding="utf-8")
                 saved.append(path)
                 logger.info("Đã ghi JSON: %s", path)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - malformed third-party responses are isolated
                 logger.debug("Bỏ qua response discovery: %s", exc)
 
         def on_response(response) -> None:

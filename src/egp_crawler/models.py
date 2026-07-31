@@ -79,3 +79,84 @@ class CrawlRun(Base):
     records_failed: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+class CompanyEvidence(Base):
+    """A verifiable capability, certificate, project or product owned by the bidder."""
+
+    __tablename__ = "company_evidence"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evidence_code: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    title: Mapped[str] = mapped_column(Text)
+    evidence_type: Mapped[str] = mapped_column(String(64), default="other", index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    keywords: Mapped[str | None] = mapped_column(Text)
+    source_path: Mapped[str | None] = mapped_column(Text)
+    valid_until: Mapped[str | None] = mapped_column(String(64))
+    verified: Mapped[bool] = mapped_column(default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BidRequirement(Base):
+    """An auditable requirement extracted from an E-HSMT or related document."""
+
+    __tablename__ = "bid_requirements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int | None] = mapped_column(
+        ForeignKey("notices.id", ondelete="CASCADE"), index=True
+    )
+    requirement_code: Mapped[str] = mapped_column(String(255), index=True)
+    category: Mapped[str] = mapped_column(String(64), default="technical", index=True)
+    source_text: Mapped[str] = mapped_column(Text)
+    normalized_text: Mapped[str] = mapped_column(Text)
+    keywords: Mapped[str | None] = mapped_column(Text)
+    mandatory: Mapped[bool] = mapped_column(default=True, index=True)
+    source_reference: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ComplianceAssessment(Base):
+    """Traceable match between one requirement and optional company evidence."""
+
+    __tablename__ = "compliance_assessments"
+    __table_args__ = (
+        UniqueConstraint("requirement_id", "evidence_id", name="uq_requirement_evidence"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    requirement_id: Mapped[int] = mapped_column(
+        ForeignKey("bid_requirements.id", ondelete="CASCADE"), index=True
+    )
+    evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("company_evidence.id", ondelete="SET NULL"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    matched_keywords: Mapped[str | None] = mapped_column(Text)
+    explanation: Mapped[str] = mapped_column(Text)
+    requires_human_confirmation: Mapped[bool] = mapped_column(default=True)
+    confirmed_by: Mapped[str | None] = mapped_column(String(255))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BidPrediction(Base):
+    """A versioned, explainable estimate; never a guarantee of procurement outcome."""
+
+    __tablename__ = "bid_predictions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int | None] = mapped_column(
+        ForeignKey("notices.id", ondelete="CASCADE"), index=True
+    )
+    model_version: Mapped[str] = mapped_column(String(64))
+    readiness_score: Mapped[float] = mapped_column(Float)
+    estimated_win_percent: Mapped[float] = mapped_column(Float)
+    confidence_percent: Mapped[float] = mapped_column(Float)
+    mandatory_coverage_percent: Mapped[float] = mapped_column(Float)
+    evidence_coverage_percent: Mapped[float] = mapped_column(Float)
+    risk_factors: Mapped[str] = mapped_column(Text)
+    assumptions: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

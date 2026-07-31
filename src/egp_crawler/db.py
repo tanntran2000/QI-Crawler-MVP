@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base
-
 
 # Additive compatibility migration for the MVP. Production deployments should use Alembic.
 _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
