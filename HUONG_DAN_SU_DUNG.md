@@ -648,6 +648,54 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
+## Co gi moi trong 0.5.1
+
+Nguoi moi chay:
+
+```powershell
+QI-Crawler -help
+```
+
+Phan cuoi man hinh se hien version hien tai, thay doi co anh huong den cong viec hang ngay va noi xem tai
+lieu day du. Nguoi van hanh ky thuat chay:
+
+```powershell
+QI-Crawler -adv
+```
+
+Lenh nang cao hien them thay doi ve keyword, metadata, chong trung, an toan Excel va bao ve du lieu noi bo.
+Lich su day du luon nam trong `CHANGELOG.md`.
+
+Tu phien ban nay, moi thay doi ve tinh nang, lenh, canh bao, cot bao cao hoac cach van hanh chi duoc xem la
+hoan tat khi da cap nhat dong bo `CHANGELOG.md`, tai lieu huong dan, `-help` va `-adv`.
+
+### Rao can hien tai cua MVP
+
+QI-Crawler chua co giao dien nut bam. Nhan su van can mo Terminal, kich hoat `.venv` va dung mot so file cau
+hinh. Lenh dung hien tai la:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+QI-Crawler dang-nhap --ten egp-vietnam
+QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "cap quang"
+QI-Crawler xep-hang
+```
+
+Khong dung `python src/qi_crawler/cli.py login`; cach nay bo qua entry point da cai dat va ten lenh tieng Viet
+cua MVP.
+
+### Roadmap Web UI
+
+Phien ban tiep theo du kien co Web UI cuc bo de nhan su Bid/Phap che/Hanh chinh co the:
+
+1. Bam nut mo trinh duyet va tu dang nhap.
+2. Nhap URL, tu khoa va nguon bang form.
+3. Bam `Tim goi`, `Xep hang` va `Xuat Excel`.
+4. Xem trang thai session, deadline, loi cau hinh va du lieu thieu bang thong bao de hieu.
+5. Chon file ton kho/BOQ bang hop thoai thay vi go duong dan.
+
+CLI va API van duoc giu cho nguoi van hanh ky thuat, Windows Task Scheduler va cac quy trinh tu dong.
+
 ## 13. Lenh nang cao
 
 Cac lenh hang ngay nam trong `QI-Crawler -help`. Cac lenh ky thuat duoc tach rieng de nguoi moi khong bi

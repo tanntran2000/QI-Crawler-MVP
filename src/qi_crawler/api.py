@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from . import __version__
 from .config import load_config
 from .db import Database
 from .models import (
@@ -18,7 +19,7 @@ from .models import (
 config = load_config()
 db = Database(config.storage.database_url)
 db.create_all()
-app = FastAPI(title="QI Crawler API", version="0.5.0")
+app = FastAPI(title="QI Crawler API", version=__version__)
 
 
 @app.get("/health")

@@ -8,6 +8,31 @@ xuat Excel va danh gia so bo kha nang dap ung.
 > phan loai va diem uu tien luon can nguoi phu trach kiem tra truoc khi su dung. Diem khong phai xac suat
 > trung thau va khong thay the quyet dinh tham du.
 
+## Co gi moi trong 0.5.1
+
+- `QI-Crawler -help` hien phien ban va thay doi quan trong cho nguoi moi.
+- `QI-Crawler -adv` hien them cac thay doi ky thuat cho nguoi van hanh.
+- Moi lan cap nhat phai dong bo `CHANGELOG.md`, `HUONG_DAN_SU_DUNG.md`, `-help` va `-adv`.
+
+Xem lich su day du trong [CHANGELOG.md](CHANGELOG.md). Xem vi du thao tac trong
+[HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md).
+
+## Rao can hien tai va huong phat trien UI
+
+QI-Crawler 0.5.1 van la MVP dung dong lenh. Nguoi dung can kich hoat `.venv`, mo Terminal va chay lenh nhu:
+
+```powershell
+QI-Crawler dang-nhap --ten egp-vietnam
+QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "network switch"
+QI-Crawler xep-hang
+```
+
+Khong can chay truc tiep `python src/qi_crawler/cli.py`. Cac file `.env` va `.yaml` van can cho cau hinh ky
+thuat, do do nhan su moi co the can nguoi van hanh ho tro trong lan dau.
+
+Roadmap phien ban tiep theo la Web UI cuc bo co nut bam cho dang nhap, tim goi, xep hang, xem trang thai va
+xuat Excel. CLI/API van duoc giu de chay lich va xu ly nang cao.
+
 ## Tinh nang hien tai
 
 - Tim goi con han tren UK Contracts Finder.
@@ -272,6 +297,17 @@ khong phai ten san pham hien tai.
 
 - [Huong dan su dung chi tiet](HUONG_DAN_SU_DUNG.md)
 - [Lich su cap nhat](CHANGELOG.md)
+
+### Quy tac cap nhat tai lieu
+
+Moi tinh nang, lenh, canh bao, thay doi ket qua hoac ghi chu van hanh moi phai duoc cap nhat cung luc tai:
+
+1. `CHANGELOG.md`: ghi day du thay doi theo phien ban.
+2. `HUONG_DAN_SU_DUNG.md`: giai thich bang vi du cho nguoi su dung.
+3. `QI-Crawler -help`: tom tat thay doi co anh huong den cong viec hang ngay.
+4. `QI-Crawler -adv`: tom tat thay doi ky thuat va van hanh nang cao.
+
+Khong xem mot ban cap nhat la hoan tat neu bon noi tren chua cung hien dung version.
 
 ## Kiem tra ky thuat
 

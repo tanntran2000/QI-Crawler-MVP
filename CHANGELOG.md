@@ -2,6 +2,25 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
+## Ke hoach phien ban tiep theo
+
+- Xay dung Web UI cuc bo voi nut bam cho cac viec: dang nhap, tim goi, xep hang va xuat Excel.
+- Them man hinh cau hinh de nguoi dung khong phai sua truc tiep `.env` hoac `.yaml` cho tac vu thong thuong.
+- Them nut khoi dong mot lan tren Windows, tu kiem tra `.venv` va huong dan khi thieu thanh phan.
+- Giu CLI va API lam nen tang cho van hanh ky thuat, Task Scheduler va tu dong hoa.
+- Chi dua UI vao su dung noi bo sau khi kiem tra quyen truy cap, session dang nhap va cach hien thi loi.
+
+## 0.5.1 - 2026-08-02
+
+- Hien phien ban va tom tat thay doi moi ngay trong `QI-Crawler -help` cho nguoi moi.
+- Hien them ghi chu ky thuat cua ban cap nhat trong `QI-Crawler -adv`.
+- Dung chung mot nguon release highlights trong code de hai man hinh tro giup khong bi lech nhau.
+- Them muc `Co gi moi` va quy tac cap nhat dong bo vao README va huong dan su dung.
+- Them kiem thu bat buoc phien ban hien tai phai co trong `CHANGELOG.md`, huong dan, `-help` va `-adv`.
+- API lay version truc tiep tu package thay vi ghi lap mot chuoi version rieng.
+- Cong khai han che hien tai: MVP van can Terminal, `.venv` va file cau hinh cho mot so tac vu.
+- Ghi nhan Web UI nut bam va cau hinh don gian la uu tien cua phien ban tiep theo.
+
 ## 0.5.0 - 2026-08-02
 
 - Refocus the main MVP on opportunity collection, keyword screening, explainable scoring and ranking.

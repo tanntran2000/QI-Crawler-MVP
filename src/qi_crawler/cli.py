@@ -34,6 +34,7 @@ from .inventory import import_inventory, import_tender_items
 from .keywords import KeywordExpansion, expand_keyword, learn_keyword
 from .logging_utils import configure_logging
 from .monitoring import load_monitoring_config, monitor_forever, run_monitoring_cycle
+from .release_notes import render_release_highlights
 from .reporting import build_daily_report, send_report_email
 from .warehouse import BACKUP_DIR, WAREHOUSE_PATH, WarehouseManager
 
@@ -64,13 +65,15 @@ def _expand_and_learn(keyword: str) -> KeywordExpansion:
             )
     return expansion
 
+BEGINNER_RELEASE_HELP = render_release_highlights()
+
 app = typer.Typer(
     no_args_is_help=True,
     invoke_without_command=True,
     add_completion=False,
     context_settings={"help_option_names": ["-help", "--help", "-h"]},
     help="Cong cu QI tim, theo doi, kiem tra va xuat bao cao goi thau.",
-    epilog="""
+    epilog=f"""
 BAT DAU NHANH:
 
   1. Chuan bi:       QI-Crawler bat-dau
@@ -84,10 +87,12 @@ BAT DAU NHANH:
   5. Xuat Excel:     QI-Crawler xuat-bao-cao
 
 Can huong dan mot lenh: QI-Crawler TEN-LENH -help
+
+{BEGINNER_RELEASE_HELP}
 """,
 )
 
-ADVANCED_HELP = """
+ADVANCED_HELP = f"""
 LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
 
   init-db                    Khoi tao hoac cap nhat database
@@ -111,6 +116,8 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   warehouse-review           Ghi nhan de xuat luu tru du lieu
 
 Xem chi tiet: QI-Crawler TEN-LENH -help
+
+{render_release_highlights(advanced=True)}
 """
 
 
