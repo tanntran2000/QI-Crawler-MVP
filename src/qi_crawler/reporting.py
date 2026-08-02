@@ -13,6 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from .config import AppConfig
 from .db import Database
+from .excel_safety import safe_excel_row
 from .models import Attachment, Notice
 
 NOTICE_HEADERS = [
@@ -25,6 +26,10 @@ NOTICE_HEADERS = [
     "currency",
     "published_at",
     "closing_at",
+    "location",
+    "sector",
+    "selection_method",
+    "notice_version",
     "source_url",
     "attachment_count",
 ]
@@ -64,6 +69,10 @@ def _notice_row(notice: Notice) -> list[object]:
         notice.currency,
         notice.published_at,
         notice.closing_at,
+        notice.location,
+        notice.sector,
+        notice.selection_method,
+        notice.notice_version,
         notice.source_url,
         len(notice.attachments),
     ]
@@ -82,7 +91,7 @@ def _format_sheet(sheet) -> None:
 def _append_notices(sheet, notices: Iterable[Notice]) -> None:
     sheet.append(NOTICE_HEADERS)
     for notice in notices:
-        sheet.append(_notice_row(notice))
+        sheet.append(safe_excel_row(_notice_row(notice)))
     _format_sheet(sheet)
 
 
@@ -149,7 +158,7 @@ def build_daily_report(
     )
     for item in failed_attachments:
         sheet.append(
-            [
+            safe_excel_row([
                 item.id,
                 item.notice_id,
                 item.file_name,
@@ -158,7 +167,7 @@ def build_daily_report(
                 item.download_attempts,
                 item.download_error,
                 item.last_attempt_at.isoformat() if item.last_attempt_at else None,
-            ]
+            ])
         )
     _format_sheet(sheet)
 

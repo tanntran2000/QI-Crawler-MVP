@@ -40,6 +40,10 @@ class ParsedNotice:
     currency: str | None = None
     published_at: str | None = None
     closing_at: str | None = None
+    location: str | None = None
+    sector: str | None = None
+    selection_method: str | None = None
+    notice_version: str | None = None
     raw_text: str = ""
     attachments: list[ParsedAttachment] = field(default_factory=list)
     items: list[ParsedTenderItem] = field(default_factory=list)
@@ -50,6 +54,7 @@ def _compact(text: str) -> str:
 
 
 def _fold(text: str) -> str:
+    text = text.replace("\u0110", "D").replace("\u0111", "d")
     normalized = unicodedata.normalize("NFD", text)
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn").lower()
 
@@ -65,7 +70,10 @@ def _extract_label_value(lines: list[str], labels: tuple[str, ...]) -> str | Non
             ) and idx + 1 < len(lines):
                 return lines[idx + 1]
             if folded.startswith(folded_label):
-                value = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", line, flags=re.IGNORECASE)
+                if ":" in line:
+                    value = line.split(":", 1)[1].strip()
+                else:
+                    value = line[len(label) :].strip()
                 if value and value != line:
                     return _compact(value)
     return None
@@ -124,6 +132,19 @@ def parse_notice_html(
     package_price, currency = parse_money(price_text)
     published_at = _extract_label_value(lines, ("Ngay dang tai", "Thoi gian dang tai"))
     closing_at = _extract_label_value(lines, ("Thoi diem dong thau", "Thoi gian dong thau"))
+    location = _extract_label_value(
+        lines,
+        ("Dia diem thuc hien", "Dia diem", "Noi thuc hien goi thau"),
+    )
+    sector = _extract_label_value(lines, ("Linh vuc", "Phan loai linh vuc"))
+    selection_method = _extract_label_value(
+        lines,
+        ("Phuong thuc lua chon nha thau", "Hinh thuc lua chon nha thau"),
+    )
+    notice_version = _extract_label_value(
+        lines,
+        ("Phien ban", "Lan dang", "Lan thay doi"),
+    )
 
     ext = set(attachment_extensions or [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"])
     attachments: list[ParsedAttachment] = []
@@ -148,6 +169,10 @@ def parse_notice_html(
         currency=currency,
         published_at=published_at,
         closing_at=closing_at,
+        location=location,
+        sector=sector,
+        selection_method=selection_method,
+        notice_version=notice_version,
         raw_text=raw_text,
         attachments=attachments,
     )

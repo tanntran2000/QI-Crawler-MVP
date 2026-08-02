@@ -30,10 +30,12 @@ def test_matching_is_accent_insensitive_and_accepts_any_expanded_term() -> None:
     assert normalize_keyword("Xi m\u0103ng") == "xi mang"
     assert matches_any_keyword("Supply of WHITE SAND", ("cat trang", "white sand"))
     assert matches_any_keyword("Mua sam thiet bi CNTT", ("Cong nghe thong tin", "CNTT"))
+    assert matches_any_keyword("Supply network switches and routers", ("switch",))
 
 
 def test_windows_vietnamese_search_terms_keep_meaning() -> None:
     assert normalize_keyword("L\u00e3nh Binh Th\u0103ng") == "lanh binh thang"
+    assert normalize_keyword("\u0110\u1ecba \u0111i\u1ec3m") == "dia diem"
     result = expand_keyword("C\u00e1p quang")
     assert "fiber optic cable" in result.product_terms
     assert result.category == "Information Technology"

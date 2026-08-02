@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from .db import Database
+from .excel_safety import safe_excel_row
 from .models import InventoryItem, Notice
 from .stock import StockCheck, check_stock
 
@@ -22,6 +23,10 @@ HEADERS = [
     "currency",
     "published_at",
     "closing_at",
+    "location",
+    "sector",
+    "selection_method",
+    "notice_version",
     "source_url",
     "source_kind",
     "data_quality_status",
@@ -112,6 +117,10 @@ def _rows(db: Database) -> list[list[object]]:
                 notice.currency,
                 notice.published_at,
                 notice.closing_at,
+                notice.location,
+                notice.sector,
+                notice.selection_method,
+                notice.notice_version,
                 notice.source_url,
                 notice.source_kind,
                 notice.data_quality_status,
@@ -133,7 +142,7 @@ def export_csv(db: Database, output: Path) -> Path:
     with output.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(HEADERS)
-        writer.writerows(_rows(db))
+        writer.writerows(safe_excel_row(row) for row in _rows(db))
     return output
 
 
@@ -156,6 +165,10 @@ def export_xlsx(db: Database, output: Path) -> Path:
             notice.currency,
             notice.published_at,
             notice.closing_at,
+            notice.location,
+            notice.sector,
+            notice.selection_method,
+            notice.notice_version,
             notice.source_url,
             notice.source_kind,
             notice.data_quality_status,
@@ -171,7 +184,7 @@ def export_xlsx(db: Database, output: Path) -> Path:
             notice.first_seen_at.isoformat() if notice.first_seen_at else None,
             notice.last_seen_at.isoformat() if notice.last_seen_at else None,
         ]
-        sheet.append(row)
+        sheet.append(safe_excel_row(row))
 
     item_sheet = workbook.create_sheet("Response Table")
     item_headers = [
@@ -199,7 +212,7 @@ def export_xlsx(db: Database, output: Path) -> Path:
         for item in notice.tender_items:
             result = checks[item.id]
             item_sheet.append(
-                [
+                safe_excel_row([
                     notice.id,
                     notice.notice_code,
                     item.product_name,
@@ -217,7 +230,7 @@ def export_xlsx(db: Database, output: Path) -> Path:
                     item.needs_human_review,
                     result.note,
                     notice.source_url,
-                ]
+                ])
             )
 
     inventory_sheet = workbook.create_sheet("QI Inventory")
@@ -236,7 +249,7 @@ def export_xlsx(db: Database, output: Path) -> Path:
     )
     for item in inventory:
         inventory_sheet.append(
-            [
+            safe_excel_row([
                 item.sku,
                 item.product_name,
                 item.aliases,
@@ -246,7 +259,7 @@ def export_xlsx(db: Database, output: Path) -> Path:
                 item.verified,
                 item.updated_at.isoformat() if item.updated_at else None,
                 item.source_file,
-            ]
+            ])
         )
 
     _style_sheet(sheet)

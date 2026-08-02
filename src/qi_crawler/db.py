@@ -14,6 +14,10 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "content_hash": "VARCHAR(64)",
         "source_kind": "VARCHAR(32) NOT NULL DEFAULT 'web'",
         "data_quality_status": "VARCHAR(32) NOT NULL DEFAULT 'valid'",
+        "location": "TEXT",
+        "sector": "TEXT",
+        "selection_method": "TEXT",
+        "notice_version": "VARCHAR(128)",
     },
     "attachments": {
         "download_status": "VARCHAR(32) NOT NULL DEFAULT 'pending'",

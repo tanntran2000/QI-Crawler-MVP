@@ -7,7 +7,7 @@ MVP ho tro bon viec:
 1. Tim goi thau cong khai tren UK Contracts Finder.
 2. Luu thong tin vao database noi bo.
 3. Xuat danh sach ra Excel de trinh va phan cong xu ly.
-4. Doi chieu yeu cau voi bang chung, tra ket luan GO/HOLD/NO-GO.
+4. Cham diem va xep hang co hoi, kem ly do de nguoi phu trach quyet dinh.
 
 MVP khong tu nop ho so, khong vuot CAPTCHA va khong tu xac nhan doanh nghiep du dieu kien phap ly.
 
@@ -58,6 +58,8 @@ Cac cot quan trong:
 - `buyer`: don vi mua sam.
 - `package_price` va `currency`: gia tri uoc tinh.
 - `closing_at`: han phan hoi.
+- `location`, `sector`, `selection_method`: dia diem, linh vuc va phuong thuc lua chon.
+- `notice_version`: phien ban thong bao; dung cung `notice_code` de tranh trung.
 - `source_url`: trang thong bao goc.
 - `source_kind`: nguon du lieu.
 - `requested_quantity_details`: ten hang, so luong va don vi QI-Crawler doc duoc.
@@ -222,71 +224,82 @@ QI-Crawler nhap-ton-kho "C:\Users\Admin\Documents\QI Data\product-catalog-stock.
 Neu catalog chi chua thong so ky thuat va khong co so ton, khong dien thong so do thanh
 `Quantity Available`. Ton kho va catalog ky thuat la hai nguon du lieu khac nhau.
 
-## 5. Chuan bi bang chung nang luc
+## 5. Chuan bi du lieu nang luc QI
 
-File `data\company-evidence.csv` gom:
+Bang chung that khong de trong repository. Tao file rieng, vi du:
+
+```text
+C:\Users\Admin\Documents\QI Private\company-evidence.csv
+```
+
+Cac cot:
 
 ```text
 evidence_code,title,evidence_type,description,keywords,source_path,valid_until,verified
 ```
 
-Nhap bang chung:
+`evidence_type` nen dung mot trong cac nhom:
+
+- `product`, `solution`, `manufacturer`: san pham/giai phap QI co the cung cap;
+- `contract`, `project`, `reference`: hop dong hoac du an tuong tu;
+- `supply`, `support`, `service`: kha nang cung ung va ho tro;
+- `financial`, `payment`: bang chung tai chinh;
+- `location`, `sla`, `delivery`: dia ban va SLA.
+
+Nhap bang chung bang lenh nang cao:
 
 ```powershell
-QI-Crawler import-evidence data\company-evidence.csv
+QI-Crawler import-evidence "C:\Users\Admin\Documents\QI Private\company-evidence.csv"
 ```
 
-Chi dat `verified=true` sau khi da kiem tra tai lieu goc va hieu luc.
+Chi dat `verified=true` sau khi da kiem tra tai lieu goc va hieu luc. Git bo qua
+`data/company-evidence.*`, `data/*.csv` va `data/*.xlsx` de tranh lo du lieu noi bo.
 
-## 6. Danh gia mot goi
+## 6. Tao bang xep hang co hoi
 
-Tao `data\yeu-cau.txt`, moi yeu cau mot dong:
-
-```text
-Nha thau phai cung cap switch Layer 3 co toi thieu 24 cong Gigabit.
-Thiet bi phai co it nhat 4 cong uplink 10Gbps.
-Nha thau phai cung cap bao hanh toi thieu 36 thang.
-```
-
-Chay:
+Sao chep file cau hinh mau:
 
 ```powershell
-QI-Crawler danh-gia data\yeu-cau.txt
+Copy-Item monitoring.example.yaml monitoring.yaml
 ```
 
-Y nghia ket qua:
-
-- `GO`: toan bo yeu cau bat buoc da covered va co nguoi xac nhan.
-- `HOLD`: chua du bang chung, chua ro spec hoac chua co nguoi kiem tra doc lap.
-- `NO-GO`: co it nhat mot tieu chi bat buoc khong dap ung.
-
-## 7. Xac nhan sau khi kiem tra
+Sua cac nhom trong `monitoring.yaml`, sau do chay:
 
 ```powershell
-QI-Crawler confirm-assessment 12 `
-  --reviewer "Nguyen Van A" `
-  --decision covered `
-  --note "Da kiem tra datasheet trang 5"
+QI-Crawler xep-hang
 ```
 
-Sau do:
+Ket qua mac dinh: `data\reports\co-hoi-uu-tien.xlsx`.
 
-```powershell
-QI-Crawler bid-gate
-QI-Crawler predict-win
-```
+## 7. Cach doc Opportunity Priority Score
 
-Khong xac nhan `covered` neu model, BOM, license, phu kien hoac trang bang chung chua ro.
+Diem toi da 100:
 
-## 8. Quy trinh lam viec khuyen nghi
+- keyword/linh vuc: 30;
+- san pham hoac giai phap phu hop: 20;
+- hop dong/du an tuong tu: 20;
+- cung ung, ton kho va ho tro hang: 10;
+- tai chinh va dieu kien thanh toan: 10;
+- thoi gian con lai: 5;
+- dia diem va SLA: 5.
 
-1. Tim goi bang tu khoa cu the.
-2. Mo `source_url` va tai du tai lieu con hieu luc.
-3. Loai goi da dong hoac khong thuoc pham vi QI.
-4. Tach tung yeu cau bat buoc thanh mot dong.
-5. Doi chieu model, BOM va bang chung.
-6. Nguoi lap va nguoi kiem tra phai la hai buoc doc lap.
-7. Chi trinh cap co tham quyen khi khong con blocker.
+Trang thai dau ra:
+
+- `PRIORITY` (75-100): uu tien chuyen cho chuyen gia thau/Presales;
+- `REVIEW` (55-74): can kiem tra them;
+- `SKIP` (duoi 55 hoac khop keyword loai tru): bo qua/chi theo doi;
+- `INSUFFICIENT_DATA`: thieu metadata quan trong, chua duoc xep hang.
+
+Day la diem uu tien co hoi, khong phai xac suat trung thau.
+
+## 8. Quy trinh MVP khuyen nghi
+
+1. Crawler danh sach lon, vi du 1.000 goi.
+2. Keyword duong/am giu lai cac goi lien quan.
+3. `xep-hang` chon khoang 20-30 goi dang xem.
+4. Nguoi phu trach kiem tra metadata va ly do cham diem.
+5. Chi tai/phan tich sau E-HSMT cho 5-10 goi `PRIORITY` da duoc chon.
+6. Chuyen gia thau quyet dinh goi nao chinh thuc bat dau.
 
 ## 9. Website can dang nhap hoac xac thuc
 
@@ -366,9 +379,10 @@ HTTP 403/429 hoac robots.txt khong cho phep tu dong truy cap.
 
 ### Gioi han cua che do tu dong
 
-Mac dinh MVP tim keyword trong noi dung link tren trang. Website co cau truc dac biet, iframe,
-API noi bo hoac nut phan trang rieng co the can cau hinh selector mot lan boi nguoi ky thuat.
-Khong co parser duy nhat hoat dong chinh xac tren moi website.
+MVP tim keyword tren danh sach, sau do mo trang chi tiet cua ket qua phu hop de doc ma goi, chu dau tu/ben
+moi thau, gia, ngay dang, deadline, dia diem, linh vuc, phuong thuc va phien ban. Neu trang chi tiet khong
+doc duoc, ban ghi van duoc luu nhung se mang `INSUFFICIENT_DATA`. Website co iframe, API noi bo hoac nut
+phan trang rieng co the can cap nhat selector; khong co parser duy nhat chinh xac tren moi website.
 
 ## 10. Vi du thuc hanh danh cho nguoi moi
 
@@ -462,31 +476,24 @@ Lan tim kiem sau thuong khong can dang nhap lai. Neu website dua ve trang dang n
 QI-Crawler dang-nhap --ten example-tender
 ```
 
-### Vi du D - Danh gia kha nang dap ung mot goi
+### Vi du D - Xep hang co hoi Wi-Fi
 
-Tao file `data\yeu-cau-switch.txt` va nhap moi yeu cau tren mot dong, vi du:
-
-```text
-Switch phai co toi thieu 24 cong Gigabit Ethernet.
-Switch phai co toi thieu 4 cong uplink 10Gbps.
-Thiet bi phai duoc bao hanh toi thieu 36 thang.
-Nha thau phai co tai lieu chung minh xuat xu san pham.
-```
-
-Luu file roi chay:
+Sao chep file cau hinh mau va mo `monitoring.yaml`:
 
 ```powershell
-QI-Crawler danh-gia data\yeu-cau-switch.txt
+Copy-Item monitoring.example.yaml monitoring.yaml
 ```
 
-Doc ket qua theo nguyen tac:
+Trong file, dat nhom Wi-Fi co cac tu `wifi`, `wireless`, `access point`, `WLAN`; dat keyword loai tru nhu
+`civil construction`, `medicine`, `food`. Sau do chay:
 
-- `GO`: co the chuyen sang buoc kiem tra va phe duyet noi bo.
-- `HOLD`: chua du thong tin; can bo sung datasheet, chung chi hoac nguoi xac nhan.
-- `NO-GO`: co yeu cau bat buoc ma san pham hoac doanh nghiep khong dap ung.
+```powershell
+QI-Crawler xep-hang
+```
 
-Phan tram du doan chi la chi bao ho tro sang loc, khong phai cam ket trung thau. Khong duoc doi mot tieu chi thanh
-`covered` chi de tang diem neu chua co tai lieu chung minh.
+Mo `data\reports\co-hoi-uu-tien.xlsx`. Doc tu trai sang phai: muc uu tien, trang thai, diem, keyword khop,
+bang chung QI, du lieu thieu, rui ro, canh bao va hanh dong tiep theo. Goi `INSUFFICIENT_DATA` phai duoc mo
+trang chi tiet va bo sung metadata; khong tu dien diem.
 
 ### Mau cong viec hang ngay ngan gon
 
@@ -494,8 +501,8 @@ Nguoi dung thong thuong chi can nho bon viec:
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "TU KHOA TIENG ANH"
+QI-Crawler xep-hang
 QI-Crawler xuat-bao-cao
-QI-Crawler danh-gia data\yeu-cau.txt
 QI-Crawler -help
 ```
 
@@ -599,6 +606,10 @@ Mo `monitoring.yaml` va sua:
 
 - `interval_minutes`: so phut giua hai luot quet, toi thieu 5 phut.
 - `keywords`: cac san pham QI muon theo doi.
+- `keyword_groups`: cac nhom keyword duong va trong so; tu trong mot nhom la dieu kien `OR`.
+- `required_any`: chi can khop mot tu (`OR`).
+- `required_all`: phai khop tat ca tu (`AND`).
+- `excluded_keywords`: khop mot tu se dua goi ve `SKIP` (`NOT`).
 - `contracts_finder`: bat/tat Contracts Finder.
 - `authenticated_sources`: ten cac website da chay `them-nguon` va `dang-nhap`.
 - `output`: vi tri bao cao Excel xep hang.
@@ -606,15 +617,18 @@ Mo `monitoring.yaml` va sua:
 ### Buoc 2 - Chay thu mot luot
 
 ```powershell
-QI-Crawler theo-doi --mot-lan
+QI-Crawler xep-hang
 ```
 
-Mo `data\reports\co-hoi-kha-thi.xlsx` va kiem tra ket qua. Cac trang thai gom:
+Mo `data\reports\co-hoi-uu-tien.xlsx` va kiem tra ket qua. Cac trang thai gom:
 
-- `KHA_THI_SO_BO`: khop san pham, co bang chung da xac minh va du diem so bo.
-- `CAN_XEM`: co lien quan nhung thieu bang chung hoac thong tin; can nguoi phu trach xem.
-- `THAP`: do phu hop thap.
-- `HET_HAN`: khong dua vao danh sach co hoi dang xu ly.
+- `PRIORITY`: diem tu 75 va du metadata quan trong.
+- `REVIEW`: diem 55-74 va du metadata quan trong.
+- `SKIP`: duoi 55, het han, khong dat keyword bat buoc hoac khop keyword loai tru.
+- `INSUFFICIENT_DATA`: thieu ma goi, ten, gia, deadline, URL hoac thong tin chi tiet; diem de trong.
+
+Cot `alerts` co `NEW_MATCH` khi co hoi moi phu hop va `CLOSING_SOON` khi deadline nam trong nguong canh bao.
+Cot `score_explanation` giai thich tung thanh phan diem; cot `next_action` cho biet ai can xu ly tiep.
 
 ### Buoc 3 - Chay lien tuc
 
@@ -631,8 +645,8 @@ De van hanh on dinh, nen cau hinh Windows Task Scheduler chay lenh sau moi gio:
 QI-Crawler theo-doi --mot-lan
 ```
 
-Moi luot quet cap nhat ban ghi trung thay vi tao them ban sao. Diem kha thi chi de xep hang uu tien, khong thay
-the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
+Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
+hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
 ## 13. Lenh nang cao
 
@@ -648,7 +662,7 @@ website va quan ly data warehouse. Vi du:
 
 ```text
 collect-contracts-finder, import-file, export, analyze-bid,
-confirm-assessment, bid-gate, predict-win, kiem-tra-nguon,
+kiem-tra-nguon,
 warehouse-status, report-daily
 ```
 
@@ -666,7 +680,7 @@ Tai T-7 ngay truoc han nop, nhan su phu trach QI-Crawler thuc hien theo thu tu:
 ```powershell
 QI-Crawler kiem-tra-nguon --ten egp-vietnam
 QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "TU KHOA SAN PHAM"
-QI-Crawler xuat-bao-cao --tep data\bao-cao-T7.xlsx
+QI-Crawler xep-hang
 ```
 
 Sau do kiem tra du phien ban E-HSMT/sua doi/lam ro va ban giao bon bang chung: bao cao Excel, thu muc
@@ -691,6 +705,6 @@ terminal.
 - `gh is not recognized`: mo terminal moi sau khi cai GitHub CLI.
 - Terminal hien `>>`: nhan `Ctrl+C`.
 - Khong tim thay goi: dung tu khoa rong hon hoac tang khoang ngay.
-- Ket qua luon `HOLD`: chua co nguoi kiem tra xac nhan bang chung.
+- Ket qua `INSUFFICIENT_DATA`: mo trang chi tiet va bo sung gia, deadline hoac metadata dang thieu.
 - File Excel khong cap nhat: dong file dang mo roi xuat lai.
 - Website yeu cau dang nhap lai: phien da het han; chay lai `dang-nhap`.

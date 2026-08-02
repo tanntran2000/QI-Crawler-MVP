@@ -102,10 +102,7 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   export                     Xuat du lieu ky thuat CSV/Excel
   report-daily               Tao bao cao van hanh hang ngay
   import-evidence TEP        Nhap bang chung nang luc QI
-  analyze-bid TEP            Tao bang doi chieu yeu cau
-  predict-win                Uoc tinh muc do san sang/trung thau
-  bid-gate                   Kiem tra cong GO/HOLD/NO-GO
-  confirm-assessment         Ghi nhan ket qua kiem tra doc lap
+  analyze-bid TEP            Phan tich compliance ky thuat (legacy/pilot sau)
   collect-contracts-finder   Thu thap truc tiep tu Contracts Finder
   kiem-tra-nguon             Kiem tra phien dang nhap va selector website
   warehouse-init             Khoi tao data warehouse cuc bo
@@ -517,7 +514,7 @@ def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -
     typer.echo("MVP QI da san sang.")
     typer.echo("1. Tim goi:       QI-Crawler tim-goi --tu-khoa \"network switch\"")
     typer.echo("2. Xuat bao cao: QI-Crawler xuat-bao-cao")
-    typer.echo("3. Danh gia:     QI-Crawler danh-gia data\\yeu-cau.txt")
+    typer.echo("3. Xep hang:     QI-Crawler xep-hang")
 
 
 @app.command("tim-goi", rich_help_panel="LENH CHO NGUOI MOI")
@@ -641,8 +638,8 @@ def theo_doi(
                 summary = await run_monitoring_cycle(service, settings)
                 typer.echo(
                     f"Quet xong: thu thap={summary.collected}, "
-                    f"kha thi so bo={summary.feasible}, can xem={summary.review}, "
-                    f"thap={summary.low}."
+                    f"PRIORITY={summary.priority}, REVIEW={summary.review}, "
+                    f"SKIP={summary.skip}, INSUFFICIENT_DATA={summary.insufficient}."
                 )
                 typer.echo(f"Bao cao: {summary.output}")
             else:
@@ -660,7 +657,18 @@ def theo_doi(
         typer.echo("Da dung theo doi an toan.")
 
 
-@app.command("danh-gia", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("xep-hang", rich_help_panel="LENH CHO NGUOI MOI")
+def xep_hang(
+    cau_hinh: Path = typer.Option(
+        Path("monitoring.yaml"), "--cau-hinh", "-c", help="File cau hinh sang loc"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Cham diem va xep hang co hoi mot lan, kem giai thich."""
+    theo_doi(cau_hinh=cau_hinh, mot_lan=True, config=config)
+
+
+@app.command("danh-gia", hidden=True)
 def danh_gia(
     yeu_cau: Path = typer.Argument(..., exists=True, readable=True),
     notice_id: int | None = typer.Option(None, "--ma-noi-bo", min=1),

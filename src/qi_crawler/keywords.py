@@ -57,6 +57,17 @@ def _unique_terms(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(unique.values())
 
 
+def _canonical_token(token: str) -> str:
+    """Handle common English plural forms without broad fuzzy matching."""
+    if len(token) > 4 and token.endswith("ies"):
+        return f"{token[:-3]}y"
+    if len(token) > 4 and token.endswith(("ches", "shes", "xes", "zes", "ses")):
+        return token[:-2]
+    if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+        return token[:-1]
+    return token
+
+
 def expand_keyword(
     keyword: str, groups_path: Path = DEFAULT_KEYWORD_GROUPS
 ) -> KeywordExpansion:
@@ -98,9 +109,15 @@ def expand_keyword(
 
 
 def matches_any_keyword(text: str, terms: tuple[str, ...] | list[str]) -> bool:
-    text_tokens = set(re.findall(r"[\w]+", normalize_keyword(text)))
+    text_tokens = {
+        _canonical_token(token)
+        for token in re.findall(r"[\w]+", normalize_keyword(text))
+    }
     for term in terms:
-        term_tokens = set(re.findall(r"[\w]+", normalize_keyword(term)))
+        term_tokens = {
+            _canonical_token(token)
+            for token in re.findall(r"[\w]+", normalize_keyword(term))
+        }
         if term_tokens and term_tokens.issubset(text_tokens):
             return True
     return False

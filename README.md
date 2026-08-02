@@ -5,7 +5,8 @@ Nguoi dung co the tim goi theo ten Viet/Anh, thu thap du lieu tu nguon cong khai
 xuat Excel va danh gia so bo kha nang dap ung.
 
 > QI-Crawler khong tu nop ho so, khong vuot CAPTCHA va khong tao bang chung nang luc. Ket qua tim kiem,
-> phan loai va ty le du doan luon can nguoi phu trach kiem tra truoc khi su dung.
+> phan loai va diem uu tien luon can nguoi phu trach kiem tra truoc khi su dung. Diem khong phai xac suat
+> trung thau va khong thay the quyet dinh tham du.
 
 ## Tinh nang hien tai
 
@@ -18,8 +19,11 @@ xuat Excel va danh gia so bo kha nang dap ung.
 - Luu du lieu vao SQLite va xuat bao cao Excel.
 - Read requested quantities from structured tender data or an imported BOQ Excel/CSV file.
 - Import verified QI inventory and produce a quantity-based response table.
-- Doi chieu yeu cau voi bang chung nang luc.
-- Tra ket luan `GO`, `HOLD`, `NO-GO` va ty le du doan ho tro sang loc.
+- Doc metadata chi tiet, nhan dien goi trung theo ma thong bao va phien ban.
+- Loc theo nhom keyword co trong so, dieu kien `OR`, `AND` va keyword loai tru.
+- Cham `Opportunity Priority Score` co giai thich tung thanh phan.
+- Tra trang thai `PRIORITY`, `REVIEW`, `SKIP`, `INSUFFICIENT_DATA`.
+- Canh bao co hoi moi phu hop va goi sap dong thau.
 - Giu cac hang rao an toan: domain allowlist, robots.txt, rate limit va dung khi gap chan truy cap.
 
 ## Cai dat tren Windows
@@ -77,10 +81,12 @@ Khong go rieng `-help`, vi PowerShell yeu cau dong lenh bat dau bang ten chuong 
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
-QI-Crawler xuat-bao-cao --tep data\bao-cao-switch.xlsx
+Copy-Item monitoring.example.yaml monitoring.yaml
+QI-Crawler xep-hang
 ```
 
-QI-Crawler chi luu cac goi con han trong pham vi du lieu da doc.
+QI-Crawler chi luu cac goi con han trong pham vi du lieu da doc. Bang xep hang nam tai
+`data/reports/co-hoi-uu-tien.xlsx`.
 
 ### Check tender quantity against QI inventory
 
@@ -217,10 +223,11 @@ Tao cau hinh ca nhan tu file mau:
 Copy-Item monitoring.example.yaml monitoring.yaml
 ```
 
-Mo `monitoring.yaml` va sua danh sach `keywords`. Chay thu mot luot:
+Mo `monitoring.yaml` va sua `keyword_groups`, `required_any`, `required_all` va `excluded_keywords`.
+Chay mot luot de tao bang uu tien:
 
 ```powershell
-QI-Crawler theo-doi --mot-lan
+QI-Crawler xep-hang
 ```
 
 Neu ket qua dung, de chuong trinh chay theo chu ky:
@@ -230,28 +237,21 @@ QI-Crawler theo-doi
 ```
 
 Giu terminal mo va cau hinh Windows khong tu Sleep. Bao cao xep hang mac dinh nam tai
-`data/reports/co-hoi-kha-thi.xlsx`. Voi van hanh lau dai, nen dung `--mot-lan` cung Windows Task Scheduler
+`data/reports/co-hoi-uu-tien.xlsx`. Voi van hanh lau dai, nen dung `--mot-lan` cung Windows Task Scheduler
 thay vi phu thuoc vao mot terminal luon mo.
 
-Diem kha thi so bo dua tren do khop san pham, bang chung nang luc da xac minh, thoi gian con lai va do day du
-du lieu. Goi chi nhan trang thai `KHA_THI_SO_BO` khi co ca tu khoa san pham va bang chung da xac minh; diem so
-khong phai ty le trung thau.
+Diem toi da 100: keyword/linh vuc 30, san pham/giai phap 20, hop dong tuong tu 20, cung ung/ton kho 10,
+tai chinh/thanh toan 10, thoi gian 5 va dia diem/SLA 5. Bao cao ghi ro keyword khop, bang chung duoc dung,
+du lieu thieu, rui ro, canh bao va hanh dong tiep theo.
 
-## Danh gia chi tiet kha nang dap ung
+Neu thieu ma thong bao, ten goi, gia, deadline, URL hoac thong tin chi tiet, QI-Crawler tra
+`INSUFFICIENT_DATA` va de trong diem. Nguoi dung phai bo sung metadata truoc khi xep hang.
 
-Tao file `data\yeu-cau.txt`, moi yeu cau mot dong, roi chay:
+## Gioi han MVP
 
-```powershell
-QI-Crawler danh-gia data\yeu-cau.txt
-```
-
-Y nghia ket qua:
-
-- `GO`: tieu chi bat buoc da co bang chung va duoc xac nhan.
-- `HOLD`: thieu bang chung, thong so chua ro hoac chua co nguoi kiem tra.
-- `NO-GO`: co it nhat mot tieu chi bat buoc khong dap ung.
-
-Ty le du doan chi ho tro uu tien co hoi; khong phai xac suat thong ke da hieu chinh va khong cam ket trung thau.
+MVP chi sang loc co hoi. Cac lenh compliance cu duoc giu an de nghien cuu ky thuat, khong nam trong giao dien
+nguoi moi va khong duoc dung de tu ket luan ho so dat ky thuat. Chi tai/phan tich sau E-HSMT cho danh sach
+`PRIORITY` da duoc chuyen gia thau chon.
 
 ## Du lieu va bao mat
 
@@ -261,6 +261,9 @@ Khong dua cac noi dung sau len GitHub hoac gui qua email/chat:
 - `.env`, `config.yaml`: cau hinh cuc bo hoac secret;
 - database va du lieu dau ra noi bo;
 - tai lieu nang luc hoac ho so du thau chua duoc phep chia se.
+
+File `data/company-evidence.*`, `data/*.xlsx` va `data/*.csv` duoc bo qua boi Git. Luu bang chung that o thu
+muc rieng ngoai repository, chi import vao database cuc bo.
 
 Database mac dinh van dung `data/egp.db` de bao toan du lieu tu phien ban cu. Day chi la ten file tuong thich,
 khong phai ten san pham hien tai.

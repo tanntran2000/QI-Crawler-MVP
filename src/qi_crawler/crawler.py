@@ -43,6 +43,10 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
         "currency": parsed.currency,
         "published_at": parsed.published_at,
         "closing_at": parsed.closing_at,
+        "location": parsed.location,
+        "sector": parsed.sector,
+        "selection_method": parsed.selection_method,
+        "notice_version": parsed.notice_version,
         "attachments": sorted(item.source_url for item in parsed.attachments),
         "items": [
             {
@@ -143,17 +147,26 @@ class CrawlerService:
         if not validation.valid:
             raise ValueError("; ".join(validation.errors))
 
-        hash_value = url_hash(parsed.source_url)
+        version = (parsed.notice_version or "").strip() or None
+        identity_url = (
+            f"{parsed.source_url}#qi-version={version}" if version else parsed.source_url
+        )
+        hash_value = url_hash(identity_url)
         content_hash = parsed_content_hash(parsed)
         now = datetime.now(UTC)
         with self.db.session() as session:
-            notice = session.scalar(select(Notice).where(Notice.url_hash == hash_value))
-            if notice is None and parsed.notice_code:
-                notice = session.scalar(
-                    select(Notice)
-                    .where(Notice.notice_code == parsed.notice_code)
-                    .order_by(Notice.id.asc())
-                )
+            notice = None
+            if parsed.notice_code:
+                statement = select(Notice).where(Notice.notice_code == parsed.notice_code)
+                if version:
+                    statement = statement.where(Notice.notice_version == version)
+                else:
+                    statement = statement.where(
+                        or_(Notice.notice_version.is_(None), Notice.notice_version == "")
+                    )
+                notice = session.scalar(statement.order_by(Notice.id.asc()))
+            if notice is None:
+                notice = session.scalar(select(Notice).where(Notice.url_hash == hash_value))
             created = notice is None
             changed = False
             if notice is None:
@@ -180,10 +193,24 @@ class CrawlerService:
             notice.currency = parsed.currency
             notice.published_at = parsed.published_at
             notice.closing_at = parsed.closing_at
+            notice.location = parsed.location
+            notice.sector = parsed.sector
+            notice.selection_method = parsed.selection_method
+            notice.notice_version = version
             notice.raw_text = parsed.raw_text
             if raw_html_path:
                 notice.raw_html_path = str(raw_html_path)
-            notice.data_quality_status = "valid" if not validation.warnings else "warning"
+            critical_missing = (
+                not parsed.notice_code,
+                not parsed.title,
+                parsed.package_price is None,
+                not parsed.closing_at,
+                not parsed.source_url,
+            )
+            if any(critical_missing):
+                notice.data_quality_status = "INSUFFICIENT_DATA"
+            else:
+                notice.data_quality_status = "valid" if not validation.warnings else "warning"
             notice.last_seen_at = now
 
             existing = {item.source_url: item for item in notice.attachments}

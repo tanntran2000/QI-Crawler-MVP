@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +14,9 @@ from .browser import BrowserFetcher
 from .config import AppConfig
 from .crawler import CrawlerService
 from .keywords import matches_any_keyword, normalize_keyword
-from .parser import ParsedNotice
+from .parser import ParsedNotice, parse_notice_html
+
+logger = logging.getLogger(__name__)
 
 SOURCE_DIR = Path("data/sources")
 SESSION_DIR = Path("data/sessions")
@@ -193,6 +196,29 @@ async def collect_authenticated_source(
                     attachments=[],
                     raw_text=text,
                 )
+                detail_page = None
+                try:
+                    await service.browser.ensure_browser_access_allowed(url)
+                    await service.browser.limiter.wait(url)
+                    detail_page = await service.browser.new_page()
+                    await detail_page.goto(url, wait_until="domcontentloaded")
+                    await detail_page.locator(source.page_ready).first.wait_for(state="visible")
+                    if service.config.crawl.render_wait_ms:
+                        await detail_page.wait_for_timeout(service.config.crawl.render_wait_ms)
+                    html = await detail_page.content()
+                    service.browser.policy.detect_block_page(html)
+                    parsed = parse_notice_html(
+                        html,
+                        url,
+                        service.config.storage.allowed_attachment_extensions,
+                    )
+                    parsed.title = parsed.title or text[:1000]
+                    parsed.raw_text = parsed.raw_text or text
+                except Exception as exc:  # noqa: BLE001 - keep list metadata for manual review
+                    logger.warning("Khong doc duoc trang chi tiet %s: %s", url, exc)
+                finally:
+                    if detail_page is not None:
+                        await detail_page.close()
                 _, created, changed = service.upsert_parsed_notice(
                     parsed, source_kind=f"web:{source.name}"
                 )

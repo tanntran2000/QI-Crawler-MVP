@@ -36,6 +36,9 @@ InventoryItem = models_module.InventoryItem
 Notice = models_module.Notice
 TenderItem = models_module.TenderItem
 check_stock = import_module("qi_crawler.stock").check_stock
+opportunity_module = import_module("qi_crawler.opportunity")
+KeywordGroup = opportunity_module.KeywordGroup
+assess_opportunity = opportunity_module.assess_opportunity
 
 
 def arguments() -> argparse.Namespace:
@@ -104,10 +107,19 @@ def create_demo_notice(db: Database) -> int:
             source_url=source_url,
             url_hash=hashlib.sha256(source_url.encode("utf-8")).hexdigest(),
             notice_code="QI-EVALUATION-001",
+            notice_version="1",
             title="Supply of 5G routers and network switches",
             buyer="Evaluation Buyer",
+            package_price=2_000_000_000,
+            currency="VND",
             published_at=datetime.now(UTC).date().isoformat(),
             closing_at=(datetime.now(UTC).date() + timedelta(days=30)).isoformat(),
+            location="Ho Chi Minh City",
+            sector="Information Technology",
+            selection_method="Open bidding",
+            raw_text=(
+                "Supply of 5G routers and managed network switches with installation support."
+            ),
             source_kind="evaluation",
             data_quality_status="valid",
         )
@@ -154,6 +166,34 @@ def print_results(db: Database, notice_id: int) -> tuple[int, int, int]:
     return meets, shortage, review
 
 
+def print_opportunity_score(db: Database, notice_id: int) -> None:
+    with db.session() as session:
+        notice = session.get(Notice, notice_id)
+        inventory = session.query(InventoryItem).filter(InventoryItem.verified).all()
+        if notice is None:
+            return
+        assessment = assess_opportunity(
+            notice,
+            (
+                KeywordGroup("Network", ("network switch", "router", "5G module"), 30),
+            ),
+            [],
+            inventory,
+        )
+        print("\nOPPORTUNITY PRIORITY SCORE")
+        print("-" * 92)
+        print(f"Status            : {assessment.status}")
+        print(f"Score             : {assessment.score if assessment.score is not None else 'N/A'}")
+        print(f"Matched keywords  : {', '.join(assessment.matched_keywords) or 'none'}")
+        print(f"Missing data      : {', '.join(assessment.missing_fields) or 'none'}")
+        print(f"Next action       : {assessment.next_action}")
+        for component in assessment.components:
+            print(
+                f"  {component.name:22} {component.score:g}/{component.maximum:g}  "
+                f"{component.explanation}"
+            )
+
+
 def main() -> int:
     args = arguments()
     inventory_input = validate_input(args.inventory, "Inventory")
@@ -175,6 +215,7 @@ def main() -> int:
     inventory_summary = import_inventory(db, inventory_input)
     boq_summary = import_tender_items(db, notice_id, boq_input)
     meets, shortage, review = print_results(db, notice_id)
+    print_opportunity_score(db, notice_id)
     export_xlsx(db, report_path)
 
     print("\nEVALUATION SUMMARY")

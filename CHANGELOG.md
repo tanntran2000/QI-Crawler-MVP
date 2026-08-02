@@ -2,7 +2,21 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
-## Chua phat hanh
+## 0.5.0 - 2026-08-02
+
+- Refocus the main MVP on opportunity collection, keyword screening, explainable scoring and ranking.
+- Add `QI-Crawler xep-hang` and hide legacy GO/NO-GO analysis from beginner help and public API schema.
+- Replace win-probability language with `Opportunity Priority Score` and statuses `PRIORITY`, `REVIEW`,
+  `SKIP`, `INSUFFICIENT_DATA`.
+- Add a seven-component 100-point framework with evidence, inventory, time, financial and SLA reasons.
+- Add weighted keyword groups, synonyms, required `OR`, required `AND` and excluded `NOT` terms.
+- Add `NEW_MATCH` and `CLOSING_SOON` alerts with an explicit next action in the ranked workbook.
+- Parse location, sector, selection method and notice version from detail pages and structured sources.
+- Open matched authenticated detail pages before saving metadata; incomplete records remain unranked.
+- Deduplicate by notice code plus version while preserving revised notices.
+- Normalize Vietnamese `d`/`D` with stroke correctly and preserve accented source text in Excel.
+- Neutralize untrusted spreadsheet formula prefixes in CSV/XLSX exports.
+- Remove the tracked sample capability file and ignore private evidence/data workbooks.
 
 - Add `QI-Crawler -adv` to show technical commands separately from beginner help.
 - Add the `them-egp` preset for Vietnam e-GP and `kiem-tra-nguon` selector/session validation.

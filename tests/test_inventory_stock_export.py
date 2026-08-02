@@ -1,9 +1,10 @@
+import csv
 from pathlib import Path
 
 from openpyxl import load_workbook
 
 from qi_crawler.db import Database
-from qi_crawler.exporter import export_xlsx
+from qi_crawler.exporter import export_csv, export_xlsx
 from qi_crawler.inventory import import_inventory, import_tender_items
 from qi_crawler.models import InventoryItem, Notice, TenderItem
 from qi_crawler.stock import check_stock
@@ -149,3 +150,29 @@ def test_excel_export_preserves_vietnamese_unicode_on_windows(tmp_path: Path):
         assert workbook["Notices"].cell(2, 4).value == "Don vi mua s\u1eafm"
     finally:
         workbook.close()
+
+
+def test_export_neutralizes_spreadsheet_formula_injection(tmp_path: Path) -> None:
+    db = _db(tmp_path)
+    malicious = '=HYPERLINK("https://evil.test","open")'
+    with db.session() as session:
+        session.add(
+            Notice(
+                source_url="https://example.test/tender/formula",
+                url_hash="f" * 64,
+                notice_code="QI-FORMULA",
+                title=malicious,
+            )
+        )
+
+    xlsx_output = export_xlsx(db, tmp_path / "formula.xlsx")
+    workbook = load_workbook(xlsx_output, read_only=True, data_only=False)
+    try:
+        assert workbook["Notices"].cell(2, 3).value == f"'{malicious}"
+    finally:
+        workbook.close()
+
+    csv_output = export_csv(db, tmp_path / "formula.csv")
+    with csv_output.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.reader(handle))
+    assert rows[1][2] == f"'{malicious}"

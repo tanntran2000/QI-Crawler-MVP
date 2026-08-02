@@ -18,7 +18,7 @@ from .models import (
 config = load_config()
 db = Database(config.storage.database_url)
 db.create_all()
-app = FastAPI(title="QI Crawler API", version="0.4.0")
+app = FastAPI(title="QI Crawler API", version="0.5.0")
 
 
 @app.get("/health")
@@ -54,6 +54,10 @@ def list_notices(
                     "currency": item.currency,
                     "published_at": item.published_at,
                     "closing_at": item.closing_at,
+                    "location": item.location,
+                    "sector": item.sector,
+                    "selection_method": item.selection_method,
+                    "notice_version": item.notice_version,
                     "source_url": item.source_url,
                     "source_kind": item.source_kind,
                     "data_quality_status": item.data_quality_status,
@@ -85,6 +89,10 @@ def get_notice(notice_id: int) -> dict:
             "currency": notice.currency,
             "published_at": notice.published_at,
             "closing_at": notice.closing_at,
+            "location": notice.location,
+            "sector": notice.sector,
+            "selection_method": notice.selection_method,
+            "notice_version": notice.notice_version,
             "source_url": notice.source_url,
             "source_kind": notice.source_kind,
             "data_quality_status": notice.data_quality_status,
@@ -156,7 +164,7 @@ def stats() -> dict[str, int]:
         }
 
 
-@app.get("/bid-compliance")
+@app.get("/bid-compliance", include_in_schema=False)
 def bid_compliance(
     notice_id: int | None = None,
     status: str | None = Query(default=None, pattern="^(covered|partial|gap)$"),
@@ -197,7 +205,7 @@ def bid_compliance(
         ]
 
 
-@app.get("/bid-predictions")
+@app.get("/bid-predictions", include_in_schema=False)
 def bid_predictions(notice_id: int | None = None, limit: int = Query(default=20, ge=1, le=200)) -> list[dict]:
     with db.session() as session:
         statement = select(BidPrediction).order_by(BidPrediction.id.desc()).limit(limit)

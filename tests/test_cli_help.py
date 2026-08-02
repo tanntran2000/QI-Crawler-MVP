@@ -13,6 +13,8 @@ def test_short_help_option_shows_commands_and_examples() -> None:
     assert "tim-goi" in result.output
     assert "nhap-ton-kho" in result.output
     assert "nhap-boq" in result.output
+    assert "xep-hang" in result.output
+    assert "danh-gia" not in result.output
     assert "init-db" not in result.output
     assert "import-inventory" not in result.output
 

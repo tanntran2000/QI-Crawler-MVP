@@ -66,6 +66,21 @@ def release_to_notice(release: dict) -> ParsedNotice | None:
     value = tender.get("value") or {}
     buyer = release.get("buyer") or {}
     description = str(tender.get("description") or "").strip()
+    address = (tender.get("deliveryAddresses") or [{}])[0] or {}
+    location = ", ".join(
+        str(address.get(key) or "").strip()
+        for key in ("streetAddress", "locality", "region", "postalCode", "countryName")
+        if str(address.get(key) or "").strip()
+    ) or None
+    tender_classification = tender.get("classification") or {}
+    sector = str(
+        tender_classification.get("description")
+        or tender_classification.get("id")
+        or ""
+    ).strip() or None
+    selection_method = str(
+        tender.get("procurementMethodDetails") or tender.get("procurementMethod") or ""
+    ).strip() or None
     parsed_items: list[ParsedTenderItem] = []
     for index, item in enumerate(tender.get("items") or [], start=1):
         classification = item.get("classification") or {}
@@ -105,6 +120,10 @@ def release_to_notice(release: dict) -> ParsedNotice | None:
         currency=str(value.get("currency") or "").strip() or None,
         published_at=str(tender.get("datePublished") or release.get("date") or "") or None,
         closing_at=str((tender.get("tenderPeriod") or {}).get("endDate") or "") or None,
+        location=location,
+        sector=sector,
+        selection_method=selection_method,
+        notice_version=str(release.get("id") or "").strip() or None,
         attachments=attachments,
         items=parsed_items,
         raw_text="\n".join(filter(None, [title, description, str(buyer.get("name") or "")])),

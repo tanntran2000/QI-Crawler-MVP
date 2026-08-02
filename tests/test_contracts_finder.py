@@ -1,6 +1,7 @@
 from qi_crawler.contracts_finder import release_matches, release_to_notice
 
 SAMPLE_RELEASE = {
+    "id": "release-2026-08-01",
     "ocid": "ocds-test-123",
     "date": "2026-07-30T10:00:00Z",
     "buyer": {"name": "Example Council"},
@@ -10,6 +11,11 @@ SAMPLE_RELEASE = {
         "datePublished": "2026-07-30T10:00:00Z",
         "tenderPeriod": {"endDate": "2026-08-30T12:00:00Z"},
         "value": {"amount": 250000, "currency": "GBP"},
+        "classification": {"id": "32400000", "description": "Networks"},
+        "procurementMethodDetails": "Open procedure",
+        "deliveryAddresses": [
+            {"locality": "London", "region": "Greater London", "countryName": "United Kingdom"}
+        ],
         "items": [
             {
                 "id": "line-1",
@@ -41,6 +47,10 @@ def test_release_to_notice():
     assert notice.package_price == 250000
     assert notice.currency == "GBP"
     assert notice.buyer == "Example Council"
+    assert notice.location == "London, Greater London, United Kingdom"
+    assert notice.sector == "Networks"
+    assert notice.selection_method == "Open procedure"
+    assert notice.notice_version == "release-2026-08-01"
     assert notice.attachments[0].file_name == "Specification.pdf"
     assert notice.items[0].product_name == "Network router"
     assert notice.items[0].quantity == 25

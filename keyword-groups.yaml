@@ -51,6 +51,18 @@ categories:
       - cap quang
       - fiber optic
     products:
+      - name: wireless access point
+        aliases:
+          - wifi
+          - wi-fi
+          - wireless
+          - WLAN
+          - access point
+      - name: network switch
+        aliases:
+          - switch
+          - LAN switch
+          - ethernet switch
       - name: 5G module
         aliases:
           - mo dun 5G
@@ -65,3 +77,18 @@ categories:
           - cap quang
           - optical fiber cable
           - fibre optic cable
+      - name: firewall
+        aliases:
+          - network firewall
+          - next generation firewall
+          - NGFW
+      - name: security monitoring
+        aliases:
+          - SIEM
+          - SOC
+          - information security monitoring
+      - name: data center infrastructure
+        aliases:
+          - data center
+          - server
+          - storage
