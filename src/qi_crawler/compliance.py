@@ -17,7 +17,7 @@ CAPTCHA_MARKERS = (
     "captcha",
     "recaptcha",
     "hcaptcha",
-    "xác minh bạn không phải rô-bốt",
+    "xac minh ban khong phai ro-bot",
     "verify you are human",
     "access denied",
 )
@@ -52,10 +52,10 @@ class AccessPolicy:
     def validate_domain(self, url: str) -> None:
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"}:
-            raise AccessDenied(f"Scheme không được phép: {parsed.scheme}")
+            raise AccessDenied(f"Scheme khong duoc phep: {parsed.scheme}")
         host = (parsed.hostname or "").lower()
         if not any(host == d or host.endswith(f".{d}") for d in self.config.allowed_domains):
-            raise AccessDenied(f"Domain ngoài allowlist: {host}")
+            raise AccessDenied(f"Domain ngoai allowlist: {host}")
 
     async def allowed_by_robots(self, client: httpx.AsyncClient, url: str) -> bool:
         if not self.config.compliance.obey_robots_txt:
@@ -71,12 +71,12 @@ class AccessPolicy:
                 if response.status_code == 200:
                     parser.parse(response.text.splitlines())
                 elif response.status_code in {401, 403}:
-                    logger.warning("robots.txt bị từ chối; mặc định không crawl: %s", robots_url)
+                    logger.warning("robots.txt bi tu choi; mac dinh khong crawl: %s", robots_url)
                     parser.parse(["User-agent: *", "Disallow: /"])
                 else:
                     parser.parse([])
             except httpx.HTTPError as exc:
-                logger.warning("Không đọc được robots.txt (%s); mặc định không crawl", exc)
+                logger.warning("Khong doc duoc robots.txt (%s); mac dinh khong crawl", exc)
                 parser.parse(["User-agent: *", "Disallow: /"])
             self._robots[origin] = parser
         return self._robots[origin].can_fetch(self.config.compliance.identify_user_agent, url)
@@ -87,4 +87,4 @@ class AccessPolicy:
         lowered = content.lower()
         found = next((marker for marker in CAPTCHA_MARKERS if marker in lowered), None)
         if found:
-            raise AccessDenied(f"Phát hiện trang CAPTCHA/chặn truy cập ({found}); crawler đã dừng.")
+            raise AccessDenied(f"Phat hien trang CAPTCHA/chan truy cap ({found}); crawler da dung.")

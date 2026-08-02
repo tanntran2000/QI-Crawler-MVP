@@ -34,7 +34,7 @@ class KeywordLearningResult:
 
 
 def normalize_keyword(value: str) -> str:
-    value = value.replace("đ", "d").replace("Đ", "D")
+    value = value.replace("\u0111", "d").replace("\u0110", "D")
     value = "".join(
         character
         for character in unicodedata.normalize("NFKD", value)
@@ -57,12 +57,24 @@ def _unique_terms(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(unique.values())
 
 
+def _canonical_token(token: str) -> str:
+    """Handle common English plural forms without broad fuzzy matching."""
+    if len(token) > 4 and token.endswith("ies"):
+        return f"{token[:-3]}y"
+    if len(token) > 4 and token.endswith(("ches", "shes", "xes", "zes", "ses")):
+        return token[:-2]
+    if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+        return token[:-1]
+    return token
+
+
 def expand_keyword(
     keyword: str, groups_path: Path = DEFAULT_KEYWORD_GROUPS
 ) -> KeywordExpansion:
-    original = keyword.strip()
-    if not original:
-        raise ValueError("Từ khóa không được để trống")
+    raw_keyword = keyword.strip()
+    if not raw_keyword:
+        raise ValueError("Tu khoa khong duoc de trong")
+    original = normalize_keyword(raw_keyword)
     if not groups_path.exists():
         return KeywordExpansion(original=original, product_terms=(original,))
 
@@ -97,9 +109,15 @@ def expand_keyword(
 
 
 def matches_any_keyword(text: str, terms: tuple[str, ...] | list[str]) -> bool:
-    text_tokens = set(re.findall(r"[\w]+", normalize_keyword(text)))
+    text_tokens = {
+        _canonical_token(token)
+        for token in re.findall(r"[\w]+", normalize_keyword(text))
+    }
     for term in terms:
-        term_tokens = set(re.findall(r"[\w]+", normalize_keyword(term)))
+        term_tokens = {
+            _canonical_token(token)
+            for token in re.findall(r"[\w]+", normalize_keyword(term))
+        }
         if term_tokens and term_tokens.issubset(text_tokens):
             return True
     return False
@@ -173,7 +191,7 @@ def learn_keyword(
                     "name": keyword,
                     "aliases": list(aliases),
                     "description": description or None,
-                    "reason": "Chưa đủ tín hiệu để xác định nhóm ngành",
+                    "reason": "Chua du tin hieu de xac dinh nhom nganh",
                 }
             )
         status = "needs_review"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,11 +13,14 @@ from pydantic import BaseModel, Field
 from .browser import BrowserFetcher
 from .config import AppConfig
 from .crawler import CrawlerService
-from .keywords import matches_any_keyword
-from .parser import ParsedNotice
+from .keywords import matches_any_keyword, normalize_keyword
+from .parser import ParsedNotice, parse_notice_html
+
+logger = logging.getLogger(__name__)
 
 SOURCE_DIR = Path("data/sources")
 SESSION_DIR = Path("data/sessions")
+EGP_VIETNAM_URL = "https://muasamcong.mpi.gov.vn/vi/web/guest/contractor-selection"
 
 
 class WebSource(BaseModel):
@@ -43,10 +47,40 @@ class AuthenticatedCollectionSummary:
     updated: int = 0
 
 
+@dataclass(frozen=True)
+class SourceValidation:
+    current_url: str
+    item_count: int
+    link_count: int
+    ready: bool
+
+
+def egp_vietnam_source(
+    name: str = "egp-vietnam",
+    list_url: str = EGP_VIETNAM_URL,
+) -> WebSource:
+    """Return a conservative e-GP profile based on stable detail URL markers."""
+    return WebSource(
+        name=name,
+        list_url=list_url,
+        item_selector=(
+            'a[href*="contractor-selection"][href*="notifyNo="], '
+            'a[href*="contractor-selection"][href*="step=tbmt"]'
+        ),
+        link_selector="a[href]",
+        next_selector=(
+            'a[rel="next"], button[aria-label="Next"]:not([disabled]), '
+            '.pagination .next:not(.disabled) a'
+        ),
+        page_ready="main, body",
+        max_pages=5,
+    )
+
+
 def safe_source_name(value: str) -> str:
-    name = re.sub(r"[^a-zA-Z0-9_-]+", "-", value.strip()).strip("-").lower()
+    name = re.sub(r"[^a-zA-Z0-9_-]+", "-", normalize_keyword(value)).strip("-")
     if not name:
-        raise ValueError("Tên nguồn không hợp lệ")
+        raise ValueError("Ten nguon khong hop le")
     return name
 
 
@@ -82,7 +116,7 @@ def allow_source_domain(config_path: Path, domain: str) -> None:
 def load_source(name: str) -> WebSource:
     path = source_path(name)
     if not path.exists():
-        raise FileNotFoundError(f"Chưa có nguồn '{name}'. Hãy chạy them-nguon trước.")
+        raise FileNotFoundError(f"Chua co nguon '{name}'. Hay chay them-nguon truoc.")
     return WebSource.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
@@ -93,12 +127,14 @@ async def create_login_session(config: AppConfig, source: WebSource) -> Path:
         await browser.start(headed=True)
         page = await browser.new_page()
         await page.goto(source.list_url, wait_until="domcontentloaded")
-        print("Trình duyệt đã mở. Hãy tự đăng nhập, nhập OTP/CAPTCHA nếu website yêu cầu.")
-        print("Khi đã nhìn thấy trang danh sách gói thầu, quay lại terminal và nhấn Enter.")
+        print("Trinh duyet da mo. Hay tu dang nhap, nhap OTP/CAPTCHA neu website yeu cau.")
+        print("Khi da nhin thay trang danh sach goi thau, quay lai terminal va nhan Enter.")
         await asyncio.to_thread(input)
         current_host = (urlparse(page.url).hostname or "").lower()
         if current_host != source.domain and not current_host.endswith(f".{source.domain}"):
-            raise ValueError("Sau đăng nhập, trình duyệt đang ở domain khác nguồn đã khai báo.")
+            raise ValueError("Sau dang nhap, trinh duyet dang o domain khac nguon da khai bao.")
+        source.list_url = page.url
+        save_source(source)
         path = session_path(source.name)
         await browser.save_storage_state(path)
         return path
@@ -114,7 +150,7 @@ async def collect_authenticated_source(
 ) -> AuthenticatedCollectionSummary:
     state = session_path(source.name)
     if not state.exists():
-        raise FileNotFoundError(f"Chưa có phiên đăng nhập cho '{source.name}'. Hãy chạy dang-nhap.")
+        raise FileNotFoundError(f"Chua co phien dang nhap cho '{source.name}'. Hay chay dang-nhap.")
     await service.browser.ensure_browser_access_allowed(source.list_url)
     await service.browser.start(headed=False, storage_state=state)
     page = await service.browser.new_page()
@@ -160,6 +196,29 @@ async def collect_authenticated_source(
                     attachments=[],
                     raw_text=text,
                 )
+                detail_page = None
+                try:
+                    await service.browser.ensure_browser_access_allowed(url)
+                    await service.browser.limiter.wait(url)
+                    detail_page = await service.browser.new_page()
+                    await detail_page.goto(url, wait_until="domcontentloaded")
+                    await detail_page.locator(source.page_ready).first.wait_for(state="visible")
+                    if service.config.crawl.render_wait_ms:
+                        await detail_page.wait_for_timeout(service.config.crawl.render_wait_ms)
+                    html = await detail_page.content()
+                    service.browser.policy.detect_block_page(html)
+                    parsed = parse_notice_html(
+                        html,
+                        url,
+                        service.config.storage.allowed_attachment_extensions,
+                    )
+                    parsed.title = parsed.title or text[:1000]
+                    parsed.raw_text = parsed.raw_text or text
+                except Exception as exc:  # noqa: BLE001 - keep list metadata for manual review
+                    logger.warning("Khong doc duoc trang chi tiet %s: %s", url, exc)
+                finally:
+                    if detail_page is not None:
+                        await detail_page.close()
                 _, created, changed = service.upsert_parsed_notice(
                     parsed, source_kind=f"web:{source.name}"
                 )
@@ -180,3 +239,42 @@ async def collect_authenticated_source(
     finally:
         await page.close()
     return result
+
+
+async def validate_authenticated_source(
+    config: AppConfig,
+    source: WebSource,
+) -> SourceValidation:
+    """Validate saved login state and source selectors without collecting data."""
+    state = session_path(source.name)
+    if not state.exists():
+        raise FileNotFoundError(
+            f"Chua co phien dang nhap cho '{source.name}'. Hay chay dang-nhap."
+        )
+    browser = BrowserFetcher(config)
+    try:
+        await browser.ensure_browser_access_allowed(source.list_url)
+        await browser.start(headed=False, storage_state=state)
+        page = await browser.new_page()
+        try:
+            await page.goto(source.list_url, wait_until="domcontentloaded")
+            await page.locator(source.page_ready).first.wait_for(state="visible")
+            items = page.locator(source.item_selector)
+            item_count = await items.count()
+            link_count = 0
+            for index in range(min(item_count, 50)):
+                item = items.nth(index)
+                candidate = item.locator(source.link_selector).first
+                link = candidate if await candidate.count() else item
+                if await link.get_attribute("href"):
+                    link_count += 1
+            return SourceValidation(
+                current_url=page.url,
+                item_count=item_count,
+                link_count=link_count,
+                ready=item_count > 0 and link_count > 0,
+            )
+        finally:
+            await page.close()
+    finally:
+        await browser.close()

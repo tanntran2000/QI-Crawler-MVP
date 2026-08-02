@@ -1,0 +1,43 @@
+interval_minutes: 60
+lookback_days: 14
+limit_per_keyword: 50
+contracts_finder: true
+authenticated_sources: []
+keywords:
+  - network switch
+  - 5G module
+  - wireless access point
+  - firewall
+
+# OR trong moi nhom; tong trong so keyword toi da 30 diem.
+keyword_groups:
+  - name: Wi-Fi
+    weight: 8
+    terms: [wifi, wireless, access point, WLAN, wireless controller]
+  - name: Network
+    weight: 8
+    terms: [switch, router, LAN, WAN, SD-WAN, optical module]
+  - name: Security
+    weight: 7
+    terms: [firewall, SIEM, SOC, information security]
+  - name: Infrastructure
+    weight: 4
+    terms: [data center, server, storage, fiber optic cable]
+  - name: Services
+    weight: 3
+    terms: [network maintenance, system monitoring, NOC]
+
+# required_any = OR; required_all = AND; excluded_keywords = NOT.
+required_any: []
+required_all: []
+excluded_keywords:
+  - civil construction
+  - medicine
+  - medical supplies
+  - food
+
+priority_threshold: 75
+review_threshold: 55
+closing_soon_days: 3
+new_alert_hours: 24
+output: data/reports/co-hoi-uu-tien.xlsx

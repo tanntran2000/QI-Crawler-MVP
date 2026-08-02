@@ -22,7 +22,7 @@ from .downloads import (
     unique_destination,
 )
 from .http_client import HttpFetcher
-from .models import Attachment, CrawlRun, Notice
+from .models import Attachment, CrawlRun, Notice, TenderItem
 from .parser import ParsedNotice, extract_detail_links, parse_notice_html
 from .validation import validate_notice
 
@@ -43,7 +43,21 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
         "currency": parsed.currency,
         "published_at": parsed.published_at,
         "closing_at": parsed.closing_at,
+        "location": parsed.location,
+        "sector": parsed.sector,
+        "selection_method": parsed.selection_method,
+        "notice_version": parsed.notice_version,
         "attachments": sorted(item.source_url for item in parsed.attachments),
+        "items": [
+            {
+                "item_code": item.item_code,
+                "product_name": item.product_name,
+                "quantity": item.quantity,
+                "unit": item.unit,
+                "specification": item.specification,
+            }
+            for item in parsed.items
+        ],
         "raw_text": parsed.raw_text,
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -73,14 +87,14 @@ class CrawlerService:
         try:
             result = await self.http.fetch(url)
             if self.config.crawl.use_browser_fallback and len(result.text) < 5000:
-                raise ValueError("HTML shell quá ngắn; chuyển sang browser")
+                raise ValueError("HTML shell qua ngan; chuyen sang browser")
             return result.text
         except AccessDenied:
             raise
         except Exception as exc:
             if not self.config.crawl.use_browser_fallback:
                 raise
-            logger.info("HTTP fetch chưa đủ/không thành công (%s), dùng Playwright: %s", exc, url)
+            logger.info("HTTP fetch chua du/khong thanh cong (%s), dung Playwright: %s", exc, url)
             # HttpFetcher already checked robots.txt before this fallback.
             await self._ensure_browser(headed=False)
             return await self.browser.fetch_html(url)
@@ -118,7 +132,7 @@ class CrawlerService:
                 try:
                     await self._download_attachment_http(notice.id, attachment_id)
                 except Exception:
-                    logger.exception("Không tải được attachment id=%s", attachment_id)
+                    logger.exception("Khong tai duoc attachment id=%s", attachment_id)
         return notice
 
     def upsert_parsed_notice(
@@ -133,17 +147,26 @@ class CrawlerService:
         if not validation.valid:
             raise ValueError("; ".join(validation.errors))
 
-        hash_value = url_hash(parsed.source_url)
+        version = (parsed.notice_version or "").strip() or None
+        identity_url = (
+            f"{parsed.source_url}#qi-version={version}" if version else parsed.source_url
+        )
+        hash_value = url_hash(identity_url)
         content_hash = parsed_content_hash(parsed)
         now = datetime.now(UTC)
         with self.db.session() as session:
-            notice = session.scalar(select(Notice).where(Notice.url_hash == hash_value))
-            if notice is None and parsed.notice_code:
-                notice = session.scalar(
-                    select(Notice)
-                    .where(Notice.notice_code == parsed.notice_code)
-                    .order_by(Notice.id.asc())
-                )
+            notice = None
+            if parsed.notice_code:
+                statement = select(Notice).where(Notice.notice_code == parsed.notice_code)
+                if version:
+                    statement = statement.where(Notice.notice_version == version)
+                else:
+                    statement = statement.where(
+                        or_(Notice.notice_version.is_(None), Notice.notice_version == "")
+                    )
+                notice = session.scalar(statement.order_by(Notice.id.asc()))
+            if notice is None:
+                notice = session.scalar(select(Notice).where(Notice.url_hash == hash_value))
             created = notice is None
             changed = False
             if notice is None:
@@ -170,10 +193,24 @@ class CrawlerService:
             notice.currency = parsed.currency
             notice.published_at = parsed.published_at
             notice.closing_at = parsed.closing_at
+            notice.location = parsed.location
+            notice.sector = parsed.sector
+            notice.selection_method = parsed.selection_method
+            notice.notice_version = version
             notice.raw_text = parsed.raw_text
             if raw_html_path:
                 notice.raw_html_path = str(raw_html_path)
-            notice.data_quality_status = "valid" if not validation.warnings else "warning"
+            critical_missing = (
+                not parsed.notice_code,
+                not parsed.title,
+                parsed.package_price is None,
+                not parsed.closing_at,
+                not parsed.source_url,
+            )
+            if any(critical_missing):
+                notice.data_quality_status = "INSUFFICIENT_DATA"
+            else:
+                notice.data_quality_status = "valid" if not validation.warnings else "warning"
             notice.last_seen_at = now
 
             existing = {item.source_url: item for item in notice.attachments}
@@ -189,6 +226,36 @@ class CrawlerService:
                     )
                 elif item.file_name and not current.file_name:
                     current.file_name = item.file_name
+            existing_items = {item.item_code: item for item in notice.tender_items}
+            for item in parsed.items:
+                current_item = existing_items.get(item.item_code)
+                if current_item is None:
+                    notice.tender_items.append(
+                        TenderItem(
+                            item_code=item.item_code,
+                            product_name=item.product_name,
+                            specification=item.specification,
+                            quantity=item.quantity,
+                            minimum_quantity=item.minimum_quantity,
+                            maximum_quantity=item.maximum_quantity,
+                            unit=item.unit,
+                            source_document=item.source_document,
+                            source_location=item.source_location,
+                            extraction_confidence=item.extraction_confidence,
+                            needs_human_review=item.needs_human_review,
+                        )
+                    )
+                else:
+                    current_item.product_name = item.product_name
+                    current_item.specification = item.specification
+                    current_item.quantity = item.quantity
+                    current_item.minimum_quantity = item.minimum_quantity
+                    current_item.maximum_quantity = item.maximum_quantity
+                    current_item.unit = item.unit
+                    current_item.source_document = item.source_document
+                    current_item.source_location = item.source_location
+                    current_item.extraction_confidence = item.extraction_confidence
+                    current_item.needs_human_review = item.needs_human_review
             session.flush()
             session.refresh(notice)
             return notice, created, changed
@@ -207,20 +274,20 @@ class CrawlerService:
         try:
             self.http.policy.validate_domain(source_url)
             if not await self.http.policy.allowed_by_robots(self.http.client, source_url):
-                raise AccessDenied(f"robots.txt không cho phép tải tệp: {source_url}")
+                raise AccessDenied(f"robots.txt khong cho phep tai tep: {source_url}")
             await self.http.limiter.wait(source_url)
             max_bytes = self.config.storage.max_attachment_mb * 1024 * 1024
 
             async with self.http.client.stream("GET", source_url) as response:
                 if response.status_code in {401, 403, 429}:
                     raise AccessDenied(
-                        f"Máy chủ từ chối/giới hạn tải tệp HTTP {response.status_code}: "
+                        f"May chu tu choi/gioi han tai tep HTTP {response.status_code}: "
                         f"{source_url}"
                     )
                 response.raise_for_status()
                 declared = int(response.headers.get("content-length", "0") or 0)
                 if declared > max_bytes:
-                    raise ValueError(f"Tệp vượt giới hạn {self.config.storage.max_attachment_mb} MB")
+                    raise ValueError(f"Tep vuot gioi han {self.config.storage.max_attachment_mb} MB")
                 content_type = response.headers.get("content-type", "")
                 url_name = urlparse(str(response.url)).path.rsplit("/", 1)[-1]
                 with self.db.session() as session:
@@ -242,7 +309,7 @@ class CrawlerService:
                         async for chunk in response.aiter_bytes():
                             size += len(chunk)
                             if size > max_bytes:
-                                raise ValueError("Tệp vượt giới hạn trong khi tải")
+                                raise ValueError("Tep vuot gioi han trong khi tai")
                             digest.update(chunk)
                             output.write(chunk)
                     temporary.replace(destination)
@@ -287,7 +354,7 @@ class CrawlerService:
                 ok += 1
             except Exception:
                 failed += 1
-                logger.exception("Retry attachment thất bại: id=%s", attachment_id)
+                logger.exception("Retry attachment that bai: id=%s", attachment_id)
         return ok, failed
 
     async def download_dynamic_attachments(
@@ -380,14 +447,14 @@ class CrawlerService:
                             try:
                                 await self._download_attachment_http(notice.id, attachment_id)
                             except Exception:
-                                logger.exception("Không tải được attachment id=%s", attachment_id)
+                                logger.exception("Khong tai duoc attachment id=%s", attachment_id)
                     ok += 1
                     inserted += int(created)
                     updated += int((not created) and changed)
-                    logger.info("Đã lưu notice id=%s url=%s", notice.id, url)
+                    logger.info("Da luu notice id=%s url=%s", notice.id, url)
                 except Exception:
                     failed += 1
-                    logger.exception("Crawl thất bại: %s", url)
+                    logger.exception("Crawl that bai: %s", url)
 
         await asyncio.gather(*(one(url) for url in limited_urls))
         with self.db.session() as session:

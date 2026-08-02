@@ -1,55 +1,94 @@
 categories:
-  - name: Vật liệu xây dựng
+  - name: Construction Materials
     aliases:
+      - Vat lieu xay dung
       - VLXD
-      - construction materials
       - building materials
     signals:
-      - cát
-      - xi măng
-      - bê tông
-      - gạch
-      - đá xây dựng
-      - thép xây dựng
-      - construction
-      - cement
-      - concrete
+      - cat
       - sand
+      - xi mang
+      - cement
+      - be tong
+      - concrete
+      - gach
+      - brick
+      - da xay dung
+      - construction stone
+      - thep xay dung
+      - construction steel
     products:
-      - name: cát trắng
+      - name: sand
         aliases:
+          - cat
+          - cat trang
           - white sand
           - silica sand
-      - name: xi măng
+      - name: cement
         aliases:
-          - cement
+          - xi mang
 
-  - name: Công nghệ thông tin
+  - name: Information Technology
     aliases:
+      - Cong nghe thong tin
       - CNTT
       - IT
-      - information technology
       - ICT
     signals:
-      - mạng
-      - máy chủ
-      - phần mềm
-      - dữ liệu
-      - viễn thông
+      - mang
+      - network
+      - may chu
+      - server
+      - phan mem
+      - software
+      - du lieu
+      - data
+      - vien thong
+      - telecom
       - 5G
       - router
       - switch
-      - server
-      - software
-      - network
-      - telecom
+      - cap quang
+      - fiber optic
     products:
-      - name: mô đun 5G
+      - name: wireless access point
         aliases:
+          - wifi
+          - wi-fi
+          - wireless
+          - WLAN
+          - access point
+      - name: network switch
+        aliases:
+          - switch
+          - LAN switch
+          - ethernet switch
+      - name: 5G module
+        aliases:
+          - mo dun 5G
           - module 5G
           - modul 5G
-          - 5G module
-      - name: bộ định tuyến
+      - name: router
         aliases:
-          - router
+          - bo dinh tuyen
           - network router
+      - name: fiber optic cable
+        aliases:
+          - cap quang
+          - optical fiber cable
+          - fibre optic cable
+      - name: firewall
+        aliases:
+          - network firewall
+          - next generation firewall
+          - NGFW
+      - name: security monitoring
+        aliases:
+          - SIEM
+          - SOC
+          - information security monitoring
+      - name: data center infrastructure
+        aliases:
+          - data center
+          - server
+          - storage

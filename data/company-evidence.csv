@@ -1,4 +1,0 @@
-evidence_code,title,evidence_type,description,keywords,source_path,valid_until,verified
-CERT-001,Chứng chỉ CCNP của kỹ sư Nguyễn Văn A,certificate,Nhân sự có chứng chỉ kỹ thuật mạng Cisco,CCNP Cisco network,D:\HoSo\CCNP.pdf,2027-12-31,true
-EXP-001,Hợp đồng triển khai mạng LAN,contract,Đã triển khai hệ thống mạng LAN và switch,mạng LAN switch Cisco,D:\HoSo\HopDongLAN.pdf,,true
-FIN-001,Báo cáo tài chính 2025,financial,Doanh thu năm 2025 đạt 20 tỷ đồng,doanh thu tài chính 20 tỷ,D:\HoSo\BCTC2025.pdf,,true

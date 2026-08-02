@@ -15,6 +15,21 @@ class ParsedAttachment:
 
 
 @dataclass
+class ParsedTenderItem:
+    item_code: str
+    product_name: str
+    specification: str | None = None
+    quantity: float | None = None
+    minimum_quantity: float | None = None
+    maximum_quantity: float | None = None
+    unit: str | None = None
+    source_document: str | None = None
+    source_location: str | None = None
+    extraction_confidence: float = 0.0
+    needs_human_review: bool = True
+
+
+@dataclass
 class ParsedNotice:
     source_url: str
     notice_code: str | None = None
@@ -25,8 +40,13 @@ class ParsedNotice:
     currency: str | None = None
     published_at: str | None = None
     closing_at: str | None = None
+    location: str | None = None
+    sector: str | None = None
+    selection_method: str | None = None
+    notice_version: str | None = None
     raw_text: str = ""
     attachments: list[ParsedAttachment] = field(default_factory=list)
+    items: list[ParsedTenderItem] = field(default_factory=list)
 
 
 def _compact(text: str) -> str:
@@ -34,6 +54,7 @@ def _compact(text: str) -> str:
 
 
 def _fold(text: str) -> str:
+    text = text.replace("\u0110", "D").replace("\u0111", "d")
     normalized = unicodedata.normalize("NFD", text)
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn").lower()
 
@@ -49,7 +70,10 @@ def _extract_label_value(lines: list[str], labels: tuple[str, ...]) -> str | Non
             ) and idx + 1 < len(lines):
                 return lines[idx + 1]
             if folded.startswith(folded_label):
-                value = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", line, flags=re.IGNORECASE)
+                if ":" in line:
+                    value = line.split(":", 1)[1].strip()
+                else:
+                    value = line[len(label) :].strip()
                 if value and value != line:
                     return _compact(value)
     return None
@@ -59,8 +83,8 @@ def parse_money(value: str | None) -> tuple[float | None, str | None]:
     if not value:
         return None, None
     folded = _fold(value)
-    currency = "VND" if any(x in folded for x in ("vnd", "vnđ", "dong")) else None
-    # Giá Việt Nam thường dùng dấu chấm phân tách hàng nghìn.
+    currency = "VND" if any(x in folded for x in ("vnd", "vnd", "dong")) else None
+    # Gia Viet Nam thuong dung dau cham phan tach hang nghin.
     digits = re.sub(r"[^0-9]", "", value)
     if not digits:
         return None, currency
@@ -88,26 +112,39 @@ def parse_notice_html(
     lines = [line for line in lines if line]
     raw_text = "\n".join(lines)
 
-    title = _extract_label_value(lines, ("Tên gói thầu", "Tên dự án", "Tiêu đề"))
+    title = _extract_label_value(lines, ("Ten goi thau", "Ten du an", "Tieu de"))
     if not title:
         heading = soup.find(["h1", "h2", "h3"])
         title = _compact(heading.get_text(" ")) if heading else None
-        if title and "lựa chọn nhà thầu" in _fold(title):
+        if title and "lua chon nha thau" in _fold(title):
             title = None
 
     notice_code = _extract_label_value(
-        lines, ("Mã TBMT", "Mã thông báo", "Số TBMT", "Mã KHLCNT", "Mã gói thầu")
+        lines, ("Ma TBMT", "Ma thong bao", "So TBMT", "Ma KHLCNT", "Ma goi thau")
     )
     if not notice_code:
         match = re.search(r"\b(?:IB|TBMT|KHLCNT)[A-Z0-9._/-]{5,}\b", raw_text, re.IGNORECASE)
         notice_code = match.group(0) if match else None
 
-    buyer = _extract_label_value(lines, ("Bên mời thầu", "Đơn vị mời thầu"))
-    investor = _extract_label_value(lines, ("Chủ đầu tư",))
-    price_text = _extract_label_value(lines, ("Giá gói thầu", "Giá dự toán", "Giá trị gói thầu"))
+    buyer = _extract_label_value(lines, ("Ben moi thau", "Don vi moi thau"))
+    investor = _extract_label_value(lines, ("Chu dau tu",))
+    price_text = _extract_label_value(lines, ("Gia goi thau", "Gia du toan", "Gia tri goi thau"))
     package_price, currency = parse_money(price_text)
-    published_at = _extract_label_value(lines, ("Ngày đăng tải", "Thời gian đăng tải"))
-    closing_at = _extract_label_value(lines, ("Thời điểm đóng thầu", "Thời gian đóng thầu"))
+    published_at = _extract_label_value(lines, ("Ngay dang tai", "Thoi gian dang tai"))
+    closing_at = _extract_label_value(lines, ("Thoi diem dong thau", "Thoi gian dong thau"))
+    location = _extract_label_value(
+        lines,
+        ("Dia diem thuc hien", "Dia diem", "Noi thuc hien goi thau"),
+    )
+    sector = _extract_label_value(lines, ("Linh vuc", "Phan loai linh vuc"))
+    selection_method = _extract_label_value(
+        lines,
+        ("Phuong thuc lua chon nha thau", "Hinh thuc lua chon nha thau"),
+    )
+    notice_version = _extract_label_value(
+        lines,
+        ("Phien ban", "Lan dang", "Lan thay doi"),
+    )
 
     ext = set(attachment_extensions or [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"])
     attachments: list[ParsedAttachment] = []
@@ -132,6 +169,10 @@ def parse_notice_html(
         currency=currency,
         published_at=published_at,
         closing_at=closing_at,
+        location=location,
+        sector=sector,
+        selection_method=selection_method,
+        notice_version=notice_version,
         raw_text=raw_text,
         attachments=attachments,
     )

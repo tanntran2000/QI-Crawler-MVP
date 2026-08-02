@@ -1,64 +1,106 @@
 # Changelog
 
-Tài liệu này ghi lại những thay đổi quan trọng của QI-Crawler theo từng phiên bản.
+Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
+
+## 0.5.0 - 2026-08-02
+
+- Refocus the main MVP on opportunity collection, keyword screening, explainable scoring and ranking.
+- Add `QI-Crawler xep-hang` and hide legacy GO/NO-GO analysis from beginner help and public API schema.
+- Replace win-probability language with `Opportunity Priority Score` and statuses `PRIORITY`, `REVIEW`,
+  `SKIP`, `INSUFFICIENT_DATA`.
+- Add a seven-component 100-point framework with evidence, inventory, time, financial and SLA reasons.
+- Add weighted keyword groups, synonyms, required `OR`, required `AND` and excluded `NOT` terms.
+- Add `NEW_MATCH` and `CLOSING_SOON` alerts with an explicit next action in the ranked workbook.
+- Parse location, sector, selection method and notice version from detail pages and structured sources.
+- Open matched authenticated detail pages before saving metadata; incomplete records remain unranked.
+- Deduplicate by notice code plus version while preserving revised notices.
+- Normalize Vietnamese `d`/`D` with stroke correctly and preserve accented source text in Excel.
+- Neutralize untrusted spreadsheet formula prefixes in CSV/XLSX exports.
+- Remove the tracked sample capability file and ignore private evidence/data workbooks.
+
+- Add `QI-Crawler -adv` to show technical commands separately from beginner help.
+- Add the `them-egp` preset for Vietnam e-GP and `kiem-tra-nguon` selector/session validation.
+- Save the exact list URL reached by the user after manual login for later authenticated runs.
+- Match e-GP detail links through stable URL markers while requiring validation after site changes.
+- Add a T-7 SOP checkpoint for E-HSMT collection, keyword extraction and Excel handoff.
+- Add Windows Unicode regression tests for accented `Lanh Binh Thang` and `Cap quang` data, including
+  Excel round-trip preservation.
+- Add tender line-item quantity storage with source location and extraction confidence.
+- Read Contracts Finder OCDS `tender.items` quantities automatically when provided by the source.
+- Add beginner commands `nhap-ton-kho` and `nhap-boq`; keep the old English names hidden and compatible.
+- Reduce root help to daily-use commands with short ASCII Vietnamese descriptions.
+- Add `requested_quantity_details` and `response_table` to the tender export.
+- Add detailed `Response Table` and `QI Inventory` workbook sheets.
+- Detect stock shortage, missing quantity, unmatched products and unit mismatch without false approval.
+- Add an English QI inventory workbook template for first-time users.
+- Convert source text, CLI messages, tests, and documentation to ASCII-safe text without Vietnamese
+  diacritics.
+- Make English the canonical language for product names and industry categories.
+- Keep ASCII Vietnamese aliases and normalize accented user input, for example `cat` -> `sand`.
+- Them lenh `theo-doi` de quet mot luot hoac chay lien tuc theo chu ky.
+- Them `monitoring.example.yaml` cho danh sach tu khoa, nguon va thoi gian quet.
+- Them bao cao Excel xep hang co hoi kha thi so bo.
+- Cham diem theo do khop san pham, bang chung da xac minh, han nop va do day du du lieu.
+- Khong danh dau kha thi so bo neu chua co bang chung nang luc da xac minh.
 
 ## 0.4.0 - 2026-07-31
 
-### Thêm mới
+### Them moi
 
-- Hỗ trợ `QI-Crawler -help`, `QI-Crawler -h` và `QI-Crawler help`.
-- Hiển thị danh sách lệnh cùng ví dụ có thể sao chép cho người mới.
-- Thêm `keyword-groups.yaml` để quản lý nhóm ngành, sản phẩm và tên tương đương.
-- Tìm không phân biệt chữ hoa/thường và dấu tiếng Việt.
-- Mở rộng từ khóa theo tên Việt, tên Anh, tên viết tắt và biến thể chính tả.
-- Thêm lệnh `them-tu-khoa` để tự phân loại và cập nhật sản phẩm mới.
-- Thêm `pending_keywords` cho trường hợp chưa đủ căn cứ phân loại.
-- Thêm tín hiệu nhận diện cho nhóm Vật liệu xây dựng và Công nghệ thông tin.
-- Thêm kiểm thử cho help, mở rộng từ khóa, phân loại tự động và hàng chờ xác nhận.
+- Ho tro `QI-Crawler -help`, `QI-Crawler -h` va `QI-Crawler help`.
+- Hien thi danh sach lenh cung vi du co the sao chep cho nguoi moi.
+- Them `keyword-groups.yaml` de quan ly nhom nganh, san pham va ten tuong duong.
+- Tim khong phan biet chu hoa/thuong va dau tieng Viet.
+- Mo rong tu khoa theo ten Viet, ten Anh, ten viet tat va bien the chinh ta.
+- Them lenh `them-tu-khoa` de tu phan loai va cap nhat san pham moi.
+- Them `pending_keywords` cho truong hop chua du can cu phan loai.
+- Use English canonical categories (`Construction Materials`, `Information Technology`) with ASCII
+  Vietnamese aliases for backward-compatible searches.
+- Them kiem thu cho help, mo rong tu khoa, phan loai tu dong va hang cho xac nhan.
 
-### Thay đổi
+### Thay doi
 
-- Đổi tên sản phẩm và CLI từ `egp-crawler` thành `QI-Crawler`.
-- Đổi package Python từ `egp_crawler` thành `qi_crawler`.
-- Viết lại README và hợp nhất tài liệu hướng dẫn cho người mới.
-- Không dùng tên nhóm ngành rộng để tự nhận mọi gói, nhằm giảm kết quả sai.
+- Doi ten san pham va CLI tu `egp-crawler` thanh `QI-Crawler`.
+- Doi package Python tu `egp_crawler` thanh `qi_crawler`.
+- Viet lai README va hop nhat tai lieu huong dan cho nguoi moi.
+- Khong dung ten nhom nganh rong de tu nhan moi goi, nham giam ket qua sai.
 
-### An toàn
+### An toan
 
-- Chỉ tự cập nhật từ khóa khi có tín hiệu phân loại đủ rõ.
-- Từ khóa mơ hồ luôn chờ con người xác nhận.
-- Không tự dịch hoặc tự tạo tên sản phẩm khi chưa có căn cứ.
+- Chi tu cap nhat tu khoa khi co tin hieu phan loai du ro.
+- Tu khoa mo ho luon cho con nguoi xac nhan.
+- Khong tu dich hoac tu tao ten san pham khi chua co can cu.
 
 ## 0.3.0 - 2026-07-31
 
-### Thêm mới
+### Them moi
 
-- Thu thập gói còn hạn từ UK Contracts Finder qua OCDS API.
-- Thêm website tùy chỉnh bằng URL trang danh sách.
-- Cho phép người dùng tự đăng nhập, nhập OTP/CAPTCHA và lưu phiên cục bộ.
-- Tái sử dụng cookie/session mà không lưu mật khẩu.
-- Thêm lệnh tiếng Việt: `bat-dau`, `tim-goi`, `xuat-bao-cao`, `danh-gia`, `them-nguon`,
+- Thu thap goi con han tu UK Contracts Finder qua OCDS API.
+- Them website tuy chinh bang URL trang danh sach.
+- Cho phep nguoi dung tu dang nhap, nhap OTP/CAPTCHA va luu phien cuc bo.
+- Tai su dung cookie/session ma khong luu mat khau.
+- Them lenh tieng Viet: `bat-dau`, `tim-goi`, `xuat-bao-cao`, `danh-gia`, `them-nguon`,
   `dang-nhap`, `tim-tren-web`.
-- Thêm đối chiếu yêu cầu với bằng chứng năng lực.
-- Thêm cổng quyết định `GO`, `HOLD`, `NO-GO` và xác nhận độc lập.
-- Thêm tỷ lệ dự đoán hỗ trợ sàng lọc với giới hạn cho `HOLD` và `NO-GO`.
-- Thêm migration cộng dồn để bảo toàn database cũ.
+- Them doi chieu yeu cau voi bang chung nang luc.
+- Them cong quyet dinh `GO`, `HOLD`, `NO-GO` va xac nhan doc lap.
+- Them ty le du doan ho tro sang loc voi gioi han cho `HOLD` va `NO-GO`.
+- Them migration cong don de bao toan database cu.
 
-### Thay đổi
+### Thay doi
 
-- Đơn giản hóa quy trình sử dụng và giảm tài liệu/script demo trùng lặp.
-- Bảo vệ `data/sessions/` và `data/sources/` khỏi Git.
+- Don gian hoa quy trinh su dung va giam tai lieu/script demo trung lap.
+- Bao ve `data/sessions/` va `data/sources/` khoi Git.
 
 ## 0.2.0
 
-- Thêm tìm kiếm động và phân trang Playwright theo selector cấu hình.
-- Thêm tải file bằng `expect_download()` và lưu SHA-256.
-- Thêm trạng thái tải file, retry và manual review.
-- Thêm import CSV/XLSX, kiểm tra chất lượng dữ liệu và reject file.
-- Thêm lưu HTML raw, content hash và thống kê crawl run.
-- Thêm báo cáo Excel nhiều sheet và gửi SMTP tùy chọn.
-- Mở rộng API, cấu hình, kiểm thử và GitHub Actions.
+- Them tim kiem dong va phan trang Playwright theo selector cau hinh.
+- Them tai file bang `expect_download()` va luu SHA-256.
+- Them trang thai tai file, retry va manual review.
+- Them import CSV/XLSX, kiem tra chat luong du lieu va reject file.
+- Them luu HTML raw, content hash va thong ke crawl run.
+- Them bao cao Excel nhieu sheet va gui SMTP tuy chon.
+- Mo rong API, cau hinh, kiem thu va GitHub Actions.
 
 ## 0.1.0
 
-- Khởi tạo crawler Python bất đồng bộ và cấu trúc database ban đầu.
+- Khoi tao crawler Python bat dong bo va cau truc database ban dau.

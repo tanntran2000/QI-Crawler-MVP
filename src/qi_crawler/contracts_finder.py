@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 from .crawler import CrawlerService
 from .keywords import matches_any_keyword
-from .parser import ParsedAttachment, ParsedNotice
+from .parser import ParsedAttachment, ParsedNotice, ParsedTenderItem
 
 API_URL = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search"
 
@@ -66,6 +66,50 @@ def release_to_notice(release: dict) -> ParsedNotice | None:
     value = tender.get("value") or {}
     buyer = release.get("buyer") or {}
     description = str(tender.get("description") or "").strip()
+    address = (tender.get("deliveryAddresses") or [{}])[0] or {}
+    location = ", ".join(
+        str(address.get(key) or "").strip()
+        for key in ("streetAddress", "locality", "region", "postalCode", "countryName")
+        if str(address.get(key) or "").strip()
+    ) or None
+    tender_classification = tender.get("classification") or {}
+    sector = str(
+        tender_classification.get("description")
+        or tender_classification.get("id")
+        or ""
+    ).strip() or None
+    selection_method = str(
+        tender.get("procurementMethodDetails") or tender.get("procurementMethod") or ""
+    ).strip() or None
+    parsed_items: list[ParsedTenderItem] = []
+    for index, item in enumerate(tender.get("items") or [], start=1):
+        classification = item.get("classification") or {}
+        product_name = str(
+            item.get("description") or classification.get("description") or ""
+        ).strip()
+        if not product_name:
+            continue
+        quantity_value = item.get("quantity")
+        try:
+            quantity = float(quantity_value) if quantity_value is not None else None
+        except (TypeError, ValueError):
+            quantity = None
+        unit_data = item.get("unit") or {}
+        unit = str(unit_data.get("name") or unit_data.get("id") or "").strip() or None
+        item_code = str(item.get("id") or classification.get("id") or f"item-{index}")
+        parsed_items.append(
+            ParsedTenderItem(
+                item_code=item_code,
+                product_name=product_name,
+                specification=str(classification.get("description") or "").strip() or None,
+                quantity=quantity,
+                unit=unit,
+                source_document="Contracts Finder OCDS API",
+                source_location=f"tender.items[{index - 1}]",
+                extraction_confidence=0.98 if quantity is not None else 0.8,
+                needs_human_review=quantity is None,
+            )
+        )
     return ParsedNotice(
         source_url=notice_url,
         notice_code=str(release.get("ocid") or tender.get("id") or "") or None,
@@ -76,7 +120,12 @@ def release_to_notice(release: dict) -> ParsedNotice | None:
         currency=str(value.get("currency") or "").strip() or None,
         published_at=str(tender.get("datePublished") or release.get("date") or "") or None,
         closing_at=str((tender.get("tenderPeriod") or {}).get("endDate") or "") or None,
+        location=location,
+        sector=sector,
+        selection_method=selection_method,
+        notice_version=str(release.get("id") or "").strip() or None,
         attachments=attachments,
+        items=parsed_items,
         raw_text="\n".join(filter(None, [title, description, str(buyer.get("name") or "")])),
     )
 
@@ -103,7 +152,7 @@ async def collect_contracts_finder(
 ) -> ContractsFinderSummary:
     if "www.contractsfinder.service.gov.uk" not in service.config.allowed_domains:
         raise ValueError(
-            "Cần thêm www.contractsfinder.service.gov.uk vào allowed_domains trong config.yaml"
+            "Can them www.contractsfinder.service.gov.uk vao allowed_domains trong config.yaml"
         )
     start = published_from or (datetime.now(UTC).date() - timedelta(days=30))
     summary = ContractsFinderSummary()

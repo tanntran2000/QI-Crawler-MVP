@@ -12,9 +12,9 @@ from qi_crawler.models import Notice
 def test_import_csv_and_reject_invalid_row(tmp_path: Path):
     csv_path = tmp_path / "input.csv"
     csv_path.write_text(
-        "Mã TBMT,Tên gói thầu,Bên mời thầu,Giá gói thầu,Thời điểm đóng thầu\n"
-        "IB260001,Mua thiết bị mạng,Công ty A,1.200.000.000 VND,10:00 20/08/2026\n"
-        ",,Công ty B,1000000 VND,\n",
+        "Ma TBMT,Ten goi thau,Ben moi thau,Gia goi thau,Thoi diem dong thau\n"
+        "IB260001,Mua thiet bi mang,Cong ty A,1.200.000.000 VND,10:00 20/08/2026\n"
+        ",,Cong ty B,1000000 VND,\n",
         encoding="utf-8-sig",
     )
     config = AppConfig()
