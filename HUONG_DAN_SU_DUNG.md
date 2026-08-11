@@ -696,18 +696,16 @@ Nguoi moi chay:
 QI-Crawler -help
 ```
 
-Phan cuoi man hinh se hien version hien tai, thay doi co anh huong den cong viec hang ngay va noi xem tai
-lieu day du. Nguoi van hanh ky thuat chay:
+Man hinh nay chi hien cac lenh hang ngay. Nguoi van hanh ky thuat chay:
 
 ```powershell
 QI-Crawler -adv
 ```
 
-Lenh nang cao hien them thay doi ve keyword, metadata, chong trung, an toan Excel va bao ve du lieu noi bo.
-Lich su day du luon nam trong `CHANGELOG.md`.
+Lich su thay doi luon nam trong `CHANGELOG.md`; tai lieu nay giu vi du thao tac day du.
 
-Tu phien ban nay, moi thay doi ve tinh nang, lenh, canh bao, cot bao cao hoac cach van hanh chi duoc xem la
-hoan tat khi da cap nhat dong bo `CHANGELOG.md`, tai lieu huong dan, `-help` va `-adv`.
+Khi co thay doi, cap nhat `CHANGELOG.md` va tai lieu nay. Chi cap nhat `-help` hoac `-adv` neu danh sach
+lenh va luong thao tac cua nguoi dung thay doi.
 
 ### Rao can hien tai cua MVP
 

@@ -7,6 +7,20 @@ def test_parse_money_vnd():
     assert currency == "VND"
 
 
+def test_parse_money_recognizes_vnd_glyph_and_international_decimals():
+    amount, currency = parse_money(f"1.500.000 {chr(0x20AB)}")
+    assert amount == 1500000.0
+    assert currency == "VND"
+
+    amount, currency = parse_money("1,500,000.50 USD")
+    assert amount == 1500000.50
+    assert currency == "USD"
+
+    amount, currency = parse_money("1.500,50 EUR")
+    assert amount == 1500.50
+    assert currency == "EUR"
+
+
 def test_parse_notice_html():
     html = """
     <html><body>

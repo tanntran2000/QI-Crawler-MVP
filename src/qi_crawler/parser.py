@@ -4,6 +4,7 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
@@ -164,15 +165,72 @@ def _extract_label_value(lines: list[str], labels: tuple[str, ...]) -> str | Non
 
 
 def parse_money(value: str | None) -> tuple[float | None, str | None]:
+    """Parse common Vietnamese and international tender price formats.
+
+    Vietnamese notices usually use punctuation only as thousands separators,
+    while international notices may include a decimal component.  The value is
+    returned as a float for compatibility with the current database schema.
+    """
     if not value:
         return None, None
     folded = _fold(value)
-    currency = "VND" if any(x in folded for x in ("vnd", "vnd", "dong")) else None
-    # Gia Viet Nam thuong dung dau cham phan tach hang nghin.
-    digits = re.sub(r"[^0-9]", "", value)
-    if not digits:
+    currency = _detect_currency(value, folded)
+    number = _parse_decimal_amount(value, currency)
+    if number is None:
         return None, currency
-    return float(digits), currency
+    return float(number), currency
+
+
+def _detect_currency(value: str, folded: str) -> str | None:
+    lower = value.lower()
+    if (
+        any(token in folded for token in ("vnd", "dong"))
+        or chr(0x20AB) in value
+        or f"vn{chr(0x0111)}" in lower
+    ):
+        return "VND"
+    if "usd" in folded or "$" in value:
+        return "USD"
+    if "eur" in folded or chr(0x20AC) in value:
+        return "EUR"
+    if "gbp" in folded or chr(0x00A3) in value:
+        return "GBP"
+    return None
+
+
+def _parse_decimal_amount(value: str, currency: str | None) -> Decimal | None:
+    """Keep a decimal fraction when the source actually supplies one."""
+    compact = re.sub(r"[^0-9,.-]", "", value)
+    if not re.search(r"\d", compact):
+        return None
+
+    sign = "-" if compact.startswith("-") else ""
+    compact = compact.lstrip("-")
+
+    # VND tender prices conventionally have no fractional unit.  Both dots and
+    # commas are therefore treated as grouping markers (e.g. 1.500.000 VND).
+    if currency == "VND":
+        digits = re.sub(r"[^0-9]", "", compact)
+        return Decimal(f"{sign}{digits}") if digits else None
+
+    separators = [index for index, char in enumerate(compact) if char in ",."]
+    if not separators:
+        normalized = compact
+    else:
+        decimal_index = separators[-1]
+        fraction = compact[decimal_index + 1 :]
+        before = compact[:decimal_index]
+        # A final group of one or two digits is a decimal fraction. A group of
+        # three digits is treated as a standard thousands group (1,500 USD).
+        if len(fraction) in (1, 2):
+            normalized = f"{re.sub(r'[^0-9]', '', before)}.{fraction}"
+        else:
+            normalized = re.sub(r"[^0-9]", "", compact)
+
+    try:
+        return Decimal(f"{sign}{normalized}")
+    except InvalidOperation:
+        return None
 
 
 def parse_datetime_value(value: str | None) -> datetime | None:

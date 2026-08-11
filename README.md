@@ -16,9 +16,9 @@ xuat Excel va danh gia so bo kha nang dap ung.
 - Template `templates/TBMT_template_v1.xlsx` khong bi ghi de; file trung ten tu them `_v2`, `_v3`.
 - Cac cot khong co du lieu xac minh duoc de trong; QI-Crawler khong chen so lieu gia.
 - Lenh cu `xuat-bao-cao` van giu cac sheet ky thuat de nhap BOQ va kiem tra ton kho.
-- `QI-Crawler -help` hien phien ban va thay doi quan trong cho nguoi moi.
-- `QI-Crawler -adv` hien them cac thay doi ky thuat cho nguoi van hanh.
-- Moi lan cap nhat phai dong bo `CHANGELOG.md`, `HUONG_DAN_SU_DUNG.md`, `-help` va `-adv`.
+- `QI-Crawler -help` chi hien cac lenh hang ngay de nguoi moi de doc.
+- `QI-Crawler -adv` tap hop lenh cau hinh va van hanh ky thuat.
+- Lich su thay doi nam trong `CHANGELOG.md`; huong dan co vi du nam trong `HUONG_DAN_SU_DUNG.md`.
 
 Xem lich su day du trong [CHANGELOG.md](CHANGELOG.md). Xem vi du thao tac trong
 [HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md).
@@ -306,14 +306,14 @@ khong phai ten san pham hien tai.
 
 ### Quy tac cap nhat tai lieu
 
-Moi tinh nang, lenh, canh bao, thay doi ket qua hoac ghi chu van hanh moi phai duoc cap nhat cung luc tai:
+Moi tinh nang, lenh, canh bao, thay doi ket qua hoac ghi chu van hanh moi phai duoc cap nhat o cac noi phu hop:
 
 1. `CHANGELOG.md`: ghi day du thay doi theo phien ban.
 2. `HUONG_DAN_SU_DUNG.md`: giai thich bang vi du cho nguoi su dung.
-3. `QI-Crawler -help`: tom tat thay doi co anh huong den cong viec hang ngay.
-4. `QI-Crawler -adv`: tom tat thay doi ky thuat va van hanh nang cao.
+3. `QI-Crawler -help`: chi giu cac lenh hang ngay; cap nhat khi luong thao tac doi.
+4. `QI-Crawler -adv`: cap nhat khi them, doi hoac bo lenh ky thuat.
 
-Khong xem mot ban cap nhat la hoan tat neu bon noi tren chua cung hien dung version.
+Khong lap lai changelog dai trong man hinh Terminal; nguoi dung xem chi tiet trong tai lieu.
 
 ## Kiem tra ky thuat
 

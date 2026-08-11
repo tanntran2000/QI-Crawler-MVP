@@ -36,6 +36,10 @@ data/warehouse/quarantine/*
 !data/warehouse/quarantine/.gitkeep
 
 # Du lieu van hanh khong dua len Git
+data/urls.txt
+evaluation_output/
+outputs/
+
 data/downloads/*
 !data/downloads/.gitkeep
 

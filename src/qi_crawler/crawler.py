@@ -200,17 +200,17 @@ class CrawlerService:
             notice.content_hash = content_hash
             notice.source_kind = source_kind
             notice.notice_code = parsed.notice_code
-            notice.plan_code = getattr(parsed, "plan_code", None)
+            notice.plan_code = parsed.plan_code
             notice.title = parsed.title
             notice.buyer = parsed.buyer
             notice.procuring_entity_address = parsed.procuring_entity_address
-            notice.buyer_tax_code = getattr(parsed, "buyer_tax_code", None)
+            notice.buyer_tax_code = parsed.buyer_tax_code
             notice.investor = parsed.investor
-            notice.investor_tax_code = getattr(parsed, "investor_tax_code", None)
+            notice.investor_tax_code = parsed.investor_tax_code
             notice.project_name = parsed.project_name
             notice.package_description = parsed.package_description
             notice.package_price = parsed.package_price
-            notice.estimated_price = getattr(parsed, "estimated_price", None)
+            notice.estimated_price = parsed.estimated_price
             notice.currency = parsed.currency
             notice.published_at = parsed.published_at
             notice.closing_at = parsed.closing_at
@@ -219,10 +219,10 @@ class CrawlerService:
             notice.selection_method = parsed.selection_method
             notice.selection_form = parsed.selection_form
             notice.notice_version = version
-            notice.notice_type = getattr(parsed, "notice_type", "tbmt") or "tbmt"
-            notice.funding_source = getattr(parsed, "funding_source", None)
-            notice.contract_type = getattr(parsed, "contract_type", None)
-            notice.bid_type = getattr(parsed, "bid_type", None)
+            notice.notice_type = parsed.notice_type or "tbmt"
+            notice.funding_source = parsed.funding_source
+            notice.contract_type = parsed.contract_type
+            notice.bid_type = parsed.bid_type
             notice.document_issue_at = parsed.document_issue_at
             notice.document_price = parsed.document_price
             notice.bid_security_amount = parsed.bid_security_amount
@@ -456,11 +456,11 @@ class CrawlerService:
             session.flush()
             run_id = run.id
 
-        ok = failed = inserted = updated = 0
+        ok = failed = inserted = updated = records_failed = 0
         semaphore = asyncio.Semaphore(self.config.crawl.concurrency)
 
         async def one(url: str) -> None:
-            nonlocal ok, failed, inserted, updated
+            nonlocal ok, failed, inserted, updated, records_failed
             async with semaphore:
                 try:
                     html = await self._get_html(url)
@@ -495,6 +495,7 @@ class CrawlerService:
                     logger.info("Da luu notice id=%s url=%s", notice.id, url)
                 except Exception:
                     failed += 1
+                    records_failed += 1
                     logger.exception("Crawl that bai: %s", url)
 
         await asyncio.gather(*(one(url) for url in limited_urls))
@@ -507,7 +508,7 @@ class CrawlerService:
                 run.pages_failed = failed
                 run.records_inserted = inserted
                 run.records_updated = updated
-                run.records_failed = failed
+                run.records_failed = records_failed
         return ok, failed
 
     async def collect_links(self, list_url: str) -> list[str]:
