@@ -115,7 +115,12 @@ def test_export_contains_quantity_and_response_table(tmp_path: Path):
     output = export_xlsx(db, tmp_path / "response.xlsx")
     workbook = load_workbook(output, read_only=True, data_only=True)
     try:
-        assert workbook.sheetnames == ["Notices", "Response Table", "QI Inventory"]
+        assert workbook.sheetnames == [
+            "Bản tin điện tử",
+            "Notices",
+            "Response Table",
+            "QI Inventory",
+        ]
         notice_headers = [cell.value for cell in workbook["Notices"][1]]
         response_index = notice_headers.index("response_table") + 1
         assert workbook["Notices"].cell(2, response_index).value == "STOCK_SHORTAGE=1"
@@ -125,6 +130,74 @@ def test_export_contains_quantity_and_response_table(tmp_path: Path):
         shortage_index = response_headers.index("shortage_quantity") + 1
         assert workbook["Response Table"].cell(2, status_index).value == "STOCK_SHORTAGE"
         assert workbook["Response Table"].cell(2, shortage_index).value == 2
+    finally:
+        workbook.close()
+
+
+def test_excel_export_starts_with_tbmt_template(tmp_path: Path) -> None:
+    db = _db(tmp_path)
+    with db.session() as session:
+        session.add(
+            Notice(
+                source_url="https://example.test/tender/tbmt",
+                url_hash="t" * 64,
+                notice_code="IB2600000001-00",
+                title="Cung cấp thiết bị mạng",
+                buyer="Đơn vị mời thầu QI",
+                investor="Chủ đầu tư QI",
+                package_price=1250000000,
+                published_at="07/08/2026 09:00",
+                closing_at="17/08/2026 09:00",
+                funding_source="Ngân sách nhà nước",
+                selection_method="Một giai đoạn một túi hồ sơ",
+                raw_text=(
+                    "Địa chỉ bên mời thầu: 12 Lê Lợi, Hà Nội\n"
+                    "Tên dự án: Nâng cấp hạ tầng mạng\n"
+                    "Hình thức lựa chọn nhà thầu: Đấu thầu rộng rãi trong nước\n"
+                    "Thời gian phát hành E-HSMT: 07/08/2026 09:00\n"
+                    "Giá E-HSMT: 330.000 VND\n"
+                    "Bảo đảm dự thầu: 20.000.000 VND\n"
+                    "Hình thức bảo đảm dự thầu: Thư bảo lãnh\n"
+                    "Thời điểm mở thầu: 17/08/2026 09:00\n"
+                    "Thời gian thực hiện hợp đồng: 90 ngày"
+                ),
+            )
+        )
+
+    output = export_xlsx(db, tmp_path / "tbmt.xlsx")
+    workbook = load_workbook(output, read_only=False, data_only=True)
+    try:
+        sheet = workbook["Bản tin điện tử"]
+        assert [cell.value for cell in sheet[10]] == [
+            "GÓI TIN",
+            "BÊN MỜI THẦU",
+            "ĐỊA CHỈ BÊN MỜI THẦU",
+            "DỰ ÁN",
+            "GÓI THẦU",
+            "NỘI DUNG CHÍNH CỦA GÓI THẦU",
+            "NGUỒN VỐN",
+            "GIÁ GÓI THẦU",
+            "PHƯƠNG THỨC LỰA CHỌN NHÀ THẦU",
+            "HÌNH THỨC LỰA CHỌN NHÀ THẦU",
+            "THỜI GIAN PHÁT HÀNH HSMT",
+            "GIÁ BÁN 1 BỘ HSMT",
+            "BẢO ĐẢM DỰ THẦU",
+            "HÌNH THỨC BẢO ĐẢM DỰ THẦU",
+            "ĐỊA ĐIỂM PHÁT HÀNH",
+            "THỜI GIAN ĐÓNG THẦU(HẠN CUỐI TIẾP NHẬN BG)",
+            "THỜI GIAN MỞ THẦU",
+            "THỜI GIAN THỰC HIỆN HỢP ĐỒNG",
+        ]
+        assert sheet["A11"].value == "1. Thông báo mời thầu"
+        assert sheet["B11"].value == "Đơn vị mời thầu QI"
+        assert sheet["C11"].value == "12 Lê Lợi, Hà Nội"
+        assert sheet["D11"].value == "Nâng cấp hạ tầng mạng"
+        assert sheet["H11"].value == 1250000000
+        assert sheet["I11"].value == "Một giai đoạn một túi hồ sơ"
+        assert sheet["J11"].value == "Đấu thầu rộng rãi trong nước"
+        assert sheet["O11"].value == "https://example.test/tender/tbmt"
+        assert sheet.freeze_panes == "A11"
+        assert sheet.auto_filter.ref == "A10:R11"
     finally:
         workbook.close()
 

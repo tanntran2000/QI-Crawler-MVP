@@ -23,17 +23,44 @@ class Notice(Base):
     content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     source_kind: Mapped[str] = mapped_column(String(32), default="web")
     notice_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    plan_code: Mapped[str | None] = mapped_column(String(255), index=True)
     title: Mapped[str | None] = mapped_column(Text)
     buyer: Mapped[str | None] = mapped_column(Text)
+    procuring_entity_address: Mapped[str | None] = mapped_column(Text)
+    buyer_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
     investor: Mapped[str | None] = mapped_column(Text)
+    investor_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    project_name: Mapped[str | None] = mapped_column(Text)
+    package_description: Mapped[str | None] = mapped_column(Text)
     package_price: Mapped[float | None] = mapped_column(Float)
+    estimated_price: Mapped[float | None] = mapped_column(Float)
     currency: Mapped[str | None] = mapped_column(String(16))
     published_at: Mapped[str | None] = mapped_column(String(64))
     closing_at: Mapped[str | None] = mapped_column(String(64))
     location: Mapped[str | None] = mapped_column(Text)
     sector: Mapped[str | None] = mapped_column(Text)
     selection_method: Mapped[str | None] = mapped_column(Text)
+    selection_form: Mapped[str | None] = mapped_column(Text)
     notice_version: Mapped[str | None] = mapped_column(String(128), index=True)
+    notice_type: Mapped[str] = mapped_column(String(32), default="tbmt", index=True)
+    funding_source: Mapped[str | None] = mapped_column(Text)
+    contract_type: Mapped[str | None] = mapped_column(String(64))
+    bid_type: Mapped[str | None] = mapped_column(String(64))
+    document_issue_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    document_price: Mapped[float | None] = mapped_column(Float)
+    bid_security_amount: Mapped[float | None] = mapped_column(Float)
+    bid_security_method: Mapped[str | None] = mapped_column(Text)
+    issue_location: Mapped[str | None] = mapped_column(Text)
+    published_at_dt: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    closing_at_dt: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    bid_open_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    contract_duration: Mapped[str | None] = mapped_column(Text)
+    crawl_run_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    crawl_status: Mapped[str] = mapped_column(String(32), default="ok", index=True)
+    review_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    ai_sector: Mapped[str | None] = mapped_column(Text)
+    ai_sector_code: Mapped[str | None] = mapped_column(String(32))
+    ai_confidence: Mapped[float | None] = mapped_column(Float)
     raw_text: Mapped[str | None] = mapped_column(Text)
     raw_html_path: Mapped[str | None] = mapped_column(Text)
     data_quality_status: Mapped[str] = mapped_column(String(32), default="valid")
@@ -44,6 +71,12 @@ class Notice(Base):
         back_populates="notice", cascade="all, delete-orphan"
     )
     tender_items: Mapped[list[TenderItem]] = relationship(
+        back_populates="notice", cascade="all, delete-orphan"
+    )
+    bid_results: Mapped[list[BidResult]] = relationship(
+        back_populates="notice", cascade="all, delete-orphan"
+    )
+    bid_openings: Mapped[list[BidOpening]] = relationship(
         back_populates="notice", cascade="all, delete-orphan"
     )
 
@@ -217,3 +250,144 @@ class BidPrediction(Base):
     risk_factors: Mapped[str] = mapped_column(Text)
     assumptions: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SelectionPlan(Base):
+    """Ke hoach lua chon nha thau (KHLCNT) crawled from e-GP."""
+
+    __tablename__ = "selection_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plan_code: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    url_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    project_name: Mapped[str | None] = mapped_column(Text)
+    investor: Mapped[str | None] = mapped_column(Text)
+    investor_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    buyer: Mapped[str | None] = mapped_column(Text)
+    buyer_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    total_investment: Mapped[float | None] = mapped_column(Float)
+    currency: Mapped[str | None] = mapped_column(String(16))
+    funding_source: Mapped[str | None] = mapped_column(Text)
+    location: Mapped[str | None] = mapped_column(Text)
+    sector: Mapped[str | None] = mapped_column(Text)
+    approval_date: Mapped[str | None] = mapped_column(String(64))
+    expected_start: Mapped[str | None] = mapped_column(String(64))
+    expected_end: Mapped[str | None] = mapped_column(String(64))
+    package_count: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(32), default="active", index=True)
+    raw_text: Mapped[str | None] = mapped_column(Text)
+    raw_html_path: Mapped[str | None] = mapped_column(Text)
+    data_quality_status: Mapped[str] = mapped_column(String(32), default="valid")
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class BidResult(Base):
+    """Ket qua lua chon nha thau (KQLCNT) for a specific notice/package."""
+
+    __tablename__ = "bid_results"
+    __table_args__ = (
+        UniqueConstraint("notice_id", "contractor_name", name="uq_bid_result_notice_contractor"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int] = mapped_column(
+        ForeignKey("notices.id", ondelete="CASCADE"), index=True
+    )
+    notice_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    plan_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    result_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    contractor_name: Mapped[str] = mapped_column(Text)
+    contractor_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    is_winner: Mapped[bool] = mapped_column(default=False, index=True)
+    bid_price: Mapped[float | None] = mapped_column(Float)
+    winning_price: Mapped[float | None] = mapped_column(Float)
+    currency: Mapped[str | None] = mapped_column(String(16))
+    discount_rate: Mapped[float | None] = mapped_column(Float)
+    contract_duration: Mapped[str | None] = mapped_column(Text)
+    evaluation_score: Mapped[float | None] = mapped_column(Float)
+    ranking: Mapped[int | None] = mapped_column(Integer)
+    result_date: Mapped[str | None] = mapped_column(String(64))
+    source_url: Mapped[str | None] = mapped_column(Text)
+    raw_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    notice: Mapped[Notice] = relationship(back_populates="bid_results")
+
+
+class BidOpening(Base):
+    """Ket qua mo thau (KQMT) recording who participated in a bid opening."""
+
+    __tablename__ = "bid_openings"
+    __table_args__ = (
+        UniqueConstraint("notice_id", "contractor_name", name="uq_bid_opening_notice_contractor"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notice_id: Mapped[int] = mapped_column(
+        ForeignKey("notices.id", ondelete="CASCADE"), index=True
+    )
+    notice_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    contractor_name: Mapped[str] = mapped_column(Text)
+    contractor_tax_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    bid_price: Mapped[float | None] = mapped_column(Float)
+    currency: Mapped[str | None] = mapped_column(String(16))
+    bid_security_amount: Mapped[float | None] = mapped_column(Float)
+    technical_score: Mapped[float | None] = mapped_column(Float)
+    opening_date: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str | None] = mapped_column(String(64))
+    source_url: Mapped[str | None] = mapped_column(Text)
+    raw_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    notice: Mapped[Notice] = relationship(back_populates="bid_openings")
+
+
+class Contractor(Base):
+    """Ho so nha thau (contractor profile) built from KQLCNT/KQMT data."""
+
+    __tablename__ = "contractors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tax_code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    name: Mapped[str] = mapped_column(Text)
+    short_name: Mapped[str | None] = mapped_column(Text)
+    address: Mapped[str | None] = mapped_column(Text)
+    province: Mapped[str | None] = mapped_column(Text, index=True)
+    phone: Mapped[str | None] = mapped_column(String(64))
+    email: Mapped[str | None] = mapped_column(String(255))
+    representative: Mapped[str | None] = mapped_column(Text)
+    business_type: Mapped[str | None] = mapped_column(String(128))
+    main_sectors: Mapped[str | None] = mapped_column(Text)
+    total_wins: Mapped[int] = mapped_column(Integer, default=0)
+    total_bids: Mapped[int] = mapped_column(Integer, default=0)
+    total_win_value: Mapped[float] = mapped_column(Float, default=0.0)
+    win_rate: Mapped[float | None] = mapped_column(Float)
+    avg_discount_rate: Mapped[float | None] = mapped_column(Float)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class InvestorProfile(Base):
+    """Ho so chu dau tu / ben moi thau built from TBMT/KHLCNT data."""
+
+    __tablename__ = "investor_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tax_code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    name: Mapped[str] = mapped_column(Text)
+    short_name: Mapped[str | None] = mapped_column(Text)
+    address: Mapped[str | None] = mapped_column(Text)
+    province: Mapped[str | None] = mapped_column(Text, index=True)
+    phone: Mapped[str | None] = mapped_column(String(64))
+    email: Mapped[str | None] = mapped_column(String(255))
+    organization_type: Mapped[str | None] = mapped_column(String(128))
+    total_packages: Mapped[int] = mapped_column(Integer, default=0)
+    total_package_value: Mapped[float] = mapped_column(Float, default=0.0)
+    main_sectors: Mapped[str | None] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

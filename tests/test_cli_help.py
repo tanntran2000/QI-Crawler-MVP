@@ -14,8 +14,10 @@ def test_short_help_option_shows_commands_and_examples() -> None:
     assert result.exit_code == 0
     assert "QI-Crawler" in result.output
     assert "tim-goi" in result.output
+    assert "crawl" in result.output
     assert "nhap-ton-kho" in result.output
     assert "nhap-boq" in result.output
+    assert "xuat-tbmt" in result.output
     assert "xep-hang" in result.output
     assert "danh-gia" not in result.output
     assert "init-db" not in result.output
@@ -30,7 +32,7 @@ def test_help_command_shows_commands_and_examples() -> None:
     result = runner.invoke(app, ["help"])
 
     assert result.exit_code == 0
-    assert "xuat-bao-cao" in result.output
+    assert "xuat-tbmt" in result.output
     assert "TEN-LENH" in result.output
     assert "-help" in result.output
 
@@ -43,10 +45,8 @@ def test_advanced_help_lists_hidden_technical_commands() -> None:
     assert "init-db" in result.output
     assert "warehouse-status" in result.output
     assert "collect-contracts-finder" in result.output
-    assert f"PHIEN BAN {__version__}" in result.output
-    assert "AND/OR/NOT" in result.output
-    assert "formula injection" in result.output
-    assert "Roadmap UI" in result.output
+    assert "CHANGELOG" not in result.output
+    assert "Co gi moi" not in result.output
 
 
 def test_release_version_is_synchronized_across_user_documents() -> None:

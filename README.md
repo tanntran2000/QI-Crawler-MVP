@@ -8,8 +8,14 @@ xuat Excel va danh gia so bo kha nang dap ung.
 > phan loai va diem uu tien luon can nguoi phu trach kiem tra truoc khi su dung. Diem khong phai xac suat
 > trung thau va khong thay the quyet dinh tham du.
 
-## Co gi moi trong 0.5.1
+## Co gi moi trong 0.6.0
 
+- Them lenh `xuat-tbmt` de tao file trinh bay dung mau `Ban tin dien tu` 18 cot QI dang su dung.
+- File chi hien mot sheet nghiep vu; sheet `__QI_META` duoc an de luu thong tin truy vet.
+- Tien va ngay gio duoc ghi dung kieu Excel; dong loi duoc tach sang file `_rejects.xlsx`.
+- Template `templates/TBMT_template_v1.xlsx` khong bi ghi de; file trung ten tu them `_v2`, `_v3`.
+- Cac cot khong co du lieu xac minh duoc de trong; QI-Crawler khong chen so lieu gia.
+- Lenh cu `xuat-bao-cao` van giu cac sheet ky thuat de nhap BOQ va kiem tra ton kho.
 - `QI-Crawler -help` hien phien ban va thay doi quan trong cho nguoi moi.
 - `QI-Crawler -adv` hien them cac thay doi ky thuat cho nguoi van hanh.
 - Moi lan cap nhat phai dong bo `CHANGELOG.md`, `HUONG_DAN_SU_DUNG.md`, `-help` va `-adv`.
@@ -19,7 +25,7 @@ Xem lich su day du trong [CHANGELOG.md](CHANGELOG.md). Xem vi du thao tac trong
 
 ## Rao can hien tai va huong phat trien UI
 
-QI-Crawler 0.5.1 van la MVP dung dong lenh. Nguoi dung can kich hoat `.venv`, mo Terminal va chay lenh nhu:
+QI-Crawler 0.6.0 van la MVP dung dong lenh. Nguoi dung can kich hoat `.venv`, mo Terminal va chay lenh nhu:
 
 ```powershell
 QI-Crawler dang-nhap --ten egp-vietnam

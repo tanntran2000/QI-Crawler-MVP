@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from .config import AppConfig
+from .datetime_utils import parse_datetime_utc
 from .db import Database
 from .excel_safety import safe_excel_row
 from .models import Attachment, Notice
@@ -33,29 +34,6 @@ NOTICE_HEADERS = [
     "source_url",
     "attachment_count",
 ]
-
-
-def _parse_datetime(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    text = value.strip()
-    patterns = (
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%d",
-        "%H:%M %d/%m/%Y",
-        "%d/%m/%Y %H:%M",
-        "%d/%m/%Y",
-    )
-    for pattern in patterns:
-        try:
-            return datetime.strptime(text[:19], pattern).replace(tzinfo=UTC)
-        except ValueError:
-            continue
-    try:
-        return datetime.fromisoformat(text)
-    except ValueError:
-        return None
 
 
 def _notice_row(notice: Notice) -> list[object]:
@@ -126,7 +104,7 @@ def build_daily_report(
     ]
     closing_soon: list[Notice] = []
     for item in notices:
-        parsed = _parse_datetime(item.closing_at)
+        parsed = parse_datetime_utc(item.closing_at)
         if parsed and report_date <= parsed.date() <= closing_end:
             closing_soon.append(item)
     quality_issues = [item for item in notices if item.data_quality_status != "valid"]

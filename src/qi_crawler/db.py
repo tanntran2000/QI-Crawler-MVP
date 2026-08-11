@@ -18,6 +18,33 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "sector": "TEXT",
         "selection_method": "TEXT",
         "notice_version": "VARCHAR(128)",
+        "plan_code": "VARCHAR(255)",
+        "procuring_entity_address": "TEXT",
+        "buyer_tax_code": "VARCHAR(32)",
+        "investor_tax_code": "VARCHAR(32)",
+        "project_name": "TEXT",
+        "package_description": "TEXT",
+        "estimated_price": "REAL",
+        "notice_type": "VARCHAR(32) NOT NULL DEFAULT 'tbmt'",
+        "funding_source": "TEXT",
+        "contract_type": "VARCHAR(64)",
+        "bid_type": "VARCHAR(64)",
+        "selection_form": "TEXT",
+        "document_issue_at": "TIMESTAMP",
+        "document_price": "REAL",
+        "bid_security_amount": "REAL",
+        "bid_security_method": "TEXT",
+        "issue_location": "TEXT",
+        "published_at_dt": "TIMESTAMP",
+        "closing_at_dt": "TIMESTAMP",
+        "bid_open_at": "TIMESTAMP",
+        "contract_duration": "TEXT",
+        "crawl_run_id": "INTEGER",
+        "crawl_status": "VARCHAR(32) NOT NULL DEFAULT 'ok'",
+        "review_status": "VARCHAR(32) NOT NULL DEFAULT 'pending'",
+        "ai_sector": "TEXT",
+        "ai_sector_code": "VARCHAR(32)",
+        "ai_confidence": "REAL",
     },
     "attachments": {
         "download_status": "VARCHAR(32) NOT NULL DEFAULT 'pending'",
@@ -46,6 +73,7 @@ _ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
         "gate_status": "VARCHAR(32) NOT NULL DEFAULT 'HOLD'",
     },
 }
+
 
 
 class Database:

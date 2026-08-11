@@ -2,6 +2,20 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
+## 0.6.0 - 2026-08-10
+
+- Cap nhat chuc nang xu ly va xuat bao cao dau thau.
+- Cai thien do on dinh, kiem thu va tai lieu van hanh.
+- Bo sung cac nang cap ky thuat noi bo phuc vu phat trien MVP.
+
+## 0.5.2 - 2026-08-10
+
+- Them sheet dau tien `Ban tin dien tu` theo bieu mau TBMT 18 cot do QI cung cap.
+- Giu lai `Notices`, `Response Table` va `QI Inventory` de khong anh huong quy trinh BOQ va ton kho.
+- Lay cac truong co san tu du lieu da crawl; truong chua co hoac chua xac minh se de trong thay vi dien gia.
+- Them dong ghi chu kiem tra nguon, bo loc, dong bang tieu de, xu ly xuong dong va lien ket nguon trong Excel.
+- Them kiem thu ve thu tu cot, noi dung tieng Viet, gia goi thau va an toan xuat du lieu.
+
 ## Ke hoach phien ban tiep theo
 
 - Xay dung Web UI cuc bo voi nut bam cho cac viec: dang nhap, tim goi, xep hang va xuat Excel.

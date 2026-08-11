@@ -38,7 +38,10 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
         "notice_code": parsed.notice_code,
         "title": parsed.title,
         "buyer": parsed.buyer,
+        "procuring_entity_address": parsed.procuring_entity_address,
         "investor": parsed.investor,
+        "project_name": parsed.project_name,
+        "package_description": parsed.package_description,
         "package_price": parsed.package_price,
         "currency": parsed.currency,
         "published_at": parsed.published_at,
@@ -46,7 +49,17 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
         "location": parsed.location,
         "sector": parsed.sector,
         "selection_method": parsed.selection_method,
+        "selection_form": parsed.selection_form,
         "notice_version": parsed.notice_version,
+        "document_issue_at": (
+            parsed.document_issue_at.isoformat() if parsed.document_issue_at else None
+        ),
+        "document_price": parsed.document_price,
+        "bid_security_amount": parsed.bid_security_amount,
+        "bid_security_method": parsed.bid_security_method,
+        "issue_location": parsed.issue_location,
+        "bid_open_at": parsed.bid_open_at.isoformat() if parsed.bid_open_at else None,
+        "contract_duration": parsed.contract_duration,
         "attachments": sorted(item.source_url for item in parsed.attachments),
         "items": [
             {
@@ -141,6 +154,7 @@ class CrawlerService:
         raw_html_path: Path | None = None,
         source_kind: str = "web",
         strict_validation: bool = False,
+        crawl_run_id: int | None = None,
     ) -> tuple[Notice, bool, bool]:
         """Return (notice, created, changed)."""
         validation = validate_notice(parsed, strict=strict_validation)
@@ -186,17 +200,41 @@ class CrawlerService:
             notice.content_hash = content_hash
             notice.source_kind = source_kind
             notice.notice_code = parsed.notice_code
+            notice.plan_code = getattr(parsed, "plan_code", None)
             notice.title = parsed.title
             notice.buyer = parsed.buyer
+            notice.procuring_entity_address = parsed.procuring_entity_address
+            notice.buyer_tax_code = getattr(parsed, "buyer_tax_code", None)
             notice.investor = parsed.investor
+            notice.investor_tax_code = getattr(parsed, "investor_tax_code", None)
+            notice.project_name = parsed.project_name
+            notice.package_description = parsed.package_description
             notice.package_price = parsed.package_price
+            notice.estimated_price = getattr(parsed, "estimated_price", None)
             notice.currency = parsed.currency
             notice.published_at = parsed.published_at
             notice.closing_at = parsed.closing_at
             notice.location = parsed.location
             notice.sector = parsed.sector
             notice.selection_method = parsed.selection_method
+            notice.selection_form = parsed.selection_form
             notice.notice_version = version
+            notice.notice_type = getattr(parsed, "notice_type", "tbmt") or "tbmt"
+            notice.funding_source = getattr(parsed, "funding_source", None)
+            notice.contract_type = getattr(parsed, "contract_type", None)
+            notice.bid_type = getattr(parsed, "bid_type", None)
+            notice.document_issue_at = parsed.document_issue_at
+            notice.document_price = parsed.document_price
+            notice.bid_security_amount = parsed.bid_security_amount
+            notice.bid_security_method = parsed.bid_security_method
+            notice.issue_location = parsed.issue_location
+            notice.published_at_dt = parsed.published_at_dt
+            notice.closing_at_dt = parsed.closing_at_dt
+            notice.bid_open_at = parsed.bid_open_at
+            notice.contract_duration = parsed.contract_duration
+            if crawl_run_id is not None:
+                notice.crawl_run_id = crawl_run_id
+            notice.crawl_status = "ok"
             notice.raw_text = parsed.raw_text
             if raw_html_path:
                 notice.raw_html_path = str(raw_html_path)
@@ -433,7 +471,10 @@ class CrawlerService:
                         self.config.storage.allowed_attachment_extensions,
                     )
                     notice, created, changed = self.upsert_parsed_notice(
-                        parsed, raw_html_path=raw_path, source_kind="web"
+                        parsed,
+                        raw_html_path=raw_path,
+                        source_kind="web",
+                        crawl_run_id=run_id,
                     )
                     if self.config.storage.download_attachments:
                         with self.db.session() as session:

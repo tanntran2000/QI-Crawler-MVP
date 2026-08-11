@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from .datetime_utils import parse_datetime_utc
 from .keywords import matches_any_keyword, normalize_keyword
 from .models import CompanyEvidence, InventoryItem, Notice
 from .stock import check_stock
@@ -96,30 +97,6 @@ def _inventory_matches(item: InventoryItem, text: str) -> bool:
     return item.verified and any(matches_any_keyword(text, [term]) for term in terms)
 
 
-def _parse_deadline(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    text = value.strip()
-    patterns = (
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%d",
-        "%H:%M %d/%m/%Y",
-        "%d/%m/%Y %H:%M",
-        "%d/%m/%Y",
-    )
-    for pattern in patterns:
-        try:
-            return datetime.strptime(text[:19], pattern).replace(tzinfo=UTC)
-        except ValueError:
-            continue
-    try:
-        parsed = datetime.fromisoformat(text)
-        return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
-    except ValueError:
-        return None
-
-
 def _critical_missing_fields(notice: Notice) -> tuple[str, ...]:
     missing: list[str] = []
     if not notice.notice_code:
@@ -128,7 +105,7 @@ def _critical_missing_fields(notice: Notice) -> tuple[str, ...]:
         missing.append("title")
     if notice.package_price is None:
         missing.append("package_price")
-    if not notice.closing_at or _parse_deadline(notice.closing_at) is None:
+    if not notice.closing_at or parse_datetime_utc(notice.closing_at) is None:
         missing.append("closing_at")
     if not notice.source_url:
         missing.append("source_url")
@@ -209,7 +186,7 @@ def assess_opportunity(
         ),
     )
 
-    deadline = _parse_deadline(notice.closing_at)
+    deadline = parse_datetime_utc(notice.closing_at)
     days_left = (deadline - now).total_seconds() / 86400 if deadline else None
     if excluded or not matched_keywords or not required_any_ok or missing_required:
         if excluded:

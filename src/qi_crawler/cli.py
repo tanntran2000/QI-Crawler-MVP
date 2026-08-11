@@ -28,6 +28,7 @@ from .config import EnvSettings, load_config
 from .contracts_finder import collect_contracts_finder
 from .crawler import CrawlerService
 from .db import Database
+from .export import export_tbmt
 from .exporter import export_csv, export_xlsx
 from .importer import import_file as import_data_file
 from .inventory import import_inventory, import_tender_items
@@ -65,6 +66,7 @@ def _expand_and_learn(keyword: str) -> KeywordExpansion:
             )
     return expansion
 
+
 BEGINNER_RELEASE_HELP = render_release_highlights()
 
 app = typer.Typer(
@@ -80,11 +82,13 @@ BAT DAU NHANH:
 
   2. Tim goi:        QI-Crawler tim-goi --tu-khoa "network switch"
 
-  3. Nhap ton kho:   QI-Crawler nhap-ton-kho "C:\\duong-dan\\qi-stock.xlsx"
+  3. Doc trang URL:  QI-Crawler crawl "https://..."
 
-  4. Nhap BOQ:       QI-Crawler nhap-boq 12 "C:\\duong-dan\\tender-boq.xlsx"
+  4. Nhap ton kho:   QI-Crawler nhap-ton-kho "C:\\duong-dan\\qi-stock.xlsx"
 
-  5. Xuat Excel:     QI-Crawler xuat-bao-cao
+  5. Nhap BOQ:       QI-Crawler nhap-boq 12 "C:\\duong-dan\\tender-boq.xlsx"
+
+  6. Xuat mau TBMT:  QI-Crawler xuat-tbmt
 
 Can huong dan mot lenh: QI-Crawler TEN-LENH -help
 
@@ -92,11 +96,10 @@ Can huong dan mot lenh: QI-Crawler TEN-LENH -help
 """,
 )
 
-ADVANCED_HELP = f"""
+ADVANCED_HELP = """
 LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
 
   init-db                    Khoi tao hoac cap nhat database
-  crawl URL                  Doc truc tiep mot trang chi tiet
   crawl-file TEP             Doc danh sach URL tu file
   collect-links URL          Lay link chi tiet tu trang danh sach
   collect-dynamic URL        Lay link tu website JavaScript
@@ -104,7 +107,8 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   retry-downloads            Tai lai cac tep bi loi
   discover URL               Quan sat API/JSON cua website
   import-file TEP            Nhap du lieu goi thau CSV/Excel
-  export                     Xuat du lieu ky thuat CSV/Excel
+  xuat-tbmt                  Xuat dung mau TBMT 18 cot de trinh/noi bo
+  export                     Xuat Excel co sheet TBMT va cac sheet ky thuat
   report-daily               Tao bao cao van hanh hang ngay
   import-evidence TEP        Nhap bang chung nang luc QI
   analyze-bid TEP            Phan tich compliance ky thuat (legacy/pilot sau)
@@ -116,8 +120,6 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   warehouse-review           Ghi nhan de xuat luu tru du lieu
 
 Xem chi tiet: QI-Crawler TEN-LENH -help
-
-{render_release_highlights(advanced=True)}
 """
 
 
@@ -150,6 +152,17 @@ def _config(path: Path | None):
     return load_config(path)
 
 
+def _date_option(value: str | None, option_name: str) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise typer.BadParameter(
+            f"{option_name} phai co dang YYYY-MM-DD, vi du 2026-08-10"
+        ) from exc
+
+
 @app.command("init-db", hidden=True)
 def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     cfg = _config(config)
@@ -157,11 +170,13 @@ def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -
     typer.echo(f"Da khoi tao/cap nhat database: {cfg.storage.database_url}")
 
 
-@app.command("crawl", hidden=True)
+@app.command("crawl", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("doc-trang", rich_help_panel="LENH CHO NGUOI MOI")
 def crawl(
     urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
+    """Doc truc tiep mot hoac nhieu trang chi tiet thau tu URL."""
     cfg = _config(config)
 
     async def run() -> None:
@@ -562,12 +577,69 @@ def xuat_bao_cao(
     output: Path = typer.Option(Path("data/bao-cao-goi-thau.xlsx"), "--tep", "-o"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Xuat danh sach va bang dap ung ra Excel."""
+    """Xuat Excel theo mau TBMT, kem danh sach va bang dap ung."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
     db.create_all()
     path = export_xlsx(db, output)
     typer.echo(f"Da tao bao cao: {path}")
+
+
+@app.command("xuat-tbmt", rich_help_panel="LENH CHO NGUOI MOI")
+def xuat_tbmt(
+    output: Path | None = typer.Option(
+        None,
+        "--tep",
+        "-o",
+        help="Duong dan file .xlsx; bo trong de dat ten TBMT_ngay_thang_nam",
+    ),
+    ngay: str | None = typer.Option(None, "--ngay", "--date", help="Ngay dang tai YYYY-MM-DD"),
+    tu_ngay: str | None = typer.Option(
+        None, "--tu-ngay", "--from", help="Tu ngay dang tai YYYY-MM-DD"
+    ),
+    den_ngay: str | None = typer.Option(
+        None, "--den-ngay", "--to", help="Den ngay dang tai YYYY-MM-DD"
+    ),
+    trang_thai: str | None = typer.Option(
+        None, "--trang-thai", "--status", help="Trang thai da duyet trong database"
+    ),
+    tu_khoa: str | None = typer.Option(
+        None, "--tu-khoa", "--keyword", "-k", help="Loc theo cum tu trong goi thau"
+    ),
+    to_canh_bao: bool = typer.Option(
+        False, "--to-canh-bao", "--highlight", help="To mau deadline va truong con thieu"
+    ),
+    tat_ca_run: bool = typer.Option(
+        False, "--tat-ca-run", "--all-runs", help="Xuat moi crawl run, khong chi run moi nhat"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Xuat file TBMT 18 cot dung mau, chi mot sheet nghiep vu hien thi."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    result = export_tbmt(
+        db,
+        report_dir=cfg.storage.report_dir,
+        rejects_dir=cfg.storage.rejects_dir,
+        output=output,
+        on_date=_date_option(ngay, "--ngay"),
+        from_date=_date_option(tu_ngay, "--tu-ngay"),
+        to_date=_date_option(den_ngay, "--den-ngay"),
+        status=trang_thai,
+        keyword=tu_khoa,
+        highlight=to_canh_bao,
+        latest_run_only=not tat_ca_run,
+    )
+    typer.echo(f"Da tao file TBMT: {result.output}")
+    typer.echo(
+        "Ket qua: "
+        f"{result.exported_records} dong xuat, "
+        f"{result.warning_records} canh bao, "
+        f"{result.rejected_records} dong bi loai."
+    )
+    if result.reject_output:
+        typer.echo(f"Dong bi loai duoc luu tai: {result.reject_output}")
 
 
 @app.command("nhap-ton-kho", rich_help_panel="LENH CHO NGUOI MOI")
