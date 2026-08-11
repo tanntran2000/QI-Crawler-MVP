@@ -40,17 +40,50 @@ QI-Crawler tim-goi `
 
 MVP chi luu goi con han. Tu khoa Contracts Finder nen viet bang tieng Anh va du cu the.
 
-## 4. Xuat Excel
+## 4. Xuat file TBMT de trinh
 
 ```powershell
-QI-Crawler xuat-bao-cao
+QI-Crawler xuat-tbmt
 ```
 
 Hoac chon ten file:
 
 ```powershell
-QI-Crawler xuat-bao-cao --tep data\bao-cao-network.xlsx
+QI-Crawler xuat-tbmt --tep "C:\Users\Admin\Documents\TBMT-network.xlsx"
 ```
+
+Vi du loc goi co tu khoa va to mau canh bao:
+
+```powershell
+QI-Crawler xuat-tbmt --tu-khoa "cap quang" --tu-ngay 2026-08-01 --den-ngay 2026-08-10 --to-canh-bao
+```
+
+Mac dinh file co ten `TBMT_ngay_thang_nam.xlsx` trong `data\reports`. Neu ten da ton tai, QI-Crawler
+tu tao `_v2`, `_v3`; khong ghi de file cu. Dong thieu ma thong bao hoac ten goi duoc dua vao file
+`data\rejects\..._rejects.xlsx` de nguoi phu trach sua nguon du lieu.
+
+Khi mo file, sheet dau tien la `Ban tin dien tu`. Sheet nay co 18 cot theo mau TBMT, gom ben moi thau,
+du an, goi thau, nguon von, gia goi thau, phuong thuc/hinh thuc lua chon, cac moc phat hanh - dong thau -
+mo thau va thoi gian thuc hien hop dong.
+
+Neu website khong cung cap mot truong, hoac QI-Crawler chua xac minh duoc, o do se de trong. Khong tu thay
+o trong bang `0`, `20` hoac mot gia tri uoc doan. Nguoi phu trach can bam link nguon va doi chieu thong bao,
+E-HSMT goc truoc khi trinh bao cao.
+
+File `xuat-tbmt` chi hien sheet `Ban tin dien tu`. Sheet `__QI_META` duoc an de luu thong tin truy vet,
+khong phai sheet nghiep vu. Header nam o dong 10, du lieu bat dau tu dong 11, dung 18 cot A:R.
+
+Neu can file ky thuat gom BOQ va ton kho, dung lenh cu:
+
+```powershell
+QI-Crawler xuat-bao-cao
+```
+
+File ky thuat giu cac sheet:
+
+- `Notices`: du lieu crawler day du va ma `id` dung khi nhap BOQ.
+- `Response Table`: bang dap ung so luong chi tiet.
+- `QI Inventory`: ton kho QI da xac minh.
 
 Cac cot quan trong:
 
@@ -648,7 +681,14 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
-## Co gi moi trong 0.5.1
+## Co gi moi trong 0.6.0
+
+- `xuat-tbmt` tao file trinh bay theo form TBMT 18 cot, header dong 10 va du lieu tu dong 11.
+- Tien/ngay gio la kieu Excel, URL nguon la hyperlink va co bo loc tai dong header.
+- Dong loi tach sang file rejects; template va file cu khong bi ghi de.
+- `--to-canh-bao` to mau deadline sap het han va truong quan trong con thieu.
+- Cac truong khong co bang chung du lieu se de trong, khong dung gia tri gia de lam day bao cao.
+- `xuat-bao-cao` van giu cac sheet ky thuat cho BOQ va ton kho.
 
 Nguoi moi chay:
 
@@ -656,18 +696,16 @@ Nguoi moi chay:
 QI-Crawler -help
 ```
 
-Phan cuoi man hinh se hien version hien tai, thay doi co anh huong den cong viec hang ngay va noi xem tai
-lieu day du. Nguoi van hanh ky thuat chay:
+Man hinh nay chi hien cac lenh hang ngay. Nguoi van hanh ky thuat chay:
 
 ```powershell
 QI-Crawler -adv
 ```
 
-Lenh nang cao hien them thay doi ve keyword, metadata, chong trung, an toan Excel va bao ve du lieu noi bo.
-Lich su day du luon nam trong `CHANGELOG.md`.
+Lich su thay doi luon nam trong `CHANGELOG.md`; tai lieu nay giu vi du thao tac day du.
 
-Tu phien ban nay, moi thay doi ve tinh nang, lenh, canh bao, cot bao cao hoac cach van hanh chi duoc xem la
-hoan tat khi da cap nhat dong bo `CHANGELOG.md`, tai lieu huong dan, `-help` va `-adv`.
+Khi co thay doi, cap nhat `CHANGELOG.md` va tai lieu nay. Chi cap nhat `-help` hoac `-adv` neu danh sach
+lenh va luong thao tac cua nguoi dung thay doi.
 
 ### Rao can hien tai cua MVP
 

@@ -28,13 +28,13 @@ from .config import EnvSettings, load_config
 from .contracts_finder import collect_contracts_finder
 from .crawler import CrawlerService
 from .db import Database
+from .export import export_tbmt
 from .exporter import export_csv, export_xlsx
 from .importer import import_file as import_data_file
 from .inventory import import_inventory, import_tender_items
 from .keywords import KeywordExpansion, expand_keyword, learn_keyword
 from .logging_utils import configure_logging
 from .monitoring import load_monitoring_config, monitor_forever, run_monitoring_cycle
-from .release_notes import render_release_highlights
 from .reporting import build_daily_report, send_report_email
 from .warehouse import BACKUP_DIR, WAREHOUSE_PATH, WarehouseManager
 
@@ -65,7 +65,6 @@ def _expand_and_learn(keyword: str) -> KeywordExpansion:
             )
     return expansion
 
-BEGINNER_RELEASE_HELP = render_release_highlights()
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -73,51 +72,57 @@ app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-help", "--help", "-h"]},
     help="Cong cu QI tim, theo doi, kiem tra va xuat bao cao goi thau.",
-    epilog=f"""
-BAT DAU NHANH:
+    epilog="""
+BAT DAU NHANH
 
-  1. Chuan bi:       QI-Crawler bat-dau
+  1. QI-Crawler bat-dau
 
-  2. Tim goi:        QI-Crawler tim-goi --tu-khoa "network switch"
+  2. QI-Crawler tim-goi --tu-khoa "network switch"
 
-  3. Nhap ton kho:   QI-Crawler nhap-ton-kho "C:\\duong-dan\\qi-stock.xlsx"
+  3. QI-Crawler xuat-tbmt
 
-  4. Nhap BOQ:       QI-Crawler nhap-boq 12 "C:\\duong-dan\\tender-boq.xlsx"
+Chi tiet: QI-Crawler TEN-LENH -help
 
-  5. Xuat Excel:     QI-Crawler xuat-bao-cao
+Lenh ky thuat: QI-Crawler -adv
 
-Can huong dan mot lenh: QI-Crawler TEN-LENH -help
-
-{BEGINNER_RELEASE_HELP}
+Tai lieu: HUONG_DAN_SU_DUNG.md | Cap nhat: CHANGELOG.md
 """,
 )
 
-ADVANCED_HELP = f"""
+ADVANCED_HELP = """
 LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
 
+  Nguon website
+  them-nguon                Them website co danh sach goi thau
+  them-egp                  Cau hinh nhanh nguon e-GP Viet Nam
+  kiem-tra-nguon            Kiem tra phien dang nhap va selector
+  crawl URL                 Doc mot trang chi tiet duoc phep crawl
+  crawl-file TEP            Doc danh sach URL tu file
+  collect-links URL         Lay link chi tiet tu trang danh sach
+  collect-dynamic URL       Lay link tu website JavaScript
+  them-tu-khoa              Them tu khoa va phan loai nhom nganh
+
+  Theo doi va xuat bao cao
+  theo-doi                  Tu dong tim, loc va xep hang theo chu ky
+  xep-hang                  Chay mot luot cham diem co hoi
+  xuat-bao-cao              Xuat Excel danh sach va bang dap ung
+
   init-db                    Khoi tao hoac cap nhat database
-  crawl URL                  Doc truc tiep mot trang chi tiet
-  crawl-file TEP             Doc danh sach URL tu file
-  collect-links URL          Lay link chi tiet tu trang danh sach
-  collect-dynamic URL        Lay link tu website JavaScript
   download-page URL          Tai tep dinh kem tu trang chi tiet
   retry-downloads            Tai lai cac tep bi loi
   discover URL               Quan sat API/JSON cua website
   import-file TEP            Nhap du lieu goi thau CSV/Excel
-  export                     Xuat du lieu ky thuat CSV/Excel
+  export                     Xuat Excel co sheet TBMT va cac sheet ky thuat
   report-daily               Tao bao cao van hanh hang ngay
   import-evidence TEP        Nhap bang chung nang luc QI
   analyze-bid TEP            Phan tich compliance ky thuat (legacy/pilot sau)
   collect-contracts-finder   Thu thap truc tiep tu Contracts Finder
-  kiem-tra-nguon             Kiem tra phien dang nhap va selector website
   warehouse-init             Khoi tao data warehouse cuc bo
   warehouse-status           Kiem tra data warehouse
   warehouse-backup           Sao luu data warehouse
   warehouse-review           Ghi nhan de xuat luu tru du lieu
 
 Xem chi tiet: QI-Crawler TEN-LENH -help
-
-{render_release_highlights(advanced=True)}
 """
 
 
@@ -139,7 +144,7 @@ def main_callback(
 
 @app.command("help", rich_help_panel="LENH CHO NGUOI MOI")
 def show_help(ctx: typer.Context) -> None:
-    """Xem danh sach lenh va vi du ngan gon."""
+    """Xem lenh va vi du."""
     if ctx.parent is not None:
         typer.echo(ctx.parent.get_help())
 
@@ -150,6 +155,17 @@ def _config(path: Path | None):
     return load_config(path)
 
 
+def _date_option(value: str | None, option_name: str) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise typer.BadParameter(
+            f"{option_name} phai co dang YYYY-MM-DD, vi du 2026-08-10"
+        ) from exc
+
+
 @app.command("init-db", hidden=True)
 def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     cfg = _config(config)
@@ -158,10 +174,12 @@ def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -
 
 
 @app.command("crawl", hidden=True)
+@app.command("doc-trang", hidden=True)
 def crawl(
     urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
+    """Doc truc tiep mot hoac nhieu trang chi tiet thau tu URL."""
     cfg = _config(config)
 
     async def run() -> None:
@@ -319,18 +337,22 @@ def import_file_command(
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     cfg = _config(config)
-    service = CrawlerService(cfg)
-    try:
-        summary = import_data_file(service, input_file)
-        typer.echo(
-            "Import hoan tat: "
-            f"tong={summary.rows_found}, moi={summary.inserted}, cap nhat={summary.updated}, "
-            f"khong doi={summary.unchanged}, loai={summary.rejected}"
-        )
-        if summary.reject_file:
-            typer.echo(f"Du lieu loi: {summary.reject_file}")
-    finally:
-        asyncio.run(service.close())
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            summary = import_data_file(service, input_file)
+            typer.echo(
+                "Import hoan tat: "
+                f"tong={summary.rows_found}, moi={summary.inserted}, cap nhat={summary.updated}, "
+                f"khong doi={summary.unchanged}, loai={summary.rejected}"
+            )
+            if summary.reject_file:
+                typer.echo(f"Du lieu loi: {summary.reject_file}")
+        finally:
+            await service.close()
+
+    asyncio.run(run())
 
 
 @app.command("export", hidden=True)
@@ -515,7 +537,7 @@ def collect_contracts_finder_command(
 
 @app.command("bat-dau", rich_help_panel="LENH CHO NGUOI MOI")
 def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
-    """Chuan bi QI-Crawler cho lan su dung dau tien."""
+    """Chuan bi lan dau."""
     cfg = _config(config)
     Database(cfg.storage.database_url).create_all()
     typer.echo("MVP QI da san sang.")
@@ -533,7 +555,7 @@ def tim_goi(
     so_luong: int = typer.Option(20, "--so-luong", min=1, max=200),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Tim va luu goi thau con han theo tu khoa."""
+    """Tim goi thau theo tu khoa."""
     cfg = _config(config)
     expansion = _expand_and_learn(tu_khoa)
     _show_keyword_plan(expansion)
@@ -557,17 +579,74 @@ def tim_goi(
     asyncio.run(run())
 
 
-@app.command("xuat-bao-cao", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("xuat-bao-cao", hidden=True)
 def xuat_bao_cao(
     output: Path = typer.Option(Path("data/bao-cao-goi-thau.xlsx"), "--tep", "-o"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Xuat danh sach va bang dap ung ra Excel."""
+    """Xuat Excel theo mau TBMT, kem danh sach va bang dap ung."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
     db.create_all()
     path = export_xlsx(db, output)
     typer.echo(f"Da tao bao cao: {path}")
+
+
+@app.command("xuat-tbmt", rich_help_panel="LENH CHO NGUOI MOI")
+def xuat_tbmt(
+    output: Path | None = typer.Option(
+        None,
+        "--tep",
+        "-o",
+        help="Duong dan file .xlsx; bo trong de dat ten TBMT_ngay_thang_nam",
+    ),
+    ngay: str | None = typer.Option(None, "--ngay", "--date", help="Ngay dang tai YYYY-MM-DD"),
+    tu_ngay: str | None = typer.Option(
+        None, "--tu-ngay", "--from", help="Tu ngay dang tai YYYY-MM-DD"
+    ),
+    den_ngay: str | None = typer.Option(
+        None, "--den-ngay", "--to", help="Den ngay dang tai YYYY-MM-DD"
+    ),
+    trang_thai: str | None = typer.Option(
+        None, "--trang-thai", "--status", help="Trang thai da duyet trong database"
+    ),
+    tu_khoa: str | None = typer.Option(
+        None, "--tu-khoa", "--keyword", "-k", help="Loc theo cum tu trong goi thau"
+    ),
+    to_canh_bao: bool = typer.Option(
+        False, "--to-canh-bao", "--highlight", help="To mau deadline va truong con thieu"
+    ),
+    tat_ca_run: bool = typer.Option(
+        False, "--tat-ca-run", "--all-runs", help="Xuat moi crawl run, khong chi run moi nhat"
+    ),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Xuat Excel theo mau TBMT."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.create_all()
+    result = export_tbmt(
+        db,
+        report_dir=cfg.storage.report_dir,
+        rejects_dir=cfg.storage.rejects_dir,
+        output=output,
+        on_date=_date_option(ngay, "--ngay"),
+        from_date=_date_option(tu_ngay, "--tu-ngay"),
+        to_date=_date_option(den_ngay, "--den-ngay"),
+        status=trang_thai,
+        keyword=tu_khoa,
+        highlight=to_canh_bao,
+        latest_run_only=not tat_ca_run,
+    )
+    typer.echo(f"Da tao file TBMT: {result.output}")
+    typer.echo(
+        "Ket qua: "
+        f"{result.exported_records} dong xuat, "
+        f"{result.warning_records} canh bao, "
+        f"{result.rejected_records} dong bi loai."
+    )
+    if result.reject_output:
+        typer.echo(f"Dong bi loai duoc luu tai: {result.reject_output}")
 
 
 @app.command("nhap-ton-kho", rich_help_panel="LENH CHO NGUOI MOI")
@@ -582,7 +661,7 @@ def import_inventory_command(
     ),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Nhap file Excel/CSV ton kho de kiem tra so luong."""
+    """Nhap ton kho Excel/CSV."""
     cfg = _config(config)
     summary = import_inventory(Database(cfg.storage.database_url), input_file)
     typer.echo(
@@ -608,7 +687,7 @@ def import_tender_items_command(
     ),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Nhap bang so luong BOQ cho mot goi thau."""
+    """Nhap BOQ cua mot goi thau."""
     cfg = _config(config)
     try:
         summary = import_tender_items(
@@ -624,7 +703,7 @@ def import_tender_items_command(
     typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
 
 
-@app.command("theo-doi", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("theo-doi", hidden=True)
 def theo_doi(
     cau_hinh: Path = typer.Option(
         Path("monitoring.yaml"), "--cau-hinh", "-c", help="File cau hinh theo doi"
@@ -664,7 +743,7 @@ def theo_doi(
         typer.echo("Da dung theo doi an toan.")
 
 
-@app.command("xep-hang", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("xep-hang", hidden=True)
 def xep_hang(
     cau_hinh: Path = typer.Option(
         Path("monitoring.yaml"), "--cau-hinh", "-c", help="File cau hinh sang loc"
@@ -698,7 +777,7 @@ def danh_gia(
         typer.echo("Can nguoi phu trach kiem tra bang chung truoc khi trinh duyet.")
 
 
-@app.command("them-nguon", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("them-nguon", hidden=True)
 def them_nguon(
     ten: str = typer.Option(..., "--ten", help="Ten ngan, vi du: muasamcong"),
     url: str = typer.Option(..., "--url", help="Dia chi trang danh sach goi thau"),
@@ -723,7 +802,7 @@ def them_nguon(
     typer.echo(f"Buoc tiep theo: QI-Crawler dang-nhap --ten {source.name}")
 
 
-@app.command("them-egp", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("them-egp", hidden=True)
 def them_egp(
     ten: str = typer.Option("egp-vietnam", "--ten", help="Ten nguon de ghi nho"),
     url: str = typer.Option(
@@ -766,7 +845,7 @@ def kiem_tra_nguon(
     typer.echo("Nguon da san sang de tim goi.")
 
 
-@app.command("them-tu-khoa", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("them-tu-khoa", hidden=True)
 def them_tu_khoa(
     tu_khoa: str = typer.Option(..., "--tu-khoa", "-k", help="Ten san pham moi"),
     ten_khac: list[str] = typer.Option(
@@ -798,7 +877,7 @@ def dang_nhap(
     ten: str = typer.Option(..., "--ten"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Mo trinh duyet de ban tu dang nhap website."""
+    """Mo trinh duyet de dang nhap."""
     cfg = _config(config)
     source = load_source(ten)
     path = asyncio.run(create_login_session(cfg, source))
@@ -813,7 +892,7 @@ def tim_tren_web(
     so_luong: int = typer.Option(50, "--so-luong", min=1, max=500),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Tim goi thau tren website da dang nhap."""
+    """Tim tren website da dang nhap."""
     cfg = _config(config)
     source = load_source(ten)
     expansion = _expand_and_learn(tu_khoa)

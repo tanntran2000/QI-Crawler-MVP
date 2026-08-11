@@ -1,94 +1,98 @@
 categories:
-  - name: Construction Materials
+- name: Construction Materials
+  aliases:
+  - Vat lieu xay dung
+  - VLXD
+  - building materials
+  signals:
+  - cat
+  - sand
+  - xi mang
+  - cement
+  - be tong
+  - concrete
+  - gach
+  - brick
+  - da xay dung
+  - construction stone
+  - thep xay dung
+  - construction steel
+  products:
+  - name: sand
     aliases:
-      - Vat lieu xay dung
-      - VLXD
-      - building materials
-    signals:
-      - cat
-      - sand
-      - xi mang
-      - cement
-      - be tong
-      - concrete
-      - gach
-      - brick
-      - da xay dung
-      - construction stone
-      - thep xay dung
-      - construction steel
-    products:
-      - name: sand
-        aliases:
-          - cat
-          - cat trang
-          - white sand
-          - silica sand
-      - name: cement
-        aliases:
-          - xi mang
-
-  - name: Information Technology
+    - cat
+    - cat trang
+    - white sand
+    - silica sand
+  - name: cement
     aliases:
-      - Cong nghe thong tin
-      - CNTT
-      - IT
-      - ICT
-    signals:
-      - mang
-      - network
-      - may chu
-      - server
-      - phan mem
-      - software
-      - du lieu
-      - data
-      - vien thong
-      - telecom
-      - 5G
-      - router
-      - switch
-      - cap quang
-      - fiber optic
-    products:
-      - name: wireless access point
-        aliases:
-          - wifi
-          - wi-fi
-          - wireless
-          - WLAN
-          - access point
-      - name: network switch
-        aliases:
-          - switch
-          - LAN switch
-          - ethernet switch
-      - name: 5G module
-        aliases:
-          - mo dun 5G
-          - module 5G
-          - modul 5G
-      - name: router
-        aliases:
-          - bo dinh tuyen
-          - network router
-      - name: fiber optic cable
-        aliases:
-          - cap quang
-          - optical fiber cable
-          - fibre optic cable
-      - name: firewall
-        aliases:
-          - network firewall
-          - next generation firewall
-          - NGFW
-      - name: security monitoring
-        aliases:
-          - SIEM
-          - SOC
-          - information security monitoring
-      - name: data center infrastructure
-        aliases:
-          - data center
-          - server
-          - storage
+    - xi mang
+- name: Information Technology
+  aliases:
+  - Cong nghe thong tin
+  - CNTT
+  - IT
+  - ICT
+  signals:
+  - mang
+  - network
+  - may chu
+  - server
+  - phan mem
+  - software
+  - du lieu
+  - data
+  - vien thong
+  - telecom
+  - 5G
+  - router
+  - switch
+  - cap quang
+  - fiber optic
+  products:
+  - name: wireless access point
+    aliases:
+    - wifi
+    - wi-fi
+    - wireless
+    - WLAN
+    - access point
+  - name: network switch
+    aliases:
+    - switch
+    - LAN switch
+    - ethernet switch
+  - name: 5G module
+    aliases:
+    - mo dun 5G
+    - module 5G
+    - modul 5G
+  - name: router
+    aliases:
+    - bo dinh tuyen
+    - network router
+  - name: fiber optic cable
+    aliases:
+    - cap quang
+    - optical fiber cable
+    - fibre optic cable
+  - name: firewall
+    aliases:
+    - network firewall
+    - next generation firewall
+    - NGFW
+  - name: security monitoring
+    aliases:
+    - SIEM
+    - SOC
+    - information security monitoring
+  - name: data center infrastructure
+    aliases:
+    - data center
+    - server
+    - storage
+pending_keywords:
+- name: services
+  aliases: []
+  description: null
+  reason: Chua du tin hieu de xac dinh nhom nganh

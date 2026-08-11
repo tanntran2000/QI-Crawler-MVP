@@ -29,7 +29,7 @@ CATEGORY_MARKERS = {
 
 
 def fold_text(value: str) -> str:
-    value = unicodedata.normalize("NFD", value.lower().replace("d", "d"))
+    value = unicodedata.normalize("NFD", value.lower().replace("đ", "d"))
     value = "".join(char for char in value if unicodedata.category(char) != "Mn")
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9+#./%-]+", " ", value)).strip()
 

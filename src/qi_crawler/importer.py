@@ -12,14 +12,25 @@ from typing import Any
 from openpyxl import load_workbook
 
 from .crawler import CrawlerService
-from .models import CrawlRun
-from .parser import ParsedAttachment, ParsedNotice, parse_money
+from .models import CrawlRun, Notice
+from .parser import ParsedAttachment, ParsedNotice, parse_datetime_value, parse_money
 
 COLUMN_ALIASES: dict[str, set[str]] = {
     "notice_code": {"notice_code", "ma_tbmt", "ma_thong_bao", "so_tbmt", "ma_goi_thau"},
     "title": {"title", "ten_goi_thau", "ten_du_an", "tieu_de"},
     "buyer": {"buyer", "ben_moi_thau", "don_vi_moi_thau"},
+    "procuring_entity_address": {
+        "procuring_entity_address",
+        "dia_chi_ben_moi_thau",
+        "dia_chi_cua_ben_moi_thau",
+    },
     "investor": {"investor", "chu_dau_tu"},
+    "project_name": {"project_name", "du_an", "ten_du_an"},
+    "package_description": {
+        "package_description",
+        "noi_dung_chinh_cua_goi_thau",
+        "mo_ta_goi_thau",
+    },
     "package_price": {"package_price", "gia_goi_thau", "gia_du_toan", "gia_tri_goi_thau"},
     "currency": {"currency", "tien_te", "loai_tien"},
     "published_at": {"published_at", "ngay_dang_tai", "thoi_gian_dang_tai"},
@@ -29,8 +40,28 @@ COLUMN_ALIASES: dict[str, set[str]] = {
     "selection_method": {
         "selection_method",
         "phuong_thuc_lua_chon_nha_thau",
-        "hinh_thuc_lua_chon_nha_thau",
     },
+    "selection_form": {"selection_form", "hinh_thuc_lua_chon_nha_thau"},
+    "funding_source": {"funding_source", "nguon_von"},
+    "document_issue_at": {
+        "document_issue_at",
+        "thoi_gian_phat_hanh_hsmt",
+        "thoi_gian_phat_hanh_e_hsmt",
+    },
+    "document_price": {"document_price", "gia_ban_1_bo_hsmt", "gia_hsmt"},
+    "bid_security_amount": {
+        "bid_security_amount",
+        "bao_dam_du_thau",
+        "gia_tri_bao_dam_du_thau",
+    },
+    "bid_security_method": {
+        "bid_security_method",
+        "hinh_thuc_bao_dam_du_thau",
+    },
+    "issue_location": {"issue_location", "dia_diem_phat_hanh"},
+    "bid_open_at": {"bid_open_at", "thoi_gian_mo_thau", "thoi_diem_mo_thau"},
+    "contract_duration": {"contract_duration", "thoi_gian_thuc_hien_hop_dong"},
+    "review_status": {"review_status", "trang_thai_duyet"},
     "notice_version": {"notice_version", "phien_ban", "lan_dang", "lan_thay_doi"},
     "source_url": {"source_url", "url", "duong_dan", "link"},
     "attachments": {"attachments", "tep_dinh_kem", "file_dinh_kem", "attachment_urls"},
@@ -153,7 +184,10 @@ def import_file(service: CrawlerService, path: Path) -> ImportSummary:
             notice_code=_format_value(row.get("notice_code")),
             title=_format_value(row.get("title")),
             buyer=_format_value(row.get("buyer")),
+            procuring_entity_address=_format_value(row.get("procuring_entity_address")),
             investor=_format_value(row.get("investor")),
+            project_name=_format_value(row.get("project_name")),
+            package_description=_format_value(row.get("package_description")),
             package_price=price,
             currency=currency,
             published_at=_format_value(row.get("published_at")),
@@ -161,18 +195,37 @@ def import_file(service: CrawlerService, path: Path) -> ImportSummary:
             location=_format_value(row.get("location")),
             sector=_format_value(row.get("sector")),
             selection_method=_format_value(row.get("selection_method")),
+            selection_form=_format_value(row.get("selection_form")),
             notice_version=_format_value(row.get("notice_version")),
+            funding_source=_format_value(row.get("funding_source")),
+            document_issue_at=parse_datetime_value(_format_value(row.get("document_issue_at"))),
+            document_price=parse_money(_format_value(row.get("document_price")))[0],
+            bid_security_amount=parse_money(
+                _format_value(row.get("bid_security_amount"))
+            )[0],
+            bid_security_method=_format_value(row.get("bid_security_method")),
+            issue_location=_format_value(row.get("issue_location")),
+            published_at_dt=parse_datetime_value(_format_value(row.get("published_at"))),
+            closing_at_dt=parse_datetime_value(_format_value(row.get("closing_at"))),
+            bid_open_at=parse_datetime_value(_format_value(row.get("bid_open_at"))),
+            contract_duration=_format_value(row.get("contract_duration")),
             raw_text="\n".join(
                 f"{key}: {_format_value(value)}" for key, value in row.items() if value not in (None, "")
             ),
             attachments=_attachments(row.get("attachments"), source_url),
         )
         try:
-            _, created, changed = service.upsert_parsed_notice(
+            imported_notice, created, changed = service.upsert_parsed_notice(
                 parsed,
                 source_kind="import",
                 strict_validation=True,
+                crawl_run_id=run_id,
             )
+            if _format_value(row.get("review_status")):
+                with service.db.session() as session:
+                    stored_notice = session.get(Notice, imported_notice.id)
+                    if stored_notice is not None:
+                        stored_notice.review_status = _format_value(row.get("review_status"))
             if created:
                 summary.inserted += 1
             elif changed:
