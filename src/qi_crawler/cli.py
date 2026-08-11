@@ -98,6 +98,7 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   kiem-tra-nguon            Kiem tra phien dang nhap va selector
   crawl URL                 Doc mot trang chi tiet duoc phep crawl
   crawl-file TEP            Doc danh sach URL tu file
+  resume-crawl RUN_ID       Tiep tuc cac URL chua hoan thanh cua mot lan crawl bi gian doan
   collect-links URL         Lay link chi tiet tu trang danh sach
   collect-dynamic URL       Lay link tu website JavaScript
   them-tu-khoa              Them tu khoa va phan loai nhom nganh
@@ -207,6 +208,25 @@ def crawl_file(
         try:
             ok, failed = await service.crawl_urls(urls, source_name=f"file:{input_file.name}")
             typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+@app.command("resume-crawl", hidden=True)
+def resume_crawl(
+    run_id: int = typer.Argument(..., min=1, help="Ma crawl run can tiep tuc"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Tiep tuc cac URL chua hoan thanh sau khi crawl bi gian doan."""
+    cfg = _config(config)
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            ok, failed = await service.resume_crawl(run_id)
+            typer.echo(f"Resume hoan tat: thanh cong={ok}, loi={failed}")
         finally:
             await service.close()
 

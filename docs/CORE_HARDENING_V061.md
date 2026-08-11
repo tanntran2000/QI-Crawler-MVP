@@ -24,7 +24,9 @@ request co review.
 
 1. WP2: adapter nguon, parser va idempotency; them sau raw JSON/HTML fixture de kiem tra
    toan bo luong nguon -> `ParsedNotice` -> database ma khong goi website that trong CI.
-2. WP3: `crawl_tasks`, retry, checkpoint va resume.
+2. WP3: `crawl_tasks`, retry, checkpoint va resume. `crawl_runs` chi luu tong ket;
+   tung URL luu rieng trang thai `PENDING`, `RUNNING`, `COMPLETED`,
+   `FAILED_RETRYABLE` hoac `FAILED` de resume chinh xac.
 3. WP4: Alembic migration co review tren ban sao `egp.db`.
 4. WP5: golden-file test cho TBMT exporter.
 5. WP6: FTS5 capability check, trigger thu cong va fallback search.

@@ -166,6 +166,26 @@ class CrawlRun(Base):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
+class CrawlTask(Base):
+    """Per-URL crawl checkpoint; CrawlRun remains the run-level summary."""
+
+    __tablename__ = "crawl_tasks"
+    __table_args__ = (UniqueConstraint("crawl_run_id", "url", name="uq_crawl_task_run_url"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    crawl_run_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_runs.id", ondelete="CASCADE"), index=True
+    )
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    page_index: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class CompanyEvidence(Base):
     """A verifiable capability, certificate, project or product owned by the bidder."""
 
