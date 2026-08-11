@@ -1,4 +1,5 @@
 import asyncio
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,28 +10,35 @@ from qi_crawler.cli import app
 from qi_crawler.importer import ImportSummary
 
 runner = CliRunner()
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _plain_terminal_text(value: str) -> str:
+    """Remove Rich terminal formatting before asserting user-visible text."""
+    return ANSI_ESCAPE.sub("", value)
 
 
 def test_short_help_option_shows_commands_and_examples() -> None:
     result = runner.invoke(app, ["-help"])
+    output = _plain_terminal_text(result.output)
 
     assert result.exit_code == 0
-    assert "QI-Crawler" in result.output
-    assert "tim-goi" in result.output
-    assert "dang-nhap" in result.output
-    assert "tim-tren-web" in result.output
-    assert "nhap-ton-kho" in result.output
-    assert "nhap-boq" in result.output
-    assert "xuat-tbmt" in result.output
-    assert "crawl" not in result.output
-    assert "xep-hang" not in result.output
-    assert "them-nguon" not in result.output
-    assert "danh-gia" not in result.output
-    assert "init-db" not in result.output
-    assert "import-inventory" not in result.output
-    assert "CHANGELOG.md" in result.output
-    assert "HUONG_DAN_SU_DUNG.md" in result.output
-    assert "QI-Crawler -adv" in result.output
+    assert "QI-Crawler" in output
+    assert "tim-goi" in output
+    assert "dang-nhap" in output
+    assert "tim-tren-web" in output
+    assert "nhap-ton-kho" in output
+    assert "nhap-boq" in output
+    assert "xuat-tbmt" in output
+    assert "crawl" not in output
+    assert "xep-hang" not in output
+    assert "them-nguon" not in output
+    assert "danh-gia" not in output
+    assert "init-db" not in output
+    assert "import-inventory" not in output
+    assert "CHANGELOG.md" in output
+    assert "HUONG_DAN_SU_DUNG.md" in output
+    assert "QI-Crawler -adv" in output
 
 
 def test_help_command_shows_commands_and_examples() -> None:
