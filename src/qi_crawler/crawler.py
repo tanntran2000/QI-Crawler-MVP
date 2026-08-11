@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
@@ -22,7 +24,7 @@ from .downloads import (
     unique_destination,
 )
 from .http_client import HttpFetcher
-from .models import Attachment, CrawlRun, Notice, TenderItem
+from .models import Attachment, CrawlRun, CrawlTask, Notice, TenderItem
 from .parser import ParsedNotice, extract_detail_links, parse_notice_html
 from .validation import validate_notice
 
@@ -448,68 +450,189 @@ class CrawlerService:
                 attachment.downloaded_at = datetime.now(UTC)
         return notice, downloaded, errors
 
-    async def crawl_urls(self, urls: list[str], source_name: str = "web") -> tuple[int, int]:
-        limited_urls = urls[: self.config.crawl.max_pages_per_run]
+    def _prepare_crawl_tasks(
+        self,
+        urls: list[str],
+        source_name: str,
+        resume_run_id: int | None,
+    ) -> tuple[int, list[int]]:
         with self.db.session() as session:
-            run = CrawlRun(status="running", source_name=source_name, records_found=len(limited_urls))
+            if resume_run_id is not None:
+                run = session.get(CrawlRun, resume_run_id)
+                if run is None:
+                    raise ValueError(f"Khong tim thay crawl run {resume_run_id}")
+                run.status = "running"
+                run.finished_at = None
+                for task in session.scalars(
+                    select(CrawlTask).where(
+                        CrawlTask.crawl_run_id == run.id,
+                        CrawlTask.status == "RUNNING",
+                    )
+                ):
+                    task.status = "PENDING"
+                    task.last_error = "Run truoc bi gian doan; se chay lai khi resume."
+                task_ids = list(
+                    session.scalars(
+                        select(CrawlTask.id)
+                        .where(
+                            CrawlTask.crawl_run_id == run.id,
+                            CrawlTask.status.in_(["PENDING", "FAILED_RETRYABLE"]),
+                        )
+                        .order_by(CrawlTask.page_index)
+                    ).all()
+                )
+                return run.id, task_ids
+
+            unique_urls = list(dict.fromkeys(urls))[: self.config.crawl.max_pages_per_run]
+            run = CrawlRun(status="running", source_name=source_name, records_found=len(unique_urls))
             session.add(run)
             session.flush()
-            run_id = run.id
+            session.add_all(
+                CrawlTask(crawl_run_id=run.id, url=url, page_index=index)
+                for index, url in enumerate(unique_urls, start=1)
+            )
+            session.flush()
+            task_ids = list(
+                session.scalars(
+                    select(CrawlTask.id)
+                    .where(CrawlTask.crawl_run_id == run.id)
+                    .order_by(CrawlTask.page_index)
+                ).all()
+            )
+            return run.id, task_ids
 
-        ok = failed = inserted = updated = records_failed = 0
-        semaphore = asyncio.Semaphore(self.config.crawl.concurrency)
+    @staticmethod
+    def _is_retryable_crawl_error(exc: Exception) -> bool:
+        return isinstance(
+            exc,
+            (
+                TimeoutError,
+                ConnectionError,
+                OSError,
+                httpx.TransportError,
+                httpx.TimeoutException,
+                PlaywrightTimeoutError,
+            ),
+        )
 
-        async def one(url: str) -> None:
-            nonlocal ok, failed, inserted, updated, records_failed
-            async with semaphore:
-                try:
-                    html = await self._get_html(url)
-                    raw_path = self._save_raw_html(url, html)
-                    parsed = parse_notice_html(
-                        html,
-                        url,
-                        self.config.storage.allowed_attachment_extensions,
-                    )
-                    notice, created, changed = self.upsert_parsed_notice(
-                        parsed,
-                        raw_html_path=raw_path,
-                        source_kind="web",
-                        crawl_run_id=run_id,
-                    )
-                    if self.config.storage.download_attachments:
-                        with self.db.session() as session:
-                            ids = session.scalars(
-                                select(Attachment.id).where(
-                                    Attachment.notice_id == notice.id,
-                                    Attachment.download_status.in_(["pending", "failed"]),
-                                )
-                            ).all()
-                        for attachment_id in ids:
-                            try:
-                                await self._download_attachment_http(notice.id, attachment_id)
-                            except Exception:
-                                logger.exception("Khong tai duoc attachment id=%s", attachment_id)
-                    ok += 1
-                    inserted += int(created)
-                    updated += int((not created) and changed)
-                    logger.info("Da luu notice id=%s url=%s", notice.id, url)
-                except Exception:
-                    failed += 1
-                    records_failed += 1
-                    logger.exception("Crawl that bai: %s", url)
-
-        await asyncio.gather(*(one(url) for url in limited_urls))
+    def _finalize_crawl_run(self, run_id: int, interrupted: bool = False) -> tuple[int, int]:
         with self.db.session() as session:
             run = session.get(CrawlRun, run_id)
-            if run:
-                run.finished_at = datetime.now(UTC)
-                run.status = "completed" if failed == 0 else "partial"
-                run.pages_ok = ok
-                run.pages_failed = failed
-                run.records_inserted = inserted
-                run.records_updated = updated
-                run.records_failed = records_failed
-        return ok, failed
+            if run is None:
+                return 0, 0
+            tasks = list(
+                session.scalars(select(CrawlTask).where(CrawlTask.crawl_run_id == run_id)).all()
+            )
+            completed = sum(task.status == "COMPLETED" for task in tasks)
+            failed = sum(task.status == "FAILED" for task in tasks)
+            run.pages_ok = completed
+            run.pages_failed = failed
+            run.finished_at = datetime.now(UTC)
+            run.status = "interrupted" if interrupted else ("completed" if failed == 0 else "partial")
+            return completed, failed
+
+    async def _crawl_task(self, task_id: int, run_id: int) -> None:
+        while True:
+            with self.db.session() as session:
+                task = session.get(CrawlTask, task_id)
+                if task is None or task.status in {"COMPLETED", "FAILED"}:
+                    return
+                task.status = "RUNNING"
+                task.attempt_count += 1
+                task.started_at = task.started_at or datetime.now(UTC)
+                task.last_error = None
+                url = task.url
+                attempt_count = task.attempt_count
+            try:
+                html = await self._get_html(url)
+                raw_path = self._save_raw_html(url, html)
+                parsed = parse_notice_html(html, url, self.config.storage.allowed_attachment_extensions)
+                notice, created, changed = self.upsert_parsed_notice(
+                    parsed, raw_html_path=raw_path, source_kind="web", crawl_run_id=run_id
+                )
+                if self.config.storage.download_attachments:
+                    with self.db.session() as session:
+                        attachment_ids = session.scalars(
+                            select(Attachment.id).where(
+                                Attachment.notice_id == notice.id,
+                                Attachment.download_status.in_(["pending", "failed"]),
+                            )
+                        ).all()
+                    for attachment_id in attachment_ids:
+                        try:
+                            await self._download_attachment_http(notice.id, attachment_id)
+                        except Exception:
+                            logger.exception("Khong tai duoc attachment id=%s", attachment_id)
+                with self.db.session() as session:
+                    task = session.get(CrawlTask, task_id)
+                    run = session.get(CrawlRun, run_id)
+                    if task is not None:
+                        task.status = "COMPLETED"
+                        task.finished_at = datetime.now(UTC)
+                        task.processed_at = task.finished_at
+                    if run is not None:
+                        run.records_inserted += int(created)
+                        run.records_updated += int((not created) and changed)
+                logger.info("Da luu notice id=%s url=%s", notice.id, url)
+                return
+            except asyncio.CancelledError:
+                with self.db.session() as session:
+                    task = session.get(CrawlTask, task_id)
+                    if task is not None:
+                        task.last_error = "Crawl bi huy/gian doan; cho resume."
+                raise
+            except Exception as exc:
+                retryable = self._is_retryable_crawl_error(exc)
+                can_retry = retryable and attempt_count <= self.config.crawl.max_retries
+                with self.db.session() as session:
+                    task = session.get(CrawlTask, task_id)
+                    if task is not None:
+                        task.last_error = str(exc)[:2000]
+                        task.status = "FAILED_RETRYABLE" if can_retry else "FAILED"
+                        if not can_retry:
+                            task.finished_at = datetime.now(UTC)
+                    if not can_retry:
+                        run = session.get(CrawlRun, run_id)
+                        if run is not None:
+                            run.records_failed += 1
+                if can_retry:
+                    delay = min(
+                        self.config.crawl.retry_backoff_seconds * (2 ** (attempt_count - 1)),
+                        15.0,
+                    )
+                    if delay:
+                        await asyncio.sleep(delay)
+                    continue
+                logger.exception("Crawl that bai: %s", url)
+                return
+
+    async def crawl_urls(
+        self,
+        urls: list[str],
+        source_name: str = "web",
+        resume_run_id: int | None = None,
+    ) -> tuple[int, int]:
+        run_id, task_ids = self._prepare_crawl_tasks(urls, source_name, resume_run_id)
+        semaphore = asyncio.Semaphore(self.config.crawl.concurrency)
+
+        async def one(task_id: int) -> None:
+            async with semaphore:
+                await self._crawl_task(task_id, run_id)
+
+        workers = [asyncio.create_task(one(task_id)) for task_id in task_ids]
+        try:
+            await asyncio.gather(*workers)
+        except asyncio.CancelledError:
+            for worker in workers:
+                if not worker.done():
+                    worker.cancel()
+            await asyncio.gather(*workers, return_exceptions=True)
+            self._finalize_crawl_run(run_id, interrupted=True)
+            raise
+        return self._finalize_crawl_run(run_id)
+
+    async def resume_crawl(self, run_id: int) -> tuple[int, int]:
+        return await self.crawl_urls([], resume_run_id=run_id)
 
     async def collect_links(self, list_url: str) -> list[str]:
         html = await self._get_html(list_url)

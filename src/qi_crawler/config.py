@@ -20,6 +20,7 @@ class CrawlConfig(BaseModel):
     request_timeout_seconds: int = Field(default=30, ge=5, le=180)
     browser_timeout_seconds: int = Field(default=45, ge=5, le=180)
     max_retries: int = Field(default=3, ge=0, le=10)
+    retry_backoff_seconds: float = Field(default=1.0, ge=0, le=60)
     use_browser_fallback: bool = True
     render_wait_ms: int = Field(default=2500, ge=0, le=30000)
     max_pages_per_run: int = Field(default=100, ge=1, le=10000)
