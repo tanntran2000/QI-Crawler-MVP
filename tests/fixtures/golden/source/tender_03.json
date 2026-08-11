@@ -1,0 +1,17 @@
+{
+  "id": "release-golden-03-v1",
+  "ocid": "ocds-b5fd17-golden-03",
+  "date": "2026-08-01T10:00:00Z",
+  "buyer": {"name": "North Example Council"},
+  "tender": {
+    "title": "Network security and router services",
+    "description": "Managed firewall and monitoring service.",
+    "datePublished": "2026-08-01T10:00:00Z",
+    "tenderPeriod": {"endDate": "2026-08-31T12:00:00Z"},
+    "value": {"amount": 250000, "currency": "GBP"},
+    "documents": [
+      {"documentType": "tenderNotice", "url": "https://www.contractsfinder.service.gov.uk/Notice/golden-03"},
+      {"documentType": "technicalSpecifications", "description": "Technical specification", "format": "application/pdf", "url": "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-03-spec"}
+    ]
+  }
+}

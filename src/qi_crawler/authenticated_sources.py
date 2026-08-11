@@ -14,7 +14,7 @@ from .browser import BrowserFetcher
 from .config import AppConfig
 from .crawler import CrawlerService
 from .keywords import matches_any_keyword, normalize_keyword
-from .parser import ParsedNotice, parse_notice_html
+from .parser import ParsedNotice, extract_detail_links, parse_notice_html
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,22 @@ def egp_vietnam_source(
         ),
         page_ready="main, body",
         max_pages=5,
+    )
+
+
+def extract_source_links(html: str, source: WebSource) -> list[str]:
+    """Extract allowed tender-detail links from a saved list-page snapshot.
+
+    This is the offline counterpart of the configured browser selectors.  It is
+    deliberately small so source profiles can be regression-tested without a
+    live login session or a browser in CI.
+    """
+    return extract_detail_links(
+        html,
+        source.list_url,
+        source.item_selector,
+        source.link_selector,
+        [source.domain],
     )
 
 

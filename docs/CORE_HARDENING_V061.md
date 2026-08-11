@@ -22,10 +22,18 @@ request co review.
 
 ## Work package tiep theo
 
-1. WP2: adapter nguon, parser va idempotency.
+1. WP2: adapter nguon, parser va idempotency; them sau raw JSON/HTML fixture de kiem tra
+   toan bo luong nguon -> `ParsedNotice` -> database ma khong goi website that trong CI.
 2. WP3: `crawl_tasks`, retry, checkpoint va resume.
 3. WP4: Alembic migration co review tren ban sao `egp.db`.
 4. WP5: golden-file test cho TBMT exporter.
 5. WP6: FTS5 capability check, trigger thu cong va fallback search.
 
 Khong dua Celery/Redis, RBAC/JWT, LLM/OCR hoac dashboard lon vao sprint nay.
+
+## Known limitation - attachment phien ban cu
+
+Trong phien ban hien tai, attachment xuat hien o lan crawl truoc nhung khong con duoc
+nguon liet ke o lan sau van duoc giu lai. He thong khong xoa tep de tranh mat bang chung,
+nhung nguoi dung can kiem tra thoi diem tai va URL truoc khi su dung. Co che `is_current` va
+`superseded_at` se duoc thiet ke cung phan versioning attachment o work package sau.

@@ -1,0 +1,16 @@
+{
+  "id": "release-golden-04-v1",
+  "ocid": "ocds-b5fd17-golden-04",
+  "buyer": {"name": "West Example University"},
+  "tender": {
+    "title": "Laboratory switching equipment",
+    "description": "Supply and install managed network switches.",
+    "datePublished": "2026-08-02T09:00:00Z",
+    "tenderPeriod": {"endDate": "2026-09-01T17:00:00Z"},
+    "value": {"amount": 450000.5, "currency": "EUR"},
+    "documents": [
+      {"documentType": "tenderNotice", "url": "https://www.contractsfinder.service.gov.uk/Notice/golden-04"},
+      {"documentType": "technicalSpecifications", "description": "Switch schedule", "format": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "url": "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-04-boq"}
+    ]
+  }
+}
