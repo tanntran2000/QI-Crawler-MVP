@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -16,11 +17,12 @@ from playwright.async_api import (
     Page,
     async_playwright,
 )
+from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
 
-from .compliance import AccessPolicy, DomainRateLimiter, SessionExpired
+from .compliance import AccessDenied, AccessPolicy, DomainRateLimiter, SessionExpired
 from .config import AppConfig
 from .downloads import (
     DownloadedFile,
@@ -32,6 +34,15 @@ from .downloads import (
 from .parser import extract_detail_links
 
 logger = logging.getLogger(__name__)
+
+_COTECCONS_DETAIL_ID = re.compile(r"/Index/ChiTiet/(\d+)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class RenderedListPage:
+    page_number: int
+    total_pages: int
+    html: str
 
 
 class BrowserFetcher:
@@ -132,6 +143,240 @@ class BrowserFetcher:
                     "Hay chay QI-Crawler dang-nhap --source egp (hoac ten nguon cua ban)."
                 )
             return html
+        finally:
+            await page.close()
+
+    async def collect_coteccons_ajax_pages(
+        self,
+        url: str,
+        max_pages: int,
+        storage_state: Path | None = None,
+    ) -> list[RenderedListPage]:
+        """Use Coteccons' rendered Page select and real AJAX POST pagination."""
+        await self.ensure_browser_access_allowed(url)
+        await self.start(headed=False, storage_state=storage_state)
+        page = await self.new_page()
+        rendered: list[RenderedListPage] = []
+        seen_ids: set[str] = set()
+        timeout_ms = self.config.crawl.browser_timeout_seconds * 1000
+
+        def detail_ids(html: str) -> list[str]:
+            return list(dict.fromkeys(_COTECCONS_DETAIL_ID.findall(html)))
+
+        try:
+            await self.limiter.wait(url)
+            try:
+                response = await page.goto(url, wait_until="domcontentloaded")
+            except PlaywrightError as exc:
+                raise AccessDenied(
+                    f"Coteccons list network/TLS failure; HUMAN_REQUIRED: {exc}"
+                ) from exc
+            if response is not None and response.status in {401, 403, 429}:
+                raise AccessDenied(
+                    f"Coteccons list HTTP {response.status}; HUMAN_REQUIRED: {url}"
+                )
+            result_selector = '#blog-archive a[href*="Index/ChiTiet/"], #blog-archive #Page'
+            try:
+                await page.wait_for_selector(
+                    result_selector,
+                    timeout=min(timeout_ms, 10000),
+                )
+            except PlaywrightTimeoutError:
+                html = await page.content()
+                self.policy.detect_block_page(html)
+                form = page.locator('form[action$="/Index/SearchPortal"]').first
+                if await form.count() == 0:
+                    logger.warning(
+                        "list_page=%s pagination_mechanism=AJAX_POST "
+                        "stop_reason=initial_ajax_form_missing",
+                        url,
+                    )
+                    return []
+                try:
+                    async with page.expect_response(
+                        lambda item: (
+                            item.request.method == "POST"
+                            and urlparse(item.url).path.casefold() == "/index/searchportal"
+                        ),
+                        timeout=timeout_ms,
+                    ) as response_info:
+                        await form.evaluate(
+                            """form => {
+                                if (window.jQuery) window.jQuery(form).submit();
+                                else form.requestSubmit();
+                            }"""
+                        )
+                    initial_ajax_response = await response_info.value
+                    if initial_ajax_response.status in {401, 403, 429}:
+                        raise AccessDenied(
+                            f"Coteccons initial AJAX HTTP {initial_ajax_response.status}; "
+                            "HUMAN_REQUIRED"
+                        )
+                    if initial_ajax_response.status >= 400:
+                        logger.warning(
+                            "list_page=%s pagination_mechanism=AJAX_POST "
+                            "stop_reason=initial_ajax_http_%s",
+                            url,
+                            initial_ajax_response.status,
+                        )
+                        return []
+                    await page.wait_for_selector(result_selector, timeout=timeout_ms)
+                except AccessDenied:
+                    raise
+                except PlaywrightTimeoutError:
+                    html = await page.content()
+                    self.policy.detect_block_page(html)
+                    logger.warning(
+                        "list_page=%s pagination_mechanism=AJAX_POST "
+                        "stop_reason=initial_ajax_not_ready",
+                        url,
+                    )
+                    return []
+                except PlaywrightError as exc:
+                    logger.warning(
+                        "list_page=%s pagination_mechanism=AJAX_POST "
+                        "stop_reason=initial_ajax_failed error=%s",
+                        url,
+                        exc,
+                    )
+                    return []
+            if self.config.crawl.render_wait_ms:
+                await page.wait_for_timeout(self.config.crawl.render_wait_ms)
+
+            first_html = await page.content()
+            self.policy.detect_block_page(first_html)
+            page_select = page.locator("#Page").first
+            if await page_select.count():
+                options = page_select.locator("option")
+                page_numbers: list[int] = []
+                for index in range(await options.count()):
+                    option = options.nth(index)
+                    value = (
+                        await option.get_attribute("value") or await option.inner_text()
+                    ).strip()
+                    if value.isdigit():
+                        page_numbers.append(int(value))
+                selected_text = (await page_select.input_value()).strip()
+                selected_page = int(selected_text) if selected_text.isdigit() else page_numbers[0]
+            else:
+                page_numbers = [1]
+                selected_page = 1
+            total_pages = max(page_numbers, default=1)
+            first_ids = detail_ids(first_html)
+            seen_ids.update(first_ids)
+            rendered.append(RenderedListPage(selected_page, total_pages, first_html))
+            logger.info(
+                "list_page=%s total_pages=%s current_selected_page=%s "
+                "discovered_ids=%s discovered_count=%s pagination_mechanism=AJAX_POST",
+                url,
+                total_pages,
+                selected_page,
+                first_ids,
+                len(first_ids),
+            )
+
+            target_pages = [number for number in page_numbers if number > selected_page]
+            target_pages = target_pages[: max(0, max_pages - 1)]
+            for page_number in target_pages:
+                previous_archive = await page.locator("#blog-archive").inner_html()
+                page_select = page.locator("#Page").first
+                try:
+                    await self.limiter.wait(url)
+                    async with page.expect_response(
+                        lambda item: (
+                            item.request.method == "POST"
+                            and urlparse(item.url).path.casefold() == "/index/searchportal"
+                        ),
+                        timeout=timeout_ms,
+                    ) as response_info:
+                        await page_select.select_option(str(page_number))
+                    ajax_response = await response_info.value
+                    if ajax_response.status in {401, 403, 429}:
+                        raise AccessDenied(
+                            f"Coteccons pagination HTTP {ajax_response.status}; "
+                            "HUMAN_REQUIRED"
+                        )
+                    if ajax_response.status >= 400:
+                        logger.warning(
+                            "list_page=%s current_selected_page=%s "
+                            "pagination_mechanism=AJAX_POST stop_reason=ajax_http_%s",
+                            url,
+                            page_number,
+                            ajax_response.status,
+                        )
+                        break
+                    await page.wait_for_function(
+                        """([target, previous]) => {
+                            const select = document.querySelector('#Page');
+                            const archive = document.querySelector('#blog-archive');
+                            return select && archive && select.value === String(target)
+                                && archive.innerHTML !== previous;
+                        }""",
+                        arg=[page_number, previous_archive],
+                        timeout=timeout_ms,
+                    )
+                except AccessDenied:
+                    raise
+                except PlaywrightTimeoutError:
+                    html = await page.content()
+                    self.policy.detect_block_page(html)
+                    logger.warning(
+                        "list_page=%s current_selected_page=%s "
+                        "pagination_mechanism=AJAX_POST stop_reason=ajax_update_failed",
+                        url,
+                        page_number,
+                    )
+                    break
+                except PlaywrightError as exc:
+                    logger.warning(
+                        "list_page=%s current_selected_page=%s "
+                        "pagination_mechanism=AJAX_POST "
+                        "stop_reason=ajax_update_failed error=%s",
+                        url,
+                        page_number,
+                        exc,
+                    )
+                    break
+
+                html = await page.content()
+                self.policy.detect_block_page(html)
+                ids = detail_ids(html)
+                rendered.append(RenderedListPage(page_number, total_pages, html))
+                new_ids = [source_id for source_id in ids if source_id not in seen_ids]
+                logger.info(
+                    "list_page=%s total_pages=%s current_selected_page=%s "
+                    "discovered_ids=%s discovered_count=%s pagination_mechanism=AJAX_POST",
+                    url,
+                    total_pages,
+                    page_number,
+                    ids,
+                    len(ids),
+                )
+                if not new_ids:
+                    logger.warning(
+                        "list_page=%s current_selected_page=%s "
+                        "pagination_mechanism=AJAX_POST stop_reason=no_new_tender_ids",
+                        url,
+                        page_number,
+                    )
+                    break
+                seen_ids.update(new_ids)
+
+            if len(rendered) >= max_pages and total_pages > len(rendered):
+                stop_reason = "max_pages_reached"
+            elif rendered and rendered[-1].page_number >= total_pages:
+                stop_reason = "no_more_page_options"
+            else:
+                stop_reason = "pagination_stopped"
+            logger.info(
+                "list_page=%s pages_scanned=%s total_pages=%s "
+                "pagination_mechanism=AJAX_POST stop_reason=%s",
+                url,
+                len(rendered),
+                total_pages,
+                stop_reason,
+            )
+            return rendered
         finally:
             await page.close()
 

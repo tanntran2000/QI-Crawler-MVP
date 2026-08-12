@@ -276,6 +276,7 @@ def scan(
             typer.echo(f"Failed: {summary.failed}")
             typer.echo(f"Pending: {summary.pending}")
             typer.echo(f"Skipped: {summary.skipped}")
+            typer.echo(f"Pages scanned: {summary.pages_scanned}")
         except AccessDenied as exc:
             typer.echo(f"HUMAN_REQUIRED: {exc}", err=True)
             raise typer.Exit(code=1) from None

@@ -33,6 +33,16 @@ class DiscoveredTender:
     metadata_text: str = ""
 
 
+@dataclass(frozen=True)
+class AjaxPaginationMetadata:
+    """Source-declared metadata for a rendered AJAX page selector."""
+
+    form_action: str
+    page_numbers: tuple[int, ...]
+    selected_page: int
+    records_per_page: int
+
+
 class SourceAdapter(ABC):
     def __init__(self, source_name: str, source: SourceConfig):
         self.source_name = source_name
@@ -59,6 +69,12 @@ class SourceAdapter(ABC):
     def pagination_links(self, html: str, list_url: str) -> list[str]:
         """List pages are source-specific; generic adapters do not paginate by default."""
         return []
+
+    def ajax_pagination_metadata(
+        self, html: str, list_url: str
+    ) -> AjaxPaginationMetadata | None:
+        """Return rendered AJAX pagination metadata when the source exposes it."""
+        return None
 
     def parse_detail(self, html: str, url: str) -> ParsedNotice:
         parsed = parse_notice_html(html, url)
@@ -123,6 +139,41 @@ class CotecconsAdapter(SourceAdapter):
 
     def discover(self, html: str, list_url: str) -> list[str]:
         return [item.url for item in self.discover_tenders(html, list_url)]
+
+    def ajax_pagination_metadata(
+        self, html: str, list_url: str
+    ) -> AjaxPaginationMetadata | None:
+        soup = BeautifulSoup(html, "html.parser")
+        page_select = soup.select_one('select#Page[name="Page"]')
+        if page_select is None:
+            return None
+        form = page_select.find_parent("form")
+        if form is None:
+            return None
+        action = self._normalized_url(list_url, str(form.get("action") or ""))
+        if action is None or not self._same_domain(action):
+            return None
+        if urlparse(action).path.casefold() != "/index/searchportal":
+            return None
+        page_numbers = tuple(
+            int(text)
+            for option in page_select.select("option")
+            if (text := option.get_text(strip=True)).isdigit()
+        )
+        if not page_numbers:
+            return None
+        selected_option = page_select.select_one("option[selected]")
+        selected_text = selected_option.get_text(strip=True) if selected_option else ""
+        selected_page = int(selected_text) if selected_text.isdigit() else page_numbers[0]
+        records_input = form.select_one('input[name="NumerRecordPerPage"]')
+        records_text = str(records_input.get("value") or "") if records_input else ""
+        records_per_page = int(records_text) if records_text.isdigit() else 0
+        return AjaxPaginationMetadata(
+            form_action=action,
+            page_numbers=page_numbers,
+            selected_page=selected_page,
+            records_per_page=records_per_page,
+        )
 
     def pagination_links(self, html: str, list_url: str) -> list[str]:
         """Return only same-domain Coteccons pagination targets, never detail links."""

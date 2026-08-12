@@ -15,7 +15,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
-from .browser import BrowserFetcher
+from .browser import BrowserFetcher, RenderedListPage
 from .compliance import AccessDenied, SessionExpired
 from .config import AppConfig
 from .db import Database
@@ -844,20 +844,33 @@ class CrawlerService:
             self.config.allowed_domains,
         )
 
-    async def _render_list_html(self, url: str) -> str:
-        """Render a permitted list page without bypassing access controls."""
+    async def _render_coteccons_ajax_pages(
+        self, url: str, max_pages: int
+    ) -> list[RenderedListPage]:
+        """Render Coteccons' permitted list and follow its real AJAX selector."""
         state, source_name, session_required = self._session_state_for_url(url)
         if session_required and state is None:
             raise SessionExpired(
                 f"{(source_name or 'website').upper()}_SESSION_EXPIRED: "
                 "Can dang nhap lai truoc khi render trang danh sach."
             )
-        if state is not None:
-            self._browser_started = True
-            return await self.browser.fetch_authenticated_html(url, state)
-        await self.browser.ensure_browser_access_allowed(url)
-        await self._ensure_browser(headed=False)
-        return await self.browser.fetch_html(url)
+        self._browser_started = True
+        try:
+            return await self.browser.collect_coteccons_ajax_pages(
+                url=url,
+                max_pages=max_pages,
+                storage_state=state,
+            )
+        except AccessDenied:
+            raise
+        except (RuntimeError, OSError, httpx.TransportError, PlaywrightTimeoutError) as exc:
+            logger.warning(
+                "list_page=%s pagination_mechanism=AJAX_POST "
+                "stop_reason=ajax_discovery_failed error=%s",
+                url,
+                exc,
+            )
+            return []
 
     async def _discover_list_pages(
         self, list_url: str, max_pages: int
@@ -876,11 +889,39 @@ class CrawlerService:
                 continue
             seen_pages.add(page_url)
             html = await self._get_html(page_url)
-            pages_scanned += 1
             page_entries = adapter.discover_tenders(html, page_url)
-            if adapter.source.adapter == "coteccons" and not page_entries:
-                html = await self._render_list_html(page_url)
-                page_entries = adapter.discover_tenders(html, page_url)
+            ajax_metadata = adapter.ajax_pagination_metadata(html, page_url)
+            if adapter.source.adapter == "coteccons" and (
+                not page_entries or ajax_metadata is not None
+            ):
+                rendered_pages = await self._render_coteccons_ajax_pages(
+                    page_url, max_pages - pages_scanned
+                )
+                for rendered_page in rendered_pages:
+                    pages_scanned += 1
+                    rendered_entries = adapter.discover_tenders(
+                        rendered_page.html, page_url
+                    )
+                    new_ids: list[str] = []
+                    for entry in rendered_entries:
+                        if entry.source_notice_id in seen_source_ids:
+                            continue
+                        seen_source_ids.add(entry.source_notice_id)
+                        entries[entry.url] = entry
+                        new_ids.append(entry.source_notice_id)
+                    logger.info(
+                        "list_page=%s total_pages=%s current_selected_page=%s "
+                        "discovered_ids=%s discovered_count=%s "
+                        "pagination_mechanism=AJAX_POST",
+                        page_url,
+                        rendered_page.total_pages,
+                        rendered_page.page_number,
+                        new_ids,
+                        len(new_ids),
+                    )
+                return adapter, list(entries.values()), pages_scanned
+
+            pages_scanned += 1
             before = len(entries)
             for entry in page_entries:
                 if entry.source_notice_id in seen_source_ids:

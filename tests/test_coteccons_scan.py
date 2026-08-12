@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import func, select
 
+from qi_crawler.browser import RenderedListPage
 from qi_crawler.compliance import AccessDenied
 from qi_crawler.config import AppConfig, SourceConfig
 from qi_crawler.crawler import CrawlerService
@@ -59,6 +60,35 @@ def _detail_html(url: str) -> str:
     """
 
 
+def _ajax_list_html(page_number: int, ids: list[str], total_pages: int = 3) -> str:
+    options = "".join(
+        f'<option{" selected" if number == page_number else ""}>{number}</option>'
+        for number in range(1, total_pages + 1)
+    )
+    links = "".join(
+        f'<article><a href="/Index/ChiTiet/{source_id}">Tender {source_id}</a></article>'
+        for source_id in ids
+    )
+    return f"""
+    <html><body>
+      <form action="/Index/SearchPortal" data-ajax="true" method="post">
+        <input name="NumerRecordPerPage" value="5">
+        <div id="blog-archive">{links}
+          <select id="Page" name="Page">{options}</select>
+        </div>
+      </form>
+    </body></html>
+    """
+
+
+def _ajax_pages() -> list[RenderedListPage]:
+    return [
+        RenderedListPage(1, 3, _ajax_list_html(1, ["2607601", "2607602"])),
+        RenderedListPage(2, 3, _ajax_list_html(2, ["2607602", "2607603"])),
+        RenderedListPage(3, 3, _ajax_list_html(3, ["2607604"])),
+    ]
+
+
 def test_coteccons_discovery_normalizes_and_filters_detail_links() -> None:
     adapter = CotecconsAdapter(
         "coteccons", SourceConfig(domain="ebidding.coteccons.vn", adapter="coteccons")
@@ -71,6 +101,22 @@ def test_coteccons_discovery_normalizes_and_filters_detail_links() -> None:
         ("2607302", "https://ebidding.coteccons.vn/Index/ChiTiet/2607302"),
     ]
     assert adapter.pagination_links(_fixture("coteccons_list_page_1.html"), LIST_URL) == [PAGE_2]
+
+
+def test_coteccons_detects_live_ajax_pagination_metadata() -> None:
+    adapter = CotecconsAdapter(
+        "coteccons", SourceConfig(domain="ebidding.coteccons.vn", adapter="coteccons")
+    )
+
+    metadata = adapter.ajax_pagination_metadata(
+        _ajax_list_html(2, ["2607603"], total_pages=22), LIST_URL
+    )
+
+    assert metadata is not None
+    assert metadata.form_action == "https://ebidding.coteccons.vn/Index/SearchPortal"
+    assert metadata.selected_page == 2
+    assert metadata.records_per_page == 5
+    assert metadata.page_numbers == tuple(range(1, 23))
 
 
 def test_coteccons_discovery_paginates_deduplicates_and_stops_loops(tmp_path: Path) -> None:
@@ -305,33 +351,137 @@ def test_coteccons_discovery_renders_when_http_html_has_no_detail_links(
     tmp_path: Path,
 ) -> None:
     service = _service(tmp_path)
-    calls: list[str] = []
+    calls: list[tuple[str, int]] = []
 
     async def fetch(_: str) -> str:
         return "<html><body><div id='app'></div>" + (" " * 6000) + "</body></html>"
 
-    async def allow(url: str) -> None:
-        calls.append(f"robots:{url}")
-
-    async def start(headed: bool = False) -> None:
-        calls.append(f"start:{headed}")
-
-    async def render(url: str) -> str:
-        calls.append(f"render:{url}")
-        return _fixture("coteccons_list_page_1.html")
+    async def render(
+        url: str, max_pages: int, storage_state: Path | None = None
+    ) -> list[RenderedListPage]:
+        assert storage_state is None
+        calls.append((url, max_pages))
+        return _ajax_pages()[:max_pages]
 
     try:
         service._get_html = fetch  # type: ignore[method-assign]
-        service.browser.ensure_browser_access_allowed = allow  # type: ignore[method-assign]
-        service.browser.start = start  # type: ignore[method-assign]
-        service.browser.fetch_html = render  # type: ignore[method-assign]
+        service.browser.collect_coteccons_ajax_pages = render  # type: ignore[method-assign]
 
         _, entries, pages_scanned = asyncio.run(
-            service._discover_list_pages(LIST_URL, max_pages=1)
+            service._discover_list_pages(LIST_URL, max_pages=3)
         )
 
-        assert pages_scanned == 1
-        assert [entry.source_notice_id for entry in entries] == ["2607301", "2607302"]
-        assert calls == [f"robots:{LIST_URL}", "start:False", f"render:{LIST_URL}"]
+        assert pages_scanned == 3
+        assert [entry.source_notice_id for entry in entries] == [
+            "2607601",
+            "2607602",
+            "2607603",
+            "2607604",
+        ]
+        assert calls == [(LIST_URL, 3)]
+    finally:
+        asyncio.run(service.close())
+
+
+def test_coteccons_ajax_max_pages_three_and_last_page_can_be_short(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    requested_limits: list[int] = []
+
+    async def fetch(_: str) -> str:
+        return "<html><body><form data-ajax='true'></form></body></html>"
+
+    async def render(
+        url: str, max_pages: int, storage_state: Path | None = None
+    ) -> list[RenderedListPage]:
+        assert url == LIST_URL and storage_state is None
+        requested_limits.append(max_pages)
+        pages = _ajax_pages() + [
+            RenderedListPage(4, 4, _ajax_list_html(4, ["2607605"], total_pages=4))
+        ]
+        return pages[:max_pages]
+
+    try:
+        service._get_html = fetch  # type: ignore[method-assign]
+        service.browser.collect_coteccons_ajax_pages = render  # type: ignore[method-assign]
+        _, entries, pages_scanned = asyncio.run(
+            service._discover_list_pages(LIST_URL, max_pages=3)
+        )
+
+        assert requested_limits == [3]
+        assert pages_scanned == 3
+        assert [entry.source_notice_id for entry in entries] == [
+            "2607601",
+            "2607602",
+            "2607603",
+            "2607604",
+        ]
+    finally:
+        asyncio.run(service.close())
+
+
+def test_coteccons_ajax_duplicate_across_pages_creates_one_task(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+
+    async def fetch(url: str) -> str:
+        if url == LIST_URL:
+            return "<html><body><div id='app'></div></body></html>"
+        return _detail_html(url)
+
+    async def render(
+        url: str, max_pages: int, storage_state: Path | None = None
+    ) -> list[RenderedListPage]:
+        return _ajax_pages()[:max_pages]
+
+    try:
+        service._get_html = fetch  # type: ignore[method-assign]
+        service.browser.collect_coteccons_ajax_pages = render  # type: ignore[method-assign]
+        summary = asyncio.run(service.scan_list(LIST_URL, max_pages=3))
+
+        assert summary.pages_scanned == 3
+        assert (summary.discovered, summary.queued, summary.success) == (4, 4, 4)
+        with service.db.session() as session:
+            assert session.scalar(select(func.count()).select_from(CrawlTask)) == 4
+    finally:
+        asyncio.run(service.close())
+
+
+def test_coteccons_ajax_failure_stops_safely(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+
+    async def fetch(_: str) -> str:
+        return "<html><body><div id='app'></div></body></html>"
+
+    async def render(*args, **kwargs) -> list[RenderedListPage]:
+        raise RuntimeError("AJAX update failed")
+
+    try:
+        service._get_html = fetch  # type: ignore[method-assign]
+        service.browser.collect_coteccons_ajax_pages = render  # type: ignore[method-assign]
+        _, entries, pages_scanned = asyncio.run(
+            service._discover_list_pages(LIST_URL, max_pages=3)
+        )
+
+        assert entries == []
+        assert pages_scanned == 0
+    finally:
+        asyncio.run(service.close())
+
+
+def test_coteccons_ajax_human_required_stops_pagination(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+
+    async def fetch(_: str) -> str:
+        return "<html><body><div id='app'></div></body></html>"
+
+    async def render(*args, **kwargs) -> list[RenderedListPage]:
+        raise AccessDenied("Coteccons HTTP 403; HUMAN_REQUIRED")
+
+    try:
+        service._get_html = fetch  # type: ignore[method-assign]
+        service.browser.collect_coteccons_ajax_pages = render  # type: ignore[method-assign]
+        with pytest.raises(AccessDenied, match="HUMAN_REQUIRED"):
+            asyncio.run(service._discover_list_pages(LIST_URL, max_pages=10))
     finally:
         asyncio.run(service.close())
