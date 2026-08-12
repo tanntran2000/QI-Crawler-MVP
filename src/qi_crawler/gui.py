@@ -11,21 +11,26 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFormLayout,
+    QFrame,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QSpinBox,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -55,6 +60,8 @@ from .standalone import (
 from .standalone_smoke import run_standalone_smoke
 
 logger = logging.getLogger(__name__)
+
+COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
 
 
 class WorkerSignals(QObject):
@@ -92,126 +99,311 @@ class QICrawlerWindow(QMainWindow):
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
-        self.resize(1000, 680)
-
-        self.tabs = QTabWidget()
-        self.setCentralWidget(self.tabs)
-        self._build_scan_tab()
-        self._build_search_tab()
-        self._build_export_tab()
-        self._build_crawl_tab()
-        self._build_login_tab()
-        self._build_log_tab()
-        self.statusBar().showMessage("QI-Crawler da san sang")
+        self.resize(1120, 740)
+        self.setMinimumSize(960, 640)
+        self.setFont(QFont("Segoe UI", 10))
+        self._apply_style()
+        self._build_shell()
+        self.statusBar().showMessage("QI-Crawler đã sẵn sàng")
         version_label = QLabel(f"QI-Crawler v{__version__}")
         self.statusBar().addPermanentWidget(version_label)
 
-    def _build_scan_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def _apply_style(self) -> None:
+        self.setStyleSheet(
+            """
+            QMainWindow { background: #f4f7fb; }
+            QFrame#sidebar { background: #132238; border: 0; }
+            QLabel#brand { color: white; font-size: 21px; font-weight: 700; }
+            QLabel#brandCaption { color: #aebbd0; font-size: 12px; }
+            QListWidget#navigation {
+                background: transparent; color: #d9e2ef; border: 0;
+                outline: 0; padding: 8px;
+            }
+            QListWidget#navigation::item {
+                border-radius: 7px; padding: 12px 10px; margin: 2px 0;
+            }
+            QListWidget#navigation::item:selected {
+                background: #1f6feb; color: white; font-weight: 600;
+            }
+            QLabel#pageTitle { color: #172033; font-size: 23px; font-weight: 700; }
+            QLabel#pageDescription { color: #5b6577; font-size: 13px; }
+            QLineEdit, QSpinBox, QComboBox {
+                min-height: 34px; border: 1px solid #cfd7e5; border-radius: 6px;
+                padding: 2px 9px; background: white;
+            }
+            QPushButton { min-height: 34px; padding: 2px 16px; }
+            QPushButton#primaryButton {
+                background: #1666d8; color: white; border: 0; border-radius: 6px;
+                font-weight: 600; min-height: 38px;
+            }
+            QPushButton#primaryButton:hover { background: #0d55bd; }
+            QPushButton#primaryButton:disabled { background: #9fb9dc; }
+            QFrame#metricCard {
+                background: white; border: 1px solid #dce3ed; border-radius: 8px;
+            }
+            QLabel#metricValue { color: #172033; font-size: 24px; font-weight: 700; }
+            QLabel#metricName { color: #667085; font-size: 12px; }
+            QTableWidget { background: white; border: 1px solid #dce3ed; }
+            QProgressBar { min-height: 7px; max-height: 7px; border: 0; background: #dce3ed; }
+            QProgressBar::chunk { background: #1f6feb; }
+            """
+        )
+
+    def _build_shell(self) -> None:
+        central = QWidget()
+        shell = QHBoxLayout(central)
+        shell.setContentsMargins(0, 0, 0, 0)
+        shell.setSpacing(0)
+
+        sidebar = QFrame()
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(235)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(18, 26, 18, 20)
+        sidebar_layout.setSpacing(12)
+        brand = QLabel("QI-CRAWLER")
+        brand.setObjectName("brand")
+        caption = QLabel("Trợ lý tìm kiếm gói thầu")
+        caption.setObjectName("brandCaption")
+        sidebar_layout.addWidget(brand)
+        sidebar_layout.addWidget(caption)
+        sidebar_layout.addSpacing(14)
+        self.navigation = QListWidget()
+        self.navigation.setObjectName("navigation")
+        self.navigation.addItems(
+            [
+                "Quét gói thầu",
+                "Tìm kiếm",
+                "Xuất TBMT",
+                "Crawl một URL",
+                "Đăng nhập nguồn",
+                "Nhật ký",
+            ]
+        )
+        sidebar_layout.addWidget(self.navigation, 1)
+
+        self.pages = QStackedWidget()
+        self._build_scan_page()
+        self._build_search_page()
+        self._build_export_page()
+        self._build_crawl_page()
+        self._build_login_page()
+        self._build_log_page()
+        self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
+        self.navigation.setCurrentRow(0)
+
+        shell.addWidget(sidebar)
+        shell.addWidget(self.pages, 1)
+        self.setCentralWidget(central)
+
+    def _new_page(self, title: str, description: str) -> tuple[QWidget, QVBoxLayout]:
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(34, 28, 34, 28)
+        layout.setSpacing(14)
+        title_label = QLabel(title)
+        title_label.setObjectName("pageTitle")
+        description_label = QLabel(description)
+        description_label.setObjectName("pageDescription")
+        description_label.setWordWrap(True)
+        layout.addWidget(title_label)
+        layout.addWidget(description_label)
+        layout.addSpacing(8)
+        self.pages.addWidget(page)
+        return page, layout
+
+    @staticmethod
+    def _primary_button(text: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setObjectName("primaryButton")
+        return button
+
+    @staticmethod
+    def _progress_bar() -> QProgressBar:
+        progress = QProgressBar()
+        progress.setRange(0, 0)
+        progress.setTextVisible(False)
+        progress.hide()
+        return progress
+
+    def _build_scan_page(self) -> None:
+        _page, layout = self._new_page(
+            "Quét danh sách gói thầu",
+            "Chọn nguồn, giới hạn số trang danh sách và thêm từ khóa nếu chỉ muốn lọc "
+            "một nhóm gói cụ thể.",
+        )
         form = QFormLayout()
+        form.setHorizontalSpacing(20)
+        form.setVerticalSpacing(12)
+        self.scan_source = QComboBox()
+        self.scan_source.addItem("Coteccons e-Bidding", COTEC_LIST_URL)
+        self.scan_source.addItem("URL khác", "")
+        self.scan_source.currentIndexChanged.connect(self._on_scan_source_changed)
         self.scan_url = QLineEdit()
-        self.scan_url.setPlaceholderText("https://ebidding.coteccons.vn/Index")
+        self.scan_url.setText(COTEC_LIST_URL)
+        self.scan_url.setPlaceholderText("Dán URL trang danh sách gói thầu")
         self.scan_max_pages = QSpinBox()
         self.scan_max_pages.setRange(1, 100)
         self.scan_max_pages.setValue(3)
         self.scan_keywords = QLineEdit()
-        self.scan_keywords.setPlaceholderText("De trong = tat ca; vi du: chong tham,son")
-        form.addRow("URL danh sach:", self.scan_url)
-        form.addRow("So trang toi da:", self.scan_max_pages)
-        form.addRow("Tu khoa tuy chon:", self.scan_keywords)
+        self.scan_keywords.setPlaceholderText("Để trống = tất cả; ví dụ: chống thấm, sơn")
+        form.addRow("Nguồn đấu thầu:", self.scan_source)
+        form.addRow("URL danh sách:", self.scan_url)
+        form.addRow("Số trang tối đa:", self.scan_max_pages)
+        form.addRow("Từ khóa tùy chọn:", self.scan_keywords)
         layout.addLayout(form)
-        self.scan_button = QPushButton("Bat dau quet")
+        action_row = QHBoxLayout()
+        self.scan_button = self._primary_button("Bắt đầu quét")
         self.scan_button.clicked.connect(self.start_scan)
-        layout.addWidget(self.scan_button)
-        self.scan_status = QTextEdit()
-        self.scan_status.setReadOnly(True)
-        self.scan_status.setPlaceholderText("Ket qua quet se hien tai day.")
+        action_row.addWidget(self.scan_button)
+        action_row.addStretch()
+        layout.addLayout(action_row)
+        self.scan_progress = self._progress_bar()
+        layout.addWidget(self.scan_progress)
+        self.scan_status = QLabel("Sẵn sàng quét danh sách gói thầu.")
+        self.scan_status.setWordWrap(True)
         layout.addWidget(self.scan_status)
-        self.tabs.addTab(tab, "Quet goi thau")
+        metrics = QGridLayout()
+        metrics.setSpacing(12)
+        self.scan_metrics: dict[str, QLabel] = {}
+        metric_definitions = [
+            ("pages_scanned", "Trang đã quét"),
+            ("discovered", "Gói tìm thấy"),
+            ("new", "Gói mới"),
+            ("existing", "Đã có / cập nhật"),
+            ("success", "Thành công"),
+            ("failed", "Lỗi"),
+            ("pending", "Chờ xử lý"),
+        ]
+        for index, (key, name) in enumerate(metric_definitions):
+            card = QFrame()
+            card.setObjectName("metricCard")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 11, 14, 11)
+            value = QLabel("0")
+            value.setObjectName("metricValue")
+            name_label = QLabel(name)
+            name_label.setObjectName("metricName")
+            card_layout.addWidget(value)
+            card_layout.addWidget(name_label)
+            self.scan_metrics[key] = value
+            metrics.addWidget(card, index // 4, index % 4)
+        layout.addLayout(metrics)
+        layout.addStretch()
 
-    def _build_search_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def _build_search_page(self) -> None:
+        _page, layout = self._new_page(
+            "Tìm gói đã lưu",
+            "Tìm trong dữ liệu QI-Crawler đã thu thập. Việc tìm kiếm không thay đổi bộ từ khóa.",
+        )
         row = QHBoxLayout()
         self.search_keyword = QLineEdit()
-        self.search_keyword.setPlaceholderText("Nhap tu khoa, vi du: chong tham")
-        self.search_button = QPushButton("Tim kiem")
+        self.search_keyword.setPlaceholderText("Nhập từ khóa, ví dụ: chống thấm")
+        self.search_button = self._primary_button("Tìm kiếm")
         self.search_button.clicked.connect(self.start_search)
         row.addWidget(self.search_keyword)
         row.addWidget(self.search_button)
         layout.addLayout(row)
+        self.search_progress = self._progress_bar()
+        layout.addWidget(self.search_progress)
+        self.search_status = QLabel("Nhập từ khóa để bắt đầu tìm kiếm.")
+        layout.addWidget(self.search_status)
         self.search_table = QTableWidget(0, 5)
         self.search_table.setHorizontalHeaderLabels(
-            ["Ma goi", "Ten goi", "Ben moi thau", "Nguon", "URL"]
+            ["Mã gói", "Tên gói", "Bên mời thầu", "Nguồn", "URL"]
         )
         self.search_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.search_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         layout.addWidget(self.search_table)
-        self.tabs.addTab(tab, "Tim kiem")
 
-    def _build_export_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        self.export_button = QPushButton("Xuat Excel TBMT")
+    def _build_export_page(self) -> None:
+        _page, layout = self._new_page(
+            "Xuất báo cáo Excel TBMT",
+            "Xuất các gói thầu hợp lệ theo mẫu TBMT để Team Bid kiểm tra và trình duyệt.",
+        )
+        self.export_button = self._primary_button("Xuất Excel TBMT")
         self.export_button.clicked.connect(self.start_export)
+        self.export_progress = self._progress_bar()
         self.export_path = QLineEdit()
         self.export_path.setReadOnly(True)
-        self.open_export_button = QPushButton("Mo file")
+        self.export_status = QLabel("Chưa xuất báo cáo trong phiên làm việc này.")
+        self.export_status.setWordWrap(True)
+        self.open_export_button = QPushButton("Mở file Excel")
         self.open_export_button.setEnabled(False)
         self.open_export_button.clicked.connect(self.open_export)
         layout.addWidget(self.export_button)
-        layout.addWidget(QLabel("File da xuat:"))
+        layout.addWidget(self.export_progress)
+        layout.addWidget(self.export_status)
+        layout.addWidget(QLabel("File đã xuất:"))
         layout.addWidget(self.export_path)
         layout.addWidget(self.open_export_button)
         layout.addStretch()
-        self.tabs.addTab(tab, "Xuat TBMT")
 
-    def _build_crawl_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def _build_crawl_page(self) -> None:
+        _page, layout = self._new_page(
+            "Crawl một gói cụ thể",
+            "Dùng khi bạn đã có URL trang chi tiết của một gói thầu và muốn lưu ngay vào hệ thống.",
+        )
         self.crawl_url = QLineEdit()
-        self.crawl_url.setPlaceholderText("Dan URL chi tiet mot goi thau")
-        self.crawl_button = QPushButton("Crawl mot goi")
+        self.crawl_url.setPlaceholderText("Dán URL chi tiết một gói thầu")
+        self.crawl_button = self._primary_button("Crawl gói thầu")
         self.crawl_button.clicked.connect(self.start_crawl)
-        self.crawl_status = QLabel("Chua chay")
+        self.crawl_progress = self._progress_bar()
+        self.crawl_status = QLabel("Chưa chạy.")
         self.crawl_status.setWordWrap(True)
-        layout.addWidget(QLabel("URL goi thau:"))
+        layout.addWidget(QLabel("URL gói thầu:"))
         layout.addWidget(self.crawl_url)
         layout.addWidget(self.crawl_button)
+        layout.addWidget(self.crawl_progress)
         layout.addWidget(self.crawl_status)
         layout.addStretch()
-        self.tabs.addTab(tab, "Crawl mot URL")
 
-    def _build_login_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def _build_login_page(self) -> None:
+        _page, layout = self._new_page(
+            "Đăng nhập nguồn đấu thầu",
+            "QI-Crawler mở trình duyệt để bạn tự đăng nhập. Công cụ không lưu mật khẩu, "
+            "OTP hoặc CAPTCHA.",
+        )
         self.login_source = QLineEdit("egp")
-        self.login_button = QPushButton("Mo trinh duyet dang nhap")
+        self.login_button = self._primary_button("Mở trình duyệt đăng nhập")
         self.login_button.clicked.connect(self.start_login)
-        layout.addWidget(QLabel("Ten nguon:"))
+        self.login_progress = self._progress_bar()
+        self.login_status = QLabel("Chưa bắt đầu đăng nhập.")
+        self.login_status.setWordWrap(True)
+        layout.addWidget(QLabel("Tên nguồn:"))
         layout.addWidget(self.login_source)
         layout.addWidget(
             QLabel(
-                "Ban tu nhap tai khoan, OTP/CAPTCHA neu website yeu cau. "
-                "QI-Crawler khong luu mat khau va khong vuot bien phap bao mat."
+                "Bạn tự nhập tài khoản và xử lý OTP/CAPTCHA nếu website yêu cầu. "
+                "QI-Crawler không vượt qua biện pháp bảo mật."
             )
         )
         layout.addWidget(self.login_button)
+        layout.addWidget(self.login_progress)
+        layout.addWidget(self.login_status)
         layout.addStretch()
-        self.tabs.addTab(tab, "Dang nhap nguon")
 
-    def _build_log_tab(self) -> None:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def _build_log_page(self) -> None:
+        _page, layout = self._new_page(
+            "Nhật ký kỹ thuật",
+            "Thông tin chi tiết dành cho IT khi cần kiểm tra. Team Bid có thể dùng các trang "
+            "chức năng mà không cần đọc phần này.",
+        )
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         layout.addWidget(self.log_output)
-        self.tabs.addTab(tab, "Nhat ky / ket qua")
+
+    def _on_scan_source_changed(self) -> None:
+        known_url = str(self.scan_source.currentData() or "")
+        if known_url:
+            self.scan_url.setText(known_url)
+        elif self.scan_url.text().strip() == COTEC_LIST_URL:
+            self.scan_url.clear()
+        self.scan_url.setFocus()
 
     def _append_log(self, message: str) -> None:
         self.log_output.append(message)
-        self.statusBar().showMessage(message, 10000)
+        self.statusBar().showMessage("Đã cập nhật Nhật ký kỹ thuật.", 5000)
 
     def _submit(
         self,
@@ -219,11 +411,16 @@ class QICrawlerWindow(QMainWindow):
         *args: Any,
         on_success: Callable[[Any], None],
         button: QPushButton,
+        progress: QProgressBar | None = None,
     ) -> None:
         button.setEnabled(False)
+        if progress is not None:
+            progress.show()
         worker = FunctionWorker(function, *args)
-        worker.signals.finished.connect(lambda result: self._worker_success(button, on_success, result))
-        worker.signals.error.connect(lambda error: self._worker_error(button, error))
+        worker.signals.finished.connect(
+            lambda result: self._worker_success(button, on_success, result, progress)
+        )
+        worker.signals.error.connect(lambda error: self._worker_error(button, error, progress))
         self.thread_pool.start(worker)
 
     def _worker_success(
@@ -231,32 +428,44 @@ class QICrawlerWindow(QMainWindow):
         button: QPushButton,
         callback: Callable[[Any], None],
         result: Any,
+        progress: QProgressBar | None = None,
     ) -> None:
         button.setEnabled(True)
+        if progress is not None:
+            progress.hide()
         callback(result)
 
-    def _worker_error(self, button: QPushButton, error: Exception) -> None:
+    def _worker_error(
+        self,
+        button: QPushButton,
+        error: Exception,
+        progress: QProgressBar | None = None,
+    ) -> None:
         button.setEnabled(True)
+        if progress is not None:
+            progress.hide()
         if isinstance(error, AccessDenied):
             self.show_human_required(str(error))
             return
         if isinstance(error, SchemaNotReady):
-            message = "Database chua san sang. IT can chay QI-Crawler db-upgrade."
+            message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
-            message = "Khong the hoan tat thao tac. Du lieu khong bi ghi sai."
-        self._append_log(f"LOI: {message} Chi tiet ky thuat: {error}")
+            message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
+        self._append_log(f"LỖI: {message} Chi tiết kỹ thuật: {error}")
         QMessageBox.critical(self, "QI-Crawler", message)
 
     @Slot()
     def start_scan(self) -> None:
         url = self.scan_url.text().strip()
         if not url:
-            self.scan_status.setPlainText("Vui long dan URL danh sach goi thau.")
+            self.scan_status.setText("Vui lòng dán URL danh sách gói thầu.")
             return
         if not url.lower().startswith(("http://", "https://")):
-            self.scan_status.setPlainText("URL phai bat dau bang http:// hoac https://")
+            self.scan_status.setText("URL phải bắt đầu bằng http:// hoặc https://")
             return
-        self.scan_status.setPlainText("Dang quet. Ban van co the di chuyen/click trong ung dung...")
+        self.scan_status.setText(
+            "Đang quét. Bạn vẫn có thể chuyển sang chức năng khác trong ứng dụng."
+        )
         self._submit(
             run_scan,
             self.config,
@@ -265,36 +474,43 @@ class QICrawlerWindow(QMainWindow):
             self.scan_keywords.text().strip(),
             on_success=self._render_scan_result,
             button=self.scan_button,
+            progress=self.scan_progress,
         )
 
     def _render_scan_result(self, summary: ScanSummary) -> None:
-        self.scan_status.setPlainText(
-            "\n".join(
-                [
-                    f"Da quet: {summary.pages_scanned} trang",
-                    f"Tim thay: {summary.discovered} goi",
-                    f"Goi moi: {summary.new}",
-                    f"Da co/cap nhat: {summary.existing}",
-                    f"Thanh cong: {summary.success}",
-                    f"Loi: {summary.failed}",
-                    f"Cho xu ly: {summary.pending}",
-                ]
-            )
+        values = {
+            "pages_scanned": summary.pages_scanned,
+            "discovered": summary.discovered,
+            "new": summary.new,
+            "existing": summary.existing,
+            "success": summary.success,
+            "failed": summary.failed,
+            "pending": summary.pending,
+        }
+        for key, value in values.items():
+            self.scan_metrics[key].setText(str(value))
+        self.scan_status.setText(
+            "Quét hoàn tất. Hãy kiểm tra các số liệu bên dưới trước khi tìm kiếm hoặc xuất Excel."
         )
-        self._append_log(f"Quet xong run {summary.run_id or '-'}: {summary.success} thanh cong")
+        self._append_log(
+            f"Quét xong run {summary.run_id or '-'}: {summary.success} thành công, "
+            f"{summary.failed} lỗi, {summary.pending} chờ xử lý."
+        )
 
     @Slot()
     def start_search(self) -> None:
         keyword = self.search_keyword.text().strip()
         if not keyword:
-            QMessageBox.information(self, "QI-Crawler", "Vui long nhap tu khoa can tim.")
+            QMessageBox.information(self, "QI-Crawler", "Vui lòng nhập từ khóa cần tìm.")
             return
+        self.search_status.setText("Đang tìm trong dữ liệu đã lưu...")
         self._submit(
             run_search,
             self.config,
             keyword,
             on_success=self._render_search_results,
             button=self.search_button,
+            progress=self.search_progress,
         )
 
     def _render_search_results(self, rows: list[SearchRow]) -> None:
@@ -304,23 +520,29 @@ class QICrawlerWindow(QMainWindow):
                 (row.identifier, row.title, row.buyer, row.source, row.source_url)
             ):
                 self.search_table.setItem(row_index, column, QTableWidgetItem(value))
-        self._append_log(f"Tim thay {len(rows)} goi phu hop.")
+        self.search_status.setText(f"Tìm thấy {len(rows)} gói phù hợp.")
+        self._append_log(f"Tìm thấy {len(rows)} gói phù hợp với từ khóa.")
 
     @Slot()
     def start_export(self) -> None:
+        self.export_status.setText("Đang tạo file Excel TBMT...")
         self._submit(
             run_export,
             self.config,
             on_success=self._render_export_result,
             button=self.export_button,
+            progress=self.export_progress,
         )
 
     def _render_export_result(self, result: Any) -> None:
         self.last_export_path = Path(result.output)
         self.export_path.setText(str(self.last_export_path))
         self.open_export_button.setEnabled(True)
+        self.export_status.setText(
+            f"Đã xuất {result.exported_records} dòng; có {result.warning_records} cảnh báo."
+        )
         self._append_log(
-            f"Da xuat {result.exported_records} dong; canh bao {result.warning_records}: "
+            f"Đã xuất {result.exported_records} dòng; cảnh báo {result.warning_records}: "
             f"{result.output}"
         )
 
@@ -332,22 +554,26 @@ class QICrawlerWindow(QMainWindow):
             QMessageBox.warning(
                 self,
                 "QI-Crawler",
-                f"Khong the tu mo file. Ban co the mo thu cong tai:\n{self.last_export_path}",
+                f"Không thể tự mở file. Bạn có thể mở thủ công tại:\n{self.last_export_path}",
             )
 
     @Slot()
     def start_crawl(self) -> None:
         url = self.crawl_url.text().strip()
         if not url:
-            self.crawl_status.setText("Vui long dan URL mot goi thau.")
+            self.crawl_status.setText("Vui lòng dán URL một gói thầu.")
             return
-        self.crawl_status.setText("Dang crawl...")
+        if not url.lower().startswith(("http://", "https://")):
+            self.crawl_status.setText("URL phải bắt đầu bằng http:// hoặc https://")
+            return
+        self.crawl_status.setText("Đang crawl gói thầu...")
         self._submit(
             run_single_crawl,
             self.config,
             url,
             on_success=self._render_crawl_result,
             button=self.crawl_button,
+            progress=self.crawl_progress,
         )
 
     def _render_crawl_result(self, result: tuple[int, int, str | None]) -> None:
@@ -355,7 +581,7 @@ class QICrawlerWindow(QMainWindow):
         if human_required:
             self.show_human_required(human_required)
             return
-        self.crawl_status.setText(f"Hoan tat: thanh cong {success}, loi {failed}.")
+        self.crawl_status.setText(f"Hoàn tất: thành công {success}, lỗi {failed}.")
         self._append_log(self.crawl_status.text())
 
     @Slot()
@@ -363,15 +589,17 @@ class QICrawlerWindow(QMainWindow):
         source_name = self.login_source.text().strip() or "egp"
         self._login_ready = threading.Event()
         self._login_confirmed = threading.Event()
-        self._append_log("Dang mo trinh duyet dang nhap...")
+        self.login_status.setText("Đang mở trình duyệt đăng nhập...")
+        self._append_log("Đang mở trình duyệt đăng nhập...")
         self._submit(
             run_login,
             self.config,
             source_name,
             self._login_ready,
             self._login_confirmed,
-            on_success=lambda path: self._append_log(f"Da luu phien cuc bo: {path}"),
+            on_success=self._render_login_result,
             button=self.login_button,
+            progress=self.login_progress,
         )
         QTimer.singleShot(200, self._wait_for_login_browser)
 
@@ -385,22 +613,26 @@ class QICrawlerWindow(QMainWindow):
             return
         QMessageBox.information(
             self,
-            "Dang nhap nguon",
-            "Trinh duyet da mo. Hay tu dang nhap va xu ly OTP/CAPTCHA neu website yeu cau.\n\n"
-            "Khi da vao trang danh sach goi thau, quay lai day va bam OK.",
+            "Đăng nhập nguồn",
+            "Trình duyệt đã mở. Hãy tự đăng nhập và xử lý OTP/CAPTCHA nếu website yêu cầu.\n\n"
+            "Khi đã vào trang danh sách gói thầu, quay lại đây và bấm OK.",
         )
         self._login_confirmed.set()
+
+    def _render_login_result(self, path: Path) -> None:
+        self.login_status.setText("Đã xác nhận đăng nhập và lưu phiên cục bộ an toàn.")
+        self._append_log(f"Đã lưu phiên cục bộ: {path}")
 
     def show_human_required(self, technical_detail: str) -> None:
         logger.warning("HUMAN_REQUIRED: %s", technical_detail)
         self._append_log(f"HUMAN_REQUIRED: {technical_detail}")
         QMessageBox.warning(
             self,
-            "Can nguoi dung xu ly",
-            "Phien dang nhap co the da het han, website yeu cau CAPTCHA/OTP, "
-            "hoac website tu choi truy cap.\n\n"
-            "QI-Crawler khong vuot bien phap bao mat. Du lieu khong bi ghi sai. "
-            "Sau khi xu ly nguyen nhan, ban co the chay lai.",
+            "Cần người dùng xử lý",
+            "Phiên đăng nhập có thể đã hết hạn, website yêu cầu CAPTCHA/OTP, "
+            "hoặc website từ chối truy cập.\n\n"
+            "QI-Crawler không vượt qua biện pháp bảo mật. Dữ liệu không bị ghi sai. "
+            "Sau khi xử lý nguyên nhân, bạn có thể chạy lại.",
         )
 
 

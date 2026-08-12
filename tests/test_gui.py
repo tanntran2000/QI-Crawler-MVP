@@ -40,20 +40,30 @@ def window(application: QApplication, config: AppConfig) -> QICrawlerWindow:
 
 def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.windowTitle() == f"QI-CRAWLER v{__version__}"
-    assert window.tabs.count() == 6
-    assert window.tabs.tabText(0) == "Quet goi thau"
-    assert window.tabs.tabText(5) == "Nhat ky / ket qua"
+    assert window.navigation.count() == 6
+    assert window.pages.count() == 6
+    assert window.navigation.item(0).text() == "Quét gói thầu"
+    assert window.navigation.item(5).text() == "Nhật ký"
 
 
 def test_scan_default_max_pages_is_three(window: QICrawlerWindow) -> None:
     assert window.scan_max_pages.value() == 3
 
 
+def test_scan_source_selector_autofills_known_public_url(window: QICrawlerWindow) -> None:
+    assert window.scan_source.currentText() == "Coteccons e-Bidding"
+    assert window.scan_url.text() == "https://ebidding.coteccons.vn/Index"
+
+    window.scan_source.setCurrentText("URL khác")
+
+    assert window.scan_url.text() == ""
+
+
 @pytest.mark.parametrize(
     ("url", "message"),
     [
-        ("", "Vui long dan URL"),
-        ("not-a-url", "URL phai bat dau"),
+        ("", "Vui lòng dán URL"),
+        ("not-a-url", "URL phải bắt đầu"),
     ],
 )
 def test_scan_form_validation(
@@ -71,7 +81,7 @@ def test_scan_form_validation(
 
     window.start_scan()
 
-    assert message in window.scan_status.toPlainText()
+    assert message in window.scan_status.text()
 
 
 def test_scan_uses_existing_service_adapter(window: QICrawlerWindow, monkeypatch) -> None:
@@ -115,6 +125,34 @@ def test_worker_executes_outside_ui_thread(application: QApplication) -> None:
     assert observed[0] != ui_thread
 
 
+def test_long_job_disables_button_and_shows_progress(
+    window: QICrawlerWindow,
+) -> None:
+    started: list[FunctionWorker] = []
+    window.thread_pool = SimpleNamespace(start=lambda worker: started.append(worker))
+
+    window._submit(
+        lambda: "ok",
+        on_success=lambda _result: None,
+        button=window.scan_button,
+        progress=window.scan_progress,
+    )
+
+    assert started
+    assert not window.scan_button.isEnabled()
+    assert not window.scan_progress.isHidden()
+
+    window._worker_success(
+        window.scan_button,
+        lambda _result: None,
+        "ok",
+        window.scan_progress,
+    )
+
+    assert window.scan_button.isEnabled()
+    assert window.scan_progress.isHidden()
+
+
 def test_scan_success_is_rendered_in_vietnamese(window: QICrawlerWindow) -> None:
     summary = ScanSummary(
         run_id=7,
@@ -132,13 +170,13 @@ def test_scan_success_is_rendered_in_vietnamese(window: QICrawlerWindow) -> None
     )
 
     window._render_scan_result(summary)
-    output = window.scan_status.toPlainText()
 
-    assert "Da quet: 5 trang" in output
-    assert "Tim thay: 25 goi" in output
-    assert "Goi moi: 10" in output
-    assert "Da co/cap nhat: 15" in output
-    assert "Thanh cong: 25" in output
+    assert window.scan_metrics["pages_scanned"].text() == "5"
+    assert window.scan_metrics["discovered"].text() == "25"
+    assert window.scan_metrics["new"].text() == "10"
+    assert window.scan_metrics["existing"].text() == "15"
+    assert window.scan_metrics["success"].text() == "25"
+    assert "Quét hoàn tất" in window.scan_status.text()
 
 
 def test_worker_error_renders_friendly_message(window: QICrawlerWindow, monkeypatch) -> None:
@@ -151,8 +189,9 @@ def test_worker_error_renders_friendly_message(window: QICrawlerWindow, monkeypa
 
     window._worker_error(window.scan_button, RuntimeError("technical detail"))
 
-    assert messages == ["Khong the hoan tat thao tac. Du lieu khong bi ghi sai."]
+    assert messages == ["Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."]
     assert "technical detail" in window.log_output.toPlainText()
+    assert "technical detail" not in window.statusBar().currentMessage()
 
 
 def test_human_required_dialog_is_friendly(window: QICrawlerWindow, monkeypatch) -> None:
@@ -165,9 +204,9 @@ def test_human_required_dialog_is_friendly(window: QICrawlerWindow, monkeypatch)
 
     window.show_human_required("HTTP 403")
 
-    assert messages[0][0] == "Can nguoi dung xu ly"
+    assert messages[0][0] == "Cần người dùng xử lý"
     assert "CAPTCHA/OTP" in messages[0][1]
-    assert "khong vuot" in messages[0][1]
+    assert "không vượt" in messages[0][1]
     assert "HTTP 403" in window.log_output.toPlainText()
 
 
