@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -25,12 +26,26 @@ from .downloads import (
     unique_destination,
 )
 from .http_client import HttpFetcher
+from .keywords import matches_any_keyword
 from .models import Attachment, CrawlRun, CrawlTask, Notice, TenderItem
 from .parser import ParsedNotice, extract_detail_links, parse_notice_html
-from .source_adapters import SourceRegistry
+from .source_adapters import DiscoveredTender, SourceAdapter, SourceRegistry
 from .validation import validate_notice
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ScanSummary:
+    run_id: int | None
+    discovered: int
+    matched: int
+    new: int
+    existing: int
+    success: int
+    failed: int
+    skipped: int
+    pages_scanned: int
 
 
 def url_hash(url: str) -> str:
@@ -564,6 +579,7 @@ class CrawlerService:
         urls: list[str],
         source_name: str,
         resume_run_id: int | None,
+        run_notes: str | None = None,
     ) -> tuple[int, list[int]]:
         with self.db.session() as session:
             if resume_run_id is not None:
@@ -593,7 +609,12 @@ class CrawlerService:
                 return run.id, task_ids
 
             unique_urls = list(dict.fromkeys(urls))[: self.config.crawl.max_pages_per_run]
-            run = CrawlRun(status="running", source_name=source_name, records_found=len(unique_urls))
+            run = CrawlRun(
+                status="running",
+                source_name=source_name,
+                records_found=len(unique_urls),
+                notes=run_notes,
+            )
             session.add(run)
             session.flush()
             session.add_all(
@@ -722,8 +743,11 @@ class CrawlerService:
         urls: list[str],
         source_name: str = "web",
         resume_run_id: int | None = None,
+        run_notes: str | None = None,
     ) -> tuple[int, int]:
-        run_id, task_ids = self._prepare_crawl_tasks(urls, source_name, resume_run_id)
+        run_id, task_ids = self._prepare_crawl_tasks(
+            urls, source_name, resume_run_id, run_notes
+        )
         semaphore = asyncio.Semaphore(self.config.crawl.concurrency)
 
         async def one(task_id: int) -> None:
@@ -757,6 +781,143 @@ class CrawlerService:
             self.config.selectors.detail_link,
             self.config.allowed_domains,
         )
+
+    async def _discover_list_pages(
+        self, list_url: str, max_pages: int
+    ) -> tuple[SourceAdapter, list[DiscoveredTender], int]:
+        """Discover one configured source list safely, with bounded pagination."""
+        adapter = self.source_registry.require_adapter(list_url)
+        pending = [list_url]
+        seen_pages: set[str] = set()
+        entries: dict[str, DiscoveredTender] = {}
+        seen_source_ids: set[str] = set()
+        pages_scanned = 0
+
+        while pending and pages_scanned < max_pages:
+            page_url = pending.pop(0)
+            if page_url in seen_pages:
+                continue
+            seen_pages.add(page_url)
+            html = await self._get_html(page_url)
+            pages_scanned += 1
+            before = len(entries)
+            for entry in adapter.discover_tenders(html, page_url):
+                if entry.source_notice_id in seen_source_ids:
+                    continue
+                seen_source_ids.add(entry.source_notice_id)
+                entries[entry.url] = entry
+            # Do not keep traversing a source whose pagination no longer yields
+            # new tender identities; it prevents both loops and stale pages.
+            if len(entries) == before:
+                break
+            for next_page in adapter.pagination_links(html, page_url):
+                if next_page not in seen_pages and next_page not in pending:
+                    pending.append(next_page)
+        return adapter, list(entries.values()), pages_scanned
+
+    @staticmethod
+    def _scan_notes(list_url: str) -> str:
+        return f"scan-list:{list_url}"
+
+    def _resumable_scan_run(self, adapter: SourceAdapter, list_url: str) -> CrawlRun | None:
+        with self.db.session() as session:
+            runs = session.scalars(
+                select(CrawlRun)
+                .where(
+                    CrawlRun.source_name == adapter.source_name,
+                    CrawlRun.status.in_(["running", "interrupted", "partial"]),
+                )
+                .order_by(CrawlRun.id.desc())
+            ).all()
+            return next(
+                (run for run in runs if run.notes == self._scan_notes(list_url)),
+                None,
+            )
+
+    def _existing_source_ids(self, source_name: str, entries: list[DiscoveredTender]) -> set[str]:
+        source_ids = {entry.source_notice_id for entry in entries}
+        if not source_ids:
+            return set()
+        with self.db.session() as session:
+            return set(
+                session.scalars(
+                    select(Notice.source_notice_id).where(
+                        Notice.source_name == source_name,
+                        Notice.source_notice_id.in_(source_ids),
+                    )
+                ).all()
+            )
+
+    @staticmethod
+    def _filter_discovered_tenders(
+        entries: list[DiscoveredTender], keyword_terms: tuple[str, ...]
+    ) -> tuple[list[DiscoveredTender], int]:
+        if not keyword_terms:
+            return entries, 0
+        selected: list[DiscoveredTender] = []
+        skipped = 0
+        for entry in entries:
+            # Empty list metadata is insufficient evidence, so retain the URL
+            # for detail parsing rather than silently losing a tender.
+            if not entry.metadata_text or matches_any_keyword(entry.metadata_text, keyword_terms):
+                selected.append(entry)
+            else:
+                skipped += 1
+        return selected, skipped
+
+    async def scan_list(
+        self,
+        list_url: str,
+        *,
+        keyword_terms: tuple[str, ...] = (),
+        max_pages: int = 25,
+        resume: bool = False,
+    ) -> ScanSummary:
+        """Discover Coteccons-style list pages, then batch crawl detail tasks."""
+        adapter = self.source_registry.require_adapter(list_url)
+        if resume:
+            existing_run = self._resumable_scan_run(adapter, list_url)
+            if existing_run is not None:
+                success, failed = await self.resume_crawl(existing_run.id)
+                return ScanSummary(
+                    run_id=existing_run.id,
+                    discovered=existing_run.records_found,
+                    matched=existing_run.records_found,
+                    new=0,
+                    existing=existing_run.records_found,
+                    success=success,
+                    failed=failed,
+                    skipped=0,
+                    pages_scanned=0,
+                )
+
+        adapter, discovered, pages_scanned = await self._discover_list_pages(list_url, max_pages)
+        selected, skipped = self._filter_discovered_tenders(discovered, keyword_terms)
+        existing_source_ids = self._existing_source_ids(adapter.source_name, selected)
+        success, failed = await self.crawl_urls(
+            [entry.url for entry in selected],
+            source_name=adapter.source_name,
+            run_notes=self._scan_notes(list_url),
+        )
+        return ScanSummary(
+            run_id=None if not selected else self._latest_run_id(adapter.source_name, list_url),
+            discovered=len(discovered),
+            matched=len(selected),
+            new=len(selected) - len(existing_source_ids),
+            existing=len(existing_source_ids),
+            success=success,
+            failed=failed,
+            skipped=skipped,
+            pages_scanned=pages_scanned,
+        )
+
+    def _latest_run_id(self, source_name: str, list_url: str) -> int | None:
+        with self.db.session() as session:
+            return session.scalar(
+                select(CrawlRun.id)
+                .where(CrawlRun.source_name == source_name, CrawlRun.notes == self._scan_notes(list_url))
+                .order_by(CrawlRun.id.desc())
+            )
 
     async def collect_dynamic_links(
         self,

@@ -34,6 +34,7 @@ class SessionExpired(AccessDenied):
 
 class RobotsStatus(StrEnum):
     ALLOW = "ALLOW"
+    ROBOTS_ABSENT = "ROBOTS_ABSENT"
     DISALLOW = "DISALLOW"
     UNAVAILABLE = "UNAVAILABLE"
 
@@ -97,6 +98,9 @@ class AccessPolicy:
                         if parser.can_fetch(self.config.compliance.identify_user_agent, url)
                         else RobotsStatus.DISALLOW
                     )
+                elif response.status_code in {404, 410}:
+                    # A missing robots.txt is not an access restriction.
+                    self._robots_status[origin] = RobotsStatus.ROBOTS_ABSENT
                 elif response.status_code in {401, 403}:
                     logger.warning("robots.txt bi tu choi; can nguoi kiem tra: %s", robots_url)
                     self._robots_status[origin] = RobotsStatus.UNAVAILABLE
@@ -110,7 +114,10 @@ class AccessPolicy:
 
     async def allowed_by_robots(self, client: httpx.AsyncClient, url: str) -> bool:
         """Compatibility wrapper: unavailable access fails closed, never as DISALLOW."""
-        return (await self.robots_status(client, url)) is RobotsStatus.ALLOW
+        return (await self.robots_status(client, url)) in {
+            RobotsStatus.ALLOW,
+            RobotsStatus.ROBOTS_ABSENT,
+        }
 
     async def require_robots_access(self, client: httpx.AsyncClient, url: str) -> None:
         status = await self.robots_status(client, url)

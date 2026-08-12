@@ -25,6 +25,7 @@ from .bid_intelligence import (
     import_evidence_csv,
 )
 from .browser import BrowserFetcher
+from .compliance import AccessDenied
 from .config import EnvSettings, load_config
 from .crawler import CrawlerService
 from .db import Database, SchemaNotReady
@@ -201,7 +202,6 @@ def clean_legacy_sources(
 
 
 @app.command("crawl", hidden=True)
-@app.command("scan", hidden=True)
 @app.command("doc-trang", hidden=True)
 def crawl(
     urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
@@ -229,6 +229,53 @@ def crawl(
             typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
             if service.human_required_reason:
                 typer.echo(f"HUMAN_REQUIRED: {service.human_required_reason}", err=True)
+        finally:
+            await service.close()
+
+    asyncio.run(run())
+
+
+@app.command("scan", rich_help_panel="LENH CHO NGUOI MOI")
+def scan(
+    list_url: str = typer.Argument(..., metavar="LIST_URL", help="Trang danh sach Coteccons"),
+    tu_khoa: str | None = typer.Option(
+        None, "--tu-khoa", "-k", help="Loc theo tu khoa, cach nhau bang dau phay"
+    ),
+    max_pages: int = typer.Option(25, "--max-pages", min=1, max=100),
+    resume: bool = typer.Option(False, "--resume", help="Tiep tuc scan dang do cua cung LIST_URL"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Doc trang danh sach, phan trang va crawl cac trang chi tiet Coteccons."""
+    cfg = _config(config)
+    terms: list[str] = []
+    if tu_khoa:
+        for raw_keyword in tu_khoa.split(","):
+            keyword = raw_keyword.strip()
+            if keyword:
+                terms.extend(expand_keyword(keyword).search_terms)
+    keyword_terms = tuple(dict.fromkeys(terms))
+
+    async def run() -> None:
+        service = CrawlerService(cfg)
+        try:
+            summary = await service.scan_list(
+                list_url,
+                keyword_terms=keyword_terms,
+                max_pages=max_pages,
+                resume=resume,
+            )
+            if summary.run_id is not None:
+                typer.echo(f"Run: {summary.run_id}")
+            typer.echo(f"Discovered: {summary.discovered}")
+            typer.echo(f"Matched: {summary.matched}")
+            typer.echo(f"New: {summary.new}")
+            typer.echo(f"Existing: {summary.existing}")
+            typer.echo(f"Success: {summary.success}")
+            typer.echo(f"Failed: {summary.failed}")
+            typer.echo(f"Skipped: {summary.skipped}")
+        except AccessDenied as exc:
+            typer.echo(f"HUMAN_REQUIRED: {exc}", err=True)
+            raise typer.Exit(code=1) from None
         finally:
             await service.close()
 
