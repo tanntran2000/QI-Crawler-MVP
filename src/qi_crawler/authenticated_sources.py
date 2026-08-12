@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -136,16 +137,26 @@ def load_source(name: str) -> WebSource:
     return WebSource.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
-async def create_login_session(config: AppConfig, source: WebSource) -> Path:
+async def create_login_session(
+    config: AppConfig,
+    source: WebSource,
+    wait_for_confirmation: Callable[[], Awaitable[None]] | None = None,
+    browser_ready: Callable[[], None] | None = None,
+) -> Path:
     browser = BrowserFetcher(config)
     try:
         await browser.ensure_browser_access_allowed(source.list_url)
         await browser.start(headed=True)
         page = await browser.new_page()
         await page.goto(source.list_url, wait_until="domcontentloaded")
-        print("Trinh duyet da mo. Hay tu dang nhap, nhap OTP/CAPTCHA neu website yeu cau.")
-        print("Khi da nhin thay trang danh sach goi thau, quay lai terminal va nhan Enter.")
-        await asyncio.to_thread(input)
+        if browser_ready is not None:
+            browser_ready()
+        if wait_for_confirmation is None:
+            print("Trinh duyet da mo. Hay tu dang nhap, nhap OTP/CAPTCHA neu website yeu cau.")
+            print("Khi da nhin thay trang danh sach goi thau, quay lai terminal va nhan Enter.")
+            await asyncio.to_thread(input)
+        else:
+            await wait_for_confirmation()
         current_host = (urlparse(page.url).hostname or "").lower()
         if current_host != source.domain and not current_host.endswith(f".{source.domain}"):
             raise ValueError("Sau dang nhap, trinh duyet dang o domain khac nguon da khai bao.")

@@ -13,6 +13,38 @@ MVP khong tu nop ho so, khong vuot CAPTCHA va khong tu xac nhan doanh nghiep du 
 
 ## 2. Mo chuong trinh
 
+### Cach de nhat cho Team Bid tren Windows
+
+Sau khi IT da cai dat lan dau, chi can double-click file `QI-Crawler.bat` trong thu muc QI-Crawler:
+
+```text
+double-click QI-Crawler.bat
+-> chon chuc nang
+-> dan URL
+-> xem ket qua
+-> xuat va kiem tra Excel
+```
+
+Khong can mo VS Code, kich hoat `.venv` hay nho cu phap lenh. Menu co cac lua chon quet danh sach,
+tim goi da luu, xuat Excel, crawl mot URL, dang nhap va mo thu muc ket qua.
+
+Neu `QI-Crawler.bat` bao thieu `.venv` hoac thieu lenh QI-Crawler, hay chup man hinh loi va gui IT.
+Khong tu xoa database hoac file cau hinh.
+
+### Thu nghiem giao dien desktop
+
+IT co the mo prototype PySide6 bang:
+
+```powershell
+python -m qi_crawler.gui
+```
+
+Giao dien co cac tab `Quet goi thau`, `Tim kiem`, `Xuat TBMT`, `Crawl mot URL`, `Dang nhap nguon`
+va `Nhat ky / ket qua`. Tac vu crawl chay nen nen cua so van co the bam/chuyen tab. Ban nay chua dong goi
+EXE; Team Bid nen tiep tuc dung `QI-Crawler.bat` neu IT chua cau hinh shortcut GUI.
+
+### Cach mo bang Terminal (danh cho IT/nguoi van hanh)
+
 Trong terminal VS Code, chay tung dong:
 
 ```powershell
@@ -24,7 +56,22 @@ QI-Crawler bat-dau
 
 Neu terminal hien `>>`, nhan `Ctrl+C` roi nhap lai lenh.
 
-## 3. Crawl va tim goi thau
+## 3. Quet danh sach, crawl va tim goi thau
+
+Quet nhieu goi tu trang danh sach Coteccons:
+
+```powershell
+QI-Crawler scan "https://ebidding.coteccons.vn/Index" --max-pages 3
+```
+
+`--max-pages 3` nghia la quet toi da 3 **trang danh sach**, khong gioi han ket qua o 3 goi.
+Loc ngay trong luc quet bang cac tu khoa cach nhau boi dau phay:
+
+```powershell
+QI-Crawler scan "https://ebidding.coteccons.vn/Index" -k "chong tham,son,canh quan"
+```
+
+Neu da co san mot URL chi tiet:
 
 ```powershell
 QI-Crawler crawl "https://ebidding.coteccons.vn/Index/ChiTiet/2607301"
@@ -40,7 +87,28 @@ QI-Crawler tim-goi `
   --so-luong 50
 ```
 
-`crawl` ket noi website va luu du lieu. `tim-goi` chi tim trong database da luu, khong goi mang.
+Quy trinh de xuat cho Bid Team:
+
+```text
+scan trang danh sach
+-> xem ket qua
+-> tim-goi
+-> xuat-tbmt
+-> kiem tra file Excel
+```
+
+`scan` va `crawl` ket noi website va luu du lieu. `tim-goi` chi tim trong database da luu, khong goi mang.
+
+Y nghia ket qua sau khi quet:
+
+- `New`: goi moi duoc them vao kho.
+- `Existing`: goi da co, khong phai loi.
+- `Success`: xu ly thanh cong.
+- `Warning`: nguon thieu truong tuy chon; goi van co the duoc xem va xuat.
+- `Failed`: xu ly that bai, can kiem tra lai.
+- `Pending`: goi dang cho xu ly hoac cho resume.
+- `HUMAN_REQUIRED`: can nguoi dung dang nhap/xac minh; QI-Crawler khong vuot CAPTCHA, HTTP 403
+  hoac bien phap bao mat.
 
 Chi cac nguon dang `enabled` trong `config.yaml` moi duoc hien trong `tim-goi` va `xuat-tbmt`.
 Nguoi van hanh co the archive du lieu mau/nguon cu sau khi da kiem tra backup bang lenh ky thuat

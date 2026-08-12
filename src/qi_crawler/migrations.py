@@ -18,7 +18,9 @@ from sqlalchemy.engine import make_url
 
 from alembic import command
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from .standalone import resource_root
+
+PROJECT_ROOT = resource_root()
 ALEMBIC_CONFIG = PROJECT_ROOT / "alembic.ini"
 LEGACY_CHECKPOINT_REVISION = "0001_add_crawl_tasks"
 

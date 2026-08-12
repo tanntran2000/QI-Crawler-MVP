@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
+import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -43,6 +46,8 @@ from .reporting import build_daily_report, send_report_email
 from .source_filter import active_source_domains, active_source_names
 from .warehouse import BACKUP_DIR, WAREHOUSE_PATH, WarehouseManager
 
+logger = logging.getLogger(__name__)
+
 
 def _show_keyword_plan(expansion: KeywordExpansion) -> None:
     typer.echo(f"Tu khoa san pham: {', '.join(expansion.product_terms)}")
@@ -53,67 +58,162 @@ def _show_keyword_plan(expansion: KeywordExpansion) -> None:
         )
 
 
+NORMAL_HELP_EPILOG = """
+## QUY TRINH HANG NGAY CHO BID TEAM
+
+### Cach de nhat: mo menu
+
+- **Muc dich:** Chon chuc nang bang phim so, khong can nho cu phap lenh.
+
+- **Cu phap:** `QI-Crawler menu`
+
+- **Vi du:** Double-click `QI-Crawler.bat` tren Windows.
+
+- **Ket qua:** Hien menu quet, tim, xuat Excel, crawl va dang nhap.
+
+### 1. Quet mot trang danh sach goi thau
+
+- **Muc dich:** Tim cac goi tren nhieu trang danh sach va luu vao kho du lieu.
+
+- **Cu phap:** `QI-Crawler scan "LIST_URL" --max-pages N`
+
+- **Vi du:** `QI-Crawler scan "https://ebidding.coteccons.vn/Index" --max-pages 3`
+
+- **Ket qua:** Hien so goi moi, goi da co, thanh cong, loi va dang cho xu ly.
+
+### 2. Quet danh sach va loc theo tu khoa
+
+- **Muc dich:** Chi chon cac goi phu hop voi san pham/dich vu dang quan tam.
+
+- **Cu phap:** `QI-Crawler scan "LIST_URL" -k "TU_KHOA_1,TU_KHOA_2"`
+
+- **Vi du:** `QI-Crawler scan "https://ebidding.coteccons.vn/Index" -k "chong tham,son"`
+
+- **Ket qua:** Cac goi khop tu khoa duoc dua vao hang xu ly va luu vao kho.
+
+### 3. Doc mot URL goi thau cu the
+
+- **Muc dich:** Luu mot goi khi ban da co san link trang chi tiet.
+
+- **Cu phap:** `QI-Crawler crawl "DETAIL_URL"`
+
+- **Vi du:** `QI-Crawler crawl "https://ebidding.coteccons.vn/Index/ChiTiet/2607301"`
+
+- **Ket qua:** Thong tin goi duoc them moi hoac cap nhat trong kho du lieu.
+
+### 4. Tim lai goi da luu
+
+- **Muc dich:** Tim trong kho noi bo; lenh nay khong truy cap website.
+
+- **Cu phap:** `QI-Crawler tim-goi -k "TU_KHOA"`
+
+- **Vi du:** `QI-Crawler tim-goi -k "chong tham"`
+
+- **Ket qua:** Hien danh sach goi phu hop kem ma, nguon va URL doi chieu.
+
+### 5. Xuat file Excel TBMT
+
+- **Muc dich:** Tao file 18 cot de Bid Team kiem tra va trinh noi bo.
+
+- **Cu phap:** `QI-Crawler xuat-tbmt`
+
+- **Vi du:** `QI-Crawler xuat-tbmt --all`
+
+- **Ket qua:** Tao file Excel trong `data\\reports`; dong can kiem tra duoc canh bao rieng.
+
+### 6. Dang nhap nguon co bao ve
+
+- **Muc dich:** Mo trinh duyet de ban tu dang nhap va luu phien cuc bo.
+
+- **Cu phap:** `QI-Crawler dang-nhap --source TEN_NGUON`
+
+- **Vi du:** `QI-Crawler dang-nhap --source egp`
+
+- **Ket qua:** Luu session/cookie; QI-Crawler khong luu mat khau, OTP hay CAPTCHA.
+
+## QUY TRINH DE XUAT
+
+`scan trang danh sach -> xem ket qua -> tim-goi -> xuat-tbmt -> kiem tra file Excel`
+
+## Y NGHIA TRANG THAI
+
+- **New:** Goi moi duoc them vao kho du lieu.
+
+- **Existing:** Goi da co va duoc doi chieu/cap nhat; day **KHONG phai loi**.
+
+- **Success:** Xu ly thanh cong.
+
+- **Warning:** Thieu du lieu tuy chon hoac nguon khong cong bo; van duoc xem/xuat.
+
+- **Failed:** Xu ly khong thanh cong; can xem lai URL hoac log.
+
+- **Pending:** Dang cho xu ly hoac co the tiep tuc sau khi gian doan.
+
+- **HUMAN_REQUIRED:** Can nguoi dung dang nhap, xac minh hoac xu ly chan truy cap.
+
+QI-Crawler **khong bao gio** vuot CAPTCHA, HTTP 403 hoac cac bien phap bao mat cua website.
+
+- Xem tuy chon mot lenh: `QI-Crawler TEN-LENH -help`
+
+- Lenh cho IT/ky thuat: `QI-Crawler -adv`
+
+- Tai lieu: `HUONG_DAN_SU_DUNG.md`
+"""
+
+
 app = typer.Typer(
     no_args_is_help=True,
     invoke_without_command=True,
     add_completion=False,
+    rich_markup_mode="markdown",
     context_settings={"help_option_names": ["-help", "--help", "-h"]},
-    help="Cong cu QI tim, theo doi, kiem tra va xuat bao cao goi thau.",
-    epilog="""
-BAT DAU NHANH
-
-  1. QI-Crawler bat-dau
-
-  2. QI-Crawler crawl "URL_GOI_THAU"
-
-  3. QI-Crawler tim-goi --tu-khoa "network switch"
-
-  4. QI-Crawler xuat-tbmt
-
-Chi tiet: QI-Crawler TEN-LENH -help
-
-Lenh ky thuat: QI-Crawler -adv
-
-Tai lieu: HUONG_DAN_SU_DUNG.md | Cap nhat: CHANGELOG.md
-""",
+    help="Tro ly giup Bid Team quet, tim va xuat Excel cac goi thau.",
+    epilog=NORMAL_HELP_EPILOG,
 )
 
 ADVANCED_HELP = """
-LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
+LENH NANG CAO - DANH CHO IT/NGUOI VAN HANH KY THUAT
 
-  Nguon website
-  them-nguon                Them website co danh sach goi thau
-  them-egp                  Cau hinh nhanh nguon e-GP Viet Nam
-  kiem-tra-nguon            Kiem tra phien dang nhap va selector
-  crawl URL                 Doc mot trang chi tiet duoc phep crawl
-  crawl-file TEP            Doc danh sach URL tu file
-  resume-crawl RUN_ID       Tiep tuc cac URL chua hoan thanh cua mot lan crawl bi gian doan
-  collect-links URL         Lay link chi tiet tu trang danh sach
-  collect-dynamic URL       Lay link tu website JavaScript
-  them-tu-khoa              Them tu khoa va phan loai nhom nganh
-
-  Theo doi va xuat bao cao
-  theo-doi                  Tu dong tim, loc va xep hang theo chu ky
-  xep-hang                  Chay mot luot cham diem co hoi
-  xuat-bao-cao              Xuat Excel danh sach va bang dap ung
-
-  init-db                    Khoi tao hoac cap nhat database
+  DATABASE VA MIGRATION
   db-upgrade                 Backup va nang cap database bang Alembic
-  clean-legacy-sources       Archive va loai du lieu Contracts Finder/example/test cu
-  download-page URL          Tai tep dinh kem tu trang chi tiet
-  retry-downloads            Tai lai cac tep bi loi
-  discover URL               Quan sat API/JSON cua website
-  import-file TEP            Nhap du lieu goi thau CSV/Excel
-  export                     Xuat Excel co sheet TBMT va cac sheet ky thuat
+  init-db                    Kiem tra database da dung revision yeu cau
+  clean-legacy-sources       Archive du lieu nguon cu sau khi da backup
+
+  NGUON WEBSITE VA CHAN DOAN
+  them-nguon                 Them cau hinh mot website duoc phep truy cap
+  them-egp                   Tao cau hinh nguon e-GP Viet Nam
+  kiem-tra-nguon             Kiem tra session va selector cua nguon
+  tim-tren-web               Tim tren website da dang nhap
+  discover URL               Quan sat API/JSON phuc vu chan doan
+  collect-links URL          Kiem tra link tren trang danh sach tinh
+  collect-dynamic URL        Kiem tra link tren trang JavaScript
+  crawl-file TEP             Crawl danh sach URL tu file
+  resume-crawl RUN_ID        Tiep tuc mot crawl run bi gian doan
+  download-page URL          Tai tep dinh kem cua trang chi tiet
+  retry-downloads            Thu lai cac tep tai bi loi
+
+  THEO DOI VA BAO CAO KY THUAT
+  theo-doi                   Chay chu ky theo doi tu dong
+  xep-hang                   Cham diem co hoi mot lan
   report-daily               Tao bao cao van hanh hang ngay
+  xuat-bao-cao               Xuat workbook kem cac sheet ky thuat
+  serve                      Khoi dong API noi bo de debug/tich hop
+
+  QUAN TRI TU KHOA
+  them-tu-khoa               Them va phan loai tu khoa co chu dich
+
+  NHAP LIEU VA CHAN DOAN NOI BO
+  import-file TEP            Nhap goi thau tu CSV/Excel
+  nhap-ton-kho TEP           Nhap ton kho QI da xac minh
+  nhap-boq MA_GOI TEP        Nhap bang so luong cua mot goi
   import-evidence TEP        Nhap bang chung nang luc QI
-  analyze-bid TEP            Phan tich compliance ky thuat (legacy/pilot sau)
+  analyze-bid TEP            Phan tich compliance legacy/pilot
   warehouse-init             Khoi tao data warehouse cuc bo
   warehouse-status           Kiem tra data warehouse
   warehouse-backup           Sao luu data warehouse
   warehouse-review           Ghi nhan de xuat luu tru du lieu
 
-Xem chi tiet: QI-Crawler TEN-LENH -help
+Xem cu phap: QI-Crawler TEN-LENH -help
 """
 
 
@@ -133,7 +233,7 @@ def main_callback(
         raise typer.Exit()
 
 
-@app.command("help", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("help", hidden=True)
 def show_help(ctx: typer.Context) -> None:
     """Xem lenh va vi du."""
     if ctx.parent is not None:
@@ -155,6 +255,138 @@ def _date_option(value: str | None, option_name: str) -> date | None:
         raise typer.BadParameter(
             f"{option_name} phai co dang YYYY-MM-DD, vi du 2026-08-10"
         ) from exc
+
+
+def _show_human_required(reason: str | None = None) -> None:
+    """Explain a compliance stop without hiding its technical reason from logs."""
+    logger.warning("HUMAN_REQUIRED: %s", reason or "Can nguoi dung xu ly")
+    typer.echo("", err=True)
+    typer.echo("HUMAN_REQUIRED", err=True)
+    typer.echo("", err=True)
+    typer.echo("Can nguoi dung xu ly:", err=True)
+    typer.echo("- phien dang nhap co the da het han; hoac", err=True)
+    typer.echo("- website yeu cau CAPTCHA; hoac", err=True)
+    typer.echo("- website tu choi truy cap.", err=True)
+    typer.echo("", err=True)
+    typer.echo("Du lieu khong bi ghi sai.", err=True)
+    typer.echo("Sau khi xu ly nguyen nhan, ban co the chay lai.", err=True)
+    if reason:
+        typer.echo(f"Chi tiet: {reason}", err=True)
+
+
+def _open_windows_path(path: Path) -> bool:
+    """Open a file/folder on Windows and fail safely on other environments."""
+    if sys.platform != "win32":
+        typer.echo(f"Khong the tu mo tren he dieu hanh nay. Duong dan: {path}", err=True)
+        return False
+    try:
+        os.startfile(str(path.resolve()))
+    except (AttributeError, OSError) as exc:
+        logger.exception("Khong the mo duong dan Windows: %s", path)
+        typer.echo(f"Khong the tu mo. Ban co the mo thu cong tai: {path}", err=True)
+        typer.echo(f"Chi tiet: {exc}", err=True)
+        return False
+    return True
+
+
+def _menu_max_pages() -> int:
+    while True:
+        value = typer.prompt("So trang muon quet", default=3, type=int)
+        if 1 <= value <= 100:
+            return value
+        typer.echo("Vui long nhap so tu 1 den 100.", err=True)
+
+
+def _show_operator_menu() -> None:
+    typer.echo("")
+    typer.echo("==============================")
+    typer.echo("        QI-CRAWLER")
+    typer.echo("==============================")
+    typer.echo("")
+    typer.echo("1. Quet danh sach goi thau")
+    typer.echo("2. Tim goi da luu")
+    typer.echo("3. Xuat Excel TBMT")
+    typer.echo("4. Crawl mot goi cu the")
+    typer.echo("5. Dang nhap nguon dau thau")
+    typer.echo("6. Mo thu muc ket qua")
+    typer.echo("0. Thoat")
+    typer.echo("")
+
+
+@app.command("menu", rich_help_panel="QUY TRINH BID TEAM")
+def operator_menu(
+    config: Path | None = typer.Option(None, "--config", exists=True, hidden=True),
+) -> None:
+    """Mo menu Windows de Bid Team chon chuc nang bang phim so."""
+    while True:
+        _show_operator_menu()
+        try:
+            choice = typer.prompt("Chon chuc nang").strip()
+        except (EOFError, KeyboardInterrupt):
+            typer.echo("\nDa thoat QI-Crawler.")
+            return
+
+        try:
+            if choice == "0":
+                typer.echo("Da thoat QI-Crawler.")
+                return
+            if choice == "1":
+                list_url = typer.prompt("Dan URL danh sach").strip()
+                max_pages = _menu_max_pages()
+                keywords = typer.prompt(
+                    "Tu khoa (Enter = tat ca)", default="", show_default=False
+                ).strip()
+                scan(
+                    list_url=list_url,
+                    tu_khoa=keywords or None,
+                    max_pages=max_pages,
+                    resume=False,
+                    config=config,
+                )
+            elif choice == "2":
+                keyword = typer.prompt("Nhap tu khoa can tim").strip()
+                if not keyword:
+                    typer.echo("Tu khoa khong duoc de trong.", err=True)
+                    continue
+                tim_goi(tu_khoa=keyword, tu_ngay=None, so_luong=20, config=config)
+            elif choice == "3":
+                output_path = xuat_tbmt(
+                    output=None,
+                    ngay=None,
+                    tu_ngay=None,
+                    den_ngay=None,
+                    trang_thai=None,
+                    tu_khoa=None,
+                    to_canh_bao=False,
+                    all_records=False,
+                    run_id=None,
+                    config=config,
+                )
+                if typer.confirm("Mo file Excel ngay?", default=True):
+                    _open_windows_path(output_path)
+            elif choice == "4":
+                detail_url = typer.prompt("Dan URL goi thau cu the").strip()
+                crawl(urls=[detail_url], source=None, config=config)
+            elif choice == "5":
+                source_name = typer.prompt("Ten nguon", default="egp").strip()
+                dang_nhap(ten=None, source=source_name, config=config)
+            elif choice == "6":
+                cfg = _config(config)
+                cfg.storage.report_dir.mkdir(parents=True, exist_ok=True)
+                _open_windows_path(cfg.storage.report_dir)
+            else:
+                typer.echo("Lua chon khong hop le. Vui long chon tu 0 den 6.", err=True)
+        except AccessDenied as exc:
+            _show_human_required(str(exc))
+        except SchemaNotReady:
+            typer.echo("Database chua san sang. Hay chay QI-Crawler db-upgrade.", err=True)
+        except typer.Exit:
+            # Existing commands already printed the appropriate user-facing message.
+            continue
+        except Exception as exc:
+            logger.exception("Loi khi chay menu QI-Crawler")
+            typer.echo("Khong the hoan tat thao tac. Du lieu khong bi ghi sai.", err=True)
+            typer.echo(f"Chi tiet: {exc}", err=True)
 
 
 @app.command("init-db", hidden=True)
@@ -201,7 +433,7 @@ def clean_legacy_sources(
         typer.echo("Da chuan hoa Coteccons 2607301 voi source_name va source_notice_id.")
 
 
-@app.command("crawl", hidden=True)
+@app.command("crawl", rich_help_panel="QUY TRINH BID TEAM")
 @app.command("doc-trang", hidden=True)
 def crawl(
     urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
@@ -228,24 +460,57 @@ def crawl(
             ok, failed = await service.crawl_urls(urls)
             typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
             if service.human_required_reason:
-                typer.echo(f"HUMAN_REQUIRED: {service.human_required_reason}", err=True)
+                _show_human_required(service.human_required_reason)
         finally:
             await service.close()
 
     asyncio.run(run())
 
 
-@app.command("scan", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command(
+    "scan",
+    rich_help_panel="QUY TRINH BID TEAM",
+    epilog="""
+## VI DU COTECONS
+
+- Quet toi da 3 **TRANG DANH SACH**:
+
+  `QI-Crawler scan "https://ebidding.coteccons.vn/Index" --max-pages 3`
+
+- Quet va loc nhieu tu khoa (phan tach bang dau phay):
+
+  `QI-Crawler scan "https://ebidding.coteccons.vn/Index" -k "chong tham,son,canh quan"`
+
+## LUU Y
+
+- `--max-pages` la so **TRANG DANH SACH** toi da, khong phai so luong goi thau.
+
+- `-k/--tu-khoa` nhan mot hoac nhieu tu khoa, phan tach bang dau phay.
+""",
+)
 def scan(
-    list_url: str = typer.Argument(..., metavar="LIST_URL", help="Trang danh sach Coteccons"),
-    tu_khoa: str | None = typer.Option(
-        None, "--tu-khoa", "-k", help="Loc theo tu khoa, cach nhau bang dau phay"
+    list_url: str = typer.Argument(
+        ...,
+        metavar="LIST_URL",
+        help="URL trang DANH SACH goi thau, khong phai URL chi tiet",
     ),
-    max_pages: int = typer.Option(25, "--max-pages", min=1, max=100),
+    tu_khoa: str | None = typer.Option(
+        None,
+        "--tu-khoa",
+        "-k",
+        help="Loc theo mot/nhieu tu khoa, cach nhau bang dau phay",
+    ),
+    max_pages: int = typer.Option(
+        25,
+        "--max-pages",
+        min=1,
+        max=100,
+        help="So TRANG DANH SACH toi da se quet; khong phai so goi thau",
+    ),
     resume: bool = typer.Option(False, "--resume", help="Tiep tuc scan dang do cua cung LIST_URL"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Doc trang danh sach, phan trang va crawl cac trang chi tiet Coteccons."""
+    """Quet danh sach, tim link chi tiet va luu cac goi thau vao kho noi bo."""
     cfg = _config(config)
     terms: list[str] = []
     if tu_khoa:
@@ -264,6 +529,30 @@ def scan(
                 max_pages=max_pages,
                 resume=resume,
             )
+            typer.echo("QUET DANH SACH HOAN TAT")
+            typer.echo(
+                f"- Da quet {summary.pages_scanned} trang danh sach, "
+                f"tim thay {summary.discovered} goi thau."
+            )
+            typer.echo(
+                f"- Phu hop bo loc: {summary.matched}; "
+                f"dua vao xu ly: {summary.queued}."
+            )
+            typer.echo(
+                f"- Goi moi: {summary.new}; goi da co: {summary.existing} "
+                "(Existing khong phai loi)."
+            )
+            typer.echo(
+                f"- Thanh cong: {summary.success}; loi: {summary.failed}; "
+                f"dang cho: {summary.pending}; bo qua: {summary.skipped}."
+            )
+            if summary.limited:
+                typer.echo(
+                    f"- Canh bao: {summary.limited} goi vuot gioi han an toan va chua duoc xep hang."
+                )
+            typer.echo("Buoc tiep theo: QI-Crawler tim-goi -k \"TU_KHOA\"")
+            typer.echo("")
+            typer.echo("CHI TIET HE THONG")
             if summary.run_id is not None:
                 typer.echo(f"Run: {summary.run_id}")
             typer.echo(f"Discovered: {summary.discovered}")
@@ -278,7 +567,7 @@ def scan(
             typer.echo(f"Skipped: {summary.skipped}")
             typer.echo(f"Pages scanned: {summary.pages_scanned}")
         except AccessDenied as exc:
-            typer.echo(f"HUMAN_REQUIRED: {exc}", err=True)
+            _show_human_required(str(exc))
             raise typer.Exit(code=1) from None
         finally:
             await service.close()
@@ -613,7 +902,7 @@ def confirm_assessment_command(
 # van hanh nang cao va tuong thich voi quy trinh cu.
 
 
-@app.command("bat-dau", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("bat-dau", hidden=True)
 def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     """Chuan bi lan dau."""
     cfg = _config(config)
@@ -628,7 +917,7 @@ def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -
     typer.echo("3. Xuat TBMT:     QI-Crawler xuat-tbmt")
 
 
-@app.command("tim-goi", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("tim-goi", rich_help_panel="QUY TRINH BID TEAM")
 def tim_goi(
     tu_khoa: str = typer.Option(
         ..., "--tu-khoa", "-k", help="Ten san pham tieng Viet hoac tieng Anh"
@@ -677,7 +966,7 @@ def xuat_bao_cao(
     typer.echo(f"Da tao bao cao: {path}")
 
 
-@app.command("xuat-tbmt", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("xuat-tbmt", rich_help_panel="QUY TRINH BID TEAM")
 def xuat_tbmt(
     output: Path | None = typer.Option(
         None,
@@ -712,7 +1001,7 @@ def xuat_tbmt(
         None, "--run-id", min=1, help="Chi xuat mot crawl run cu the"
     ),
     config: Path | None = typer.Option(None, "--config", exists=True),
-) -> None:
+) -> Path:
     """Xuat Excel theo mau TBMT."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
@@ -743,9 +1032,10 @@ def xuat_tbmt(
     )
     if result.reject_output:
         typer.echo(f"Dong bi loai duoc luu tai: {result.reject_output}")
+    return result.output
 
 
-@app.command("nhap-ton-kho", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("nhap-ton-kho", hidden=True)
 @app.command("import-inventory", hidden=True)
 def import_inventory_command(
     input_file: Path = typer.Argument(
@@ -768,7 +1058,7 @@ def import_inventory_command(
     typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
 
 
-@app.command("nhap-boq", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("nhap-boq", hidden=True)
 @app.command("import-tender-items", hidden=True)
 def import_tender_items_command(
     notice_id: int = typer.Argument(
@@ -968,7 +1258,7 @@ def them_tu_khoa(
         typer.echo("Chay lai voi --nhom \"TEN NHOM\" sau khi nguoi phu trach xac nhan.")
 
 
-@app.command("dang-nhap", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("dang-nhap", rich_help_panel="QUY TRINH BID TEAM")
 @app.command("login", hidden=True)
 def dang_nhap(
     ten: str | None = typer.Option(None, "--ten", help="Ten nguon da khai bao"),
@@ -994,7 +1284,7 @@ def dang_nhap(
     typer.echo("Khong gui file session cho nguoi khac va khong dua file nay len Git.")
 
 
-@app.command("tim-tren-web", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("tim-tren-web", hidden=True)
 def tim_tren_web(
     ten: str = typer.Option(..., "--ten"),
     tu_khoa: str = typer.Option(..., "--tu-khoa", "-k"),

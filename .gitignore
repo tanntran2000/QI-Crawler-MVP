@@ -81,6 +81,11 @@ data/company-evidence.*
 test-results/
 playwright-report/
 
+# Standalone build artifacts
+build/
+dist/
+.tmp_standalone_*/
+
 # IDE va he dieu hanh
 .vscode/
 .DS_Store

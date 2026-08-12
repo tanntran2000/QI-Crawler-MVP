@@ -85,6 +85,31 @@ Neu `.venv` da ton tai, nhung lan sau chi can:
 $env:PYTHONUTF8="1"
 ```
 
+### Danh cho Team Bid tren Windows
+
+Sau khi IT da cai dat QI-Crawler va tao `.venv`, nhan su Bid khong can mo VS Code hay go lenh Python:
+
+```text
+double-click QI-Crawler.bat
+-> chon chuc nang
+-> dan URL
+-> xem ket qua
+-> xuat va kiem tra Excel
+```
+
+File `QI-Crawler.bat` tu mo dung thu muc du an, kich hoat `.venv` va chay `QI-Crawler menu`.
+Neu launcher bao thieu `.venv` hoac lenh QI-Crawler, hay chup man hinh va gui IT; khong tu xoa database.
+
+Ban thu nghiem giao dien desktop PySide6 co the duoc IT khoi dong bang:
+
+```powershell
+python -m qi_crawler.gui
+```
+
+GUI gom cac tab quet danh sach, tim kiem, xuat TBMT, crawl mot URL, dang nhap va xem nhat ky.
+Day van la prototype; chua phai file EXE/installer. Tat ca thao tac tiep tuc dung crawler, database va exporter
+chung voi CLI.
+
 ## Tro giup
 
 Xem danh sach lenh va vi du:
@@ -104,14 +129,23 @@ Cung co the dung:
 ```powershell
 QI-Crawler -h
 QI-Crawler help
+QI-Crawler scan -help
 QI-Crawler tim-goi -help
 ```
 
 Khong go rieng `-help`, vi PowerShell yeu cau dong lenh bat dau bang ten chuong trinh.
 
-## Quy trinh nhanh: tim va xuat Excel
+## Quy trinh nhanh cho Bid Team
 
-### Crawl truoc, tim trong kho sau
+Quet trang danh sach Coteccons (toi da 3 **trang danh sach**, khong phai 3 goi):
+
+```powershell
+QI-Crawler scan "https://ebidding.coteccons.vn/Index" --max-pages 3
+QI-Crawler tim-goi --tu-khoa "chong tham" --so-luong 50
+QI-Crawler xuat-tbmt
+```
+
+Neu chi co mot URL chi tiet, dung:
 
 ```powershell
 QI-Crawler crawl "https://ebidding.coteccons.vn/Index/ChiTiet/2607301"
@@ -119,8 +153,10 @@ QI-Crawler tim-goi --tu-khoa "chong tham" --so-luong 50
 QI-Crawler xuat-tbmt
 ```
 
-`crawl` la lenh duy nhat ket noi website. `tim-goi` chi tim trong database da luu, nen co the
-chay lai de loc ket qua ma khong truy cap website.
+Quy trinh de xuat: `scan -> xem ket qua -> tim-goi -> xuat-tbmt -> kiem tra file Excel`.
+`scan` va `crawl` ket noi website; `tim-goi` chi tim trong database da luu. QI-Crawler khong vuot
+CAPTCHA, HTTP 403 hoac bien phap bao mat. Khi hien `HUMAN_REQUIRED`, nguoi dung phai dang nhap
+hoac kiem tra chan truy cap truoc khi tiep tuc.
 
 `xuat-tbmt` mac dinh gom tat ca goi hop le crawl trong ngay; dung `--all` cho toan bo kho hoac
 `--run-id 123` de xuat mot lan crawl cu the.

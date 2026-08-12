@@ -16,6 +16,7 @@ from ..db import Database
 from ..excel_safety import safe_excel_value
 from ..models import Notice
 from ..source_filter import active_notice_filter
+from ..standalone import resource_path
 from .tbmt_formatter import fold_text
 from .tbmt_mapper import TBMTExcelMapper
 from .tbmt_schema import (
@@ -34,7 +35,7 @@ from .tbmt_validator import DataQuality, TBMTValidation, validate_tbmt_record
 
 logger = logging.getLogger(__name__)
 
-TEMPLATE_PATH = Path(__file__).resolve().parents[3] / "templates" / "TBMT_template_v1.xlsx"
+TEMPLATE_PATH = resource_path("templates", "TBMT_template_v1.xlsx")
 DATETIME_NUMBER_FORMAT = 'hh" giờ "mm" ngày "dd/mm/yyyy'
 
 

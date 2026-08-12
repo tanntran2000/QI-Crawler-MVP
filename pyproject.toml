@@ -18,6 +18,7 @@ dependencies = [
   "playwright>=1.49,<2",
   "pydantic>=2.9,<3",
   "pydantic-settings>=2.6,<3",
+  "PySide6>=6.8,<7",
   "PyYAML>=6.0,<7",
   "SQLAlchemy>=2.0,<3",
   "typer>=0.13,<1",
@@ -27,9 +28,11 @@ dependencies = [
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.2,<4"]
 dev = ["pytest>=8.3,<9", "ruff>=0.8,<1"]
+build = ["pyinstaller>=6.11,<7"]
 
 [project.scripts]
 QI-Crawler = "qi_crawler.cli:app"
+QI-Crawler-GUI = "qi_crawler.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
