@@ -4,9 +4,10 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -14,7 +15,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
 from .browser import BrowserFetcher
-from .compliance import AccessDenied
+from .compliance import AccessDenied, SessionExpired
 from .config import AppConfig
 from .db import Database
 from .downloads import (
@@ -26,6 +27,7 @@ from .downloads import (
 from .http_client import HttpFetcher
 from .models import Attachment, CrawlRun, CrawlTask, Notice, TenderItem
 from .parser import ParsedNotice, extract_detail_links, parse_notice_html
+from .source_adapters import SourceRegistry
 from .validation import validate_notice
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,8 @@ def url_hash(url: str) -> str:
 def parsed_content_hash(parsed: ParsedNotice) -> str:
     payload = {
         "notice_code": parsed.notice_code,
+        "source_notice_id": parsed.source_notice_id,
+        "source_name": parsed.source_name,
         "title": parsed.title,
         "buyer": parsed.buyer,
         "procuring_entity_address": parsed.procuring_entity_address,
@@ -79,13 +83,51 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _source_name_from_kind(source_kind: str, source_url: str) -> str:
+    if source_kind.startswith("web:"):
+        return source_kind.removeprefix("web:")
+    if source_kind not in {"web", "import"}:
+        return source_kind
+    hostname = (urlparse(source_url).hostname or "unknown-source").lower()
+    if hostname.endswith("coteccons.vn"):
+        return "coteccons"
+    if hostname.endswith("muasamcong.mpi.gov.vn"):
+        return "egp"
+    return hostname.removeprefix("www.")
+
+
+def _source_notice_id_from_url(source_url: str) -> str | None:
+    parsed = urlparse(source_url)
+    query = parse_qs(parsed.query)
+    for key in ("notifyNo", "noticeId", "notice_id", "id"):
+        values = query.get(key)
+        if values and values[0].strip():
+            return values[0].strip()
+    parts = [part for part in parsed.path.split("/") if part]
+    for part in reversed(parts):
+        if part.isdigit():
+            return part
+    return None
+
+
+def _enrich_source_identity(parsed: ParsedNotice, source_kind: str) -> None:
+    parsed.source_name = (parsed.source_name or _source_name_from_kind(source_kind, parsed.source_url)).strip()
+    parsed.source_notice_id = (
+        parsed.source_notice_id or parsed.notice_code or _source_notice_id_from_url(parsed.source_url)
+    )
+
+
 class CrawlerService:
     def __init__(self, config: AppConfig):
         self.config = config
         self.db = Database(config.storage.database_url)
-        self.db.create_all()
+        self.db.require_current_schema()
         self.http = HttpFetcher(config)
         self.browser = BrowserFetcher(config)
+        self.source_registry = SourceRegistry(config)
+        self._session_source_name: str | None = None
+        self._session_required = False
+        self.human_required_reason: str | None = None
         self._browser_started = False
 
     async def close(self) -> None:
@@ -98,7 +140,39 @@ class CrawlerService:
             await self.browser.start(headed=headed)
             self._browser_started = True
 
+    def _session_state_for_url(self, url: str) -> tuple[Path | None, str | None, bool]:
+        """Find a locally saved, browser-only session for a configured adapter."""
+        adapter = self.source_registry.adapter_for_url(url)
+        source_name = self._session_source_name or (adapter.source_name if adapter else None)
+        if source_name is None:
+            return None, None, False
+        safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "-", source_name).strip("-")
+        state = Path("data/sessions") / f"{safe_name}_storage_state.json"
+        required = self._session_required or bool(adapter and adapter.source.requires_auth)
+        return (state if state.exists() else None), source_name, required
+
+    def use_authenticated_session(self, source_name: str) -> None:
+        """Prefer a named session for this crawl; the profile must be user-created."""
+        self._session_source_name = source_name
+        self._session_required = True
+
     async def _get_html(self, url: str) -> str:
+        state, source_name, session_required = self._session_state_for_url(url)
+        if session_required and state is None:
+            source_label = (source_name or "website").upper()
+            raise SessionExpired(
+                f"{source_label}_SESSION_EXPIRED: Chua co phien dang nhap hop le. "
+                f"Vui long chay QI-Crawler dang-nhap --source {source_name or 'TEN_NGUON'}."
+            )
+        if state is not None:
+            self._browser_started = True
+            try:
+                return await self.browser.fetch_authenticated_html(url, state)
+            except SessionExpired as exc:
+                source_label = (source_name or "website").upper()
+                raise SessionExpired(
+                    f"{source_label}_SESSION_EXPIRED: {exc}"
+                ) from exc
         try:
             result = await self.http.fetch(url)
             if self.config.crawl.use_browser_fallback and len(result.text) < 5000:
@@ -121,14 +195,33 @@ class CrawlerService:
         path.write_text(html, encoding="utf-8")
         return path
 
-    async def crawl_notice(self, url: str, download_attachments: bool | None = None) -> Notice:
-        html = await self._get_html(url)
-        raw_path = self._save_raw_html(url, html)
-        parsed = parse_notice_html(
+    def _parse_detail(self, html: str, url: str) -> ParsedNotice:
+        """Parse through a configured source adapter, with a generic fallback.
+
+        The HTTP policy still rejects an unapproved domain before this method is
+        reached. The fallback keeps manually configured authenticated sources
+        usable until their dedicated adapter is added.
+        """
+        adapter = self.source_registry.adapter_for_url(url)
+        if adapter is not None:
+            parsed = adapter.parse_detail(html, url)
+            parsed.attachments = [
+                item
+                for item in parsed.attachments
+                if Path(urlparse(item.source_url).path).suffix.lower()
+                in self.config.storage.allowed_attachment_extensions
+            ]
+            return parsed
+        return parse_notice_html(
             html,
             url,
             self.config.storage.allowed_attachment_extensions,
         )
+
+    async def crawl_notice(self, url: str, download_attachments: bool | None = None) -> Notice:
+        html = await self._get_html(url)
+        raw_path = self._save_raw_html(url, html)
+        parsed = self._parse_detail(html, url)
         notice, _, _ = self.upsert_parsed_notice(parsed, raw_html_path=raw_path, source_kind="web")
         should_download = (
             self.config.storage.download_attachments
@@ -159,6 +252,7 @@ class CrawlerService:
         crawl_run_id: int | None = None,
     ) -> tuple[Notice, bool, bool]:
         """Return (notice, created, changed)."""
+        _enrich_source_identity(parsed, source_kind)
         validation = validate_notice(parsed, strict=strict_validation)
         if not validation.valid:
             raise ValueError("; ".join(validation.errors))
@@ -172,6 +266,8 @@ class CrawlerService:
         now = datetime.now(UTC)
         with self.db.session() as session:
             notice = None
+            # e-GP publishes explicit revisions. Its real notice code plus version must
+            # remain the primary key so one revision does not overwrite another.
             if parsed.notice_code:
                 statement = select(Notice).where(Notice.notice_code == parsed.notice_code)
                 if version:
@@ -181,6 +277,22 @@ class CrawlerService:
                         or_(Notice.notice_version.is_(None), Notice.notice_version == "")
                     )
                 notice = session.scalar(statement.order_by(Notice.id.asc()))
+            # Sources without an e-GP code (for example Coteccons) are stable by
+            # their own source identifier within the source name.
+            if (
+                notice is None
+                and not parsed.notice_code
+                and parsed.source_notice_id
+                and parsed.source_name
+            ):
+                notice = session.scalar(
+                    select(Notice)
+                    .where(
+                        Notice.source_name == parsed.source_name,
+                        Notice.source_notice_id == parsed.source_notice_id,
+                    )
+                    .order_by(Notice.id.asc())
+                )
             if notice is None:
                 notice = session.scalar(select(Notice).where(Notice.url_hash == hash_value))
             created = notice is None
@@ -202,6 +314,8 @@ class CrawlerService:
             notice.content_hash = content_hash
             notice.source_kind = source_kind
             notice.notice_code = parsed.notice_code
+            notice.source_notice_id = parsed.source_notice_id
+            notice.source_name = parsed.source_name
             notice.plan_code = parsed.plan_code
             notice.title = parsed.title
             notice.buyer = parsed.buyer
@@ -241,7 +355,7 @@ class CrawlerService:
             if raw_html_path:
                 notice.raw_html_path = str(raw_html_path)
             critical_missing = (
-                not parsed.notice_code,
+                not parsed.notice_code and not parsed.source_notice_id,
                 not parsed.title,
                 parsed.package_price is None,
                 not parsed.closing_at,
@@ -313,8 +427,7 @@ class CrawlerService:
 
         try:
             self.http.policy.validate_domain(source_url)
-            if not await self.http.policy.allowed_by_robots(self.http.client, source_url):
-                raise AccessDenied(f"robots.txt khong cho phep tai tep: {source_url}")
+            await self.http.policy.require_robots_access(self.http.client, source_url)
             await self.http.limiter.wait(source_url)
             max_bytes = self.config.storage.max_attachment_mb * 1024 * 1024
 
@@ -409,11 +522,7 @@ class CrawlerService:
         await self._ensure_browser(headed=headed)
         html = await self.browser.fetch_html(url)
         raw_path = self._save_raw_html(url, html)
-        parsed = parse_notice_html(
-            html,
-            url,
-            self.config.storage.allowed_attachment_extensions,
-        )
+        parsed = self._parse_detail(html, url)
         notice, _, _ = self.upsert_parsed_notice(
             parsed, raw_html_path=raw_path, source_kind="web"
         )
@@ -546,7 +655,7 @@ class CrawlerService:
             try:
                 html = await self._get_html(url)
                 raw_path = self._save_raw_html(url, html)
-                parsed = parse_notice_html(html, url, self.config.storage.allowed_attachment_extensions)
+                parsed = self._parse_detail(html, url)
                 notice, created, changed = self.upsert_parsed_notice(
                     parsed, raw_html_path=raw_path, source_kind="web", crawl_run_id=run_id
                 )
@@ -582,6 +691,8 @@ class CrawlerService:
                         task.last_error = "Crawl bi huy/gian doan; cho resume."
                 raise
             except Exception as exc:
+                if isinstance(exc, SessionExpired):
+                    self.human_required_reason = str(exc)
                 retryable = self._is_retryable_crawl_error(exc)
                 can_retry = retryable and attempt_count <= self.config.crawl.max_retries
                 with self.db.session() as session:
@@ -636,6 +747,9 @@ class CrawlerService:
 
     async def collect_links(self, list_url: str) -> list[str]:
         html = await self._get_html(list_url)
+        adapter = self.source_registry.adapter_for_url(list_url)
+        if adapter is not None:
+            return adapter.discover(html, list_url)
         return extract_detail_links(
             html,
             list_url,

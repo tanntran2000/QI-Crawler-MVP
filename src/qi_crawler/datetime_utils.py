@@ -17,6 +17,26 @@ def _as_utc(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
+def has_explicit_time(value: datetime | date | str | None) -> bool:
+    """Return whether a source value actually supplied an hour and minute.
+
+    Date-only tender notices are stored as midnight internally for comparison,
+    but callers must not present that technical midnight as a real deadline.
+    """
+    if isinstance(value, datetime):
+        return True
+    if isinstance(value, date) or value is None:
+        return False
+    text = " ".join(str(value).replace("\xa0", " ").split())
+    if not text:
+        return False
+    return bool(
+        re.search(r"\b\d{1,2}:\d{2}(?::\d{2})?\b", text)
+        or re.search(r"\b\d{1,2}\s*gio\s*\d{1,2}\b", _fold_for_match(text))
+        or re.search(r"T\d{1,2}", text, re.IGNORECASE)
+    )
+
+
 def parse_datetime_utc(value: datetime | date | str | None) -> datetime | None:
     """Parse common e-GP, Vietnamese and ISO timestamps into an aware UTC datetime.
 

@@ -1,7 +1,20 @@
 project_name: qi-crawler
 allowed_domains:
   - muasamcong.mpi.gov.vn
-  - www.contractsfinder.service.gov.uk
+  - ebidding.coteccons.vn
+sources:
+  egp:
+    enabled: true
+    priority: 1
+    domain: muasamcong.mpi.gov.vn
+    adapter: egp
+    requires_auth: true
+  coteccons:
+    enabled: true
+    priority: 2
+    domain: ebidding.coteccons.vn
+    adapter: coteccons
+    requires_auth: false
 seed_urls:
   - https://muasamcong.mpi.gov.vn/web/guest/contractor-selection?render=search
 

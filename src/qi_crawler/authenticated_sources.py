@@ -105,7 +105,7 @@ def source_path(name: str) -> Path:
 
 
 def session_path(name: str) -> Path:
-    return SESSION_DIR / f"{safe_source_name(name)}.json"
+    return SESSION_DIR / f"{safe_source_name(name)}_storage_state.json"
 
 
 def save_source(source: WebSource) -> Path:

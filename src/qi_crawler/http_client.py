@@ -33,8 +33,7 @@ class HttpFetcher:
 
     async def fetch(self, url: str) -> FetchResult:
         self.policy.validate_domain(url)
-        if not await self.policy.allowed_by_robots(self.client, url):
-            raise AccessDenied(f"robots.txt khong cho phep crawl URL: {url}")
+        await self.policy.require_robots_access(self.client, url)
 
         attempts = self.config.crawl.max_retries + 1
         last_error: Exception | None = None

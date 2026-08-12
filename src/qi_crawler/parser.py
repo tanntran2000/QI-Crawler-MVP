@@ -37,6 +37,8 @@ class ParsedTenderItem:
 class ParsedNotice:
     source_url: str
     notice_code: str | None = None
+    source_notice_id: str | None = None
+    source_name: str | None = None
     plan_code: str | None = None
     title: str | None = None
     buyer: str | None = None
@@ -258,6 +260,24 @@ def _extract_tax_code(lines: list[str]) -> str | None:
     return match.group(1) if match else None
 
 
+def _extract_tender_issuer(lines: list[str]) -> str | None:
+    """Extract the company named as issuing a tender, used by portal-style pages."""
+    for line in lines:
+        match = re.match(
+            r"^(?P<buyer>.+?)\s+phát hành hồ sơ mời thầu(?:\s+như sau)?\s*[:.]?\s*$",
+            line,
+            re.IGNORECASE,
+        )
+        if match:
+            return _compact(match.group("buyer"))
+        folded = _fold(line)
+        marker = " phat hanh ho so moi thau"
+        if marker in folded:
+            original = line[: folded.index(marker)]
+            return _compact(original)
+    return None
+
+
 def _extract_attachments(
     soup: BeautifulSoup,
     source_url: str,
@@ -311,7 +331,9 @@ def parse_notice_html(
         notice_code = match.group(0) if match else None
 
     plan_code = _extract_label_value(lines, ("Ma KHLCNT", "Ma ke hoach"))
-    buyer = _extract_label_value(lines, ("Ben moi thau", "Don vi moi thau"))
+    buyer = _extract_label_value(lines, ("Ben moi thau", "Don vi moi thau")) or _extract_tender_issuer(
+        lines
+    )
     procuring_entity_address = _extract_label_value(
         lines,
         ("Dia chi ben moi thau", "Dia chi cua ben moi thau", "Dia chi chu dau tu"),
@@ -336,7 +358,10 @@ def parse_notice_html(
     )
     sector = _extract_label_value(lines, ("Linh vuc", "Phan loai linh vuc"))
     selection_method = _extract_label_value(lines, ("Phuong thuc lua chon nha thau",))
-    selection_form = _extract_label_value(lines, ("Hinh thuc lua chon nha thau",))
+    selection_form = _extract_label_value(
+        lines,
+        ("Hinh thuc lua chon nha thau", "Hinh thuc lua chon"),
+    )
     notice_version = _extract_label_value(
         lines,
         ("Phien ban", "Lan dang", "Lan thay doi"),
@@ -380,6 +405,7 @@ def parse_notice_html(
     return ParsedNotice(
         source_url=source_url,
         notice_code=notice_code,
+        source_notice_id=notice_code,
         plan_code=plan_code,
         title=title,
         buyer=buyer,

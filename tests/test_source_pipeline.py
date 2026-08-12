@@ -1,18 +1,20 @@
 import asyncio
-import json
 from dataclasses import replace
 from pathlib import Path
 
 from sqlalchemy import func, select
 
 from qi_crawler.authenticated_sources import egp_vietnam_source, extract_source_links
-from qi_crawler.config import AppConfig
-from qi_crawler.contracts_finder import release_to_notice
+from qi_crawler.config import AppConfig, SourceConfig
 from qi_crawler.crawler import CrawlerService
 from qi_crawler.models import Attachment, Notice
 from qi_crawler.parser import ParsedNotice, parse_notice_html
+from qi_crawler.source_adapters import CotecconsAdapter
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "golden" / "source"
+COTECCONS_SOURCE = SourceConfig(
+    domain="ebidding.coteccons.vn", adapter="coteccons", priority=2
+)
 
 GOLDENS = (
     (
@@ -44,55 +46,6 @@ GOLDENS = (
         },
     ),
     (
-        "tender_03.json",
-        "contracts_finder",
-        None,
-        {
-            "notice_code": "ocds-b5fd17-golden-03",
-            "title": "Network security and router services",
-            "buyer": "North Example Council",
-            "package_price": 250_000.0,
-            "closing_at": "2026-08-31T12:00:00Z",
-            "source_url": "https://www.contractsfinder.service.gov.uk/Notice/golden-03",
-            "attachments": [
-                "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-03-spec"
-            ],
-        },
-    ),
-    (
-        "tender_04.json",
-        "contracts_finder",
-        None,
-        {
-            "notice_code": "ocds-b5fd17-golden-04",
-            "title": "Laboratory switching equipment",
-            "buyer": "West Example University",
-            "package_price": 450_000.5,
-            "closing_at": "2026-09-01T17:00:00Z",
-            "source_url": "https://www.contractsfinder.service.gov.uk/Notice/golden-04",
-            "attachments": [
-                "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-04-boq"
-            ],
-        },
-    ),
-    (
-        "tender_05.json",
-        "contracts_finder",
-        None,
-        {
-            "notice_code": "ocds-b5fd17-golden-05",
-            "title": "Medical data centre cabling",
-            "buyer": "Central Example Hospital",
-            "package_price": 125_000.0,
-            "closing_at": "2026-09-03T12:00:00Z",
-            "source_url": "https://www.contractsfinder.service.gov.uk/Notice/golden-05",
-            "attachments": [
-                "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-05-spec",
-                "https://www.contractsfinder.service.gov.uk/Notice/Attachment/golden-05-price",
-            ],
-        },
-    ),
-    (
         "tender_06.html",
         "web:egp-vietnam",
         "https://muasamcong.mpi.gov.vn/vi/web/guest/contractor-selection?notifyNo=IB2600123458",
@@ -106,6 +59,34 @@ GOLDENS = (
             "attachments": ["https://muasamcong.mpi.gov.vn/attachments/boq-camera.xlsx"],
         },
     ),
+    (
+        "coteccons_2607301.html",
+        "web:coteccons",
+        "https://ebidding.coteccons.vn/Index/ChiTiet/2607301",
+        {
+            "notice_code": "2607301",
+            "title": "GÓI THẦU: THI CÔNG CHỐNG THẤM",
+            "buyer": "Công ty Cổ phần Xây dựng Coteccons",
+            "package_price": None,
+            "closing_at": "08:30 14/08/2026",
+            "source_url": "https://ebidding.coteccons.vn/Index/ChiTiet/2607301",
+            "attachments": ["https://ebidding.coteccons.vn/documents/2607301-hsmt.pdf"],
+        },
+    ),
+    (
+        "coteccons_2607302.html",
+        "web:coteccons",
+        "https://ebidding.coteccons.vn/Index/ChiTiet/2607302",
+        {
+            "notice_code": "2607302",
+            "title": "GÓI THẦU: CUNG CẤP VẬT TƯ CƠ ĐIỆN",
+            "buyer": "Công ty Cổ phần Xây dựng Coteccons",
+            "package_price": None,
+            "closing_at": "16:45 16/08/2026",
+            "source_url": "https://ebidding.coteccons.vn/Index/ChiTiet/2607302",
+            "attachments": [],
+        },
+    ),
 )
 
 
@@ -117,16 +98,12 @@ def _service(tmp_path: Path) -> CrawlerService:
 
 def _parsed_notice(filename: str, source_url: str | None) -> ParsedNotice:
     path = FIXTURE_DIR / filename
-    if path.suffix == ".json":
-        notice = release_to_notice(json.loads(path.read_text(encoding="utf-8")))
-        assert notice is not None
-        return notice
     assert source_url is not None
     return parse_notice_html(path.read_text(encoding="utf-8"), source_url)
 
 
 def _assert_critical_fields(parsed: ParsedNotice, expected: dict[str, object]) -> None:
-    assert parsed.notice_code == expected["notice_code"]
+    assert (parsed.notice_code or parsed.source_notice_id) == expected["notice_code"]
     assert parsed.title == expected["title"]
     assert parsed.buyer == expected["buyer"]
     assert parsed.package_price == expected["package_price"]
@@ -135,43 +112,52 @@ def _assert_critical_fields(parsed: ParsedNotice, expected: dict[str, object]) -
     assert [attachment.source_url for attachment in parsed.attachments] == expected["attachments"]
 
 
-def test_six_golden_sources_parse_and_persist_without_duplicates(tmp_path: Path) -> None:
+def test_five_golden_sources_parse_and_persist_without_duplicates(tmp_path: Path) -> None:
     service = _service(tmp_path)
     identities: dict[str, int] = {}
     try:
         for filename, source_kind, source_url, expected in GOLDENS:
             parsed = _parsed_notice(filename, source_url)
+            if "coteccons" in source_kind:
+                adapter = CotecconsAdapter("coteccons", COTECCONS_SOURCE)
+                parsed = adapter.parse_detail(
+                    (FIXTURE_DIR / filename).read_text(encoding="utf-8"), source_url
+                )
             _assert_critical_fields(parsed, expected)
             notice, created, _ = service.upsert_parsed_notice(parsed, source_kind=source_kind)
             assert created
             identities[str(expected["notice_code"])] = notice.id
 
         for filename, source_kind, source_url, expected in GOLDENS:
-            notice, created, changed = service.upsert_parsed_notice(
-                _parsed_notice(filename, source_url), source_kind=source_kind
-            )
+            parsed = _parsed_notice(filename, source_url)
+            if "coteccons" in source_kind:
+                adapter = CotecconsAdapter("coteccons", COTECCONS_SOURCE)
+                parsed = adapter.parse_detail(
+                    (FIXTURE_DIR / filename).read_text(encoding="utf-8"), source_url
+                )
+            notice, created, changed = service.upsert_parsed_notice(parsed, source_kind=source_kind)
             assert not created
             assert not changed
             assert notice.id == identities[str(expected["notice_code"])]
 
         with service.db.session() as session:
-            assert session.scalar(select(func.count()).select_from(Notice)) == 6
-            assert session.scalar(select(func.count()).select_from(Attachment)) == 7
+            assert session.scalar(select(func.count()).select_from(Notice)) == 5
+            assert session.scalar(select(func.count()).select_from(Attachment)) == 4
     finally:
         asyncio.run(service.close())
 
 
 def test_source_pipeline_updates_existing_notice_in_place(tmp_path: Path) -> None:
     service = _service(tmp_path)
-    filename, source_kind, source_url, _ = GOLDENS[2]
+    filename, source_kind, source_url, _ = GOLDENS[0]
     try:
         original, created, _ = service.upsert_parsed_notice(
             _parsed_notice(filename, source_url), source_kind=source_kind
         )
         updated = replace(
             _parsed_notice(filename, source_url),
-            title="Network security and router services - revised",
-            package_price=255_000.0,
+            title="Cung cap cap quang va thiet bi mang - revised",
+            package_price=1_255_000_000.0,
         )
         notice, created_again, changed = service.upsert_parsed_notice(
             updated, source_kind=source_kind
@@ -181,7 +167,7 @@ def test_source_pipeline_updates_existing_notice_in_place(tmp_path: Path) -> Non
         assert not created_again
         assert changed
         assert notice.id == original.id
-        assert notice.title == "Network security and router services - revised"
+        assert notice.title == "Cung cap cap quang va thiet bi mang - revised"
         with service.db.session() as session:
             assert session.scalar(select(func.count()).select_from(Notice)) == 1
     finally:

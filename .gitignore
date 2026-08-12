@@ -4,6 +4,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .tmp_pytest/
+.tmp_pytest_*/
 .ruff_cache/
 .coverage
 .coverage.*
@@ -34,6 +35,7 @@ data/warehouse/backups/*
 !data/warehouse/backups/.gitkeep
 data/warehouse/quarantine/*
 !data/warehouse/quarantine/.gitkeep
+data/archive/
 
 # Du lieu van hanh khong dua len Git
 data/urls.txt
@@ -57,6 +59,7 @@ data/reports/*
 
 # Phien dang nhap trinh duyet chua cookie/token, tuyet doi khong dua len Git
 data/sessions/
+*.storage_state.json
 
 # Cau hinh nguon cuc bo co the chua URL noi bo
 data/sources/

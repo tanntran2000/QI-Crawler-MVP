@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import ClassVar
 
+from ..datetime_utils import has_explicit_time
 from .tbmt_formatter import (
     clean_text,
     format_package_name,
@@ -23,6 +25,13 @@ class TBMTExcelMapper:
         "extension": "Thông báo gia hạn",
         "cancelled": "Thông báo hủy thầu",
     }
+
+    @staticmethod
+    def _excel_date_or_datetime(value: datetime | None, source_value: object) -> date | datetime | None:
+        """Keep a source date-only value date-only in the human-facing workbook."""
+        if value is not None and source_value is not None and not has_explicit_time(source_value):
+            return value.date()
+        return value
 
     def normalize(self, notice: object) -> NormalizedTenderRecord:
         raw_text = getattr(notice, "raw_text", None)
@@ -73,6 +82,8 @@ class TBMTExcelMapper:
         return NormalizedTenderRecord(
             database_id=getattr(notice, "id", None),
             notice_id=clean_text(getattr(notice, "notice_code", None)),
+            source_notice_id=clean_text(getattr(notice, "source_notice_id", None)),
+            source_name=clean_text(getattr(notice, "source_name", None)),
             notice_version=clean_text(getattr(notice, "notice_version", None)),
             notice_type=clean_text(getattr(notice, "notice_type", None)) or "tbmt",
             source_url=clean_text(getattr(notice, "source_url", None)),
@@ -127,6 +138,7 @@ class TBMTExcelMapper:
                 getattr(notice, "closing_at_dt", None)
                 or parse_datetime_value(getattr(notice, "closing_at", None))
             ),
+            bid_close_at_source=clean_text(getattr(notice, "closing_at", None)),
             bid_open_at=bid_open,
             contract_duration=contract_duration,
             published_at=(
@@ -153,6 +165,8 @@ class TBMTExcelMapper:
             "GÓI THẦU": format_package_name(
                 record.package_name,
                 record.notice_id,
+                record.source_notice_id,
+                record.source_name,
                 record.published_at,
                 record.published_at_source,
             ),
@@ -165,8 +179,11 @@ class TBMTExcelMapper:
             "GIÁ BÁN 1 BỘ HSMT": record.document_price,
             "BẢO ĐẢM DỰ THẦU": record.bid_security_amount,
             "HÌNH THỨC BẢO ĐẢM DỰ THẦU": record.bid_security_method,
-            "ĐỊA ĐIỂM PHÁT HÀNH": record.issue_location,
-            "THỜI GIAN ĐÓNG THẦU(HẠN CUỐI TIẾP NHẬN BG)": record.bid_close_at,
+            "ĐỊA ĐIỂM PHÁT HÀNH": record.source_url,
+            "THỜI GIAN ĐÓNG THẦU(HẠN CUỐI TIẾP NHẬN BG)": self._excel_date_or_datetime(
+                record.bid_close_at,
+                record.bid_close_at_source,
+            ),
             "THỜI GIAN MỞ THẦU": record.bid_open_at,
             "THỜI GIAN THỰC HIỆN HỢP ĐỒNG": record.contract_duration,
         }

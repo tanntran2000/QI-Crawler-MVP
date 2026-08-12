@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 import pytest
 
 from qi_crawler.bid_intelligence import fold_text
-from qi_crawler.datetime_utils import parse_datetime_utc
+from qi_crawler.datetime_utils import has_explicit_time, parse_datetime_utc
 from qi_crawler.export.tbmt_formatter import parse_datetime_value as parse_export_datetime
 from qi_crawler.parser import parse_datetime_value as parse_tender_datetime
 
@@ -36,6 +36,12 @@ def test_shared_parsers_are_utc_aware_and_consistent() -> None:
 def test_parse_datetime_utc_rejects_invalid_values() -> None:
     assert parse_datetime_utc("khong phai ngay") is None
     assert parse_datetime_utc(None) is None
+
+
+def test_date_only_values_are_distinguished_from_real_timestamps() -> None:
+    assert not has_explicit_time("14/08/2026")
+    assert has_explicit_time("14/08/2026 08:30")
+    assert has_explicit_time("08 giờ 30 ngày 14/08/2026")
 
 
 def test_fold_text_normalizes_vietnamese_d_stroke() -> None:

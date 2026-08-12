@@ -18,7 +18,7 @@ from .models import (
 
 config = load_config()
 db = Database(config.storage.database_url)
-db.create_all()
+db.require_current_schema()
 app = FastAPI(title="QI Crawler API", version=__version__)
 
 
@@ -40,6 +40,8 @@ def list_notices(
             statement = statement.where(
                 Notice.title.ilike(pattern)
                 | Notice.notice_code.ilike(pattern)
+                | Notice.source_notice_id.ilike(pattern)
+                | Notice.source_name.ilike(pattern)
                 | Notice.buyer.ilike(pattern)
             )
         items = session.scalars(statement.offset(offset).limit(limit)).all()
@@ -48,6 +50,8 @@ def list_notices(
                 {
                     "id": item.id,
                     "notice_code": item.notice_code,
+                    "source_notice_id": item.source_notice_id,
+                    "source_name": item.source_name,
                     "title": item.title,
                     "buyer": item.buyer,
                     "investor": item.investor,
@@ -83,6 +87,8 @@ def get_notice(notice_id: int) -> dict:
         return {
             "id": notice.id,
             "notice_code": notice.notice_code,
+            "source_notice_id": notice.source_notice_id,
+            "source_name": notice.source_name,
             "title": notice.title,
             "buyer": notice.buyer,
             "investor": notice.investor,

@@ -15,6 +15,7 @@ from .. import __version__
 from ..db import Database
 from ..excel_safety import safe_excel_value
 from ..models import Notice
+from ..source_filter import active_notice_filter
 from .tbmt_formatter import fold_text
 from .tbmt_mapper import TBMTExcelMapper
 from .tbmt_schema import (
@@ -71,11 +72,16 @@ def _excel_datetime(value: object) -> object:
     return value
 
 
-def _load_notices(db: Database) -> list[Notice]:
+def _load_notices(
+    db: Database,
+    active_names: tuple[str, ...] | None = None,
+    active_domains: tuple[str, ...] | None = None,
+) -> list[Notice]:
     with db.session() as session:
         notices = session.scalars(
             select(Notice)
             .options(selectinload(Notice.bid_results), selectinload(Notice.bid_openings))
+            .where(active_notice_filter(active_names, active_domains))
             .order_by(Notice.id.asc())
         ).all()
         session.expunge_all()
@@ -84,6 +90,40 @@ def _load_notices(db: Database) -> list[Notice]:
 
 def _record_date(record: NormalizedTenderRecord) -> date | None:
     return record.published_at.date() if record.published_at else None
+
+
+def _crawl_date(record: NormalizedTenderRecord) -> date | None:
+    if record.crawled_at is None:
+        return None
+    return record.crawled_at.astimezone().date() if record.crawled_at.tzinfo else record.crawled_at.date()
+
+
+def _record_identity(record: NormalizedTenderRecord) -> tuple[str, ...]:
+    """Use the business identity, not a crawl run, when exporting rows."""
+    if record.notice_id:
+        return ("notice_code", record.notice_id)
+    if record.source_name and record.source_notice_id:
+        return ("source", record.source_name, record.source_notice_id)
+    return ("url", record.source_url or str(record.database_id))
+
+
+def _crawled_sort_value(record: NormalizedTenderRecord) -> float:
+    value = record.crawled_at
+    if value is None:
+        return 0.0
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.timestamp()
+
+
+def _deduplicate_records(records: list[NormalizedTenderRecord]) -> list[NormalizedTenderRecord]:
+    unique: dict[tuple[str, ...], NormalizedTenderRecord] = {}
+    for record in records:
+        key = _record_identity(record)
+        existing = unique.get(key)
+        if existing is None or _crawled_sort_value(record) >= _crawled_sort_value(existing):
+            unique[key] = record
+    return sorted(unique.values(), key=lambda item: item.database_id or 0)
 
 
 def _matches_filters(
@@ -152,7 +192,10 @@ def _write_main_sheet(
         for column_number in MONEY_COLUMNS:
             sheet.cell(row_number, column_number).number_format = "#,##0"
         for column_number in DATETIME_COLUMNS:
-            sheet.cell(row_number, column_number).number_format = DATETIME_NUMBER_FORMAT
+            cell = sheet.cell(row_number, column_number)
+            cell.number_format = (
+                DATETIME_NUMBER_FORMAT if isinstance(cell.value, datetime) else "dd/mm/yyyy"
+            )
 
         source_cell = sheet.cell(row_number, 15)
         if mapped.record.source_url:
@@ -205,6 +248,8 @@ def _write_meta_sheet(
     headers = [
         "Database ID",
         "Notice ID",
+        "Source Name",
+        "Source Notice ID",
         "Notice Version",
         "Source URL",
         "Content Hash",
@@ -223,6 +268,8 @@ def _write_meta_sheet(
             [
                 record.database_id,
                 record.notice_id,
+                record.source_name,
+                record.source_notice_id,
                 record.notice_version,
                 safe_excel_value(record.source_url),
                 record.content_hash,
@@ -280,20 +327,29 @@ def export_tbmt(
     status: str | None = None,
     keyword: str | None = None,
     highlight: bool = False,
-    latest_run_only: bool = True,
+    latest_run_only: bool = False,
+    crawl_run_id: int | None = None,
+    current_day_only: bool = False,
     template_path: Path = TEMPLATE_PATH,
+    active_source_names: tuple[str, ...] | None = None,
+    active_source_domains: tuple[str, ...] | None = None,
 ) -> TBMTExportResult:
     """Export the stable TBMT-1.0 workbook without mutating the source template."""
     if not template_path.exists():
         raise FileNotFoundError(f"Khong tim thay template TBMT: {template_path}")
 
-    notices = _load_notices(db)
+    notices = _load_notices(db, active_source_names, active_source_domains)
     mapper = TBMTExcelMapper()
     records = [mapper.normalize(notice) for notice in notices]
     run_ids = [record.crawl_run_id for record in records if record.crawl_run_id is not None]
-    crawl_run_id = max(run_ids) if run_ids and latest_run_only else None
-    if crawl_run_id is not None:
-        records = [record for record in records if record.crawl_run_id == crawl_run_id]
+    selected_run_id = crawl_run_id
+    if selected_run_id is None and run_ids and latest_run_only:
+        selected_run_id = max(run_ids)
+    if selected_run_id is not None:
+        records = [record for record in records if record.crawl_run_id == selected_run_id]
+    if current_day_only:
+        today = datetime.now().astimezone().date()
+        records = [record for record in records if _crawl_date(record) == today]
     records = [
         record
         for record in records
@@ -306,12 +362,13 @@ def export_tbmt(
             keyword=keyword,
         )
     ]
+    records = _deduplicate_records(records)
 
     accepted: list[tuple[TBMTExcelRow, TBMTValidation]] = []
     rejected: list[tuple[NormalizedTenderRecord, TBMTValidation]] = []
     for record in records:
         validation = validate_tbmt_record(record)
-        if validation.status == DataQuality.INVALID:
+        if validation.status == DataQuality.REJECT:
             rejected.append((record, validation))
             continue
         if validation.status == DataQuality.WARNING:
@@ -334,7 +391,7 @@ def export_tbmt(
         workbook,
         accepted,
         generated_at=generated_at,
-        crawl_run_id=crawl_run_id,
+        crawl_run_id=selected_run_id,
     )
     workbook.save(destination)
 
@@ -354,5 +411,5 @@ def export_tbmt(
             validation.status == DataQuality.WARNING for _, validation in accepted
         ),
         rejected_records=len(rejected),
-        crawl_run_id=crawl_run_id,
+        crawl_run_id=selected_run_id,
     )

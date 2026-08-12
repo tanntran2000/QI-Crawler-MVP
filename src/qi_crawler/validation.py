@@ -18,8 +18,10 @@ def validate_notice(notice: ParsedNotice, strict: bool = False) -> ValidationRes
 
     if not notice.source_url:
         errors.append("source_url bi thieu")
-    if not notice.notice_code:
-        (errors if strict else warnings).append("notice_code bi thieu")
+    if not notice.notice_code and not notice.source_notice_id:
+        errors.append("thieu ca notice_code va source_notice_id")
+    elif not notice.notice_code:
+        warnings.append("notice_code bi thieu; dung source_notice_id cua nguon")
     if not notice.title:
         (errors if strict else warnings).append("title bi thieu")
     if notice.package_price is not None and notice.package_price < 0:

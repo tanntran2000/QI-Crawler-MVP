@@ -20,7 +20,7 @@ from playwright.async_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
 
-from .compliance import AccessDenied, AccessPolicy, DomainRateLimiter
+from .compliance import AccessPolicy, DomainRateLimiter, SessionExpired
 from .config import AppConfig
 from .downloads import (
     DownloadedFile,
@@ -91,8 +91,7 @@ class BrowserFetcher:
             headers={"User-Agent": self.config.compliance.identify_user_agent},
             follow_redirects=True,
         ) as client:
-            if not await self.policy.allowed_by_robots(client, url):
-                raise AccessDenied(f"robots.txt khong cho phep tu dong truy cap URL: {url}")
+            await self.policy.require_robots_access(client, url)
 
     async def fetch_html(self, url: str) -> str:
         self.policy.validate_domain(url)
@@ -106,6 +105,32 @@ class BrowserFetcher:
                 await page.wait_for_timeout(self.config.crawl.render_wait_ms)
             html = await page.content()
             self.policy.detect_block_page(html)
+            return html
+        finally:
+            await page.close()
+
+    async def fetch_authenticated_html(self, url: str, storage_state: Path) -> str:
+        """Fetch with a user-created Playwright session; never stores a password."""
+        if not storage_state.exists():
+            raise FileNotFoundError("Khong tim thay phien dang nhap. Hay chay dang-nhap lai.")
+        await self.ensure_browser_access_allowed(url)
+        await self.start(headed=False, storage_state=storage_state)
+        page = await self.new_page()
+        try:
+            await self.limiter.wait(url)
+            await page.goto(url, wait_until="domcontentloaded")
+            await page.wait_for_selector(self.config.selectors.page_ready)
+            if self.config.crawl.render_wait_ms:
+                await page.wait_for_timeout(self.config.crawl.render_wait_ms)
+            html = await page.content()
+            self.policy.detect_block_page(html)
+            location = page.url.lower()
+            has_password_input = await page.locator('input[type="password"]').count() > 0
+            if any(marker in location for marker in ("/login", "dang-nhap", "signin")) or has_password_input:
+                raise SessionExpired(
+                    "Phien dang nhap da het han hoac bi chuyen ve trang login. "
+                    "Hay chay QI-Crawler dang-nhap --source egp (hoac ten nguon cua ban)."
+                )
             return html
         finally:
             await page.close()

@@ -3,103 +3,64 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, inspect
+import click
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from .keywords import normalize_keyword
 from .models import Base
 
-# Additive compatibility migration for the MVP. Production deployments should use Alembic.
-_ADDITIVE_COLUMNS: dict[str, dict[str, str]] = {
-    "notices": {
-        "content_hash": "VARCHAR(64)",
-        "source_kind": "VARCHAR(32) NOT NULL DEFAULT 'web'",
-        "data_quality_status": "VARCHAR(32) NOT NULL DEFAULT 'valid'",
-        "location": "TEXT",
-        "sector": "TEXT",
-        "selection_method": "TEXT",
-        "notice_version": "VARCHAR(128)",
-        "plan_code": "VARCHAR(255)",
-        "procuring_entity_address": "TEXT",
-        "buyer_tax_code": "VARCHAR(32)",
-        "investor_tax_code": "VARCHAR(32)",
-        "project_name": "TEXT",
-        "package_description": "TEXT",
-        "estimated_price": "REAL",
-        "notice_type": "VARCHAR(32) NOT NULL DEFAULT 'tbmt'",
-        "funding_source": "TEXT",
-        "contract_type": "VARCHAR(64)",
-        "bid_type": "VARCHAR(64)",
-        "selection_form": "TEXT",
-        "document_issue_at": "TIMESTAMP",
-        "document_price": "REAL",
-        "bid_security_amount": "REAL",
-        "bid_security_method": "TEXT",
-        "issue_location": "TEXT",
-        "published_at_dt": "TIMESTAMP",
-        "closing_at_dt": "TIMESTAMP",
-        "bid_open_at": "TIMESTAMP",
-        "contract_duration": "TEXT",
-        "crawl_run_id": "INTEGER",
-        "crawl_status": "VARCHAR(32) NOT NULL DEFAULT 'ok'",
-        "review_status": "VARCHAR(32) NOT NULL DEFAULT 'pending'",
-        "ai_sector": "TEXT",
-        "ai_sector_code": "VARCHAR(32)",
-        "ai_confidence": "REAL",
-    },
-    "attachments": {
-        "download_status": "VARCHAR(32) NOT NULL DEFAULT 'pending'",
-        "download_method": "VARCHAR(32)",
-        "download_attempts": "INTEGER NOT NULL DEFAULT 0",
-        "download_error": "TEXT",
-        "last_attempt_at": "TIMESTAMP",
-    },
-    "crawl_runs": {
-        "source_name": "VARCHAR(255)",
-        "records_found": "INTEGER NOT NULL DEFAULT 0",
-        "records_inserted": "INTEGER NOT NULL DEFAULT 0",
-        "records_updated": "INTEGER NOT NULL DEFAULT 0",
-        "records_failed": "INTEGER NOT NULL DEFAULT 0",
-        "error_message": "TEXT",
-    },
-    "bid_requirements": {
-        "requirement_type": "VARCHAR(32) NOT NULL DEFAULT 'mandatory'",
-    },
-    "compliance_assessments": {
-        "variance_type": "VARCHAR(32) NOT NULL DEFAULT 'none'",
-        "variance_impact": "TEXT",
-        "reviewer_decision": "VARCHAR(32)",
-    },
-    "bid_predictions": {
-        "gate_status": "VARCHAR(32) NOT NULL DEFAULT 'HOLD'",
-    },
-}
+CURRENT_SCHEMA_REVISION = "0004_add_notice_fts5"
 
+
+class SchemaNotReady(click.ClickException):
+    """Raised when an operator must run the explicit database migration."""
+
+
+def _register_sqlite_functions(dbapi_connection, _connection_record) -> None:
+    dbapi_connection.create_function("qi_normalize", 1, lambda value: normalize_keyword(value or ""))
 
 
 class Database:
     def __init__(self, url: str):
+        self.url = url
         connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
         self.engine = create_engine(url, future=True, pool_pre_ping=True, connect_args=connect_args)
+        if url.startswith("sqlite"):
+            event.listen(self.engine, "connect", _register_sqlite_functions)
         self._session_factory = sessionmaker(bind=self.engine, expire_on_commit=False, class_=Session)
 
-    def create_all(self) -> None:
-        Base.metadata.create_all(self.engine)
-        self._apply_additive_migrations()
-
-    def _apply_additive_migrations(self) -> None:
+    def require_current_schema(self) -> None:
+        """Fail closed instead of creating or altering production tables at startup."""
         inspector = inspect(self.engine)
-        existing_tables = set(inspector.get_table_names())
-        with self.engine.begin() as connection:
-            for table_name, columns in _ADDITIVE_COLUMNS.items():
-                if table_name not in existing_tables:
-                    continue
-                existing_columns = {item["name"] for item in inspector.get_columns(table_name)}
-                for column_name, ddl in columns.items():
-                    if column_name in existing_columns:
-                        continue
-                    connection.exec_driver_sql(
-                        f'ALTER TABLE "{table_name}" ADD COLUMN "{column_name}" {ddl}'
-                    )
+        tables = set(inspector.get_table_names())
+        if "alembic_version" not in tables:
+            raise SchemaNotReady(
+                "Hay chay QI-Crawler db-upgrade"
+            )
+        missing = set(Base.metadata.tables) - tables
+        if missing:
+            raise SchemaNotReady(
+                "Hay chay QI-Crawler db-upgrade"
+            )
+        with self.engine.connect() as connection:
+            revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
+        if revision != CURRENT_SCHEMA_REVISION:
+            raise SchemaNotReady(
+                "Hay chay QI-Crawler db-upgrade"
+            )
+
+    def fts5_available(self) -> bool:
+        if self.engine.dialect.name != "sqlite":
+            return False
+        try:
+            with self.engine.connect() as connection:
+                return bool(
+                    connection.scalar(text("SELECT sqlite_compileoption_used('ENABLE_FTS5')"))
+                )
+        except SQLAlchemyError:  # pragma: no cover - defensive for unusual SQLite builds
+            return False
 
     @contextmanager
     def session(self) -> Iterator[Session]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, date, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import typer
 
@@ -25,17 +26,20 @@ from .bid_intelligence import (
 )
 from .browser import BrowserFetcher
 from .config import EnvSettings, load_config
-from .contracts_finder import collect_contracts_finder
 from .crawler import CrawlerService
-from .db import Database
+from .db import Database, SchemaNotReady
 from .export import export_tbmt
 from .exporter import export_csv, export_xlsx
 from .importer import import_file as import_data_file
 from .inventory import import_inventory, import_tender_items
 from .keywords import KeywordExpansion, expand_keyword, learn_keyword
+from .legacy_cleanup import archive_legacy_notices
 from .logging_utils import configure_logging
+from .migrations import backup_database, upgrade_database
 from .monitoring import load_monitoring_config, monitor_forever, run_monitoring_cycle
+from .notice_search import search_notices
 from .reporting import build_daily_report, send_report_email
+from .source_filter import active_source_domains, active_source_names
 from .warehouse import BACKUP_DIR, WAREHOUSE_PATH, WarehouseManager
 
 
@@ -46,24 +50,6 @@ def _show_keyword_plan(expansion: KeywordExpansion) -> None:
             f"Nhom nganh: {expansion.category} "
             f"({', '.join(expansion.category_terms)})"
         )
-
-
-def _expand_and_learn(keyword: str) -> KeywordExpansion:
-    expansion = expand_keyword(keyword)
-    if expansion.category is None:
-        learned = learn_keyword(keyword)
-        if learned.status == "updated":
-            typer.echo(
-                f"Da tu phan loai tu khoa moi vao nhom '{learned.category}' "
-                f"(do tin cay {learned.confidence:.0%})."
-            )
-            expansion = expand_keyword(keyword)
-        else:
-            typer.echo(
-                "Tu khoa moi chua du thong tin de phan loai; da dua vao "
-                "pending_keywords de nguoi phu trach kiem tra."
-            )
-    return expansion
 
 
 app = typer.Typer(
@@ -77,9 +63,11 @@ BAT DAU NHANH
 
   1. QI-Crawler bat-dau
 
-  2. QI-Crawler tim-goi --tu-khoa "network switch"
+  2. QI-Crawler crawl "URL_GOI_THAU"
 
-  3. QI-Crawler xuat-tbmt
+  3. QI-Crawler tim-goi --tu-khoa "network switch"
+
+  4. QI-Crawler xuat-tbmt
 
 Chi tiet: QI-Crawler TEN-LENH -help
 
@@ -109,6 +97,8 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   xuat-bao-cao              Xuat Excel danh sach va bang dap ung
 
   init-db                    Khoi tao hoac cap nhat database
+  db-upgrade                 Backup va nang cap database bang Alembic
+  clean-legacy-sources       Archive va loai du lieu Contracts Finder/example/test cu
   download-page URL          Tai tep dinh kem tu trang chi tiet
   retry-downloads            Tai lai cac tep bi loi
   discover URL               Quan sat API/JSON cua website
@@ -117,7 +107,6 @@ LENH NANG CAO - DANH CHO NGUOI VAN HANH KY THUAT
   report-daily               Tao bao cao van hanh hang ngay
   import-evidence TEP        Nhap bang chung nang luc QI
   analyze-bid TEP            Phan tich compliance ky thuat (legacy/pilot sau)
-  collect-contracts-finder   Thu thap truc tiep tu Contracts Finder
   warehouse-init             Khoi tao data warehouse cuc bo
   warehouse-status           Kiem tra data warehouse
   warehouse-backup           Sao luu data warehouse
@@ -170,14 +159,55 @@ def _date_option(value: str | None, option_name: str) -> date | None:
 @app.command("init-db", hidden=True)
 def init_db(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     cfg = _config(config)
-    Database(cfg.storage.database_url).create_all()
-    typer.echo(f"Da khoi tao/cap nhat database: {cfg.storage.database_url}")
+    Database(cfg.storage.database_url).require_current_schema()
+    typer.echo(f"Database da san sang: {cfg.storage.database_url}")
+
+
+@app.command("db-upgrade", hidden=True)
+def db_upgrade(
+    backup_dir: Path = typer.Option(Path("data/backups"), "--backup-dir"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Sao luu va nang cap schema bang Alembic; khong xoa du lieu cu."""
+    cfg = _config(config)
+    result = upgrade_database(cfg.storage.database_url, backup_dir=backup_dir)
+    if result.backup_path:
+        typer.echo(f"Da sao luu database: {result.backup_path}")
+    if result.adopted_legacy_database:
+        typer.echo("Da dua database cu co crawl_tasks vao lich su Alembic an toan.")
+    typer.echo(f"Database da o revision: {result.revision}")
+
+
+@app.command("clean-legacy-sources", hidden=True)
+def clean_legacy_sources(
+    archive_dir: Path = typer.Option(Path("data/archive"), "--archive-dir"),
+    backup_dir: Path = typer.Option(Path("data/backups"), "--backup-dir"),
+    config: Path | None = typer.Option(None, "--config", exists=True),
+) -> None:
+    """Sao luu, archive va xoa record Contracts Finder/example/test cu."""
+    cfg = _config(config)
+    db = Database(cfg.storage.database_url)
+    db.require_current_schema()
+    backup = backup_database(cfg.storage.database_url, backup_dir)
+    result = archive_legacy_notices(db, archive_dir=archive_dir, backup_path=backup)
+    if result.backup_path:
+        typer.echo(f"Da sao luu database: {result.backup_path}")
+    if result.archive_path:
+        typer.echo(f"Da archive {result.archived_notices} record: {result.archive_path}")
+    else:
+        typer.echo("Khong tim thay du lieu legacy can archive.")
+    if result.backfilled_coteccons:
+        typer.echo("Da chuan hoa Coteccons 2607301 voi source_name va source_notice_id.")
 
 
 @app.command("crawl", hidden=True)
+@app.command("scan", hidden=True)
 @app.command("doc-trang", hidden=True)
 def crawl(
     urls: list[str] = typer.Argument(..., help="Mot hoac nhieu URL chi tiet duoc phep crawl"),
+    source: str | None = typer.Option(
+        None, "--source", help="Ten session da dang nhap, vi du egp"
+    ),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     """Doc truc tiep mot hoac nhieu trang chi tiet thau tu URL."""
@@ -186,8 +216,19 @@ def crawl(
     async def run() -> None:
         service = CrawlerService(cfg)
         try:
+            if source:
+                profile = load_source(source)
+                for url in urls:
+                    hostname = (urlparse(url).hostname or "").lower()
+                    if hostname != profile.domain and not hostname.endswith(f".{profile.domain}"):
+                        raise typer.BadParameter(
+                            f"URL khong thuoc domain cua source '{profile.name}': {profile.domain}"
+                        )
+                service.use_authenticated_session(profile.name)
             ok, failed = await service.crawl_urls(urls)
             typer.echo(f"Hoan tat: thanh cong={ok}, loi={failed}")
+            if service.human_required_reason:
+                typer.echo(f"HUMAN_REQUIRED: {service.human_required_reason}", err=True)
         finally:
             await service.close()
 
@@ -383,7 +424,7 @@ def export(
 ) -> None:
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     fmt = format.lower()
     if fmt == "xlsx":
         path = export_xlsx(db, output)
@@ -406,7 +447,7 @@ def report_daily(
     selected_date = date.fromisoformat(report_date) if report_date else datetime.now(UTC).date()
     path = output or cfg.storage.report_dir / f"bao-cao-dau-thau-{selected_date.isoformat()}.xlsx"
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     report_path = build_daily_report(
         db,
         path,
@@ -437,7 +478,7 @@ def import_evidence(
     """Import verified company capabilities used to support bid requirements."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     count = import_evidence_csv(db, input_file)
     typer.echo(f"Da nhap/cap nhat {count} bang chung nang luc.")
 
@@ -451,7 +492,7 @@ def analyze_bid(
     """Build an evidence-backed compliance matrix from a plain-text E-HSMT extract."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     result = analyze_bid_document(db, input_file, notice_id=notice_id)
     typer.echo(
         f"Phan tich {result.total} yeu cau: dap ung={result.covered}, "
@@ -467,7 +508,7 @@ def predict_win(
     """Estimate readiness and win likelihood with explicit low-confidence caveats."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     result = estimate_win_likelihood(db, notice_id=notice_id)
     typer.echo(f"Cong SOP: {result.gate_status}")
     typer.echo(f"Diem san sang ho so: {result.readiness_score}%")
@@ -490,7 +531,7 @@ def bid_gate(
     """Apply the SOP mandatory-requirement GO/HOLD/NO-GO gate."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     result = evaluate_bid_gate(db, notice_id)
     typer.echo(
         f"Ket luan SOP: {result.status}; bat buoc={result.mandatory_total}; "
@@ -511,43 +552,9 @@ def confirm_assessment_command(
     """Record an independent reviewer decision for one compliance item."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     confirm_assessment(db, assessment_id, reviewer, decision, note)
     typer.echo(f"Da xac nhan assessment {assessment_id}: {decision} boi {reviewer}.")
-
-
-@app.command("collect-contracts-finder", hidden=True)
-def collect_contracts_finder_command(
-    keyword: str | None = typer.Option(None, "--keyword", "-k"),
-    published_from: str | None = typer.Option(None, "--from", help="YYYY-MM-DD"),
-    limit: int = typer.Option(20, "--limit", min=1, max=500),
-    max_pages: int = typer.Option(10, "--max-pages", min=1, max=100),
-    only_open: bool = typer.Option(True, "--only-open/--include-closed"),
-    config: Path | None = typer.Option(None, "--config", exists=True),
-) -> None:
-    """Collect public UK procurement notices from the official OCDS API."""
-    cfg = _config(config)
-
-    async def run() -> None:
-        service = CrawlerService(cfg)
-        try:
-            result = await collect_contracts_finder(
-                service,
-                keyword=keyword,
-                published_from=date.fromisoformat(published_from) if published_from else None,
-                limit=limit,
-                max_pages=max_pages,
-                only_open=only_open,
-            )
-            typer.echo(
-                f"Contracts Finder: doc={result.fetched}, khop={result.matched}, "
-                f"moi={result.inserted}, cap nhat={result.updated}, "
-                f"bo qua het han={result.expired_skipped}"
-            )
-        finally:
-            await service.close()
-
-    asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
@@ -559,11 +566,15 @@ def collect_contracts_finder_command(
 def bat_dau(config: Path | None = typer.Option(None, "--config", exists=True)) -> None:
     """Chuan bi lan dau."""
     cfg = _config(config)
-    Database(cfg.storage.database_url).create_all()
+    try:
+        Database(cfg.storage.database_url).require_current_schema()
+    except SchemaNotReady:
+        typer.echo("Hay chay QI-Crawler db-upgrade")
+        raise typer.Exit(code=1) from None
     typer.echo("MVP QI da san sang.")
-    typer.echo("1. Tim goi:       QI-Crawler tim-goi --tu-khoa \"network switch\"")
-    typer.echo("2. Xuat bao cao: QI-Crawler xuat-bao-cao")
-    typer.echo("3. Xep hang:     QI-Crawler xep-hang")
+    typer.echo("1. Crawl URL:     QI-Crawler crawl \"URL_GOI_THAU\"")
+    typer.echo("2. Tim trong kho: QI-Crawler tim-goi --tu-khoa \"network switch\"")
+    typer.echo("3. Xuat TBMT:     QI-Crawler xuat-tbmt")
 
 
 @app.command("tim-goi", rich_help_panel="LENH CHO NGUOI MOI")
@@ -571,32 +582,35 @@ def tim_goi(
     tu_khoa: str = typer.Option(
         ..., "--tu-khoa", "-k", help="Ten san pham tieng Viet hoac tieng Anh"
     ),
-    tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="YYYY-MM-DD; mac dinh 30 ngay"),
+    tu_ngay: str | None = typer.Option(None, "--tu-ngay", help="Loc du lieu da luu tu ngay YYYY-MM-DD"),
     so_luong: int = typer.Option(20, "--so-luong", min=1, max=200),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Tim goi thau theo tu khoa."""
+    """Tim goi thau da luu trong database, khong ket noi website."""
     cfg = _config(config)
-    expansion = _expand_and_learn(tu_khoa)
+    expansion = expand_keyword(tu_khoa)
     _show_keyword_plan(expansion)
+    since = _date_option(tu_ngay, "--tu-ngay")
+    db = Database(cfg.storage.database_url)
+    db.require_current_schema()
+    search_result = search_notices(
+        db,
+        expansion.search_terms,
+        since,
+        so_luong,
+        tuple(active_source_names(cfg)),
+        active_source_domains(cfg),
+    )
+    matches = search_result.notices
 
-    async def run() -> None:
-        service = CrawlerService(cfg)
-        try:
-            result = await collect_contracts_finder(
-                service,
-                keyword=expansion.search_terms,
-                published_from=date.fromisoformat(tu_ngay) if tu_ngay else None,
-                limit=so_luong,
-                only_open=True,
-            )
-            typer.echo(f"Da luu {result.matched} goi con han phu hop tu khoa '{tu_khoa}'.")
-            typer.echo(f"Da bo qua {result.expired_skipped} goi het han.")
-            typer.echo("Buoc tiep theo: QI-Crawler xuat-bao-cao")
-        finally:
-            await service.close()
-
-    asyncio.run(run())
+    typer.echo("Tim trong database da luu (khong ket noi website).")
+    typer.echo(f"Tim thay {len(matches)} goi phu hop voi '{tu_khoa}'.")
+    for notice in matches:
+        identifier = notice.notice_code or notice.source_notice_id or f"ID {notice.id}"
+        typer.echo(f"- [{identifier}] {notice.title or 'Chua co ten'}")
+        typer.echo(f"  Nguon: {notice.source_name or notice.source_kind} | {notice.source_url}")
+    if not matches:
+        typer.echo("Hay crawl URL danh sach/chi tiet truoc, sau do chay lai tim-goi.")
 
 
 @app.command("xuat-bao-cao", hidden=True)
@@ -607,7 +621,7 @@ def xuat_bao_cao(
     """Xuat Excel theo mau TBMT, kem danh sach va bang dap ung."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     path = export_xlsx(db, output)
     typer.echo(f"Da tao bao cao: {path}")
 
@@ -636,15 +650,22 @@ def xuat_tbmt(
     to_canh_bao: bool = typer.Option(
         False, "--to-canh-bao", "--highlight", help="To mau deadline va truong con thieu"
     ),
-    tat_ca_run: bool = typer.Option(
-        False, "--tat-ca-run", "--all-runs", help="Xuat moi crawl run, khong chi run moi nhat"
+    all_records: bool = typer.Option(
+        False,
+        "--all",
+        "--tat-ca-run",
+        "--all-runs",
+        help="Xuat tat ca goi hop le da luu, khong gioi han trong ngay hom nay",
+    ),
+    run_id: int | None = typer.Option(
+        None, "--run-id", min=1, help="Chi xuat mot crawl run cu the"
     ),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
     """Xuat Excel theo mau TBMT."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     result = export_tbmt(
         db,
         report_dir=cfg.storage.report_dir,
@@ -656,7 +677,11 @@ def xuat_tbmt(
         status=trang_thai,
         keyword=tu_khoa,
         highlight=to_canh_bao,
-        latest_run_only=not tat_ca_run,
+        latest_run_only=False,
+        crawl_run_id=run_id,
+        current_day_only=not all_records and run_id is None,
+        active_source_names=tuple(active_source_names(cfg)),
+        active_source_domains=active_source_domains(cfg),
     )
     typer.echo(f"Da tao file TBMT: {result.output}")
     typer.echo(
@@ -783,7 +808,7 @@ def danh_gia(
     """Kiem tra kha nang dap ung cua mot goi thau."""
     cfg = _config(config)
     db = Database(cfg.storage.database_url)
-    db.create_all()
+    db.require_current_schema()
     summary = analyze_bid_document(db, yeu_cau, notice_id=notice_id)
     gate = evaluate_bid_gate(db, notice_id)
     typer.echo(
@@ -824,7 +849,7 @@ def them_nguon(
 
 @app.command("them-egp", hidden=True)
 def them_egp(
-    ten: str = typer.Option("egp-vietnam", "--ten", help="Ten nguon de ghi nho"),
+    ten: str = typer.Option("egp", "--ten", help="Ten nguon de ghi nho"),
     url: str = typer.Option(
         "https://muasamcong.mpi.gov.vn/vi/web/guest/contractor-selection",
         "--url",
@@ -893,15 +918,28 @@ def them_tu_khoa(
 
 
 @app.command("dang-nhap", rich_help_panel="LENH CHO NGUOI MOI")
+@app.command("login", hidden=True)
 def dang_nhap(
-    ten: str = typer.Option(..., "--ten"),
+    ten: str | None = typer.Option(None, "--ten", help="Ten nguon da khai bao"),
+    source: str | None = typer.Option(None, "--source", help="Alias, vi du: egp"),
     config: Path | None = typer.Option(None, "--config", exists=True),
 ) -> None:
-    """Mo trinh duyet de dang nhap."""
+    """Mo trinh duyet de tu dang nhap va luu phien cuc bo."""
+    if ten and source and ten != source:
+        raise typer.BadParameter("Chi dung mot trong --ten hoac --source")
+    selected = source or ten
+    if not selected:
+        raise typer.BadParameter("Can chi dinh --source egp hoac --ten TEN_NGUON")
     cfg = _config(config)
-    source = load_source(ten)
-    path = asyncio.run(create_login_session(cfg, source))
-    typer.echo(f"Da luu phien dang nhap cuc bo cho '{source.name}': {path}")
+    try:
+        profile = load_source(selected)
+    except FileNotFoundError:
+        if selected != "egp":
+            raise
+        profile = egp_vietnam_source(name="egp")
+        save_source(profile)
+    path = asyncio.run(create_login_session(cfg, profile))
+    typer.echo(f"Da luu phien dang nhap cuc bo cho '{profile.name}': {path}")
     typer.echo("Khong gui file session cho nguoi khac va khong dua file nay len Git.")
 
 
@@ -915,7 +953,7 @@ def tim_tren_web(
     """Tim tren website da dang nhap."""
     cfg = _config(config)
     source = load_source(ten)
-    expansion = _expand_and_learn(tu_khoa)
+    expansion = expand_keyword(tu_khoa)
     _show_keyword_plan(expansion)
 
     async def run() -> None:

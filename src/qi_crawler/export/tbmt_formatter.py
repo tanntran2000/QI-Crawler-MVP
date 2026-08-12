@@ -56,6 +56,8 @@ def display_datetime(value: datetime | None, fallback: str | None = None) -> str
 def format_package_name(
     package_name: str | None,
     notice_id: str | None,
+    source_notice_id: str | None,
+    source_name: str | None,
     published_at: datetime | None,
     published_at_source: str | None,
 ) -> str | None:
@@ -65,10 +67,21 @@ def format_package_name(
     details: list[str] = []
     if notice_id:
         details.append(f"Số thông báo: {clean_text(notice_id)}")
+    elif source_notice_id:
+        source = clean_text(source_name) or "Nguồn khác"
+        source_label = "Coteccons eBidding" if source.lower() == "coteccons" else source
+        prefix = "COTEC-" if source.lower() == "coteccons" else ""
+        details.append(f"Mã nguồn: {prefix}{clean_text(source_notice_id)}. Nguồn: {source_label}")
     published = display_datetime(published_at, published_at_source)
     if published:
         details.append(f"Thời điểm đăng tải: {published}")
-    return f"{package} ({'. '.join(details)})" if details else package
+    if not notice_id and source_notice_id:
+        prefix = re.match(r"^\s*GÓI\s+THẦU\s*:\s*", package, re.IGNORECASE)
+        if prefix:
+            package = f"GÓI THẦU: {package[prefix.end():].strip()}"
+        else:
+            package = f"GÓI THẦU: {package}"
+    return f"{package}\n({'. '.join(details)})" if details else package
 
 
 def raw_field(raw_text: str | None, *labels: str) -> str | None:

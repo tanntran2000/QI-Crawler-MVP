@@ -38,6 +38,8 @@ DATETIME_COLUMNS = (11, 16, 17)
 class NormalizedTenderRecord:
     database_id: int | None
     notice_id: str | None
+    source_notice_id: str | None
+    source_name: str | None
     notice_version: str | None
     notice_type: str
     source_url: str | None
@@ -58,6 +60,7 @@ class NormalizedTenderRecord:
     bid_security_method: str | None
     issue_location: str | None
     bid_close_at: datetime | None
+    bid_close_at_source: str | None
     bid_open_at: datetime | None
     contract_duration: str | None
     published_at: datetime | None

@@ -23,6 +23,8 @@ class Notice(Base):
     content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     source_kind: Mapped[str] = mapped_column(String(32), default="web")
     notice_code: Mapped[str | None] = mapped_column(String(255), index=True)
+    source_notice_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    source_name: Mapped[str | None] = mapped_column(String(255), index=True)
     plan_code: Mapped[str | None] = mapped_column(String(255), index=True)
     title: Mapped[str | None] = mapped_column(Text)
     buyer: Mapped[str | None] = mapped_column(Text)

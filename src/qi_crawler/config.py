@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,6 +61,19 @@ class SelectorConfig(BaseModel):
     attachment_name: str | None = None
 
 
+class SourceConfig(BaseModel):
+    enabled: bool = True
+    priority: int = Field(default=100, ge=1)
+    domain: str
+    adapter: str
+    requires_auth: bool = False
+
+    @field_validator("domain")
+    @classmethod
+    def normalize_domain(cls, value: str) -> str:
+        return value.lower().strip(". ")
+
+
 class ReportingConfig(BaseModel):
     days_ahead: int = Field(default=7, ge=1, le=90)
     smtp_host: str | None = None
@@ -79,7 +92,8 @@ class ReportingConfig(BaseModel):
 
 class AppConfig(BaseModel):
     project_name: str = "qi-crawler"
-    allowed_domains: list[str] = Field(default_factory=lambda: ["muasamcong.mpi.gov.vn"])
+    allowed_domains: list[str] = Field(default_factory=list)
+    sources: dict[str, SourceConfig] = Field(default_factory=dict)
     seed_urls: list[str] = Field(default_factory=list)
     compliance: ComplianceConfig = Field(default_factory=ComplianceConfig)
     crawl: CrawlConfig = Field(default_factory=CrawlConfig)
@@ -91,6 +105,14 @@ class AppConfig(BaseModel):
     @classmethod
     def normalize_domains(cls, value: list[str]) -> list[str]:
         return sorted({item.lower().strip(". ") for item in value if item.strip()})
+
+    @model_validator(mode="after")
+    def include_enabled_source_domains(self) -> AppConfig:
+        source_domains = {
+            source.domain for source in self.sources.values() if source.enabled
+        }
+        self.allowed_domains = sorted(set(self.allowed_domains) | source_domains)
+        return self
 
 
 class EnvSettings(BaseSettings):

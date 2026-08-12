@@ -8,13 +8,15 @@ xuat Excel va danh gia so bo kha nang dap ung.
 > phan loai va diem uu tien luon can nguoi phu trach kiem tra truoc khi su dung. Diem khong phai xac suat
 > trung thau va khong thay the quyet dinh tham du.
 
-## Co gi moi trong 0.6.0
+## Co gi moi trong 0.6.1
 
 - Them lenh `xuat-tbmt` de tao file trinh bay dung mau `Ban tin dien tu` 18 cot QI dang su dung.
 - File chi hien mot sheet nghiep vu; sheet `__QI_META` duoc an de luu thong tin truy vet.
 - Tien va ngay gio duoc ghi dung kieu Excel; dong loi duoc tach sang file `_rejects.xlsx`.
 - Template `templates/TBMT_template_v1.xlsx` khong bi ghi de; file trung ten tu them `_v2`, `_v3`.
 - Cac cot khong co du lieu xac minh duoc de trong; QI-Crawler khong chen so lieu gia.
+- Ho tro ma dinh danh rieng cua tung website: goi khong co ma TBMT e-GP van duoc xuat khi co `source_notice_id` va URL nguon.
+- Xuat TBMT phan biet `PASS`, `WARNING`, `REJECT`; canh bao van duoc dua vao Excel, chi ban ghi khong xac dinh duoc moi bi tach ra.
 - Lenh cu `xuat-bao-cao` van giu cac sheet ky thuat de nhap BOQ va kiem tra ton kho.
 - `QI-Crawler -help` chi hien cac lenh hang ngay de nguoi moi de doc.
 - `QI-Crawler -adv` tap hop lenh cau hinh va van hanh ky thuat.
@@ -25,11 +27,11 @@ Xem lich su day du trong [CHANGELOG.md](CHANGELOG.md). Xem vi du thao tac trong
 
 ## Rao can hien tai va huong phat trien UI
 
-QI-Crawler 0.6.0 van la MVP dung dong lenh. Nguoi dung can kich hoat `.venv`, mo Terminal va chay lenh nhu:
+QI-Crawler 0.6.1 van la MVP dung dong lenh. Nguoi dung can kich hoat `.venv`, mo Terminal va chay lenh nhu:
 
 ```powershell
-QI-Crawler dang-nhap --ten egp-vietnam
-QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "network switch"
+QI-Crawler dang-nhap --source egp
+QI-Crawler tim-tren-web --ten egp --tu-khoa "network switch"
 QI-Crawler xep-hang
 ```
 
@@ -41,7 +43,7 @@ xuat Excel. CLI/API van duoc giu de chay lich va xu ly nang cao.
 
 ## Tinh nang hien tai
 
-- Tim goi con han tren UK Contracts Finder.
+- Crawl cac website dau thau duoc cau hinh va luu du lieu vao kho noi bo.
 - Co cau hinh nhanh cho e-GP Viet Nam va lenh kiem tra selector sau khi dang nhap.
 - Ket noi trang danh sach goi thau khac bang URL.
 - Cho phep nguoi dung tu dang nhap, nhap OTP/CAPTCHA va luu phien cuc bo.
@@ -69,9 +71,10 @@ python -m pip install -e ".[dev]"
 python -m playwright install chromium
 ```
 
-Khi terminal hien `(.venv)`, kiem tra chuong trinh:
+Khi terminal hien `(.venv)`, nang cap database truoc khi dung lan dau, roi khoi dong MVP:
 
 ```powershell
+QI-Crawler db-upgrade
 QI-Crawler bat-dau
 ```
 
@@ -108,16 +111,19 @@ Khong go rieng `-help`, vi PowerShell yeu cau dong lenh bat dau bang ten chuong 
 
 ## Quy trinh nhanh: tim va xuat Excel
 
-### Tim goi tren Contracts Finder
+### Crawl truoc, tim trong kho sau
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
-Copy-Item monitoring.example.yaml monitoring.yaml
-QI-Crawler xep-hang
+QI-Crawler crawl "https://ebidding.coteccons.vn/Index/ChiTiet/2607301"
+QI-Crawler tim-goi --tu-khoa "chong tham" --so-luong 50
+QI-Crawler xuat-tbmt
 ```
 
-QI-Crawler chi luu cac goi con han trong pham vi du lieu da doc. Bang xep hang nam tai
-`data/reports/co-hoi-uu-tien.xlsx`.
+`crawl` la lenh duy nhat ket noi website. `tim-goi` chi tim trong database da luu, nen co the
+chay lai de loc ket qua ma khong truy cap website.
+
+`xuat-tbmt` mac dinh gom tat ca goi hop le crawl trong ngay; dung `--all` cho toan bo kho hoac
+`--run-id 123` de xuat mot lan crawl cu the.
 
 ### Check tender quantity against QI inventory
 
@@ -128,8 +134,8 @@ template and keep one stock item per row. Import it with:
 QI-Crawler nhap-ton-kho data\qi-inventory.xlsx
 ```
 
-When the source provides structured line items, such as Contracts Finder OCDS `tender.items`,
-QI-Crawler saves the requested quantity automatically. If the quantity is only available in a BOQ
+When the source provides structured line items, QI-Crawler saves the requested quantity automatically.
+If the quantity is only available in a BOQ
 Excel/CSV attachment, import that file using the internal notice `id` shown in the report:
 
 ```powershell
@@ -153,18 +159,30 @@ Tao cau hinh e-GP co san:
 
 ```powershell
 QI-Crawler them-egp
-QI-Crawler dang-nhap --ten egp-vietnam
+QI-Crawler dang-nhap --source egp
 ```
 
 Trong cua so trinh duyet do QI-Crawler mo, nguoi dung tu dang nhap, nhap OTP/CAPTCHA va di toi trang danh
-sach goi thau. Quay lai terminal, nhan Enter de luu URL va phien dang nhap. Luon kiem tra selector truoc khi
-thu thap:
+sach goi thau. Quay lai terminal, nhan Enter de luu URL va phien dang nhap tai
+`data/sessions/egp_storage_state.json`. `crawl` tu dung lai session nay cho URL e-GP; QI-Crawler khong luu
+mat khau. Luon kiem tra selector truoc khi thu thap:
 
 ```powershell
-QI-Crawler kiem-tra-nguon --ten egp-vietnam
-QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "cap quang" --so-luong 100
+QI-Crawler kiem-tra-nguon --ten egp
+QI-Crawler tim-tren-web --ten egp --tu-khoa "cap quang" --so-luong 100
 QI-Crawler xuat-bao-cao --tep data\egp-cap-quang.xlsx
 ```
+
+Hoac crawl truc tiep URL chi tiet sau khi dang nhap:
+
+```powershell
+QI-Crawler crawl "https://muasamcong.mpi.gov.vn/..."
+QI-Crawler xuat-tbmt
+```
+
+Neu session het han va website chuyen ve trang login, crawler dung va yeu cau chay lai
+`QI-Crawler dang-nhap --source egp`. QI-Crawler bao `EGP_SESSION_EXPIRED`, dung an toan va khong tu vuot
+CAPTCHA, OTP, 403 hay token bao mat.
 
 Cau hinh e-GP uu tien cac dau hieu URL chi tiet on dinh nhu `contractor-selection`, `notifyNo` va
 `step=tbmt`. Giao dien e-GP co the thay doi hoac tam dung mot thanh phan; vi vay `kiem-tra-nguon` la buoc bat
@@ -298,6 +316,9 @@ muc rieng ngoai repository, chi import vao database cuc bo.
 
 Database mac dinh van dung `data/egp.db` de bao toan du lieu tu phien ban cu. Day chi la ten file tuong thich,
 khong phai ten san pham hien tai.
+
+Neu phien ban moi yeu cau nang cap schema, dong QI-Crawler va chay `QI-Crawler db-upgrade`. Lenh tao backup
+trong `data/backups/` truoc khi nang cap; khong can tu chay `alembic stamp`.
 
 ## Tai lieu va lich su phien ban
 

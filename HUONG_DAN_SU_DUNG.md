@@ -4,9 +4,9 @@
 
 MVP ho tro bon viec:
 
-1. Tim goi thau cong khai tren UK Contracts Finder.
+1. Crawl trang goi thau tu website duoc phep truy cap.
 2. Luu thong tin vao database noi bo.
-3. Xuat danh sach ra Excel de trinh va phan cong xu ly.
+3. Tim lai trong kho va xuat danh sach ra Excel de trinh.
 4. Cham diem va xep hang co hoi, kem ly do de nguoi phu trach quyet dinh.
 
 MVP khong tu nop ho so, khong vuot CAPTCHA va khong tu xac nhan doanh nghiep du dieu kien phap ly.
@@ -18,15 +18,17 @@ Trong terminal VS Code, chay tung dong:
 ```powershell
 .\.venv\Scripts\Activate.ps1
 $env:PYTHONUTF8="1"
+QI-Crawler db-upgrade
 QI-Crawler bat-dau
 ```
 
 Neu terminal hien `>>`, nhan `Ctrl+C` roi nhap lai lenh.
 
-## 3. Tim goi thau
+## 3. Crawl va tim goi thau
 
 ```powershell
-QI-Crawler tim-goi --tu-khoa "network switch"
+QI-Crawler crawl "https://ebidding.coteccons.vn/Index/ChiTiet/2607301"
+QI-Crawler tim-goi --tu-khoa "chong tham"
 ```
 
 Tuy chon:
@@ -38,7 +40,11 @@ QI-Crawler tim-goi `
   --so-luong 50
 ```
 
-MVP chi luu goi con han. Tu khoa Contracts Finder nen viet bang tieng Anh va du cu the.
+`crawl` ket noi website va luu du lieu. `tim-goi` chi tim trong database da luu, khong goi mang.
+
+Chi cac nguon dang `enabled` trong `config.yaml` moi duoc hien trong `tim-goi` va `xuat-tbmt`.
+Nguoi van hanh co the archive du lieu mau/nguon cu sau khi da kiem tra backup bang lenh ky thuat
+`QI-Crawler clean-legacy-sources`; lenh nay khong xoa du lieu e-GP/Coteccons hop le.
 
 ## 4. Xuat file TBMT de trinh
 
@@ -59,15 +65,33 @@ QI-Crawler xuat-tbmt --tu-khoa "cap quang" --tu-ngay 2026-08-01 --den-ngay 2026-
 ```
 
 Mac dinh file co ten `TBMT_ngay_thang_nam.xlsx` trong `data\reports`. Neu ten da ton tai, QI-Crawler
-tu tao `_v2`, `_v3`; khong ghi de file cu. Dong thieu ma thong bao hoac ten goi duoc dua vao file
-`data\rejects\..._rejects.xlsx` de nguoi phu trach sua nguon du lieu.
+tu tao `_v2`, `_v3`; khong ghi de file cu.
+
+Mac dinh, `xuat-tbmt` lay tat ca goi hop le da crawl trong ngay hien tai, ke ca khi den tu nhieu
+`crawl run`. Dung `--all` de xuat toan bo kho, hoac `--run-id 123` de chi xuat mot lan crawl:
+
+```powershell
+QI-Crawler xuat-tbmt --all
+QI-Crawler xuat-tbmt --run-id 123
+```
+
+### Kiem tra du lieu khi xuat
+
+- `PASS`: du lieu chinh day du, duoc xuat Excel.
+- `WARNING`: thieu truong phu nhu dia chi, du an, nguon von, gia, bao dam du thau hoac thoi gian hop dong;
+  van duoc xuat Excel de nguoi phu trach doi chieu.
+- `REJECT`: thieu ten goi, URL nguon, hoac thieu ca ma TBMT va ma rieng cua website; duoc dua vao
+  `data\rejects\..._rejects.xlsx`.
+
+Vi du, goi tren Coteccons khong co ma `IB...` van duoc xuat neu co URL va ma rieng `2607301`. O **GOI THAU**
+se hien `Ma nguon: COTEC-2607301. Nguon: Coteccons eBidding`. O cot O luon la URL nguon de mo lai va doi chieu.
 
 Khi mo file, sheet dau tien la `Ban tin dien tu`. Sheet nay co 18 cot theo mau TBMT, gom ben moi thau,
 du an, goi thau, nguon von, gia goi thau, phuong thuc/hinh thuc lua chon, cac moc phat hanh - dong thau -
 mo thau va thoi gian thuc hien hop dong.
 
 Neu website khong cung cap mot truong, hoac QI-Crawler chua xac minh duoc, o do se de trong. Khong tu thay
-o trong bang `0`, `20` hoac mot gia tri uoc doan. Nguoi phu trach can bam link nguon va doi chieu thong bao,
+o trong bang `0`, `20`, `23` hoac mot gia tri uoc doan. Nguoi phu trach can bam link nguon va doi chieu thong bao,
 E-HSMT goc truoc khi trinh bao cao.
 
 File `xuat-tbmt` chi hien sheet `Ban tin dien tu`. Sheet `__QI_META` duoc an de luu thong tin truy vet,
@@ -342,24 +366,36 @@ Chay lan luot:
 
 ```powershell
 QI-Crawler them-egp
-QI-Crawler dang-nhap --ten egp-vietnam
+QI-Crawler dang-nhap --source egp
 ```
 
 Trinh duyet se mo. Nguoi dung tu dang nhap, nhap OTP/CAPTCHA va di den trang hien danh sach goi thau. Khi
-da thay danh sach, quay lai terminal va nhan Enter. QI-Crawler se luu phien cuc bo va ghi nho URL hien tai.
+da thay danh sach, quay lai terminal va nhan Enter. QI-Crawler se luu phien cuc bo tai
+`data\sessions\egp_storage_state.json`, khong luu mat khau va ghi nho URL hien tai.
 
 Kiem tra cau truc trang truoc khi tim:
 
 ```powershell
-QI-Crawler kiem-tra-nguon --ten egp-vietnam
+QI-Crawler kiem-tra-nguon --ten egp
 ```
 
 Chi khi terminal bao `Nguon da san sang de tim goi`, moi chay:
 
 ```powershell
-QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "cap quang" --so-luong 100
+QI-Crawler tim-tren-web --ten egp --tu-khoa "cap quang" --so-luong 100
 QI-Crawler xuat-bao-cao --tep data\egp-cap-quang.xlsx
 ```
+
+Neu da co URL goi thau, crawl bang chinh session da luu:
+
+```powershell
+QI-Crawler crawl "https://muasamcong.mpi.gov.vn/..."
+QI-Crawler xuat-tbmt
+```
+
+Neu session het han va website chuyen ve trang login, crawler dung va yeu cau chay lai
+`QI-Crawler dang-nhap --source egp`. QI-Crawler bao `EGP_SESSION_EXPIRED`, dung an toan va khong tu vuot
+CAPTCHA, OTP, 403 hay token bao mat.
 
 Neu terminal bao `Chua san sang`, khong tiep tuc crawl. Hay dang nhap lai, di dung trang danh sach va nho
 nguoi ky thuat cap nhat selector neu e-GP da thay doi giao dien.
@@ -428,29 +464,29 @@ $env:PYTHONUTF8="1"
 
 Khi thay `(.venv)` o dau dong terminal, chuong trinh da san sang.
 
-### Vi du A - Tim thiet bi mang tren Contracts Finder
+### Vi du A - Crawl va tim thiet bi mang
 
-Muc tieu: tim cac goi co noi dung lien quan den switch mang va xuat danh sach ra Excel.
+Muc tieu: doc mot goi tu website duoc phep, tim lai trong kho va xuat danh sach ra Excel.
 
-**Buoc 1:** chay lenh tim kiem:
+**Buoc 1:** crawl trang chi tiet:
+
+```powershell
+QI-Crawler crawl "https://example-tender.com/tenders/123"
+```
+
+**Buoc 2:** tim trong kho noi bo:
 
 ```powershell
 QI-Crawler tim-goi --tu-khoa "network switch" --so-luong 50
 ```
 
-Cho den khi terminal thong bao da doc va luu ket qua. Neu khong co ket qua, thu tu khoa rong hon:
-
-```powershell
-QI-Crawler tim-goi --tu-khoa "network equipment" --so-luong 100
-```
-
-**Buoc 2:** xuat Excel:
+**Buoc 3:** xuat Excel:
 
 ```powershell
 QI-Crawler xuat-bao-cao --tep data\bao-cao-switch.xlsx
 ```
 
-**Buoc 3:** trong Explorer cua VS Code, mo thu muc `data`, sau do mo file `bao-cao-switch.xlsx`.
+**Buoc 4:** trong Explorer cua VS Code, mo thu muc `data`, sau do mo file `bao-cao-switch.xlsx`.
 Kiem tra lan luot `title`, `closing_at`, `package_price` va `source_url`. Bam `source_url` de doc thong bao goc
 truoc khi trinh cap quan ly.
 
@@ -597,7 +633,7 @@ Vi du them thiet bi tuong lua vao nhom Information Technology:
 Giu nguyen khoang trang dau dong nhu cac san pham co san. Sau khi luu file, chay lai `tim-goi` hoac
 `tim-tren-web`; khong can cai lai chuong trinh.
 
-### De QI-Crawler tu phan loai va cap nhat
+### Them tu khoa moi co xac nhan
 
 Vi du them mot loai cap mang moi:
 
@@ -623,9 +659,10 @@ QI-Crawler them-tu-khoa `
   --nhom "Information Technology"
 ```
 
-Khi chay `tim-goi` hoac `tim-tren-web` voi mot tu khoa chua co, MVP cung thu phan loai tu dong. Chi truong hop
-co tin hieu ro moi duoc cap nhat; truong hop chua ro luon di vao hang cho. QI-Crawler khong tu dich ten san pham
-khong co can cu: nguoi dung nen cung cap `--ten-khac` hoac kiem tra lai ten do nha san xuat cong bo.
+`tim-goi` va `tim-tren-web` chi mo rong tu khoa da co de tim kiem; hai lenh nay khong tu hoc, them hoac sua
+`keyword-groups.yaml`. Muon them mot san pham/tu khoa moi, dung lenh `QI-Crawler them-tu-khoa` va kiem tra
+nhom nganh truoc khi xac nhan. QI-Crawler khong tu dich ten san pham khong co can cu: nguoi dung nen cung cap
+`--ten-khac` hoac kiem tra lai ten do nha san xuat cong bo.
 
 ## 12. Theo doi tu dong khi de may chay
 
@@ -643,7 +680,6 @@ Mo `monitoring.yaml` va sua:
 - `required_any`: chi can khop mot tu (`OR`).
 - `required_all`: phai khop tat ca tu (`AND`).
 - `excluded_keywords`: khop mot tu se dua goi ve `SKIP` (`NOT`).
-- `contracts_finder`: bat/tat Contracts Finder.
 - `authenticated_sources`: ten cac website da chay `them-nguon` va `dang-nhap`.
 - `output`: vi tri bao cao Excel xep hang.
 
@@ -681,7 +717,7 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
-## Co gi moi trong 0.6.0
+## Co gi moi trong 0.6.1
 
 - `xuat-tbmt` tao file trinh bay theo form TBMT 18 cot, header dong 10 va du lieu tu dong 11.
 - Tien/ngay gio la kieu Excel, URL nguon la hyperlink va co bo loc tai dong header.
@@ -714,8 +750,8 @@ hinh. Lenh dung hien tai la:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-QI-Crawler dang-nhap --ten egp-vietnam
-QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "cap quang"
+QI-Crawler dang-nhap --source egp
+QI-Crawler tim-tren-web --ten egp --tu-khoa "cap quang"
 QI-Crawler xep-hang
 ```
 
@@ -744,10 +780,10 @@ QI-Crawler -adv
 ```
 
 Bang nang cao co cac nhom lenh crawl truc tiep, import/xuat ky thuat, doi chieu bang chung, kiem tra selector
-website va quan ly data warehouse. Vi du:
+website, nang cap database va quan ly data warehouse. Vi du:
 
 ```text
-collect-contracts-finder, import-file, export, analyze-bid,
+import-file, export, analyze-bid, db-upgrade,
 kiem-tra-nguon,
 warehouse-status, report-daily
 ```
@@ -759,13 +795,29 @@ QI-Crawler kiem-tra-nguon -help
 QI-Crawler warehouse-status -help
 ```
 
+### Nang cap database an toan
+
+Khi QI-Crawler thong bao database can nang cap, dong cac cua so dang dung QI-Crawler roi chay:
+
+```powershell
+QI-Crawler db-upgrade
+```
+
+Lenh nay tu tao ban sao trong `data/backups/`, nhan dien database cu chua co Alembic nhung da co
+`crawl_tasks`, sau do moi nang cap schema. Khong tu xoa du lieu. Khong dung lenh nay dong thoi tren
+hai cua so Terminal.
+
+Tim kiem `tim-goi` tu dong dung FTS5 neu SQLite cua may ho tro; neu khong, QI-Crawler tu quay ve
+cach tim kiem cuc bo tuong thich. Ca hai cach deu ho tro tu co dau/khong dau, vi du `chống thấm`
+va `chong tham`. Lenh tim kiem khong tu dong them hay sua tu khoa trong `keyword-groups.yaml`.
+
 ## 13A. Cong viec bat buoc tai T-7 ngay
 
 Tai T-7 ngay truoc han nop, nhan su phu trach QI-Crawler thuc hien theo thu tu:
 
 ```powershell
-QI-Crawler kiem-tra-nguon --ten egp-vietnam
-QI-Crawler tim-tren-web --ten egp-vietnam --tu-khoa "TU KHOA SAN PHAM"
+QI-Crawler kiem-tra-nguon --ten egp
+QI-Crawler tim-tren-web --ten egp --tu-khoa "TU KHOA SAN PHAM"
 QI-Crawler xep-hang
 ```
 

@@ -7,8 +7,8 @@ sau loi truoc khi them AI hoac Bid Control.
 
 - Tag baseline: `v0.6.1-core-baseline`.
 - Database that luon backup va giu o may cuc bo; khong dua `data/egp.db` len Git.
-- Fixture `tests/fixtures/golden/contracts_finder_v061.json` gom sau thong bao cong khai
-  cua Contracts Finder, da co dinh de CI khong phu thuoc website that.
+- Fixture HTML e-GP trong `tests/fixtures/golden/source/` la snapshot co dinh de CI
+  khong phu thuoc website that.
 - Day la **golden persistence/idempotency baseline**: test kiem tra ma thong bao, ten goi,
   ben moi thau, gia, deadline, URL nguon va danh sach tep dinh kem sau khi du lieu da duoc
   chuyen thanh `ParsedNotice`.
@@ -27,9 +27,19 @@ request co review.
 2. WP3: `crawl_tasks`, retry, checkpoint va resume. `crawl_runs` chi luu tong ket;
    tung URL luu rieng trang thai `PENDING`, `RUNNING`, `COMPLETED`,
    `FAILED_RETRYABLE` hoac `FAILED` de resume chinh xac.
-3. WP4: Alembic migration co review tren ban sao `egp.db`.
+3. WP4: Alembic migration co review tren ban sao `egp.db`. Revision `0003_complete_core_schema`
+   tao du schema tren DB trang va chi them bang/cot thieu tren DB cu; khong dung `create_all()` trong migration.
+   Lenh `QI-Crawler db-upgrade` sao luu SQLite truoc, stamp checkpoint `0001_add_crawl_tasks` cho
+   database pre-Alembic da co `crawl_tasks`, roi moi nang cap den `head`.
 4. WP5: golden-file test cho TBMT exporter.
-5. WP6: FTS5 capability check, trigger thu cong va fallback search.
+5. WP6: FTS5 capability check, trigger thu cong va fallback search. Khi FTS5 co san,
+   `tim-goi` dung `MATCH` tren title, buyer, mo ta va item; neu khong co thi fallback
+   tim kiem cuc bo. Ca hai cach deu chuan hoa chu co dau va khong tu dong sua keyword pool.
+
+## Runtime schema
+
+Runtime khong goi `create_all()` hoac additive migration nua. Neu schema chua o revision hien tai,
+QI-Crawler dung va yeu cau nguoi van hanh dong ung dung roi chay `QI-Crawler db-upgrade`.
 
 Khong dua Celery/Redis, RBAC/JWT, LLM/OCR hoac dashboard lon vao sprint nay.
 

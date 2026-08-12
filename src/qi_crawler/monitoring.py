@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -13,7 +13,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from .authenticated_sources import collect_authenticated_source, load_source
-from .contracts_finder import collect_contracts_finder
 from .crawler import CrawlerService
 from .excel_safety import safe_excel_row
 from .keywords import expand_keyword
@@ -31,7 +30,6 @@ class MonitoringConfig(BaseModel):
     interval_minutes: int = Field(default=60, ge=5, le=1440)
     lookback_days: int = Field(default=14, ge=1, le=365)
     limit_per_keyword: int = Field(default=50, ge=1, le=200)
-    contracts_finder: bool = True
     authenticated_sources: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(min_length=1)
     keyword_groups: list[KeywordGroupConfig] = Field(default_factory=list)
@@ -215,21 +213,6 @@ async def run_monitoring_cycle(
         keyword_groups = (KeywordGroup("Configured products", terms, 30.0),)
         collection_terms = terms
     collected = 0
-    if settings.contracts_finder:
-        collection_batches = (
-            [group.terms for group in keyword_groups]
-            if settings.keyword_groups
-            else [item.search_terms for item in expanded]
-        )
-        for batch in collection_batches:
-            result = await collect_contracts_finder(
-                service,
-                keyword=batch,
-                published_from=datetime.now(UTC).date() - timedelta(days=settings.lookback_days),
-                limit=settings.limit_per_keyword,
-                only_open=True,
-            )
-            collected += result.matched
     for source_name in settings.authenticated_sources:
         source = load_source(source_name)
         result = await collect_authenticated_source(
@@ -237,7 +220,7 @@ async def run_monitoring_cycle(
         )
         collected += result.matched
 
-    service.db.create_all()
+    service.db.require_current_schema()
     with service.db.session() as session:
         evidence = list(session.scalars(select(CompanyEvidence).where(CompanyEvidence.verified)).all())
         inventory = list(session.scalars(select(InventoryItem).where(InventoryItem.verified)).all())

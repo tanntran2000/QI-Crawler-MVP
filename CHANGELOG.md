@@ -2,6 +2,15 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
+## 0.6.1 - 2026-08-12
+
+- Cai thien kha nang xu ly du lieu dau thau tu nhieu nguon va xuat bao cao theo mau chung.
+- Bo sung kiem tra du lieu de ho tro van hanh an toan hon.
+- Ho tro tai su dung phien dang nhap cuc bo khi crawl nguon da cau hinh.
+- Bo sung quy trinh nang cap database cuc bo co sao luu va kiem tra tuong thich.
+- Ho tro tim kiem SQLite FTS5 co fallback an toan va chuan hoa tu khoa tieng Viet.
+- Chi tim kiem va xuat TBMT tu nguon dang bat; du lieu mau/nguon cu duoc sao luu va archive cuc bo truoc khi loai khoi tap van hanh.
+
 ## 0.6.0 - 2026-08-10
 
 - Cap nhat chuc nang xu ly va xuat bao cao dau thau.
@@ -59,7 +68,7 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 - Add Windows Unicode regression tests for accented `Lanh Binh Thang` and `Cap quang` data, including
   Excel round-trip preservation.
 - Add tender line-item quantity storage with source location and extraction confidence.
-- Read Contracts Finder OCDS `tender.items` quantities automatically when provided by the source.
+- Read structured tender line-item quantities automatically when provided by a source.
 - Add beginner commands `nhap-ton-kho` and `nhap-boq`; keep the old English names hidden and compatible.
 - Reduce root help to daily-use commands with short ASCII Vietnamese descriptions.
 - Add `requested_quantity_details` and `response_table` to the tender export.
@@ -108,7 +117,7 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ### Them moi
 
-- Thu thap goi con han tu UK Contracts Finder qua OCDS API.
+- Them luong crawl URL va luu du lieu nguon vao kho noi bo.
 - Them website tuy chinh bang URL trang danh sach.
 - Cho phep nguoi dung tu dang nhap, nhap OTP/CAPTCHA va luu phien cuc bo.
 - Tai su dung cookie/session ma khong luu mat khau.

@@ -67,7 +67,7 @@ def _boolean(value: Any) -> bool:
 def import_inventory(db: Database, path: Path) -> ImportQuantitySummary:
     rows = _read_rows(path)
     inserted = updated = rejected = 0
-    db.create_all()
+    db.require_current_schema()
     with db.session() as session:
         for row in rows:
             sku = str(_value(row, ("sku", "item_code", "ma hang")) or "").strip()
@@ -97,7 +97,7 @@ def import_inventory(db: Database, path: Path) -> ImportQuantitySummary:
 def import_tender_items(db: Database, notice_id: int, path: Path) -> ImportQuantitySummary:
     rows = _read_rows(path)
     inserted = updated = rejected = 0
-    db.create_all()
+    db.require_current_schema()
     with db.session() as session:
         notice = session.get(Notice, notice_id)
         if notice is None:

@@ -17,6 +17,8 @@ from .parser import ParsedAttachment, ParsedNotice, parse_datetime_value, parse_
 
 COLUMN_ALIASES: dict[str, set[str]] = {
     "notice_code": {"notice_code", "ma_tbmt", "ma_thong_bao", "so_tbmt", "ma_goi_thau"},
+    "source_notice_id": {"source_notice_id", "ma_nguon", "source_id", "website_notice_id"},
+    "source_name": {"source_name", "nguon", "website", "source"},
     "title": {"title", "ten_goi_thau", "ten_du_an", "tieu_de"},
     "buyer": {"buyer", "ben_moi_thau", "don_vi_moi_thau"},
     "procuring_entity_address": {
@@ -182,6 +184,8 @@ def import_file(service: CrawlerService, path: Path) -> ImportSummary:
         parsed = ParsedNotice(
             source_url=source_url,
             notice_code=_format_value(row.get("notice_code")),
+            source_notice_id=_format_value(row.get("source_notice_id")),
+            source_name=_format_value(row.get("source_name")),
             title=_format_value(row.get("title")),
             buyer=_format_value(row.get("buyer")),
             procuring_entity_address=_format_value(row.get("procuring_entity_address")),

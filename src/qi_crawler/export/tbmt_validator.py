@@ -7,9 +7,9 @@ from .tbmt_schema import NormalizedTenderRecord
 
 
 class DataQuality(StrEnum):
-    VALID = "VALID"
+    PASS = "PASS"
     WARNING = "WARNING"
-    INVALID = "INVALID"
+    REJECT = "REJECT"
 
 
 @dataclass(slots=True)
@@ -22,23 +22,27 @@ class TBMTValidation:
 def validate_tbmt_record(record: NormalizedTenderRecord) -> TBMTValidation:
     errors: list[str] = []
     warnings: list[str] = []
-    if not record.notice_id:
-        errors.append("Thiếu mã TBMT/notice ID")
     if not record.package_name:
         errors.append("Thiếu tên gói thầu")
+    if not record.source_url:
+        errors.append("Thiếu URL nguồn")
+    if not record.notice_id and not record.source_notice_id:
+        errors.append("Thiếu cả mã TBMT và mã nguồn")
     if errors:
-        return TBMTValidation(DataQuality.INVALID, tuple(errors), tuple(warnings))
+        return TBMTValidation(DataQuality.REJECT, tuple(errors), tuple(warnings))
 
-    if not record.procuring_entity:
-        warnings.append("Thiếu bên mời thầu")
-    if not record.bid_close_at:
-        warnings.append("Thiếu thời gian đóng thầu chuẩn hóa")
     if not record.procuring_entity_address:
         warnings.append("Thiếu địa chỉ bên mời thầu")
+    if not record.project_name:
+        warnings.append("Thiếu dự án")
+    if not record.funding_source:
+        warnings.append("Thiếu nguồn vốn")
     if record.package_price is None:
         warnings.append("Thiếu giá gói thầu")
     if record.bid_security_amount is None:
         warnings.append("Thiếu bảo đảm dự thầu")
+    if not record.contract_duration:
+        warnings.append("Thiếu thời gian thực hiện hợp đồng")
     if warnings:
         return TBMTValidation(DataQuality.WARNING, tuple(errors), tuple(warnings))
-    return TBMTValidation(DataQuality.VALID)
+    return TBMTValidation(DataQuality.PASS)
