@@ -40,10 +40,13 @@ class ScanSummary:
     run_id: int | None
     discovered: int
     matched: int
+    queued: int
+    limited: int
     new: int
     existing: int
     success: int
     failed: int
+    pending: int
     skipped: int
     pages_scanned: int
 
@@ -591,7 +594,7 @@ class CrawlerService:
                 for task in session.scalars(
                     select(CrawlTask).where(
                         CrawlTask.crawl_run_id == run.id,
-                        CrawlTask.status == "RUNNING",
+                        CrawlTask.status.in_(["RUNNING", "HUMAN_REQUIRED"]),
                     )
                 ):
                     task.status = "PENDING"
@@ -608,7 +611,9 @@ class CrawlerService:
                 )
                 return run.id, task_ids
 
-            unique_urls = list(dict.fromkeys(urls))[: self.config.crawl.max_pages_per_run]
+            # max_pages_per_run bounds list pagination, not the number of
+            # discovered detail tasks. Every selected unique tender is queued.
+            unique_urls = list(dict.fromkeys(urls))
             run = CrawlRun(
                 status="running",
                 source_name=source_name,
@@ -661,6 +666,34 @@ class CrawlerService:
             run.status = "interrupted" if interrupted else ("completed" if failed == 0 else "partial")
             return completed, failed
 
+    def _crawl_run_task_counts(self, run_id: int) -> tuple[int, int, int]:
+        """Return completed, failed and resumable/pending task counts."""
+        with self.db.session() as session:
+            statuses = session.scalars(
+                select(CrawlTask.status).where(CrawlTask.crawl_run_id == run_id)
+            ).all()
+        success = sum(status == "COMPLETED" for status in statuses)
+        failed = sum(status == "FAILED" for status in statuses)
+        pending = len(statuses) - success - failed
+        return success, failed, pending
+
+    def _stop_run_for_human(self, run_id: int, reason: str) -> None:
+        """Stop a batch safely while keeping incomplete tasks resumable."""
+        with self.db.session() as session:
+            run = session.get(CrawlRun, run_id)
+            if run is not None:
+                run.status = "human_required"
+                run.error_message = reason[:2000]
+                run.finished_at = datetime.now(UTC)
+            for task in session.scalars(
+                select(CrawlTask).where(
+                    CrawlTask.crawl_run_id == run_id,
+                    CrawlTask.status == "RUNNING",
+                )
+            ):
+                task.status = "PENDING"
+                task.last_error = "Batch da dung de nguoi dung xu ly yeu cau truy cap."
+
     async def _crawl_task(self, task_id: int, run_id: int) -> None:
         while True:
             with self.db.session() as session:
@@ -691,6 +724,8 @@ class CrawlerService:
                     for attachment_id in attachment_ids:
                         try:
                             await self._download_attachment_http(notice.id, attachment_id)
+                        except AccessDenied:
+                            raise
                         except Exception:
                             logger.exception("Khong tai duoc attachment id=%s", attachment_id)
                 with self.db.session() as session:
@@ -711,9 +746,20 @@ class CrawlerService:
                     if task is not None:
                         task.last_error = "Crawl bi huy/gian doan; cho resume."
                 raise
+            except AccessDenied as exc:
+                self.human_required_reason = str(exc)
+                with self.db.session() as session:
+                    task = session.get(CrawlTask, task_id)
+                    if task is not None:
+                        task.status = "HUMAN_REQUIRED"
+                        task.last_error = str(exc)[:2000]
+                        task.finished_at = datetime.now(UTC)
+                    run = session.get(CrawlRun, run_id)
+                    if run is not None:
+                        run.status = "human_required"
+                        run.error_message = str(exc)[:2000]
+                raise
             except Exception as exc:
-                if isinstance(exc, SessionExpired):
-                    self.human_required_reason = str(exc)
                 retryable = self._is_retryable_crawl_error(exc)
                 can_retry = retryable and attempt_count <= self.config.crawl.max_retries
                 with self.db.session() as session:
@@ -749,14 +795,30 @@ class CrawlerService:
             urls, source_name, resume_run_id, run_notes
         )
         semaphore = asyncio.Semaphore(self.config.crawl.concurrency)
+        stop_for_human = asyncio.Event()
 
         async def one(task_id: int) -> None:
             async with semaphore:
-                await self._crawl_task(task_id, run_id)
+                if stop_for_human.is_set():
+                    return
+                try:
+                    await self._crawl_task(task_id, run_id)
+                except AccessDenied:
+                    # Set before releasing the semaphore so the next queued
+                    # worker cannot start another request.
+                    stop_for_human.set()
+                    raise
 
         workers = [asyncio.create_task(one(task_id)) for task_id in task_ids]
         try:
             await asyncio.gather(*workers)
+        except AccessDenied as exc:
+            for worker in workers:
+                if not worker.done():
+                    worker.cancel()
+            await asyncio.gather(*workers, return_exceptions=True)
+            self._stop_run_for_human(run_id, str(exc))
+            raise
         except asyncio.CancelledError:
             for worker in workers:
                 if not worker.done():
@@ -782,6 +844,21 @@ class CrawlerService:
             self.config.allowed_domains,
         )
 
+    async def _render_list_html(self, url: str) -> str:
+        """Render a permitted list page without bypassing access controls."""
+        state, source_name, session_required = self._session_state_for_url(url)
+        if session_required and state is None:
+            raise SessionExpired(
+                f"{(source_name or 'website').upper()}_SESSION_EXPIRED: "
+                "Can dang nhap lai truoc khi render trang danh sach."
+            )
+        if state is not None:
+            self._browser_started = True
+            return await self.browser.fetch_authenticated_html(url, state)
+        await self.browser.ensure_browser_access_allowed(url)
+        await self._ensure_browser(headed=False)
+        return await self.browser.fetch_html(url)
+
     async def _discover_list_pages(
         self, list_url: str, max_pages: int
     ) -> tuple[SourceAdapter, list[DiscoveredTender], int]:
@@ -800,8 +877,12 @@ class CrawlerService:
             seen_pages.add(page_url)
             html = await self._get_html(page_url)
             pages_scanned += 1
+            page_entries = adapter.discover_tenders(html, page_url)
+            if adapter.source.adapter == "coteccons" and not page_entries:
+                html = await self._render_list_html(page_url)
+                page_entries = adapter.discover_tenders(html, page_url)
             before = len(entries)
-            for entry in adapter.discover_tenders(html, page_url):
+            for entry in page_entries:
                 if entry.source_notice_id in seen_source_ids:
                     continue
                 seen_source_ids.add(entry.source_notice_id)
@@ -825,7 +906,7 @@ class CrawlerService:
                 select(CrawlRun)
                 .where(
                     CrawlRun.source_name == adapter.source_name,
-                    CrawlRun.status.in_(["running", "interrupted", "partial"]),
+                    CrawlRun.status.in_(["running", "interrupted", "partial", "human_required"]),
                 )
                 .order_by(CrawlRun.id.desc())
             ).all()
@@ -879,14 +960,19 @@ class CrawlerService:
             existing_run = self._resumable_scan_run(adapter, list_url)
             if existing_run is not None:
                 success, failed = await self.resume_crawl(existing_run.id)
+                queued = existing_run.records_found
+                _, _, pending = self._crawl_run_task_counts(existing_run.id)
                 return ScanSummary(
                     run_id=existing_run.id,
-                    discovered=existing_run.records_found,
-                    matched=existing_run.records_found,
+                    discovered=queued,
+                    matched=queued,
+                    queued=queued,
+                    limited=0,
                     new=0,
-                    existing=existing_run.records_found,
+                    existing=queued,
                     success=success,
                     failed=failed,
+                    pending=pending,
                     skipped=0,
                     pages_scanned=0,
                 )
@@ -894,19 +980,25 @@ class CrawlerService:
         adapter, discovered, pages_scanned = await self._discover_list_pages(list_url, max_pages)
         selected, skipped = self._filter_discovered_tenders(discovered, keyword_terms)
         existing_source_ids = self._existing_source_ids(adapter.source_name, selected)
+        queued = len(selected)
         success, failed = await self.crawl_urls(
             [entry.url for entry in selected],
             source_name=adapter.source_name,
             run_notes=self._scan_notes(list_url),
         )
+        run_id = None if not selected else self._latest_run_id(adapter.source_name, list_url)
+        pending = 0 if run_id is None else self._crawl_run_task_counts(run_id)[2]
         return ScanSummary(
-            run_id=None if not selected else self._latest_run_id(adapter.source_name, list_url),
+            run_id=run_id,
             discovered=len(discovered),
             matched=len(selected),
+            queued=queued,
+            limited=0,
             new=len(selected) - len(existing_source_ids),
             existing=len(existing_source_ids),
             success=success,
             failed=failed,
+            pending=pending,
             skipped=skipped,
             pages_scanned=pages_scanned,
         )

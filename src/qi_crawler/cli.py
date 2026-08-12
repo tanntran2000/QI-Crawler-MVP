@@ -268,10 +268,13 @@ def scan(
                 typer.echo(f"Run: {summary.run_id}")
             typer.echo(f"Discovered: {summary.discovered}")
             typer.echo(f"Matched: {summary.matched}")
+            typer.echo(f"Queued: {summary.queued}")
+            typer.echo(f"Limited: {summary.limited}")
             typer.echo(f"New: {summary.new}")
             typer.echo(f"Existing: {summary.existing}")
             typer.echo(f"Success: {summary.success}")
             typer.echo(f"Failed: {summary.failed}")
+            typer.echo(f"Pending: {summary.pending}")
             typer.echo(f"Skipped: {summary.skipped}")
         except AccessDenied as exc:
             typer.echo(f"HUMAN_REQUIRED: {exc}", err=True)
