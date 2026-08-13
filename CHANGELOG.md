@@ -6,6 +6,7 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 - On dinh nen tang xu ly tai lieu va giao dien noi bo.
 - Bo sung kiem tra van hanh va bao mat truoc giai doan phat trien tiep theo.
+- Bo sung quy trinh tao Windows Setup de cai dat QI-Crawler khong can Python, VS Code hay Git.
 
 ## 0.6.1 - 2026-08-12
 

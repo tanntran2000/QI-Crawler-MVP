@@ -1,4 +1,4 @@
-# Build QI-Crawler standalone tren Windows
+# Build QI-Crawler standalone va installer tren Windows
 
 Ban WP8-C dung PyInstaller `onedir`. Nguoi dung cuoi nhan **toan bo** thu muc
 `dist\QI-Crawler`; khong copy rieng file EXE.
@@ -47,7 +47,36 @@ dist\QI-Crawler\
     `-- browsers\
 ```
 
-## 4. Du lieu nguoi dung
+## 4. Tao Setup cho Team Bid
+
+Cai [Inno Setup 7](https://jrsoftware.org/isdl.php) tren may build, sau do chay:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
+```
+
+Neu Inno Setup nam o mot vi tri rieng, dat duong dan compiler trong phien
+PowerShell truoc khi build:
+
+```powershell
+$env:QI_CRAWLER_ISCC = "C:\Tools\Inno Setup 7\ISCC.exe"
+powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
+```
+
+Ket qua la mot file duy nhat:
+
+```text
+dist\installer\QI-Crawler-Setup-v0.7.0.exe
+```
+
+Nguoi dung cuoi chi can chay Setup. Setup tao shortcut Start Menu va Desktop,
+dong goi day du Qt/PySide6, Playwright va Chromium. Khong can Python, VS Code hay Git.
+
+Setup chi ghi application vao `%LOCALAPPDATA%\Programs\QI-Crawler`. Database, document HSMT,
+report, config va session luon nam o `%LOCALAPPDATA%\QI-Crawler`, nen upgrade va uninstall
+khong xoa du lieu Bid.
+
+## 5. Du lieu nguoi dung
 
 Lan chay dau, ung dung tao va chi ghi vao:
 
@@ -68,13 +97,13 @@ Lan chay dau, ung dung tao va chi ghi vao:
 Cap nhat bang cach thay thu muc ung dung khong ghi de database, report, session,
 documents hay config cua nguoi dung.
 
-## 5. Browser runtime
+## 6. Browser runtime
 
 Spec bundle thu muc `%LOCALAPPDATA%\ms-playwright` vao `runtime\browsers` va dat
 `PLAYWRIGHT_BROWSERS_PATH` khi khoi dong. Neu Chromium bi thieu, GUI hien loi tieng
 Viet va dung; ung dung khong tu tai ngầm.
 
-## 6. Kiem tra tren may Windows sach
+## 7. Kiem tra tren may Windows sach
 
 Copy toan bo `dist\QI-Crawler` sang may khong co Python/VS Code, sau do double-click
 `QI-Crawler.exe`. Kiem tra:

@@ -85,6 +85,7 @@ playwright-report/
 build/
 dist/
 .tmp_standalone_*/
+.tmp_installer*/
 
 # IDE va he dieu hanh
 .vscode/
