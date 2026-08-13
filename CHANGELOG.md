@@ -2,10 +2,10 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
-## 0.7.0 - 2026-08-13
+## 0.7.1 - 2026-08-13
 
-- On dinh nen tang xu ly tai lieu va giao dien noi bo.
-- Bo sung kiem tra van hanh va bao mat truoc giai doan phat trien tiep theo.
+- Hoan tat goi phat hanh Windows cho Team Bid va dong bo version ung dung/installer.
+- On dinh nen tang xu ly tai lieu va giao dien noi bo truoc giai doan phat trien tiep theo.
 - Bo sung quy trinh tao Windows Setup de cai dat QI-Crawler khong can Python, VS Code hay Git.
 
 ## 0.6.1 - 2026-08-12

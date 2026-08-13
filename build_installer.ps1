@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $standaloneBuild = Join-Path $projectRoot "build_windows.ps1"
 $installerScript = Join-Path $projectRoot "packaging\QI-Crawler.iss"
-$installerOutput = Join-Path $projectRoot "dist\installer\QI-Crawler-Setup-v0.7.0.exe"
+$installerOutput = Join-Path $projectRoot "dist\installer\QI-Crawler-Setup-v0.7.1.exe"
 $isccCandidates = @(
     $env:QI_CRAWLER_ISCC,
     (Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -ErrorAction SilentlyContinue),
@@ -42,7 +42,7 @@ try {
 }
 
 if (-not (Test-Path -LiteralPath $installerOutput)) {
-    throw "Build xong nhung khong tim thay QI-Crawler-Setup-v0.7.0.exe"
+    throw "Build xong nhung khong tim thay QI-Crawler-Setup-v0.7.1.exe"
 }
 
 Write-Host "Installer thanh cong: $installerOutput" -ForegroundColor Green
