@@ -125,6 +125,58 @@ def test_worker_executes_outside_ui_thread(application: QApplication) -> None:
     assert observed[0] != ui_thread
 
 
+def test_successful_worker_emits_one_finished_signal(application: QApplication) -> None:
+    loop = QEventLoop()
+    finished: list[object] = []
+    errors: list[object] = []
+    worker = FunctionWorker(lambda: "done", task_name="test_success")
+    worker.signals.finished.connect(lambda result: (finished.append(result), loop.quit()))
+    worker.signals.error.connect(lambda error: (errors.append(error), loop.quit()))
+
+    QThreadPool.globalInstance().start(worker)
+    QTimer.singleShot(5000, loop.quit)
+    loop.exec()
+
+    assert finished == ["done"]
+    assert errors == []
+
+
+def test_failed_worker_emits_one_error_signal(application: QApplication) -> None:
+    loop = QEventLoop()
+    finished: list[object] = []
+    errors: list[object] = []
+
+    def fail() -> None:
+        raise RuntimeError("expected worker error")
+
+    worker = FunctionWorker(fail, task_name="test_error")
+    worker.signals.finished.connect(lambda result: (finished.append(result), loop.quit()))
+    worker.signals.error.connect(lambda error: (errors.append(error), loop.quit()))
+
+    QThreadPool.globalInstance().start(worker)
+    QTimer.singleShot(5000, loop.quit)
+    loop.exec()
+
+    assert finished == []
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+
+
+def _wait_until(predicate, timeout_ms: int = 3000) -> None:
+    loop = QEventLoop()
+
+    def check() -> None:
+        if predicate():
+            loop.quit()
+        else:
+            QTimer.singleShot(10, check)
+
+    check()
+    QTimer.singleShot(timeout_ms, loop.quit)
+    loop.exec()
+    assert predicate()
+
+
 def test_long_job_disables_button_and_shows_progress(
     window: QICrawlerWindow,
 ) -> None:
@@ -151,6 +203,30 @@ def test_long_job_disables_button_and_shows_progress(
 
     assert window.scan_button.isEnabled()
     assert window.scan_progress.isHidden()
+
+
+def test_submit_returns_to_ui_thread_and_clears_busy_state(window: QICrawlerWindow) -> None:
+    ui_thread = threading.get_ident()
+    observed: list[tuple[int, int]] = []
+
+    def on_success(worker_thread: int) -> None:
+        observed.append((worker_thread, threading.get_ident()))
+
+    window._submit(
+        threading.get_ident,
+        on_success=on_success,
+        button=window.scan_button,
+        progress=window.scan_progress,
+        status=window.scan_status,
+        task_name="test_ui_delivery",
+    )
+
+    _wait_until(lambda: window.scan_button.isEnabled() and bool(observed))
+
+    assert observed[0][0] != ui_thread
+    assert observed[0][1] == ui_thread
+    assert window.scan_progress.isHidden()
+    assert window._active_jobs == []
 
 
 def test_scan_success_is_rendered_in_vietnamese(window: QICrawlerWindow) -> None:
@@ -187,11 +263,19 @@ def test_worker_error_renders_friendly_message(window: QICrawlerWindow, monkeypa
         lambda _parent, _title, message: messages.append(message),
     )
 
-    window._worker_error(window.scan_button, RuntimeError("technical detail"))
+    window._worker_error(
+        window.scan_button,
+        RuntimeError("technical detail"),
+        window.scan_progress,
+        window.scan_status,
+    )
 
     assert messages == ["Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."]
     assert "technical detail" in window.log_output.toPlainText()
     assert "technical detail" not in window.statusBar().currentMessage()
+    assert window.scan_button.isEnabled()
+    assert window.scan_progress.isHidden()
+    assert "Không thể hoàn tất" in window.scan_status.text()
 
 
 def test_human_required_dialog_is_friendly(window: QICrawlerWindow, monkeypatch) -> None:
@@ -230,3 +314,68 @@ def test_export_open_action_can_be_mocked_safely(
     assert window.export_path.text() == str(path)
     assert window.open_export_button.isEnabled()
     assert opened == [path]
+
+
+def test_single_crawl_returns_from_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui, "run_single_crawl", lambda _config, _url: (1, 0, None))
+    window.crawl_url.setText("https://ebidding.coteccons.vn/Index/ChiTiet/2608121")
+
+    window.start_crawl()
+
+    assert not window.crawl_button.isEnabled()
+    _wait_until(lambda: window.crawl_button.isEnabled())
+    assert window.crawl_progress.isHidden()
+    assert "Hoàn tất: thành công 1, lỗi 0." == window.crawl_status.text()
+
+
+def test_export_returns_from_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "TBMT.xlsx"
+    monkeypatch.setattr(
+        gui,
+        "run_export",
+        lambda _config: SimpleNamespace(
+            output=output,
+            exported_records=2,
+            warning_records=0,
+        ),
+    )
+
+    window.start_export()
+
+    assert not window.export_button.isEnabled()
+    _wait_until(lambda: window.export_button.isEnabled())
+    assert window.export_progress.isHidden()
+    assert window.export_path.text() == str(output)
+    assert "Đã xuất 2 dòng" in window.export_status.text()
+
+
+def test_export_failure_returns_from_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    messages: list[str] = []
+
+    def fail(_config: AppConfig) -> None:
+        raise RuntimeError("expected export failure")
+
+    monkeypatch.setattr(gui, "run_export", fail)
+    monkeypatch.setattr(
+        QMessageBox,
+        "critical",
+        lambda _parent, _title, message: messages.append(message),
+    )
+
+    window.start_export()
+
+    assert not window.export_button.isEnabled()
+    _wait_until(lambda: window.export_button.isEnabled())
+    assert window.export_progress.isHidden()
+    assert messages == ["Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."]
+    assert "Không thể hoàn tất" in window.export_status.text()

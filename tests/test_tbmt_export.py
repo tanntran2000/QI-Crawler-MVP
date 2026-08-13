@@ -84,6 +84,29 @@ def test_tbmt_export_uses_stable_schema_and_typed_values(tmp_path) -> None:
     assert workbook[META_SHEET_NAME]["B3"].value == __version__
 
 
+def test_tbmt_export_logs_completion_stages(tmp_path, caplog) -> None:
+    db = _database(tmp_path)
+    caplog.set_level("INFO", logger="qi_crawler.export.tbmt_excel")
+
+    export_tbmt(
+        db,
+        output=tmp_path / "TBMT-stage-log.xlsx",
+        rejects_dir=tmp_path / "rejects",
+    )
+
+    messages = "\n".join(caplog.messages)
+    for stage in (
+        "EXPORT_START",
+        "DB_QUERY_DONE",
+        "MAPPING_DONE",
+        "VALIDATION_DONE",
+        "WORKBOOK_SAVE_START",
+        "WORKBOOK_SAVE_DONE",
+        "EXPORT_DONE",
+    ):
+        assert stage in messages
+
+
 def test_date_only_deadline_is_exported_without_a_fake_midnight_time(tmp_path) -> None:
     db = _database(tmp_path)
     with db.session() as session:

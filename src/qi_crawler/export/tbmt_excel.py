@@ -336,12 +336,15 @@ def export_tbmt(
     active_source_domains: tuple[str, ...] | None = None,
 ) -> TBMTExportResult:
     """Export the stable TBMT-1.0 workbook without mutating the source template."""
+    logger.info("EXPORT_START")
     if not template_path.exists():
         raise FileNotFoundError(f"Khong tim thay template TBMT: {template_path}")
 
     notices = _load_notices(db, active_source_names, active_source_domains)
+    logger.info("DB_QUERY_DONE notice_count=%s", len(notices))
     mapper = TBMTExcelMapper()
     records = [mapper.normalize(notice) for notice in notices]
+    logger.info("MAPPING_DONE record_count=%s", len(records))
     run_ids = [record.crawl_run_id for record in records if record.crawl_run_id is not None]
     selected_run_id = crawl_run_id
     if selected_run_id is None and run_ids and latest_run_only:
@@ -379,6 +382,11 @@ def export_tbmt(
                 "; ".join(validation.warnings),
             )
         accepted.append((mapper.map(record, len(accepted) + 1), validation))
+    logger.info(
+        "VALIDATION_DONE accepted=%s rejected=%s",
+        len(accepted),
+        len(rejected),
+    )
 
     generated_at = datetime.now(UTC)
     report_date = on_date or generated_at.astimezone().date()
@@ -394,7 +402,9 @@ def export_tbmt(
         generated_at=generated_at,
         crawl_run_id=selected_run_id,
     )
+    logger.info("WORKBOOK_SAVE_START output=%s", destination)
     workbook.save(destination)
+    logger.info("WORKBOOK_SAVE_DONE output=%s", destination)
 
     reject_output = None
     if rejected:
@@ -403,7 +413,7 @@ def export_tbmt(
             rejected,
         )
 
-    return TBMTExportResult(
+    result = TBMTExportResult(
         output=destination,
         reject_output=reject_output,
         total_records=len(records),
@@ -414,3 +424,10 @@ def export_tbmt(
         rejected_records=len(rejected),
         crawl_run_id=selected_run_id,
     )
+    logger.info(
+        "EXPORT_DONE exported_records=%s warning_records=%s rejected_records=%s",
+        result.exported_records,
+        result.warning_records,
+        result.rejected_records,
+    )
+    return result

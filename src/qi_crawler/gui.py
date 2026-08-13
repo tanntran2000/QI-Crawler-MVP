@@ -10,7 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
@@ -72,22 +72,92 @@ class WorkerSignals(QObject):
 class FunctionWorker(QRunnable):
     """Execute one application-service call away from the Qt UI thread."""
 
-    def __init__(self, function: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        function: Callable[..., Any],
+        *args: Any,
+        task_name: str = "operation",
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
         self.function = function
         self.args = args
         self.kwargs = kwargs
+        self.task_name = task_name
         self.signals = WorkerSignals()
 
     @Slot()
     def run(self) -> None:
+        result: Any = None
+        error: BaseException | None = None
+        terminal_signal = "error"
+        logger.info("GUI_WORKER_START task=%s", self.task_name)
         try:
             result = self.function(*self.args, **self.kwargs)
-        except Exception as exc:
+            terminal_signal = "finished"
+        except BaseException as exc:
+            error = exc
             logger.exception("GUI worker failed")
-            self.signals.error.emit(exc)
-        else:
-            self.signals.finished.emit(result)
+        finally:
+            # Every worker invocation has one, and only one, terminal signal.
+            # The receiver is retained by QICrawlerWindow until delivery.
+            logger.info(
+                "GUI_WORKER_FINISHED task=%s terminal=%s",
+                self.task_name,
+                terminal_signal,
+            )
+            if error is None:
+                self.signals.finished.emit(result)
+            else:
+                self.signals.error.emit(error)
+
+
+class GuiTaskBridge(QObject):
+    """Deliver one worker terminal event safely to the GUI thread."""
+
+    def __init__(
+        self,
+        window: QICrawlerWindow,
+        *,
+        button: QPushButton,
+        progress: QProgressBar | None,
+        status: QLabel | None,
+        on_success: Callable[[Any], None],
+    ) -> None:
+        super().__init__(window)
+        self.window = window
+        self.button = button
+        self.progress = progress
+        self.status = status
+        self.on_success = on_success
+        self.worker: FunctionWorker | None = None
+        self.signals: WorkerSignals | None = None
+        self.terminal_received = False
+
+    def retain_worker(self, worker: FunctionWorker) -> None:
+        """Keep worker and signal emitter alive until a queued event is handled."""
+        self.worker = worker
+        self.signals = worker.signals
+
+    @Slot(object)
+    def handle_finished(self, result: Any) -> None:
+        if self.terminal_received:
+            logger.warning("Ignoring duplicate GUI terminal signal: finished")
+            return
+        self.terminal_received = True
+        self.window._deliver_worker_success(self, result)
+
+    @Slot(object)
+    def handle_error(self, error: BaseException) -> None:
+        if self.terminal_received:
+            logger.warning("Ignoring duplicate GUI terminal signal: error")
+            return
+        self.terminal_received = True
+        self.window._deliver_worker_error(self, error)
+
+    def release(self) -> None:
+        self.worker = None
+        self.signals = None
 
 
 class QICrawlerWindow(QMainWindow):
@@ -98,6 +168,7 @@ class QICrawlerWindow(QMainWindow):
         self.last_export_path: Path | None = None
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
+        self._active_jobs: list[GuiTaskBridge] = []
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
         self.resize(1120, 740)
         self.setMinimumSize(960, 640)
@@ -412,16 +483,73 @@ class QICrawlerWindow(QMainWindow):
         on_success: Callable[[Any], None],
         button: QPushButton,
         progress: QProgressBar | None = None,
+        status: QLabel | None = None,
+        task_name: str = "operation",
     ) -> None:
-        button.setEnabled(False)
-        if progress is not None:
-            progress.show()
-        worker = FunctionWorker(function, *args)
-        worker.signals.finished.connect(
-            lambda result: self._worker_success(button, on_success, result, progress)
+        self._set_job_busy(button, progress, busy=True)
+        bridge = GuiTaskBridge(
+            self,
+            button=button,
+            progress=progress,
+            status=status,
+            on_success=on_success,
         )
-        worker.signals.error.connect(lambda error: self._worker_error(button, error, progress))
-        self.thread_pool.start(worker)
+        worker = FunctionWorker(function, *args, task_name=task_name)
+        bridge.retain_worker(worker)
+        self._active_jobs.append(bridge)
+        worker.signals.finished.connect(
+            bridge.handle_finished,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        worker.signals.error.connect(
+            bridge.handle_error,
+            Qt.ConnectionType.QueuedConnection,
+        )
+        try:
+            self.thread_pool.start(worker)
+        except (RuntimeError, TypeError) as exc:
+            self._deliver_worker_error(bridge, exc)
+
+    @staticmethod
+    def _set_job_busy(
+        button: QPushButton,
+        progress: QProgressBar | None,
+        *,
+        busy: bool,
+    ) -> None:
+        button.setEnabled(not busy)
+        button.setProperty("busy", busy)
+        if progress is not None:
+            progress.setVisible(busy)
+
+    def _release_job(self, bridge: GuiTaskBridge) -> None:
+        if bridge in self._active_jobs:
+            self._active_jobs.remove(bridge)
+        bridge.release()
+        bridge.deleteLater()
+
+    def _deliver_worker_success(self, bridge: GuiTaskBridge, result: Any) -> None:
+        try:
+            self._worker_success(
+                bridge.button,
+                bridge.on_success,
+                result,
+                bridge.progress,
+                bridge.status,
+            )
+        finally:
+            self._release_job(bridge)
+
+    def _deliver_worker_error(self, bridge: GuiTaskBridge, error: BaseException) -> None:
+        try:
+            self._worker_error(
+                bridge.button,
+                error,
+                bridge.progress,
+                bridge.status,
+            )
+        finally:
+            self._release_job(bridge)
 
     def _worker_success(
         self,
@@ -429,28 +557,34 @@ class QICrawlerWindow(QMainWindow):
         callback: Callable[[Any], None],
         result: Any,
         progress: QProgressBar | None = None,
+        status: QLabel | None = None,
     ) -> None:
-        button.setEnabled(True)
-        if progress is not None:
-            progress.hide()
-        callback(result)
+        self._set_job_busy(button, progress, busy=False)
+        try:
+            callback(result)
+        except Exception as exc:
+            logger.exception("GUI success handler failed")
+            self._worker_error(button, exc, progress, status)
 
     def _worker_error(
         self,
         button: QPushButton,
-        error: Exception,
+        error: BaseException,
         progress: QProgressBar | None = None,
+        status: QLabel | None = None,
     ) -> None:
-        button.setEnabled(True)
-        if progress is not None:
-            progress.hide()
+        self._set_job_busy(button, progress, busy=False)
         if isinstance(error, AccessDenied):
+            if status is not None:
+                status.setText("Cần người dùng xử lý trước khi chạy lại.")
             self.show_human_required(str(error))
             return
         if isinstance(error, SchemaNotReady):
             message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
+        if status is not None:
+            status.setText(message)
         self._append_log(f"LỖI: {message} Chi tiết kỹ thuật: {error}")
         QMessageBox.critical(self, "QI-Crawler", message)
 
@@ -475,6 +609,8 @@ class QICrawlerWindow(QMainWindow):
             on_success=self._render_scan_result,
             button=self.scan_button,
             progress=self.scan_progress,
+            status=self.scan_status,
+            task_name="scan",
         )
 
     def _render_scan_result(self, summary: ScanSummary) -> None:
@@ -511,6 +647,8 @@ class QICrawlerWindow(QMainWindow):
             on_success=self._render_search_results,
             button=self.search_button,
             progress=self.search_progress,
+            status=self.search_status,
+            task_name="search",
         )
 
     def _render_search_results(self, rows: list[SearchRow]) -> None:
@@ -532,6 +670,8 @@ class QICrawlerWindow(QMainWindow):
             on_success=self._render_export_result,
             button=self.export_button,
             progress=self.export_progress,
+            status=self.export_status,
+            task_name="export",
         )
 
     def _render_export_result(self, result: Any) -> None:
@@ -574,6 +714,8 @@ class QICrawlerWindow(QMainWindow):
             on_success=self._render_crawl_result,
             button=self.crawl_button,
             progress=self.crawl_progress,
+            status=self.crawl_status,
+            task_name="single_crawl",
         )
 
     def _render_crawl_result(self, result: tuple[int, int, str | None]) -> None:
@@ -600,6 +742,8 @@ class QICrawlerWindow(QMainWindow):
             on_success=self._render_login_result,
             button=self.login_button,
             progress=self.login_progress,
+            status=self.login_status,
+            task_name="login",
         )
         QTimer.singleShot(200, self._wait_for_login_browser)
 

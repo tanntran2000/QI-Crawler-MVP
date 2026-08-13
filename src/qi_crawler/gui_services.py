@@ -7,6 +7,7 @@ services. It contains no parsing, crawling or persistence implementation.
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +25,8 @@ from .export import TBMTExportResult, export_tbmt
 from .keywords import expand_keyword
 from .notice_search import search_notices
 from .source_filter import active_source_domains, active_source_names
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -78,7 +81,15 @@ def run_single_crawl(config: AppConfig, detail_url: str) -> tuple[int, int, str 
         finally:
             await service.close()
 
-    return asyncio.run(execute())
+    logger.info("SERVICE_START operation=single_crawl")
+    result = asyncio.run(execute())
+    logger.info(
+        "SERVICE_DONE operation=single_crawl success=%s failed=%s human_required=%s",
+        result[0],
+        result[1],
+        bool(result[2]),
+    )
+    return result
 
 
 def run_search(config: AppConfig, keyword: str, limit: int = 100) -> list[SearchRow]:
