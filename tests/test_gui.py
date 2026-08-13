@@ -9,7 +9,8 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QEventLoop, QThreadPool, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QThreadPool, QTimer
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from qi_crawler import __version__, gui
@@ -33,7 +34,11 @@ from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 @pytest.fixture(scope="module")
 def application() -> QApplication:
-    return QApplication.instance() or QApplication([])
+    value = QApplication.instance() or QApplication([])
+    yield value
+    assert QThreadPool.globalInstance().waitForDone(5000)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    value.processEvents()
 
 
 @pytest.fixture
@@ -50,7 +55,12 @@ def config(tmp_path: Path) -> AppConfig:
 def window(application: QApplication, config: AppConfig) -> QICrawlerWindow:
     widget = QICrawlerWindow(config)
     yield widget
+    assert QThreadPool.globalInstance().waitForDone(5000)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    application.processEvents()
     widget.close()
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
@@ -162,6 +172,7 @@ def test_successful_worker_emits_one_finished_signal(application: QApplication) 
 
     assert finished == ["done"]
     assert errors == []
+    assert not worker.autoDelete()
 
 
 def test_failed_worker_emits_one_error_signal(application: QApplication) -> None:
@@ -184,6 +195,7 @@ def test_failed_worker_emits_one_error_signal(application: QApplication) -> None
     assert finished == []
     assert len(errors) == 1
     assert isinstance(errors[0], RuntimeError)
+    assert not worker.autoDelete()
 
 
 def _wait_until(predicate, timeout_ms: int = 3000) -> None:
@@ -222,6 +234,23 @@ def test_long_job_disables_button_and_shows_progress(
     assert window.scan_button.isEnabled()
     assert window.scan_progress.isHidden()
     assert window._active_jobs == []
+
+
+def test_window_defers_close_until_active_worker_finishes(window: QICrawlerWindow) -> None:
+    release = threading.Event()
+    window._submit(
+        lambda: (release.wait(5), "done")[1],
+        on_success=lambda _result: None,
+        button=window.scan_button,
+        progress=window.scan_progress,
+    )
+
+    close_event = QCloseEvent()
+    window.closeEvent(close_event)
+
+    assert not close_event.isAccepted()
+    release.set()
+    _wait_until(lambda: window._active_jobs == [])
 
 
 def _scan_summary() -> ScanSummary:

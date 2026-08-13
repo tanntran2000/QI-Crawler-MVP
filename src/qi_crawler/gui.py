@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtGui import QCloseEvent, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -100,6 +100,10 @@ class FunctionWorker(QRunnable):
         **kwargs: Any,
     ) -> None:
         super().__init__()
+        # QRunnable defaults to auto-delete. Our terminal signal is queued to
+        # the GUI thread, so Python retains the native runnable until the
+        # thread-pool invocation has completely returned.
+        self.setAutoDelete(False)
         self.function = function
         self.args = args
         self.kwargs = kwargs
@@ -205,6 +209,15 @@ class QICrawlerWindow(QMainWindow):
         self.statusBar().showMessage("QI-Crawler đã sẵn sàng")
         version_label = QLabel(f"QI-Crawler v{__version__}")
         self.statusBar().addPermanentWidget(version_label)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Keep QObject receivers alive while a worker still owns a queued signal."""
+        if self._active_jobs:
+            message = "QI-Crawler đang xử lý tác vụ. Vui lòng chờ hoàn tất trước khi đóng."
+            self.statusBar().showMessage(message, 10000)
+            event.ignore()
+            return
+        super().closeEvent(event)
 
     def _apply_style(self) -> None:
         self.setStyleSheet(
