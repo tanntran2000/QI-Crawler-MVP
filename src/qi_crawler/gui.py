@@ -123,6 +123,7 @@ class GuiTaskBridge(QObject):
         progress: QProgressBar | None,
         status: QLabel | None,
         on_success: Callable[[Any], None],
+        long_operation: bool,
     ) -> None:
         super().__init__(window)
         self.window = window
@@ -130,6 +131,7 @@ class GuiTaskBridge(QObject):
         self.progress = progress
         self.status = status
         self.on_success = on_success
+        self.long_operation = long_operation
         self.worker: FunctionWorker | None = None
         self.signals: WorkerSignals | None = None
         self.terminal_received = False
@@ -169,6 +171,7 @@ class QICrawlerWindow(QMainWindow):
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
+        self._active_long_operation: str | None = None
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
         self.resize(1120, 740)
         self.setMinimumSize(960, 640)
@@ -260,6 +263,12 @@ class QICrawlerWindow(QMainWindow):
         self._build_crawl_page()
         self._build_login_page()
         self._build_log_page()
+        self._long_operation_buttons = (
+            self.scan_button,
+            self.crawl_button,
+            self.export_button,
+            self.login_button,
+        )
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.navigation.setCurrentRow(0)
 
@@ -485,7 +494,17 @@ class QICrawlerWindow(QMainWindow):
         progress: QProgressBar | None = None,
         status: QLabel | None = None,
         task_name: str = "operation",
-    ) -> None:
+        long_operation: bool = False,
+    ) -> bool:
+        if long_operation and self._active_long_operation is not None:
+            message = "QI-Crawler đang xử lý một tác vụ. Vui lòng chờ hoàn tất."
+            if status is not None:
+                status.setText(message)
+            self.statusBar().showMessage(message, 10000)
+            return False
+        if long_operation:
+            self._active_long_operation = task_name
+            self._set_long_operation_controls_enabled(False)
         self._set_job_busy(button, progress, busy=True)
         bridge = GuiTaskBridge(
             self,
@@ -493,6 +512,7 @@ class QICrawlerWindow(QMainWindow):
             progress=progress,
             status=status,
             on_success=on_success,
+            long_operation=long_operation,
         )
         worker = FunctionWorker(function, *args, task_name=task_name)
         bridge.retain_worker(worker)
@@ -509,6 +529,11 @@ class QICrawlerWindow(QMainWindow):
             self.thread_pool.start(worker)
         except (RuntimeError, TypeError) as exc:
             self._deliver_worker_error(bridge, exc)
+        return True
+
+    def _set_long_operation_controls_enabled(self, enabled: bool) -> None:
+        for control in self._long_operation_buttons:
+            control.setEnabled(enabled)
 
     @staticmethod
     def _set_job_busy(
@@ -525,6 +550,9 @@ class QICrawlerWindow(QMainWindow):
     def _release_job(self, bridge: GuiTaskBridge) -> None:
         if bridge in self._active_jobs:
             self._active_jobs.remove(bridge)
+        if bridge.long_operation:
+            self._active_long_operation = None
+            self._set_long_operation_controls_enabled(True)
         bridge.release()
         bridge.deleteLater()
 
@@ -611,6 +639,7 @@ class QICrawlerWindow(QMainWindow):
             progress=self.scan_progress,
             status=self.scan_status,
             task_name="scan",
+            long_operation=True,
         )
 
     def _render_scan_result(self, summary: ScanSummary) -> None:
@@ -672,18 +701,30 @@ class QICrawlerWindow(QMainWindow):
             progress=self.export_progress,
             status=self.export_status,
             task_name="export",
+            long_operation=True,
         )
 
     def _render_export_result(self, result: Any) -> None:
         self.last_export_path = Path(result.output)
         self.export_path.setText(str(self.last_export_path))
         self.open_export_button.setEnabled(True)
+        deduplicated = int(getattr(result, "deduplicated_records", 0))
+        rejected = int(getattr(result, "rejected_records", 0))
+        skipped = int(getattr(result, "skipped_records", 0))
         self.export_status.setText(
-            f"Đã xuất {result.exported_records} dòng; có {result.warning_records} cảnh báo."
+            "\n".join(
+                [
+                    f"Đã xuất: {result.exported_records}",
+                    f"Cảnh báo: {result.warning_records}",
+                    f"Trùng đã loại: {deduplicated}",
+                    f"Bị loại: {rejected}",
+                    f"Bỏ qua theo bộ lọc: {skipped}",
+                ]
+            )
         )
         self._append_log(
-            f"Đã xuất {result.exported_records} dòng; cảnh báo {result.warning_records}: "
-            f"{result.output}"
+            f"Đã xuất {result.exported_records}; cảnh báo {result.warning_records}; "
+            f"trùng {deduplicated}; bị loại {rejected}; bỏ qua {skipped}: {result.output}"
         )
 
     @Slot()
@@ -716,6 +757,7 @@ class QICrawlerWindow(QMainWindow):
             progress=self.crawl_progress,
             status=self.crawl_status,
             task_name="single_crawl",
+            long_operation=True,
         )
 
     def _render_crawl_result(self, result: tuple[int, int, str | None]) -> None:
@@ -733,7 +775,7 @@ class QICrawlerWindow(QMainWindow):
         self._login_confirmed = threading.Event()
         self.login_status.setText("Đang mở trình duyệt đăng nhập...")
         self._append_log("Đang mở trình duyệt đăng nhập...")
-        self._submit(
+        started = self._submit(
             run_login,
             self.config,
             source_name,
@@ -744,8 +786,10 @@ class QICrawlerWindow(QMainWindow):
             progress=self.login_progress,
             status=self.login_status,
             task_name="login",
+            long_operation=True,
         )
-        QTimer.singleShot(200, self._wait_for_login_browser)
+        if started:
+            QTimer.singleShot(200, self._wait_for_login_browser)
 
     def _wait_for_login_browser(self) -> None:
         if self._login_ready is None or self._login_confirmed is None:

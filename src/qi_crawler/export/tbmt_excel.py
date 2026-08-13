@@ -44,9 +44,13 @@ class TBMTExportResult:
     output: Path
     reject_output: Path | None
     total_records: int
+    queried_records: int
+    mapped_records: int
     exported_records: int
     warning_records: int
     rejected_records: int
+    deduplicated_records: int
+    skipped_records: int
     crawl_run_id: int | None
 
 
@@ -117,17 +121,28 @@ def _crawled_sort_value(record: NormalizedTenderRecord) -> float:
     return value.timestamp()
 
 
-def _deduplicate_records(records: list[NormalizedTenderRecord]) -> list[NormalizedTenderRecord]:
+def _deduplicate_records(
+    records: list[NormalizedTenderRecord],
+) -> tuple[list[NormalizedTenderRecord], list[NormalizedTenderRecord]]:
     unique: dict[tuple[str, ...], NormalizedTenderRecord] = {}
+    deduplicated: list[NormalizedTenderRecord] = []
     for record in records:
         key = _record_identity(record)
         existing = unique.get(key)
-        if existing is None or _crawled_sort_value(record) >= _crawled_sort_value(existing):
+        if existing is None:
             unique[key] = record
-    return sorted(unique.values(), key=lambda item: item.database_id or 0)
+        elif _crawled_sort_value(record) >= _crawled_sort_value(existing):
+            deduplicated.append(existing)
+            unique[key] = record
+        else:
+            deduplicated.append(record)
+    return (
+        sorted(unique.values(), key=lambda item: item.database_id or 0),
+        deduplicated,
+    )
 
 
-def _matches_filters(
+def _filter_skip_reason(
     record: NormalizedTenderRecord,
     *,
     on_date: date | None,
@@ -135,16 +150,16 @@ def _matches_filters(
     to_date: date | None,
     status: str | None,
     keyword: str | None,
-) -> bool:
+) -> str | None:
     record_date = _record_date(record)
     if on_date is not None and record_date != on_date:
-        return False
+        return f"published_date_not_equal:{on_date.isoformat()}"
     if from_date is not None and (record_date is None or record_date < from_date):
-        return False
+        return f"published_before:{from_date.isoformat()}"
     if to_date is not None and (record_date is None or record_date > to_date):
-        return False
+        return f"published_after:{to_date.isoformat()}"
     if status and fold_text(record.review_status) != fold_text(status):
-        return False
+        return f"review_status_not_equal:{status}"
     if keyword:
         haystack = " ".join(
             item or ""
@@ -158,8 +173,30 @@ def _matches_filters(
         )
         terms = [term for term in fold_text(keyword).split() if term]
         if not all(term in fold_text(haystack) for term in terms):
-            return False
-    return True
+            return f"keyword_not_matched:{keyword}"
+    return None
+
+
+def _matches_filters(
+    record: NormalizedTenderRecord,
+    *,
+    on_date: date | None,
+    from_date: date | None,
+    to_date: date | None,
+    status: str | None,
+    keyword: str | None,
+) -> bool:
+    return (
+        _filter_skip_reason(
+            record,
+            on_date=on_date,
+            from_date=from_date,
+            to_date=to_date,
+            status=status,
+            keyword=keyword,
+        )
+        is None
+    )
 
 
 def _copy_template_row_style(sheet, target_row: int, styles: list[object]) -> None:
@@ -343,30 +380,51 @@ def export_tbmt(
     notices = _load_notices(db, active_source_names, active_source_domains)
     logger.info("DB_QUERY_DONE notice_count=%s", len(notices))
     mapper = TBMTExcelMapper()
-    records = [mapper.normalize(notice) for notice in notices]
-    logger.info("MAPPING_DONE record_count=%s", len(records))
-    run_ids = [record.crawl_run_id for record in records if record.crawl_run_id is not None]
+    mapped_records = [mapper.normalize(notice) for notice in notices]
+    logger.info("MAPPING_DONE record_count=%s", len(mapped_records))
+    run_ids = [
+        record.crawl_run_id for record in mapped_records if record.crawl_run_id is not None
+    ]
     selected_run_id = crawl_run_id
     if selected_run_id is None and run_ids and latest_run_only:
         selected_run_id = max(run_ids)
-    if selected_run_id is not None:
-        records = [record for record in records if record.crawl_run_id == selected_run_id]
-    if current_day_only:
-        today = datetime.now().astimezone().date()
-        records = [record for record in records if _crawl_date(record) == today]
-    records = [
-        record
-        for record in records
-        if _matches_filters(
-            record,
-            on_date=on_date,
-            from_date=from_date,
-            to_date=to_date,
-            status=status,
-            keyword=keyword,
+    today = datetime.now().astimezone().date()
+    selected_records: list[NormalizedTenderRecord] = []
+    skipped: list[tuple[NormalizedTenderRecord, str]] = []
+    for record in mapped_records:
+        reason = None
+        if selected_run_id is not None and record.crawl_run_id != selected_run_id:
+            reason = f"crawl_run_not_equal:{selected_run_id}"
+        elif current_day_only and _crawl_date(record) != today:
+            reason = f"crawl_date_not_equal:{today.isoformat()}"
+        else:
+            reason = _filter_skip_reason(
+                record,
+                on_date=on_date,
+                from_date=from_date,
+                to_date=to_date,
+                status=status,
+                keyword=keyword,
+            )
+        if reason is not None:
+            skipped.append((record, reason))
+            logger.info(
+                "EXPORT_RECORD_SKIPPED identity=%s source_notice_id=%s reason=%s",
+                _record_identity(record),
+                record.source_notice_id,
+                reason,
+            )
+        else:
+            selected_records.append(record)
+
+    records, deduplicated = _deduplicate_records(selected_records)
+    for record in deduplicated:
+        logger.info(
+            "EXPORT_RECORD_DEDUPLICATED identity=%s source_notice_id=%s database_id=%s",
+            _record_identity(record),
+            record.source_notice_id,
+            record.database_id,
         )
-    ]
-    records = _deduplicate_records(records)
 
     accepted: list[tuple[TBMTExcelRow, TBMTValidation]] = []
     rejected: list[tuple[NormalizedTenderRecord, TBMTValidation]] = []
@@ -383,10 +441,19 @@ def export_tbmt(
             )
         accepted.append((mapper.map(record, len(accepted) + 1), validation))
     logger.info(
-        "VALIDATION_DONE accepted=%s rejected=%s",
+        "VALIDATION_DONE accepted=%s rejected=%s deduplicated=%s skipped=%s",
         len(accepted),
         len(rejected),
+        len(deduplicated),
+        len(skipped),
     )
+
+    accounted = len(accepted) + len(rejected) + len(deduplicated) + len(skipped)
+    if accounted != len(mapped_records):
+        raise RuntimeError(
+            "TBMT export reconciliation failed: "
+            f"mapped={len(mapped_records)} accounted={accounted}"
+        )
 
     generated_at = datetime.now(UTC)
     report_date = on_date or generated_at.astimezone().date()
@@ -417,17 +484,26 @@ def export_tbmt(
         output=destination,
         reject_output=reject_output,
         total_records=len(records),
+        queried_records=len(notices),
+        mapped_records=len(mapped_records),
         exported_records=len(accepted),
         warning_records=sum(
             validation.status == DataQuality.WARNING for _, validation in accepted
         ),
         rejected_records=len(rejected),
+        deduplicated_records=len(deduplicated),
+        skipped_records=len(skipped),
         crawl_run_id=selected_run_id,
     )
     logger.info(
-        "EXPORT_DONE exported_records=%s warning_records=%s rejected_records=%s",
+        "EXPORT_DONE queried=%s mapped=%s exported=%s warnings=%s rejected=%s "
+        "deduplicated=%s skipped=%s",
+        result.queried_records,
+        result.mapped_records,
         result.exported_records,
         result.warning_records,
         result.rejected_records,
+        result.deduplicated_records,
+        result.skipped_records,
     )
     return result

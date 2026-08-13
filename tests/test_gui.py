@@ -120,6 +120,7 @@ def test_worker_executes_outside_ui_thread(application: QApplication) -> None:
     QThreadPool.globalInstance().start(worker)
     QTimer.singleShot(5000, loop.quit)
     loop.exec()
+    QThreadPool.globalInstance().waitForDone(5000)
 
     assert observed
     assert observed[0] != ui_thread
@@ -136,6 +137,7 @@ def test_successful_worker_emits_one_finished_signal(application: QApplication) 
     QThreadPool.globalInstance().start(worker)
     QTimer.singleShot(5000, loop.quit)
     loop.exec()
+    QThreadPool.globalInstance().waitForDone(5000)
 
     assert finished == ["done"]
     assert errors == []
@@ -156,6 +158,7 @@ def test_failed_worker_emits_one_error_signal(application: QApplication) -> None
     QThreadPool.globalInstance().start(worker)
     QTimer.singleShot(5000, loop.quit)
     loop.exec()
+    QThreadPool.globalInstance().waitForDone(5000)
 
     assert finished == []
     assert len(errors) == 1
@@ -180,29 +183,132 @@ def _wait_until(predicate, timeout_ms: int = 3000) -> None:
 def test_long_job_disables_button_and_shows_progress(
     window: QICrawlerWindow,
 ) -> None:
-    started: list[FunctionWorker] = []
-    window.thread_pool = SimpleNamespace(start=lambda worker: started.append(worker))
+    release = threading.Event()
 
     window._submit(
-        lambda: "ok",
+        lambda: (release.wait(5), "ok")[1],
         on_success=lambda _result: None,
         button=window.scan_button,
         progress=window.scan_progress,
     )
 
-    assert started
     assert not window.scan_button.isEnabled()
     assert not window.scan_progress.isHidden()
 
-    window._worker_success(
-        window.scan_button,
-        lambda _result: None,
-        "ok",
-        window.scan_progress,
-    )
+    release.set()
+    _wait_until(lambda: window.scan_button.isEnabled())
 
     assert window.scan_button.isEnabled()
     assert window.scan_progress.isHidden()
+    assert window._active_jobs == []
+
+
+def _scan_summary() -> ScanSummary:
+    return ScanSummary(
+        run_id=1,
+        discovered=1,
+        matched=1,
+        queued=1,
+        limited=0,
+        new=1,
+        existing=0,
+        success=1,
+        failed=0,
+        pending=0,
+        skipped=0,
+        pages_scanned=1,
+    )
+
+
+def test_scan_running_blocks_single_crawl(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = threading.Event()
+    scan_started = threading.Event()
+
+    def run_blocking_scan(*_args) -> ScanSummary:
+        scan_started.set()
+        release.wait(5)
+        return _scan_summary()
+
+    monkeypatch.setattr(gui, "run_scan", run_blocking_scan)
+    window.scan_url.setText("https://ebidding.coteccons.vn/Index")
+    window.crawl_url.setText("https://ebidding.coteccons.vn/Index/ChiTiet/2608121")
+
+    window.start_scan()
+    _wait_until(scan_started.is_set)
+    window.start_crawl()
+
+    assert window._active_long_operation == "scan"
+    assert window.crawl_status.text() == (
+        "QI-Crawler đang xử lý một tác vụ. Vui lòng chờ hoàn tất."
+    )
+    assert all(not button.isEnabled() for button in window._long_operation_buttons)
+
+    release.set()
+    _wait_until(lambda: window._active_long_operation is None)
+    assert window._active_long_operation is None
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+
+
+def test_crawl_running_blocks_export(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = threading.Event()
+    crawl_started = threading.Event()
+
+    def run_blocking_crawl(*_args) -> tuple[int, int, None]:
+        crawl_started.set()
+        release.wait(5)
+        return 1, 0, None
+
+    monkeypatch.setattr(gui, "run_single_crawl", run_blocking_crawl)
+    window.crawl_url.setText("https://ebidding.coteccons.vn/Index/ChiTiet/2608121")
+
+    window.start_crawl()
+    _wait_until(crawl_started.is_set)
+    window.start_export()
+
+    assert window._active_long_operation == "single_crawl"
+    assert window.export_status.text() == (
+        "QI-Crawler đang xử lý một tác vụ. Vui lòng chờ hoàn tất."
+    )
+
+    release.set()
+    _wait_until(lambda: window._active_long_operation is None)
+    assert window._active_long_operation is None
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+
+
+def test_long_operation_error_releases_all_controls(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = threading.Event()
+    crawl_started = threading.Event()
+
+    def run_failing_crawl(*_args) -> None:
+        crawl_started.set()
+        release.wait(5)
+        raise RuntimeError("expected")
+
+    monkeypatch.setattr(gui, "run_single_crawl", run_failing_crawl)
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+    window.crawl_url.setText("https://ebidding.coteccons.vn/Index/ChiTiet/2608121")
+
+    window.start_crawl()
+    _wait_until(crawl_started.is_set)
+    assert all(not button.isEnabled() for button in window._long_operation_buttons)
+
+    release.set()
+    _wait_until(lambda: window._active_long_operation is None)
+
+    assert window._active_long_operation is None
+    assert window._active_jobs == []
+    assert window.crawl_progress.isHidden()
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
 
 
 def test_submit_returns_to_ui_thread_and_clears_busy_state(window: QICrawlerWindow) -> None:
@@ -353,7 +459,7 @@ def test_export_returns_from_busy_state(
     _wait_until(lambda: window.export_button.isEnabled())
     assert window.export_progress.isHidden()
     assert window.export_path.text() == str(output)
-    assert "Đã xuất 2 dòng" in window.export_status.text()
+    assert "Đã xuất: 2" in window.export_status.text()
 
 
 def test_export_failure_returns_from_busy_state(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from openpyxl import load_workbook
 
@@ -10,7 +10,7 @@ from qi_crawler import __version__
 from qi_crawler.config import AppConfig
 from qi_crawler.crawler import CrawlerService
 from qi_crawler.db import Database
-from qi_crawler.export.tbmt_excel import TEMPLATE_PATH, export_tbmt
+from qi_crawler.export.tbmt_excel import TEMPLATE_PATH, TBMTExportResult, export_tbmt
 from qi_crawler.export.tbmt_mapper import TBMTExcelMapper
 from qi_crawler.export.tbmt_schema import META_SHEET_NAME, SHEET_NAME, TBMT_COLUMNS
 from qi_crawler.models import Notice
@@ -21,6 +21,15 @@ def _database(tmp_path) -> Database:
     db = Database(f"sqlite:///{tmp_path / 'tbmt.db'}")
     db.create_all()
     return db
+
+
+def _assert_reconciled(result: TBMTExportResult) -> None:
+    assert result.mapped_records == (
+        result.exported_records
+        + result.rejected_records
+        + result.deduplicated_records
+        + result.skipped_records
+    )
 
 
 def test_tbmt_export_uses_stable_schema_and_typed_values(tmp_path) -> None:
@@ -82,6 +91,7 @@ def test_tbmt_export_uses_stable_schema_and_typed_values(tmp_path) -> None:
     assert sheet.auto_filter.ref == "A10:R11"
     assert sheet["O11"].hyperlink.target == "https://example.test/tender/IB260001"
     assert workbook[META_SHEET_NAME]["B3"].value == __version__
+    _assert_reconciled(result)
 
 
 def test_tbmt_export_logs_completion_stages(tmp_path, caplog) -> None:
@@ -178,8 +188,81 @@ def test_tbmt_export_rejects_invalid_records_and_never_overwrites(tmp_path) -> N
     assert first.rejected_records == 1
     assert first.reject_output is not None
     assert first.reject_output.exists()
+    assert first.mapped_records == 1
+    assert first.exported_records == 0
+    assert first.rejected_records == 1
+    assert first.deduplicated_records == 0
+    assert first.skipped_records == 0
+    _assert_reconciled(first)
     workbook = load_workbook(first.output)
     assert workbook[SHEET_NAME].max_row == 10
+
+
+def test_duplicate_record_is_explicitly_accounted(tmp_path, caplog) -> None:
+    db = _database(tmp_path)
+    with db.session() as session:
+        for index in (1, 2):
+            session.add(
+                Notice(
+                    source_url=f"https://example.test/tender/duplicate-{index}",
+                    url_hash=str(index) * 64,
+                    notice_code="IB-DUPLICATE",
+                    title=f"Gói trùng phiên bản {index}",
+                    last_seen_at=datetime(2026, 8, 13, index, tzinfo=UTC),
+                )
+            )
+    caplog.set_level("INFO", logger="qi_crawler.export.tbmt_excel")
+
+    result = export_tbmt(
+        db,
+        output=tmp_path / "duplicate.xlsx",
+        rejects_dir=tmp_path / "rejects",
+    )
+
+    assert result.queried_records == 2
+    assert result.mapped_records == 2
+    assert result.exported_records == 1
+    assert result.deduplicated_records == 1
+    assert result.rejected_records == 0
+    assert result.skipped_records == 0
+    assert "EXPORT_RECORD_DEDUPLICATED" in "\n".join(caplog.messages)
+    assert "IB-DUPLICATE" in "\n".join(caplog.messages)
+    _assert_reconciled(result)
+
+
+def test_filtered_record_is_skipped_with_explicit_reason(tmp_path, caplog) -> None:
+    db = _database(tmp_path)
+    yesterday = datetime.now(UTC) - timedelta(days=1)
+    with db.session() as session:
+        session.add(
+            Notice(
+                source_url="https://ebidding.coteccons.vn/Index/ChiTiet/2604255",
+                url_hash="f" * 64,
+                source_name="coteccons",
+                source_notice_id="2604255",
+                title="Gói từ ngày hôm trước",
+                last_seen_at=yesterday,
+            )
+        )
+    caplog.set_level("INFO", logger="qi_crawler.export.tbmt_excel")
+
+    result = export_tbmt(
+        db,
+        output=tmp_path / "today-only.xlsx",
+        rejects_dir=tmp_path / "rejects",
+        current_day_only=True,
+    )
+
+    assert result.mapped_records == 1
+    assert result.exported_records == 0
+    assert result.skipped_records == 1
+    assert result.deduplicated_records == 0
+    assert result.rejected_records == 0
+    messages = "\n".join(caplog.messages)
+    assert "EXPORT_RECORD_SKIPPED" in messages
+    assert "source_notice_id=2604255" in messages
+    assert "reason=crawl_date_not_equal:" in messages
+    _assert_reconciled(result)
 
 
 def test_three_separate_runs_export_three_rows_by_default(tmp_path) -> None:
