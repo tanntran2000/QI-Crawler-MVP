@@ -1,14 +1,32 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 
 
+def _powershell_command() -> list[str]:
+    executable = shutil.which("pwsh") or shutil.which("powershell")
+    if executable is None:
+        raise RuntimeError("PowerShell runtime is required: install pwsh or powershell.")
+    command = [executable, "-NoProfile"]
+    if sys.platform == "win32" and Path(executable).name.lower() == "powershell.exe":
+        command.extend(["-ExecutionPolicy", "Bypass"])
+    return command
+
+
 def _run_cleanup(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "scripts" / "clean_dev.ps1"), "-Root", str(root)],
+        [
+            *_powershell_command(),
+            "-File",
+            str(ROOT / "scripts" / "clean_dev.ps1"),
+            "-Root",
+            str(root),
+        ],
         check=False,
         capture_output=True,
         text=True,
