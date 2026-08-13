@@ -785,7 +785,7 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
-## Co gi moi trong 0.7.0
+## Co gi moi trong 0.7.1
 
 - Nen tang da san sang cho Team Bid quan ly tai lieu va kiem tra du lieu truoc khi phan tich noi dung.
 - QI-Crawler giu nguyen nguyen tac fail-closed khi gap bao mat, CAPTCHA hoac phien dang nhap khong hop le.

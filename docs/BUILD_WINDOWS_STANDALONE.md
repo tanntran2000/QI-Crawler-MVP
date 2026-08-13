@@ -66,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
 Ket qua la mot file duy nhat:
 
 ```text
-dist\installer\QI-Crawler-Setup-v0.7.0.exe
+dist\installer\QI-Crawler-Setup-v0.7.1.exe
 ```
 
 Nguoi dung cuoi chi can chay Setup. Setup tao shortcut Start Menu va Desktop,
@@ -108,7 +108,7 @@ Viet va dung; ung dung khong tu tai ngầm.
 Copy toan bo `dist\QI-Crawler` sang may khong co Python/VS Code, sau do double-click
 `QI-Crawler.exe`. Kiem tra:
 
-1. GUI hien `QI-Crawler v0.7.0`.
+1. GUI hien `QI-Crawler v0.7.1`.
 2. Tim kiem tren database test/da copy vao thu muc user data.
 3. Xuat TBMT va mo file Excel.
 4. Crawl mot URL chi tiet duoc phep.

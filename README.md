@@ -8,7 +8,7 @@ xuat Excel va danh gia so bo kha nang dap ung.
 > phan loai va diem uu tien luon can nguoi phu trach kiem tra truoc khi su dung. Diem khong phai xac suat
 > trung thau va khong thay the quyet dinh tham du.
 
-## Co gi moi trong 0.7.0
+## Co gi moi trong 0.7.1
 
 - Nen tang da san sang cho Team Bid quan ly tai lieu va kiem tra du lieu truoc khi phan tich noi dung.
 - QI-Crawler giu nguyen nguyen tac fail-closed khi gap bao mat, CAPTCHA hoac phien dang nhap khong hop le.
