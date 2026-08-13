@@ -148,6 +148,60 @@ class Document(Base):
     )
 
     tender: Mapped[Notice | None] = relationship(back_populates="documents")
+    extractions: Mapped[list[DocumentExtraction]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
+
+
+class DocumentExtraction(Base):
+    """One native extraction run over one immutable stored document."""
+
+    __tablename__ = "document_extractions"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "extractor_version", name="uq_document_extraction_version"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), index=True
+    )
+    extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="COMPLETED", index=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    document: Mapped[Document] = relationship(back_populates="extractions")
+    evidence: Mapped[list[DocumentEvidence]] = relationship(
+        back_populates="extraction", cascade="all, delete-orphan"
+    )
+
+
+class DocumentEvidence(Base):
+    """Native text/table evidence with an exact source trace; never a conclusion."""
+
+    __tablename__ = "document_evidence"
+    __table_args__ = (
+        UniqueConstraint("extraction_id", "ordinal", name="uq_document_evidence_ordinal"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    extraction_id: Mapped[int] = mapped_column(
+        ForeignKey("document_extractions.id", ondelete="CASCADE"), index=True
+    )
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_locator: Mapped[str] = mapped_column(Text, nullable=False)
+    page_number: Mapped[int | None] = mapped_column(Integer)
+    sheet_name: Mapped[str | None] = mapped_column(String(255))
+    section_heading: Mapped[str | None] = mapped_column(Text)
+    content_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    text: Mapped[str | None] = mapped_column(Text)
+    table_json: Mapped[str | None] = mapped_column(Text)
+    metadata_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    extraction: Mapped[DocumentExtraction] = relationship(back_populates="evidence")
 
 
 class TenderItem(Base):

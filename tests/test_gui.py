@@ -9,9 +9,9 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QThreadPool, QTimer
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QThreadPool, QTimer
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QGroupBox, QMessageBox
 
 from qi_crawler import __version__, gui
 from qi_crawler.config import AppConfig
@@ -638,7 +638,7 @@ def test_document_page_uses_existing_intake_service_and_renders_success(
     ]
     assert "Đã nhập tài liệu" in window.document_status.text()
     assert "Mã gói: IB2600000001-00" in window.document_status.text()
-    assert "Identity: VERIFIED" in window.document_status.text()
+    assert "Identity: Đúng gói" in window.document_status.text()
     assert "Loại tài liệu: Hồ sơ mời thầu qua mạng" in window.document_status.text()
     assert window.document_classification_status.text() == "Nhận diện sơ bộ"
     assert window.document_confirm_type_button.isEnabled()
@@ -665,18 +665,36 @@ def test_document_workspace_shows_tender_identity_documents_and_summary(
     assert window.document_table.rowCount() == 2
     assert window.document_table.item(0, 0).text() == "HSMT.pdf"
     assert window.document_table.item(0, 1).text() == "Hồ sơ mời thầu qua mạng"
-    assert window.document_table.item(0, 3).text() == "v1"
+    assert window.document_table.item(0, 2).text() == "v1"
     assert window.document_metrics["total"].text() == "2"
     assert window.document_metrics["verified"].text() == "1"
     assert window.document_metrics["candidate"].text() == "1"
-    assert not window.document_analyze_button.isEnabled()
-    assert "Native Extraction" in window.document_analyze_button.toolTip()
+    assert not hasattr(window, "document_analyze_button")
 
     window.document_table.selectRow(0)
 
     assert window.last_document_id == 7
     assert window.open_document_button.isEnabled()
     assert window.document_confirm_type_button.isEnabled()
+
+
+@pytest.mark.parametrize("width,height", [(1280, 720), (1366, 768), (1920, 1080)])
+def test_document_workspace_layout_has_three_clear_blocks(
+    window: QICrawlerWindow, width: int, height: int
+) -> None:
+    window.resize(width, height)
+    window.show()
+    QApplication.processEvents()
+
+    blocks = {group.title(): group for group in window.findChildren(QGroupBox)}
+    assert {"A. GÓI THẦU ĐANG CHỌN", "B. THÊM TÀI LIỆU", "C. BỘ TÀI LIỆU"}.issubset(blocks)
+    assert window.document_table.columnCount() == 5
+    assert [
+        window.document_table.horizontalHeaderItem(column).text()
+        for column in range(window.document_table.columnCount())
+    ] == ["Tên file", "Loại tài liệu", "Phiên bản", "Identity", "Trạng thái phân loại"]
+    assert window.document_table.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
+    assert all(block.width() > 0 for block in blocks.values())
 
 
 def test_document_workspace_uses_service_and_resets_busy_state(

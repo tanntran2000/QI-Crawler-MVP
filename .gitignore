@@ -5,6 +5,8 @@ __pycache__/
 .pytest_cache/
 .tmp_pytest/
 .tmp_pytest_*/
+/.tmp/
+/.tmp/
 .ruff_cache/
 .coverage
 .coverage.*
@@ -84,6 +86,7 @@ playwright-report/
 # Standalone build artifacts
 build/
 dist/
+release_staging/
 .tmp_standalone_*/
 .tmp_installer*/
 

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0006_add_document_taxonomy"
+CURRENT_SCHEMA_REVISION = "0007_add_native_document_extraction"
 
 
 class SchemaNotReady(click.ClickException):
