@@ -20,7 +20,7 @@ from sqlalchemy import (
 from alembic import command
 from qi_crawler.db import Database, SchemaNotReady
 from qi_crawler.migrations import upgrade_database
-from qi_crawler.models import Base
+from qi_crawler.models import Base, Document
 
 ROOT = Path(__file__).parent.parent
 CORE_TABLES = {
@@ -29,6 +29,7 @@ CORE_TABLES = {
     "crawl_tasks",
     "notices",
     "attachments",
+    "documents",
     "tender_items",
     "inventory_items",
     "company_evidence",
@@ -72,7 +73,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0004_add_notice_fts5"
+            "0005_add_documents"
         )
 
 
@@ -134,6 +135,8 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     database = tmp_path / "pre_alembic.db"
     engine = create_engine(f"sqlite:///{database}")
     Base.metadata.create_all(engine)
+    # Simulate the schema that existed before the Document model/migration.
+    Document.__table__.drop(engine)
     with engine.begin() as connection:
         connection.execute(
             text(
@@ -173,7 +176,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0004_add_notice_fts5"
+    assert result.revision == "0005_add_documents"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -187,7 +190,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0004_add_notice_fts5"
+            "0005_add_documents"
         )
     upgraded_engine.dispose()
 

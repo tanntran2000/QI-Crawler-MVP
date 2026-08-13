@@ -14,6 +14,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from qi_crawler import __version__, gui
 from qi_crawler.config import AppConfig
 from qi_crawler.crawler import ScanSummary
+from qi_crawler.document_intake import DocumentBatchResult, DocumentIntakeResult
 from qi_crawler.gui import FunctionWorker, QICrawlerWindow
 
 
@@ -28,6 +29,7 @@ def config(tmp_path: Path) -> AppConfig:
     value.storage.database_url = f"sqlite:///{tmp_path / 'gui.db'}"
     value.storage.report_dir = tmp_path / "reports"
     value.storage.rejects_dir = tmp_path / "rejects"
+    value.storage.document_dir = tmp_path / "documents"
     return value
 
 
@@ -40,10 +42,11 @@ def window(application: QApplication, config: AppConfig) -> QICrawlerWindow:
 
 def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.windowTitle() == f"QI-CRAWLER v{__version__}"
-    assert window.navigation.count() == 6
-    assert window.pages.count() == 6
+    assert window.navigation.count() == 7
+    assert window.pages.count() == 7
     assert window.navigation.item(0).text() == "Quét gói thầu"
-    assert window.navigation.item(5).text() == "Nhật ký"
+    assert window.navigation.item(5).text() == "HSMT / TÀI LIỆU"
+    assert window.navigation.item(6).text() == "Nhật ký"
 
 
 def test_scan_default_max_pages_is_three(window: QICrawlerWindow) -> None:
@@ -485,3 +488,105 @@ def test_export_failure_returns_from_busy_state(
     assert window.export_progress.isHidden()
     assert messages == ["Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."]
     assert "Không thể hoàn tất" in window.export_status.text()
+
+
+def _document_result(path: Path) -> DocumentBatchResult:
+    return DocumentBatchResult(
+        (
+            DocumentIntakeResult(
+                outcome="IMPORTED",
+                document_id=7,
+                original_filename="HSMT.pdf",
+                stored_path=path,
+                document_type="PDF",
+                mime_type="application/pdf",
+                file_size=10,
+                sha256="a" * 64,
+                version=1,
+                tender_id=None,
+                tender_identifier=None,
+            ),
+        )
+    )
+
+
+def test_document_page_uses_existing_intake_service_and_renders_success(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"source")
+    stored = tmp_path / "documents" / "unlinked" / ("a" * 64) / "HSMT.pdf"
+    captured: list[tuple[Path, str, str, str]] = []
+
+    def fake_intake(
+        _config: AppConfig,
+        path: Path,
+        tender: str,
+        name: str,
+        uploaded_by: str,
+    ) -> DocumentBatchResult:
+        captured.append((path, tender, name, uploaded_by))
+        return _document_result(stored)
+
+    monkeypatch.setattr(gui, "run_document_intake", fake_intake)
+    window.document_path.setText(str(source))
+    window.document_tender.setText("IB2600000001-00")
+    window.document_name.setText("HSMT bản phát hành")
+
+    window.start_document_intake()
+
+    assert not window.document_import_button.isEnabled()
+    _wait_until(lambda: window.document_import_button.isEnabled())
+    assert captured == [
+        (source, "IB2600000001-00", "HSMT bản phát hành", "")
+    ]
+    assert "Đã nhập tài liệu" in window.document_status.text()
+    assert "SHA-256" in window.document_status.text()
+    assert window.last_document_path == stored
+    assert window.open_document_button.isEnabled()
+    assert window.open_document_folder_button.isEnabled()
+    assert window.document_progress.isHidden()
+    assert window._active_long_operation is None
+
+
+def test_document_intake_error_releases_global_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "bad.pdf"
+    source.write_bytes(b"bad")
+
+    def fail(*_args) -> None:
+        raise RuntimeError("storage failure")
+
+    monkeypatch.setattr(gui, "run_document_intake", fail)
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+    window.document_path.setText(str(source))
+
+    window.start_document_intake()
+
+    _wait_until(lambda: window.document_import_button.isEnabled())
+    assert window.document_progress.isHidden()
+    assert window._active_long_operation is None
+    assert window._active_jobs == []
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+    assert "Không thể hoàn tất" in window.document_status.text()
+
+
+def test_document_open_actions_are_mocked_safely(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    stored = tmp_path / "documents" / "unlinked" / "hash" / "HSMT.pdf"
+    opened: list[Path] = []
+    monkeypatch.setattr(gui, "open_path", lambda path: opened.append(path) or True)
+    window._render_document_result(_document_result(stored))
+
+    window.open_document()
+    window.open_document_folder()
+
+    assert opened == [stored, stored.parent]

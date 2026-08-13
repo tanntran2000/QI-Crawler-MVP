@@ -81,6 +81,7 @@ class Notice(Base):
     bid_openings: Mapped[list[BidOpening]] = relationship(
         back_populates="notice", cascade="all, delete-orphan"
     )
+    documents: Mapped[list[Document]] = relationship(back_populates="tender")
 
 
 class Attachment(Base):
@@ -103,6 +104,43 @@ class Attachment(Base):
     downloaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     notice: Mapped[Notice] = relationship(back_populates="attachments")
+
+
+class Document(Base):
+    """Immutable original tender document stored with auditable provenance."""
+
+    __tablename__ = "documents"
+    __table_args__ = (
+        UniqueConstraint("sha256", name="uq_document_sha256"),
+        UniqueConstraint("tender_id", "version", name="uq_document_tender_version"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tender_id: Mapped[int | None] = mapped_column(
+        ForeignKey("notices.id", ondelete="SET NULL"), index=True
+    )
+    document_source: Mapped[str] = mapped_column(
+        String(32), default="manual_upload", index=True
+    )
+    document_type: Mapped[str] = mapped_column(String(64), index=True)
+    display_name: Mapped[str | None] = mapped_column(Text)
+    original_filename: Mapped[str] = mapped_column(Text)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255))
+    file_size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    uploaded_by: Mapped[str | None] = mapped_column(String(255))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    status: Mapped[str] = mapped_column(String(32), default="STORED", index=True)
+    zip_supported_entries: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    tender: Mapped[Notice | None] = relationship(back_populates="documents")
 
 
 class TenderItem(Base):

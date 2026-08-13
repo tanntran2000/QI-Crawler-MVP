@@ -26,10 +26,12 @@ def test_standalone_user_data_is_separate_and_not_overwritten(tmp_path: Path) ->
         assert paths.logs_dir.is_dir()
         assert paths.sessions_dir.is_dir()
         assert paths.documents_dir.is_dir()
+        assert paths.documents_dir == paths.data_dir / "documents"
         assert paths.user_root != paths.resource_root
 
         config = yaml.safe_load(paths.config_path.read_text(encoding="utf-8"))
         assert str(paths.database_path.as_posix()) in config["storage"]["database_url"]
+        assert config["storage"]["document_dir"] == str(paths.documents_dir)
         paths.config_path.write_text("custom: keep-me\n", encoding="utf-8")
         (paths.user_root / "keyword-groups.yaml").write_text(
             "custom: keep-me\n", encoding="utf-8"

@@ -15,6 +15,7 @@ from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QGridLayout,
@@ -41,8 +42,10 @@ from .compliance import AccessDenied
 from .config import AppConfig, EnvSettings, load_config
 from .crawler import ScanSummary
 from .db import Database, SchemaNotReady
+from .document_intake import DocumentBatchResult
 from .gui_services import (
     SearchRow,
+    run_document_intake,
     run_export,
     run_login,
     run_scan,
@@ -168,6 +171,7 @@ class QICrawlerWindow(QMainWindow):
         self.config = config or load_config()
         self.thread_pool = QThreadPool.globalInstance()
         self.last_export_path: Path | None = None
+        self.last_document_path: Path | None = None
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -251,6 +255,7 @@ class QICrawlerWindow(QMainWindow):
                 "Xuất TBMT",
                 "Crawl một URL",
                 "Đăng nhập nguồn",
+                "HSMT / TÀI LIỆU",
                 "Nhật ký",
             ]
         )
@@ -262,12 +267,14 @@ class QICrawlerWindow(QMainWindow):
         self._build_export_page()
         self._build_crawl_page()
         self._build_login_page()
+        self._build_document_page()
         self._build_log_page()
         self._long_operation_buttons = (
             self.scan_button,
             self.crawl_button,
             self.export_button,
             self.login_button,
+            self.document_import_button,
         )
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.navigation.setCurrentRow(0)
@@ -463,6 +470,60 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(self.login_status)
         layout.addStretch()
 
+    def _build_document_page(self) -> None:
+        _page, layout = self._new_page(
+            "HSMT / Tài liệu",
+            "Nhập bản gốc PDF, DOCX, XLSX hoặc ZIP vào kho tài liệu an toàn. "
+            "QI-Crawler tính SHA-256, phát hiện trùng và không ghi đè phiên bản cũ.",
+        )
+        form = QFormLayout()
+        form.setHorizontalSpacing(20)
+        form.setVerticalSpacing(12)
+        self.document_tender = QLineEdit()
+        self.document_tender.setPlaceholderText("Không bắt buộc; ví dụ IB2600436179-00")
+        self.document_name = QLineEdit()
+        self.document_name.setPlaceholderText("Không bắt buộc; ví dụ HSMT bản phát hành")
+        self.document_path = QLineEdit()
+        self.document_path.setReadOnly(True)
+        self.document_path.setPlaceholderText("Chưa chọn file hoặc thư mục")
+        form.addRow("Tender / mã TBMT:", self.document_tender)
+        form.addRow("Tên tài liệu:", self.document_name)
+        form.addRow("File / thư mục:", self.document_path)
+        form.addRow("Nguồn:", QLabel("Người dùng tải lên"))
+        layout.addLayout(form)
+
+        picker_row = QHBoxLayout()
+        self.document_file_button = QPushButton("Chọn file")
+        self.document_file_button.clicked.connect(self._choose_document_file)
+        self.document_folder_button = QPushButton("Chọn thư mục")
+        self.document_folder_button.clicked.connect(self._choose_document_folder)
+        picker_row.addWidget(self.document_file_button)
+        picker_row.addWidget(self.document_folder_button)
+        picker_row.addStretch()
+        layout.addLayout(picker_row)
+
+        self.document_import_button = self._primary_button("+ THÊM HSMT")
+        self.document_import_button.clicked.connect(self.start_document_intake)
+        self.document_progress = self._progress_bar()
+        self.document_status = QLabel("Chưa nhập tài liệu trong phiên làm việc này.")
+        self.document_status.setWordWrap(True)
+        layout.addWidget(self.document_import_button)
+        layout.addWidget(self.document_progress)
+        layout.addWidget(self.document_status)
+
+        document_actions = QHBoxLayout()
+        self.open_document_button = QPushButton("MỞ FILE")
+        self.open_document_button.setEnabled(False)
+        self.open_document_button.clicked.connect(self.open_document)
+        self.open_document_folder_button = QPushButton("MỞ THƯ MỤC")
+        self.open_document_folder_button.setEnabled(False)
+        self.open_document_folder_button.clicked.connect(self.open_document_folder)
+        document_actions.addWidget(self.open_document_button)
+        document_actions.addWidget(self.open_document_folder_button)
+        document_actions.addStretch()
+        layout.addLayout(document_actions)
+        layout.addStretch()
+
     def _build_log_page(self) -> None:
         _page, layout = self._new_page(
             "Nhật ký kỹ thuật",
@@ -480,6 +541,23 @@ class QICrawlerWindow(QMainWindow):
         elif self.scan_url.text().strip() == COTEC_LIST_URL:
             self.scan_url.clear()
         self.scan_url.setFocus()
+
+    @Slot()
+    def _choose_document_file(self) -> None:
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Chọn HSMT / tài liệu",
+            "",
+            "Tài liệu hỗ trợ (*.pdf *.docx *.xlsx *.zip)",
+        )
+        if selected:
+            self.document_path.setText(selected)
+
+    @Slot()
+    def _choose_document_folder(self) -> None:
+        selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục tài liệu")
+        if selected:
+            self.document_path.setText(selected)
 
     def _append_log(self, message: str) -> None:
         self.log_output.append(message)
@@ -810,6 +888,66 @@ class QICrawlerWindow(QMainWindow):
     def _render_login_result(self, path: Path) -> None:
         self.login_status.setText("Đã xác nhận đăng nhập và lưu phiên cục bộ an toàn.")
         self._append_log(f"Đã lưu phiên cục bộ: {path}")
+
+    @Slot()
+    def start_document_intake(self) -> None:
+        value = self.document_path.text().strip()
+        if not value:
+            self.document_status.setText("Vui lòng chọn một file hoặc thư mục tài liệu.")
+            return
+        self.document_status.setText("Đang kiểm tra và lưu bản gốc an toàn...")
+        self._submit(
+            run_document_intake,
+            self.config,
+            Path(value),
+            self.document_tender.text().strip(),
+            self.document_name.text().strip(),
+            "",
+            on_success=self._render_document_result,
+            button=self.document_import_button,
+            progress=self.document_progress,
+            status=self.document_status,
+            task_name="document_intake",
+            long_operation=True,
+        )
+
+    def _render_document_result(self, batch: DocumentBatchResult) -> None:
+        if not batch.results:
+            self.document_status.setText("Không có tài liệu hỗ trợ trong lựa chọn này.")
+            return
+        result = batch.results[-1]
+        self.last_document_path = result.stored_path
+        self.open_document_button.setEnabled(True)
+        self.open_document_folder_button.setEnabled(True)
+        tender = result.tender_identifier or "Chưa liên kết"
+        outcome = "Đã nhập tài liệu" if result.outcome == "IMPORTED" else "Tài liệu đã tồn tại"
+        lines = [
+            f"✓ {outcome}",
+            f"Tên file: {result.original_filename}",
+            f"Loại file: {result.document_type}",
+            f"SHA-256: {result.sha256}",
+            f"Version: {result.version}",
+            f"Tender: {tender}",
+        ]
+        if len(batch.results) > 1:
+            lines.insert(
+                1,
+                f"Tổng số: {len(batch.results)}; mới: {batch.imported}; trùng: {batch.duplicates}",
+            )
+        self.document_status.setText("\n".join(lines))
+        self._append_log(
+            f"Nhập tài liệu hoàn tất: mới {batch.imported}, trùng {batch.duplicates}."
+        )
+
+    @Slot()
+    def open_document(self) -> None:
+        if self.last_document_path and not open_path(self.last_document_path):
+            QMessageBox.warning(self, "QI-Crawler", "Không thể mở file tài liệu đã lưu.")
+
+    @Slot()
+    def open_document_folder(self) -> None:
+        if self.last_document_path and not open_path(self.last_document_path.parent):
+            QMessageBox.warning(self, "QI-Crawler", "Không thể mở thư mục tài liệu.")
 
     def show_human_required(self, technical_detail: str) -> None:
         logger.warning("HUMAN_REQUIRED: %s", technical_detail)

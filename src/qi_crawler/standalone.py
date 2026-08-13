@@ -71,7 +71,7 @@ def standalone_paths(user_root: Path | None = None) -> StandalonePaths:
         reports_dir=data_dir / "reports",
         logs_dir=root / "logs",
         sessions_dir=data_dir / "sessions",
-        documents_dir=root / "documents",
+        documents_dir=data_dir / "documents",
         config_path=root / "config.yaml",
         database_path=data_dir / "database" / "egp.db",
         browser_dir=resource_path("browsers"),
@@ -89,6 +89,7 @@ def _write_default_config(paths: StandalonePaths) -> None:
     storage.update(
         {
             "database_url": f"sqlite:///{paths.database_path.as_posix()}",
+            "document_dir": str(paths.documents_dir),
             "download_dir": str(paths.data_dir / "downloads"),
             "discovery_dir": str(paths.data_dir / "discovery"),
             "raw_dir": str(paths.data_dir / "raw"),

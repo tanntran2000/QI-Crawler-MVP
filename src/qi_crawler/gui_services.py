@@ -21,6 +21,7 @@ from .authenticated_sources import (
 from .config import AppConfig
 from .crawler import CrawlerService, ScanSummary
 from .db import Database
+from .document_intake import DocumentBatchResult, DocumentIntakeService
 from .export import TBMTExportResult, export_tbmt
 from .keywords import expand_keyword
 from .notice_search import search_notices
@@ -130,6 +131,26 @@ def run_export(config: AppConfig) -> TBMTExportResult:
         current_day_only=True,
         active_source_names=tuple(active_source_names(config)),
         active_source_domains=active_source_domains(config),
+    )
+
+
+def run_document_intake(
+    config: AppConfig,
+    input_path: Path,
+    tender_reference: str = "",
+    document_name: str = "",
+    uploaded_by: str = "",
+) -> DocumentBatchResult:
+    """Import a file/folder through the shared auditable intake service."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    service = DocumentIntakeService(database, config.storage.document_dir)
+    return service.intake_path(
+        input_path,
+        tender_reference=tender_reference or None,
+        document_name=document_name or None,
+        document_source="manual_upload",
+        uploaded_by=uploaded_by or None,
     )
 
 

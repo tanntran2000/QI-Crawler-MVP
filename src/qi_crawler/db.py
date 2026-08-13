@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0004_add_notice_fts5"
+CURRENT_SCHEMA_REVISION = "0005_add_documents"
 
 
 class SchemaNotReady(click.ClickException):

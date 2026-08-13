@@ -28,6 +28,7 @@ class CrawlConfig(BaseModel):
 
 class StorageConfig(BaseModel):
     database_url: str = "sqlite:///./data/egp.db"
+    document_dir: Path = Path("./data/documents")
     download_dir: Path = Path("./data/downloads")
     discovery_dir: Path = Path("./data/discovery")
     raw_dir: Path = Path("./data/raw")
@@ -141,6 +142,7 @@ def load_config(path: Path | str | None = None) -> AppConfig:
         config.reporting.smtp_username = env.smtp_username
 
     for directory in (
+        config.storage.document_dir,
         config.storage.download_dir,
         config.storage.discovery_dir,
         config.storage.raw_dir,

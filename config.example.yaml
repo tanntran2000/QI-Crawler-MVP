@@ -35,6 +35,7 @@ crawl:
 
 storage:
   database_url: sqlite:///./data/egp.db
+  document_dir: ./data/documents
   download_dir: ./data/downloads
   discovery_dir: ./data/discovery
   raw_dir: ./data/raw
