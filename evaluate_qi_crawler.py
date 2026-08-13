@@ -27,6 +27,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 Database = import_module("qi_crawler.db").Database
+upgrade_database = import_module("qi_crawler.migrations").upgrade_database
 export_xlsx = import_module("qi_crawler.exporter").export_xlsx
 inventory_module = import_module("qi_crawler.inventory")
 import_inventory = inventory_module.import_inventory
@@ -80,6 +81,15 @@ def create_run_folder(parent: Path) -> Path:
     folder = parent.expanduser().resolve() / f"qi-crawler-evaluation-{stamp}"
     folder.mkdir(parents=True, exist_ok=False)
     return folder
+
+
+def prepare_evaluation_database(database_path: Path, backup_dir: Path) -> Database:
+    """Upgrade an isolated evaluation DB and verify that its schema is current."""
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    upgrade_database(database_url, backup_dir=backup_dir)
+    database = Database(database_url)
+    database.require_current_schema()
+    return database
 
 
 def write_demo_inventory(path: Path) -> None:
@@ -209,8 +219,7 @@ def main() -> int:
         boq_input = run_dir / "demo-tender-boq.csv"
         write_demo_boq(boq_input)
 
-    db = Database(f"sqlite:///{database_path.as_posix()}")
-    db.create_all()
+    db = prepare_evaluation_database(database_path, run_dir / "migration-backups")
     notice_id = create_demo_notice(db)
     inventory_summary = import_inventory(db, inventory_input)
     boq_summary = import_tender_items(db, notice_id, boq_input)
