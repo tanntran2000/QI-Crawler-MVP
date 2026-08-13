@@ -17,3 +17,31 @@
 6. Small task: inspect only relevant source/tests. Avoid unrelated modules and speculative refactors; stop if scope expands unexpectedly.
 7. Validation: targeted `python -m pytest` → `python -m pytest` → `ruff check .` → `git diff --check` → `git diff --name-status`.
 8. A task fails on unexpected source deletion. Never commit/push unless explicitly asked; never alter stable tags.
+
+TOKEN MODE: LOW
+
+Follow AGENTS.md strictly.
+
+Task:
+<việc cần làm>
+
+Scope:
+<file/module cho phép>
+
+Do not modify outside scope unless required.
+If scope expansion is required, STOP and report first.
+
+Minimal diff.
+Targeted tests first.
+Full verification gate at end.
+TEST SAFETY
+
+At the beginning of a coding task:
+- record current pytest collection count.
+
+At final verification:
+- collection must not unexpectedly decrease.
+- any decrease requires root-cause investigation.
+- never add/duplicate tests merely to satisfy a numeric count.
+- historical test counts are informational unless tied to a verified commit.
+- zero collection errors and zero failing tests are mandatory.
