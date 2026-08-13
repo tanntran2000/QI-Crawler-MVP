@@ -42,15 +42,31 @@ from .compliance import AccessDenied
 from .config import AppConfig, EnvSettings, load_config
 from .crawler import ScanSummary
 from .db import Database, SchemaNotReady
-from .document_intake import DocumentBatchResult
+from .document_intake import (
+    DocumentBatchResult,
+    DocumentIdentityMismatch,
+    DocumentManifestEntry,
+    TenderDocumentManifest,
+)
+from .document_taxonomy import (
+    CLASSIFICATION_STATUS_LABELS,
+    DOCUMENT_TYPE_LABELS,
+    TEMPLATE_REGISTRY,
+    ClassificationStatus,
+    DocumentClassification,
+    TenderDocumentType,
+)
 from .gui_services import (
     SearchRow,
+    run_document_classification_confirmation,
     run_document_intake,
     run_export,
     run_login,
     run_scan,
     run_search,
     run_single_crawl,
+    run_tender_document_workspace,
+    run_web_document_intake,
 )
 from .logging_utils import configure_logging
 from .migrations import upgrade_database
@@ -61,6 +77,7 @@ from .standalone import (
     prepare_standalone_runtime,
 )
 from .standalone_smoke import run_standalone_smoke
+from .web_document_intake import WebDocumentIntakeSummary
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +189,9 @@ class QICrawlerWindow(QMainWindow):
         self.thread_pool = QThreadPool.globalInstance()
         self.last_export_path: Path | None = None
         self.last_document_path: Path | None = None
+        self.last_document_id: int | None = None
+        self._document_workspace_tender: str | None = None
+        self._document_session_duplicates = 0
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -275,6 +295,8 @@ class QICrawlerWindow(QMainWindow):
             self.export_button,
             self.login_button,
             self.document_import_button,
+            self.document_web_button,
+            self.document_workspace_button,
         )
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.navigation.setCurrentRow(0)
@@ -312,6 +334,20 @@ class QICrawlerWindow(QMainWindow):
         progress.setTextVisible(False)
         progress.hide()
         return progress
+
+    @staticmethod
+    def _metric_card(value: str, name: str) -> tuple[QFrame, QLabel]:
+        card = QFrame()
+        card.setObjectName("metricCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(14, 11, 14, 11)
+        value_label = QLabel(value)
+        value_label.setObjectName("metricValue")
+        name_label = QLabel(name)
+        name_label.setObjectName("metricName")
+        card_layout.addWidget(value_label)
+        card_layout.addWidget(name_label)
+        return card, value_label
 
     def _build_scan_page(self) -> None:
         _page, layout = self._new_page(
@@ -363,16 +399,7 @@ class QICrawlerWindow(QMainWindow):
             ("pending", "Chờ xử lý"),
         ]
         for index, (key, name) in enumerate(metric_definitions):
-            card = QFrame()
-            card.setObjectName("metricCard")
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(14, 11, 14, 11)
-            value = QLabel("0")
-            value.setObjectName("metricValue")
-            name_label = QLabel(name)
-            name_label.setObjectName("metricName")
-            card_layout.addWidget(value)
-            card_layout.addWidget(name_label)
+            card, value = self._metric_card("0", name)
             self.scan_metrics[key] = value
             metrics.addWidget(card, index // 4, index % 4)
         layout.addLayout(metrics)
@@ -473,14 +500,15 @@ class QICrawlerWindow(QMainWindow):
     def _build_document_page(self) -> None:
         _page, layout = self._new_page(
             "HSMT / Tài liệu",
-            "Nhập bản gốc PDF, DOCX, XLSX hoặc ZIP vào kho tài liệu an toàn. "
-            "QI-Crawler tính SHA-256, phát hiện trùng và không ghi đè phiên bản cũ.",
+            "Chọn một gói đã lưu để quản lý bộ HSMT, nguồn web và các phiên bản tài liệu. "
+            "QI-Crawler chỉ lưu khi Identity Guard xác nhận liên kết an toàn.",
         )
         form = QFormLayout()
         form.setHorizontalSpacing(20)
         form.setVerticalSpacing(12)
         self.document_tender = QLineEdit()
-        self.document_tender.setPlaceholderText("Không bắt buộc; ví dụ IB2600436179-00")
+        self.document_tender.setPlaceholderText("Ví dụ: IB2600436179-00")
+        self.document_tender.editingFinished.connect(self.start_document_workspace)
         self.document_name = QLineEdit()
         self.document_name.setPlaceholderText("Không bắt buộc; ví dụ HSMT bản phát hành")
         self.document_path = QLineEdit()
@@ -492,8 +520,23 @@ class QICrawlerWindow(QMainWindow):
         form.addRow("Nguồn:", QLabel("Người dùng tải lên"))
         layout.addLayout(form)
 
+        self.document_identity_banner = QLabel()
+        self.document_identity_banner.setWordWrap(True)
+        self.document_identity_banner.setVisible(False)
+        layout.addWidget(self.document_identity_banner)
+
+        self.document_tender_summary = QLabel(
+            "Nhập mã gói và nhấn XEM BỘ HSMT để xem tài liệu đã lưu."
+        )
+        self.document_tender_summary.setWordWrap(True)
+        layout.addWidget(self.document_tender_summary)
+
+        self.document_workspace_button = QPushButton("XEM BỘ HSMT")
+        self.document_workspace_button.clicked.connect(self.start_document_workspace)
+        layout.addWidget(self.document_workspace_button)
+
         picker_row = QHBoxLayout()
-        self.document_file_button = QPushButton("Chọn file")
+        self.document_file_button = QPushButton("THÊM FILE")
         self.document_file_button.clicked.connect(self._choose_document_file)
         self.document_folder_button = QPushButton("Chọn thư mục")
         self.document_folder_button.clicked.connect(self._choose_document_folder)
@@ -502,14 +545,85 @@ class QICrawlerWindow(QMainWindow):
         picker_row.addStretch()
         layout.addLayout(picker_row)
 
-        self.document_import_button = self._primary_button("+ THÊM HSMT")
+        self.document_import_button = self._primary_button("LƯU TÀI LIỆU")
         self.document_import_button.clicked.connect(self.start_document_intake)
+        self.document_folder_button.setText("THÊM THƯ MỤC")
+        self.document_web_button = QPushButton("TÌM TÀI LIỆU TRÊN WEB")
+        self.document_web_button.clicked.connect(self.start_web_document_intake)
         self.document_progress = self._progress_bar()
         self.document_status = QLabel("Chưa nhập tài liệu trong phiên làm việc này.")
         self.document_status.setWordWrap(True)
         layout.addWidget(self.document_import_button)
+        layout.addWidget(self.document_web_button)
         layout.addWidget(self.document_progress)
         layout.addWidget(self.document_status)
+
+        document_metrics = QGridLayout()
+        document_metrics.setSpacing(12)
+        self.document_metrics: dict[str, QLabel] = {}
+        for index, (key, label) in enumerate(
+            (
+                ("total", "Tổng tài liệu"),
+                ("verified", "Đã xác minh"),
+                ("candidate", "Nhận diện sơ bộ"),
+                ("needs_review", "Cần kiểm tra"),
+                ("unknown", "Chưa xác định"),
+                ("duplicates", "Trùng"),
+            )
+        ):
+            card, value = self._metric_card("0", label)
+            self.document_metrics[key] = value
+            document_metrics.addWidget(card, index // 3, index % 3)
+        layout.addLayout(document_metrics)
+
+        self.document_table = QTableWidget(0, 6)
+        self.document_table.setHorizontalHeaderLabels(
+            [
+                "Tên file",
+                "Loại tài liệu",
+                "Mẫu hồ sơ",
+                "Phiên bản",
+                "Identity",
+                "Trạng thái phân loại",
+            ]
+        )
+        self.document_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.document_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.document_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.document_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.document_table.itemSelectionChanged.connect(self._on_document_selected)
+        layout.addWidget(self.document_table)
+
+        classification_form = QFormLayout()
+        self.document_type_combo = QComboBox()
+        for document_type, label in DOCUMENT_TYPE_LABELS.items():
+            self.document_type_combo.addItem(label, document_type.value)
+        self.document_template_combo = QComboBox()
+        self.document_template_combo.addItem("Chưa xác định", "")
+        for code, family in TEMPLATE_REGISTRY.items():
+            self.document_template_combo.addItem(f"{code} – {family.label}", code)
+        self.document_package_type = QLineEdit()
+        self.document_package_type.setPlaceholderText("Không bắt buộc")
+        self.document_selection_method = QLineEdit()
+        self.document_selection_method.setPlaceholderText("Không bắt buộc")
+        self.document_classification_status = QLabel("Chưa xác định")
+        classification_form.addRow("Loại tài liệu:", self.document_type_combo)
+        classification_form.addRow("Mẫu hồ sơ:", self.document_template_combo)
+        classification_form.addRow("Loại gói:", self.document_package_type)
+        classification_form.addRow("Phương thức lựa chọn:", self.document_selection_method)
+        classification_form.addRow("Trạng thái:", self.document_classification_status)
+        layout.addLayout(classification_form)
+        self.document_confirm_type_button = QPushButton("XÁC NHẬN LOẠI")
+        self.document_confirm_type_button.setEnabled(False)
+        self.document_confirm_type_button.clicked.connect(self.confirm_document_type)
+        layout.addWidget(self.document_confirm_type_button)
+
+        self.document_analyze_button = QPushButton("PHÂN TÍCH HSMT")
+        self.document_analyze_button.setEnabled(False)
+        self.document_analyze_button.setToolTip(
+            "Chức năng sẽ khả dụng sau Native Extraction."
+        )
+        layout.addWidget(self.document_analyze_button)
 
         document_actions = QHBoxLayout()
         self.open_document_button = QPushButton("MỞ FILE")
@@ -558,6 +672,150 @@ class QICrawlerWindow(QMainWindow):
         selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục tài liệu")
         if selected:
             self.document_path.setText(selected)
+
+    def _set_document_identity_banner(
+        self,
+        message: str | None = None,
+        *,
+        critical: bool = False,
+    ) -> None:
+        if not message:
+            self.document_identity_banner.clear()
+            self.document_identity_banner.setVisible(False)
+            self.document_identity_banner.setStyleSheet("")
+            return
+        self.document_identity_banner.setText(message)
+        self.document_identity_banner.setVisible(True)
+        color = "#b42318" if critical else "#175cd3"
+        background = "#fef3f2" if critical else "#eff8ff"
+        self.document_identity_banner.setStyleSheet(
+            f"color: {color}; background: {background}; border-radius: 6px; padding: 10px;"
+        )
+
+    @staticmethod
+    def _identity_label(status: str) -> str:
+        return {
+            "VERIFIED_LINKED": "Đã xác minh",
+            "UNLINKED": "Chưa liên kết",
+            "NEEDS_REVIEW": "Cần kiểm tra",
+            "MISMATCH": "Không khớp",
+        }.get(status, status or "Chưa xác định")
+
+    def start_document_workspace(self) -> None:
+        tender_reference = self.document_tender.text().strip()
+        if not tender_reference:
+            self.document_tender_summary.setText(
+                "Nhập Tender / mã TBMT đã lưu để xem bộ HSMT."
+            )
+            return
+        self.document_status.setText("Đang tải danh sách tài liệu của gói...")
+        self._submit(
+            run_tender_document_workspace,
+            self.config,
+            tender_reference,
+            on_success=self._render_document_workspace,
+            button=self.document_workspace_button,
+            progress=self.document_progress,
+            status=self.document_status,
+            task_name="document_workspace",
+            long_operation=True,
+        )
+
+    def _render_document_workspace(self, manifest: TenderDocumentManifest) -> None:
+        if self._document_workspace_tender != manifest.tender_identifier:
+            self._document_workspace_tender = manifest.tender_identifier
+            self._document_session_duplicates = 0
+        self.document_tender_summary.setText(
+            "\n".join(
+                [
+                    f"Mã gói: {manifest.tender_identifier}",
+                    f"Tên gói: {manifest.tender_title}",
+                    f"Nguồn: {manifest.source}",
+                    f"Identity: {self._identity_label(manifest.identity_status)}",
+                ]
+            )
+        )
+        self._set_document_identity_banner(
+            f"✓ Tender đã được xác minh: {manifest.tender_identifier}",
+        )
+        self.document_table.setRowCount(0)
+        for row, item in enumerate(manifest.documents):
+            self.document_table.insertRow(row)
+            values = (
+                item.filename,
+                self._document_type_label(item.document_type),
+                item.template_code or "—",
+                f"v{item.version}",
+                self._identity_label(item.status),
+                self._classification_label(item.classification_status),
+            )
+            for column, value in enumerate(values):
+                cell = QTableWidgetItem(value)
+                if column == 0:
+                    cell.setData(Qt.ItemDataRole.UserRole, item)
+                self.document_table.setItem(row, column, cell)
+        self._update_document_metrics(manifest)
+        self.document_status.setText(
+            f"Đã tải bộ HSMT: {len(manifest.documents)} tài liệu."
+        )
+        if not manifest.documents:
+            self.last_document_id = None
+            self.last_document_path = None
+            self.document_confirm_type_button.setEnabled(False)
+            self.open_document_button.setEnabled(False)
+            self.open_document_folder_button.setEnabled(False)
+
+    @staticmethod
+    def _document_type_label(value: str) -> str:
+        document_type = TenderDocumentType._value2member_map_.get(
+            value,
+            TenderDocumentType.OTHER,
+        )
+        return DOCUMENT_TYPE_LABELS[document_type]
+
+    @staticmethod
+    def _classification_label(value: str) -> str:
+        status = ClassificationStatus._value2member_map_.get(
+            value,
+            ClassificationStatus.UNKNOWN,
+        )
+        return CLASSIFICATION_STATUS_LABELS[status]
+
+    def _update_document_metrics(self, manifest: TenderDocumentManifest) -> None:
+        classifications = [item.classification_status for item in manifest.documents]
+        counts = {
+            "total": len(manifest.documents),
+            "verified": sum(value == "VERIFIED" for value in classifications),
+            "candidate": sum(value == "CANDIDATE" for value in classifications),
+            "needs_review": sum(value == "NEEDS_REVIEW" for value in classifications),
+            "unknown": sum(value == "UNKNOWN" for value in classifications),
+            "duplicates": self._document_session_duplicates,
+        }
+        for key, label in self.document_metrics.items():
+            label.setText(str(counts[key]))
+
+    @Slot()
+    def _on_document_selected(self) -> None:
+        selected = self.document_table.selectedItems()
+        if not selected:
+            return
+        item = selected[0].data(Qt.ItemDataRole.UserRole)
+        if not isinstance(item, DocumentManifestEntry):
+            return
+        self.last_document_id = item.document_id
+        self.last_document_path = item.stored_path
+        self.open_document_button.setEnabled(True)
+        self.open_document_folder_button.setEnabled(True)
+        self.document_confirm_type_button.setEnabled(item.status == "VERIFIED_LINKED")
+        self.document_type_combo.setCurrentIndex(
+            self.document_type_combo.findData(item.document_type)
+        )
+        self.document_template_combo.setCurrentIndex(
+            max(self.document_template_combo.findData(item.template_code or ""), 0)
+        )
+        self.document_classification_status.setText(
+            self._classification_label(item.classification_status)
+        )
 
     def _append_log(self, message: str) -> None:
         self.log_output.append(message)
@@ -680,6 +938,24 @@ class QICrawlerWindow(QMainWindow):
         status: QLabel | None = None,
     ) -> None:
         self._set_job_busy(button, progress, busy=False)
+        if isinstance(error, DocumentIdentityMismatch):
+            message = "\n".join(
+                [
+                    "⛔ TÀI LIỆU KHÔNG KHỚP GÓI",
+                    f"Expected: {error.expected}",
+                    f"Detected: {error.detected}",
+                ]
+            )
+            if status is not None:
+                status.setText(message)
+            if status is self.document_status:
+                self._set_document_identity_banner(message, critical=True)
+            self._append_log(
+                f"DOCUMENT_IDENTITY_MISMATCH expected={error.expected} "
+                f"detected={error.detected}"
+            )
+            QMessageBox.critical(self, "QI-Crawler", message)
+            return
         if isinstance(error, AccessDenied):
             if status is not None:
                 status.setText("Cần người dùng xử lý trước khi chạy lại.")
@@ -895,6 +1171,12 @@ class QICrawlerWindow(QMainWindow):
         if not value:
             self.document_status.setText("Vui lòng chọn một file hoặc thư mục tài liệu.")
             return
+        self.last_document_id = None
+        self.last_document_path = None
+        self.open_document_button.setEnabled(False)
+        self.open_document_folder_button.setEnabled(False)
+        self.document_confirm_type_button.setEnabled(False)
+        self._set_document_identity_banner()
         self.document_status.setText("Đang kiểm tra và lưu bản gốc an toàn...")
         self._submit(
             run_document_intake,
@@ -911,21 +1193,113 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
+    @Slot()
+    def start_web_document_intake(self) -> None:
+        tender_reference = self.document_tender.text().strip()
+        if not tender_reference:
+            self.document_status.setText(
+                "Vui lòng nhập Tender / mã TBMT đã lưu trước khi tìm tài liệu trên web."
+            )
+            return
+        self.last_document_id = None
+        self.last_document_path = None
+        self.open_document_button.setEnabled(False)
+        self.open_document_folder_button.setEnabled(False)
+        self.document_confirm_type_button.setEnabled(False)
+        self._set_document_identity_banner()
+        self.document_status.setText("Đang phát hiện và tải tài liệu từ trang tender...")
+        self._submit(
+            run_web_document_intake,
+            self.config,
+            tender_reference,
+            on_success=self._render_web_document_result,
+            button=self.document_web_button,
+            progress=self.document_progress,
+            status=self.document_status,
+            task_name="web_document_intake",
+            long_operation=True,
+        )
+
+    def _render_web_document_result(self, summary: WebDocumentIntakeSummary) -> None:
+        if summary.results:
+            result = summary.results[-1]
+            self.last_document_path = result.stored_path
+            self.last_document_id = result.document_id
+            self.open_document_button.setEnabled(True)
+            self.open_document_folder_button.setEnabled(True)
+            self.document_confirm_type_button.setEnabled(
+                result.identity_status == "VERIFIED_LINKED"
+            )
+        if self._document_workspace_tender != summary.tender_identifier:
+            self._document_workspace_tender = summary.tender_identifier
+            self._document_session_duplicates = 0
+        self._document_session_duplicates += summary.duplicates
+        self.document_tender.setText(summary.tender_identifier)
+        self.document_status.setText(
+            "\n".join(
+                [
+                    f"Mã gói: {summary.tender_identifier}",
+                    f"Đã phát hiện: {summary.discovered}",
+                    f"Đã tải: {summary.downloaded}",
+                    f"Trùng: {summary.duplicates}",
+                    f"Cần kiểm tra: {summary.needs_review}",
+                    f"Lỗi: {summary.failed}",
+                ]
+            )
+        )
+        self._append_log(
+            "Tìm tài liệu web hoàn tất: "
+            f"discovered={summary.discovered} downloaded={summary.downloaded} "
+            f"duplicates={summary.duplicates} needs_review={summary.needs_review} "
+            f"failed={summary.failed}."
+        )
+        self.document_metrics["duplicates"].setText(str(self._document_session_duplicates))
+
     def _render_document_result(self, batch: DocumentBatchResult) -> None:
         if not batch.results:
             self.document_status.setText("Không có tài liệu hỗ trợ trong lựa chọn này.")
             return
         result = batch.results[-1]
         self.last_document_path = result.stored_path
+        self.last_document_id = result.document_id
         self.open_document_button.setEnabled(True)
         self.open_document_folder_button.setEnabled(True)
-        tender = result.tender_identifier or "Chưa liên kết"
+        self.document_confirm_type_button.setEnabled(
+            result.identity_status == "VERIFIED_LINKED"
+        )
+        document_type = (
+            TenderDocumentType(result.document_type)
+            if result.document_type in TenderDocumentType._value2member_map_
+            else TenderDocumentType.OTHER
+        )
+        self.document_type_combo.setCurrentIndex(
+            self.document_type_combo.findData(document_type.value)
+        )
+        template_index = self.document_template_combo.findData(result.template_code or "")
+        self.document_template_combo.setCurrentIndex(max(template_index, 0))
+        self.document_package_type.setText(result.package_type or "")
+        self.document_selection_method.setText(result.selection_method or "")
+        classification_status = ClassificationStatus._value2member_map_.get(
+            result.classification_status,
+            ClassificationStatus.UNKNOWN,
+        )
+        self.document_classification_status.setText(
+            CLASSIFICATION_STATUS_LABELS[classification_status]
+        )
+        tender = result.tender_identifier or result.expected_identity or "Chưa liên kết"
         outcome = "Đã nhập tài liệu" if result.outcome == "IMPORTED" else "Tài liệu đã tồn tại"
+        identity = (
+            "VERIFIED"
+            if result.identity_status == "VERIFIED_LINKED"
+            else result.identity_status
+        )
         lines = [
             f"✓ {outcome}",
+            f"Mã gói: {tender}",
+            f"Identity: {identity}",
             f"Tên file: {result.original_filename}",
-            f"Loại file: {result.document_type}",
-            f"SHA-256: {result.sha256}",
+            f"Loại file: {result.file_format or '-'}",
+            f"Loại tài liệu: {DOCUMENT_TYPE_LABELS[document_type]}",
             f"Version: {result.version}",
             f"Tender: {tender}",
         ]
@@ -937,6 +1311,52 @@ class QICrawlerWindow(QMainWindow):
         self.document_status.setText("\n".join(lines))
         self._append_log(
             f"Nhập tài liệu hoàn tất: mới {batch.imported}, trùng {batch.duplicates}."
+        )
+        if result.tender_identifier:
+            if self._document_workspace_tender != result.tender_identifier:
+                self._document_workspace_tender = result.tender_identifier
+                self._document_session_duplicates = 0
+            self._document_session_duplicates += batch.duplicates
+            self.document_tender.setText(result.tender_identifier)
+            self.document_metrics["duplicates"].setText(
+                str(self._document_session_duplicates)
+            )
+
+    @Slot()
+    def confirm_document_type(self) -> None:
+        if self.last_document_id is None:
+            self.document_status.setText("Chưa có tài liệu để xác nhận loại.")
+            return
+        self._submit(
+            run_document_classification_confirmation,
+            self.config,
+            self.last_document_id,
+            str(self.document_type_combo.currentData()),
+            str(self.document_template_combo.currentData() or ""),
+            self.document_package_type.text().strip(),
+            self.document_selection_method.text().strip(),
+            on_success=self._render_classification_confirmation,
+            button=self.document_confirm_type_button,
+            progress=self.document_progress,
+            status=self.document_status,
+            task_name="document_classification_confirmation",
+        )
+
+    def _render_classification_confirmation(
+        self,
+        classification: DocumentClassification,
+    ) -> None:
+        self.document_classification_status.setText(
+            CLASSIFICATION_STATUS_LABELS[classification.status]
+        )
+        self.document_status.setText(
+            "✓ Đã xác nhận loại tài liệu\n"
+            f"Loại tài liệu: {DOCUMENT_TYPE_LABELS[classification.document_type]}\n"
+            f"Trạng thái: {CLASSIFICATION_STATUS_LABELS[classification.status]}"
+        )
+        self._append_log(
+            "Đã xác nhận phân loại tài liệu "
+            f"document_id={self.last_document_id} type={classification.document_type.value}."
         )
 
     @Slot()
@@ -975,7 +1395,42 @@ def open_path(path: Path) -> bool:
     return True
 
 
+def _standalone_smoke_requested(arguments: list[str]) -> bool:
+    return any(
+        option in arguments
+        for option in ("--smoke-test", "--smoke-test-network", "--smoke-test-documents")
+    )
+
+
+def _run_standalone_smoke(arguments: list[str]) -> int:
+    """Run release checks before Qt is initialized for headless EXE smoke tests."""
+    paths = prepare_standalone_runtime()
+    configure_standalone_file_logging(paths.logs_dir / "qi-crawler.log")
+    config = load_config(paths.config_path)
+    database = Database(config.storage.database_url)
+    try:
+        database.require_current_schema()
+    except SchemaNotReady:
+        upgrade_database(config.storage.database_url, backup_dir=paths.data_dir / "backups")
+        database.require_current_schema()
+    passed = run_standalone_smoke(
+        config,
+        paths.logs_dir / "standalone-smoke.json",
+        include_network="--smoke-test-network" in arguments,
+        include_documents="--smoke-test-documents" in arguments,
+    )
+    return 0 if passed else 2
+
+
 def main() -> int:
+    smoke_requested = is_frozen() and _standalone_smoke_requested(sys.argv)
+    if smoke_requested:
+        try:
+            return _run_standalone_smoke(sys.argv)
+        except Exception:
+            logger.exception("Standalone smoke test failed")
+            return 1
+
     application = QApplication.instance() or QApplication(sys.argv)
     try:
         if is_frozen():
@@ -991,14 +1446,6 @@ def main() -> int:
                     backup_dir=paths.data_dir / "backups",
                 )
                 database.require_current_schema()
-            smoke_requested = "--smoke-test" in sys.argv or "--smoke-test-network" in sys.argv
-            if smoke_requested:
-                passed = run_standalone_smoke(
-                    config,
-                    paths.logs_dir / "standalone-smoke.json",
-                    include_network="--smoke-test-network" in sys.argv,
-                )
-                return 0 if passed else 2
         else:
             env = EnvSettings()
             configure_logging(env.log_level)

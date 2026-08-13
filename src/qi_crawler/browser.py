@@ -542,11 +542,28 @@ class BrowserFetcher:
         errors: list[str] = []
         try:
             await self.limiter.wait(url)
-            await page.goto(url, wait_until="domcontentloaded")
+            try:
+                response = await page.goto(url, wait_until="domcontentloaded")
+            except PlaywrightError as exc:
+                raise AccessDenied(
+                    f"Không thể xác minh kết nối/TLS khi mở trang tài liệu; "
+                    f"HUMAN_REQUIRED: {exc}"
+                ) from exc
+            if response is not None and response.status in {401, 403, 429}:
+                raise AccessDenied(
+                    f"Website từ chối trang tài liệu HTTP {response.status}; HUMAN_REQUIRED"
+                )
             await page.wait_for_selector(self.config.selectors.page_ready)
             if self.config.crawl.render_wait_ms:
                 await page.wait_for_timeout(self.config.crawl.render_wait_ms)
-            self.policy.detect_block_page(await page.content())
+            html = await page.content()
+            self.policy.detect_block_page(html)
+            location = page.url.lower()
+            has_password_input = await page.locator('input[type="password"]').count() > 0
+            if any(marker in location for marker in ("/login", "dang-nhap", "signin")) or has_password_input:
+                raise SessionExpired(
+                    "Phiên đăng nhập đã hết hạn khi tìm tài liệu; HUMAN_REQUIRED"
+                )
 
             rows = page.locator(rows_selector)
             count = await rows.count()
@@ -572,6 +589,8 @@ class BrowserFetcher:
                         filename_hint=filename_hint,
                     )
                     downloaded.append(item)
+                except AccessDenied:
+                    raise
                 except PlaywrightTimeoutError:
                     message = f"Hang {index + 1}: click khong phat sinh su kien download"
                     logger.exception(message)

@@ -123,6 +123,13 @@ class Document(Base):
         String(32), default="manual_upload", index=True
     )
     document_type: Mapped[str] = mapped_column(String(64), index=True)
+    file_format: Mapped[str | None] = mapped_column(String(16))
+    template_code: Mapped[str | None] = mapped_column(String(32), index=True)
+    package_type: Mapped[str | None] = mapped_column(String(64), index=True)
+    selection_method: Mapped[str | None] = mapped_column(Text)
+    classification_status: Mapped[str] = mapped_column(
+        String(32), default="UNKNOWN", index=True
+    )
     display_name: Mapped[str | None] = mapped_column(Text)
     original_filename: Mapped[str] = mapped_column(Text)
     stored_path: Mapped[str] = mapped_column(Text, nullable=False)

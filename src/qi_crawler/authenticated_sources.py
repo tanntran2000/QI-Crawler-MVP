@@ -12,6 +12,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from .browser import BrowserFetcher
+from .compliance import AccessDenied
 from .config import AppConfig
 from .crawler import CrawlerService
 from .keywords import matches_any_keyword, normalize_keyword
@@ -241,6 +242,10 @@ async def collect_authenticated_source(
                     )
                     parsed.title = parsed.title or text[:1000]
                     parsed.raw_text = parsed.raw_text or text
+                except AccessDenied:
+                    # Authentication, CAPTCHA and access-policy failures are not
+                    # incomplete metadata. Stop so the operator can intervene.
+                    raise
                 except Exception as exc:  # noqa: BLE001 - keep list metadata for manual review
                     logger.warning("Khong doc duoc trang chi tiet %s: %s", url, exc)
                 finally:

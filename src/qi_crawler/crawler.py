@@ -257,6 +257,10 @@ class CrawlerService:
             for attachment_id in attachment_ids:
                 try:
                     await self._download_attachment_http(notice.id, attachment_id)
+                except AccessDenied:
+                    # A successful detail page does not make a blocked file
+                    # download safe. Surface HUMAN_REQUIRED to the operator.
+                    raise
                 except Exception:
                     logger.exception("Khong tai duoc attachment id=%s", attachment_id)
         return notice

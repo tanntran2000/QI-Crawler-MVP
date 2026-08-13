@@ -6,6 +6,7 @@ import pytest
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from sqlalchemy import select
 
+from qi_crawler.compliance import AccessDenied
 from qi_crawler.config import AppConfig
 from qi_crawler.crawler import CrawlerService
 from qi_crawler.models import CrawlRun, CrawlTask
@@ -154,5 +155,25 @@ def test_batch_crawl_downloads_pending_attachments(tmp_path: Path) -> None:
         service._download_attachment_http = download  # type: ignore[method-assign]
         assert asyncio.run(service.crawl_urls(["https://example.test/tender/IB2600201"])) == (1, 0)
         assert len(downloaded) == 1
+    finally:
+        asyncio.run(service.close())
+
+
+def test_single_crawl_surfaces_human_required_for_blocked_attachment(tmp_path: Path) -> None:
+    service = _service(tmp_path, download_attachments=True)
+
+    async def fetch(_: str) -> str:
+        return _html("https://example.test/tender/IB2600202").replace(
+            "</body>", '<a href="/attachments/hsmt.pdf">Tải E-HSMT</a></body>'
+        )
+
+    async def blocked_download(_notice_id: int, _attachment_id: int) -> None:
+        raise AccessDenied("HTTP 403 attachment; HUMAN_REQUIRED")
+
+    try:
+        service._get_html = fetch  # type: ignore[method-assign]
+        service._download_attachment_http = blocked_download  # type: ignore[method-assign]
+        with pytest.raises(AccessDenied, match="HUMAN_REQUIRED"):
+            asyncio.run(service.crawl_notice("https://example.test/tender/IB2600202"))
     finally:
         asyncio.run(service.close())

@@ -13,11 +13,13 @@ import tempfile
 import unicodedata
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from sqlalchemy import func, or_, select
 
 from .db import Database
+from .document_taxonomy import classify_document
 from .models import Document, Notice
 
 logger = logging.getLogger(__name__)
@@ -57,6 +59,17 @@ class DocumentStorageError(DocumentIntakeError):
     """The original could not be stored without risking overwrite or loss."""
 
 
+class DocumentIdentityMismatch(DocumentValidationError):
+    """Trusted identity evidence points at a different tender."""
+
+    def __init__(self, expected: str, detected: str):
+        self.expected = expected
+        self.detected = detected
+        super().__init__(
+            f"CRITICAL_MISMATCH: expected tender {expected}; detected {detected}."
+        )
+
+
 @dataclass(frozen=True)
 class DocumentIntakeResult:
     outcome: str
@@ -71,6 +84,14 @@ class DocumentIntakeResult:
     tender_id: int | None
     tender_identifier: str | None
     discovered_files: tuple[str, ...] = ()
+    identity_status: str = "UNLINKED"
+    expected_identity: str | None = None
+    detected_identity: str | None = None
+    file_format: str | None = None
+    template_code: str | None = None
+    package_type: str | None = None
+    selection_method: str | None = None
+    classification_status: str = "UNKNOWN"
 
 
 @dataclass(frozen=True)
@@ -84,6 +105,52 @@ class DocumentBatchResult:
     @property
     def duplicates(self) -> int:
         return sum(item.outcome == "DUPLICATE" for item in self.results)
+
+
+@dataclass(frozen=True)
+class DocumentManifestEntry:
+    document_id: int
+    document_type: str
+    file_format: str | None
+    template_code: str | None
+    package_type: str | None
+    selection_method: str | None
+    classification_status: str
+    filename: str
+    sha256: str
+    version: int
+    source: str
+    status: str
+    stored_path: Path
+    uploaded_at: datetime
+
+
+@dataclass(frozen=True)
+class TenderDocumentManifest:
+    tender_id: int
+    tender_identifier: str
+    tender_title: str
+    source: str
+    identity_status: str
+    documents: tuple[DocumentManifestEntry, ...]
+
+
+@dataclass(frozen=True)
+class TenderDocumentTarget:
+    """Minimal verified tender context exposed to document acquisition services."""
+
+    tender_id: int
+    identifier: str
+    source_name: str
+    source_url: str
+
+
+@dataclass(frozen=True)
+class _IdentityResolution:
+    status: str
+    tender: Notice | None
+    expected: str | None
+    detected: str | None
 
 
 def sanitize_filename(filename: str) -> str:
@@ -114,6 +181,34 @@ class DocumentIntakeService:
         self.database.require_current_schema()
         self.document_root = document_root.expanduser().resolve()
 
+    def resolve_tender_target(self, tender_reference: str) -> TenderDocumentTarget:
+        """Resolve one unique tender before any web document acquisition starts."""
+        tender = self._lookup_tender(tender_reference)
+        if tender is None:
+            raise DocumentValidationError(
+                "Không tìm thấy tender đã xác định; không tải hoặc tự đoán tài liệu từ web."
+            )
+        return TenderDocumentTarget(
+            tender_id=tender.id,
+            identifier=self._notice_identifier(tender),
+            source_name=tender.source_name or tender.source_kind or "web",
+            source_url=tender.source_url,
+        )
+
+    def verify_tender_identity(
+        self,
+        tender_reference: str,
+        *,
+        detected_tender_reference: str | None,
+        source_url: str | None,
+    ) -> str:
+        """Run the existing Identity Guard before a staged web file is hashed."""
+        return self._resolve_identity(
+            tender_reference,
+            detected_tender_reference=detected_tender_reference,
+            source_url=source_url,
+        ).status
+
     def intake_path(
         self,
         input_path: Path,
@@ -123,6 +218,7 @@ class DocumentIntakeService:
         document_source: str = "manual_upload",
         source_url: str | None = None,
         uploaded_by: str | None = None,
+        detected_tender_reference: str | None = None,
     ) -> DocumentBatchResult:
         candidate = input_path.expanduser()
         if candidate.is_symlink():
@@ -143,6 +239,7 @@ class DocumentIntakeService:
                     document_source=document_source,
                     source_url=source_url,
                     uploaded_by=uploaded_by,
+                    detected_tender_reference=detected_tender_reference,
                 )
                 for path in supported
             )
@@ -156,6 +253,7 @@ class DocumentIntakeService:
                     document_source=document_source,
                     source_url=source_url,
                     uploaded_by=uploaded_by,
+                    detected_tender_reference=detected_tender_reference,
                 ),
             )
         )
@@ -169,6 +267,7 @@ class DocumentIntakeService:
         document_source: str = "manual_upload",
         source_url: str | None = None,
         uploaded_by: str | None = None,
+        detected_tender_reference: str | None = None,
     ) -> DocumentIntakeResult:
         logger.info(
             "DOCUMENT_INTAKE_START source=%s filename=%s",
@@ -184,9 +283,15 @@ class DocumentIntakeService:
         sha256, file_size = self._hash_file(path)
         logger.info("HASH_DONE sha256=%s file_size=%s", sha256, file_size)
         discovered_files = self._inspect_zip(path) if path.suffix.lower() == ".zip" else ()
+        identity = self._resolve_identity(
+            tender_reference,
+            detected_tender_reference=detected_tender_reference,
+            source_url=source_url,
+        )
         duplicate = self._find_duplicate(sha256)
         logger.info("DUPLICATE_CHECK_DONE duplicate=%s", duplicate is not None)
         if duplicate is not None:
+            self._guard_duplicate_identity(duplicate, identity)
             stored_path = Path(duplicate.stored_path)
             if not stored_path.is_file():
                 raise DocumentStorageError(
@@ -196,6 +301,9 @@ class DocumentIntakeService:
                 duplicate,
                 "DUPLICATE",
                 self._tender_identifier(duplicate.tender_id),
+                identity_status=self._document_identity_status(duplicate),
+                expected_identity=identity.expected,
+                detected_identity=identity.detected,
             )
             logger.info(
                 "DOCUMENT_INTAKE_DONE outcome=DUPLICATE document_id=%s",
@@ -203,11 +311,19 @@ class DocumentIntakeService:
             )
             return result
 
-        tender = self._resolve_tender(tender_reference)
+        tender = identity.tender
+        classification = classify_document(
+            metadata_title=(document_name or "").strip() or None,
+            filename=path.name,
+            identity_status=identity.status,
+            package_type=tender.contract_type if tender else None,
+            selection_method=tender.selection_method if tender else None,
+        )
         version = self._next_version(tender.id if tender else None)
         safe_filename = sanitize_filename(path.name)
         scope = self._tender_scope(tender)
-        destination = self.document_root / scope / sha256 / safe_filename
+        source_scope = self._source_scope(tender, document_source)
+        destination = self.document_root / source_scope / scope / sha256 / safe_filename
         stored_path, created = self._atomic_store(path, destination)
         logger.info("FILE_STORED sha256=%s stored_path=%s", sha256, stored_path)
         mime_type = MIME_TYPES.get(path.suffix.lower()) or mimetypes.guess_type(path.name)[0]
@@ -215,7 +331,12 @@ class DocumentIntakeService:
             document = self._create_record(
                 tender_id=tender.id if tender else None,
                 document_source=document_source,
-                document_type=DOCUMENT_TYPES[path.suffix.lower()],
+                document_type=classification.document_type.value,
+                file_format=DOCUMENT_TYPES[path.suffix.lower()],
+                template_code=classification.template_code,
+                package_type=classification.package_type,
+                selection_method=classification.selection_method,
+                classification_status=classification.status.value,
                 display_name=(document_name or "").strip() or None,
                 original_filename=path.name,
                 stored_path=stored_path,
@@ -226,6 +347,7 @@ class DocumentIntakeService:
                 source_url=source_url,
                 uploaded_by=(uploaded_by or "").strip() or None,
                 zip_supported_entries=discovered_files,
+                status=identity.status,
             )
         except Exception:
             if created:
@@ -241,6 +363,9 @@ class DocumentIntakeService:
             document,
             "IMPORTED",
             self._notice_identifier(tender) if tender else None,
+            identity_status=identity.status,
+            expected_identity=identity.expected,
+            detected_identity=identity.detected,
         )
         logger.info(
             "DOCUMENT_INTAKE_DONE outcome=IMPORTED document_id=%s",
@@ -314,7 +439,7 @@ class DocumentIntakeService:
         with self.database.session() as session:
             return session.scalar(select(Document).where(Document.sha256 == sha256))
 
-    def _resolve_tender(self, reference: str | None) -> Notice | None:
+    def _lookup_tender(self, reference: str | None) -> Notice | None:
         value = (reference or "").strip()
         if not value:
             return None
@@ -322,12 +447,128 @@ class DocumentIntakeService:
         if value.isdigit():
             predicates.append(Notice.id == int(value))
         with self.database.session() as session:
-            tender = session.scalar(select(Notice).where(or_(*predicates)).limit(1))
-        if tender is None:
-            raise DocumentValidationError(
-                "Không tìm thấy gói thầu. Để trống mã gói nếu muốn lưu chưa liên kết."
+            matches = tuple(
+                session.scalars(select(Notice).where(or_(*predicates)).limit(2))
             )
-        return tender
+        if len(matches) > 1:
+            raise DocumentValidationError(
+                "Mã tender không duy nhất trong database; không tự động lựa chọn."
+            )
+        return matches[0] if matches else None
+
+    def _lookup_tender_by_source_url(self, source_url: str | None) -> Notice | None:
+        value = (source_url or "").strip()
+        if not value:
+            return None
+        with self.database.session() as session:
+            matches = tuple(
+                session.scalars(
+                    select(Notice).where(Notice.source_url == value).limit(2)
+                )
+            )
+        if len(matches) > 1:
+            raise DocumentValidationError(
+                "URL nguồn khớp nhiều tender; không tự động lựa chọn."
+            )
+        return matches[0] if matches else None
+
+    def _resolve_identity(
+        self,
+        tender_reference: str | None,
+        *,
+        detected_tender_reference: str | None,
+        source_url: str | None,
+    ) -> _IdentityResolution:
+        expected_value = (tender_reference or "").strip() or None
+        detected_value = (detected_tender_reference or "").strip() or None
+        logger.info(
+            "DOCUMENT_IDENTITY_CHECK expected=%s detected=%s source_url_present=%s",
+            expected_value,
+            detected_value,
+            bool(source_url),
+        )
+        expected = self._lookup_tender(expected_value)
+        detected = self._lookup_tender(detected_value)
+        if detected_value is None:
+            detected = self._lookup_tender_by_source_url(source_url)
+            if detected is not None:
+                detected_value = self._notice_identifier(detected)
+
+        unknown_expected = expected_value is not None and expected is None
+        unknown_detected = detected_value is not None and detected is None
+        if unknown_expected or unknown_detected:
+            logger.info(
+                "DOCUMENT_IDENTITY_UNLINKED status=NEEDS_REVIEW expected=%s detected=%s",
+                expected_value,
+                detected_value,
+            )
+            return _IdentityResolution(
+                status="NEEDS_REVIEW",
+                tender=None,
+                expected=expected_value,
+                detected=detected_value,
+            )
+
+        if expected is not None and detected is not None and expected.id != detected.id:
+            expected_identifier = self._notice_identifier(expected)
+            detected_identifier = self._notice_identifier(detected)
+            logger.error(
+                "DOCUMENT_IDENTITY_MISMATCH expected=%s detected=%s",
+                expected_identifier,
+                detected_identifier,
+            )
+            raise DocumentIdentityMismatch(expected_identifier, detected_identifier)
+
+        tender = expected or detected
+        if tender is None:
+            logger.info("DOCUMENT_IDENTITY_UNLINKED status=UNLINKED")
+            return _IdentityResolution(
+                status="UNLINKED",
+                tender=None,
+                expected=expected_value,
+                detected=detected_value,
+            )
+
+        identifier = self._notice_identifier(tender)
+        logger.info("DOCUMENT_IDENTITY_VERIFIED tender=%s", identifier)
+        return _IdentityResolution(
+            status="VERIFIED_LINKED",
+            tender=tender,
+            expected=expected_value or identifier,
+            detected=detected_value,
+        )
+
+    def _guard_duplicate_identity(
+        self,
+        duplicate: Document,
+        identity: _IdentityResolution,
+    ) -> None:
+        if (
+            identity.status == "NEEDS_REVIEW"
+            and identity.expected is not None
+            and duplicate.tender_id is not None
+        ):
+            detected = self._tender_identifier(duplicate.tender_id) or "UNLINKED"
+            logger.error(
+                "DOCUMENT_IDENTITY_MISMATCH expected=%s detected=%s duplicate_document_id=%s",
+                identity.expected,
+                detected,
+                duplicate.id,
+            )
+            raise DocumentIdentityMismatch(identity.expected, detected)
+        if identity.tender is None:
+            return
+        if duplicate.tender_id == identity.tender.id:
+            return
+        expected = self._notice_identifier(identity.tender)
+        detected = self._tender_identifier(duplicate.tender_id) or "UNLINKED"
+        logger.error(
+            "DOCUMENT_IDENTITY_MISMATCH expected=%s detected=%s duplicate_document_id=%s",
+            expected,
+            detected,
+            duplicate.id,
+        )
+        raise DocumentIdentityMismatch(expected, detected)
 
     def _next_version(self, tender_id: int | None) -> int:
         with self.database.session() as session:
@@ -347,6 +588,12 @@ class DocumentIntakeService:
         return _safe_scope(identifier)
 
     @staticmethod
+    def _source_scope(tender: Notice | None, document_source: str) -> str:
+        return _safe_scope(tender.source_name or document_source) if tender else _safe_scope(
+            document_source
+        )
+
+    @staticmethod
     def _notice_identifier(tender: Notice) -> str:
         return tender.notice_code or tender.source_notice_id or str(tender.id)
 
@@ -356,6 +603,59 @@ class DocumentIntakeService:
         with self.database.session() as session:
             tender = session.get(Notice, tender_id)
             return self._notice_identifier(tender) if tender else None
+
+    @staticmethod
+    def _document_identity_status(document: Document) -> str:
+        if document.status in {
+            "VERIFIED_LINKED",
+            "UNLINKED",
+            "MISMATCH",
+            "NEEDS_REVIEW",
+        }:
+            return document.status
+        return "VERIFIED_LINKED" if document.tender_id is not None else "UNLINKED"
+
+    def manifest_for_tender(self, tender_reference: str) -> TenderDocumentManifest:
+        """Return the database-backed immutable document manifest for one tender."""
+        tender = self._lookup_tender(tender_reference)
+        if tender is None:
+            raise DocumentValidationError("Không tìm thấy tender để lập document manifest.")
+        with self.database.session() as session:
+            documents = tuple(
+                session.scalars(
+                    select(Document)
+                    .where(Document.tender_id == tender.id)
+                    .order_by(Document.version, Document.id)
+                )
+            )
+        source = tender.source_name or "unknown"
+        entries = tuple(
+            DocumentManifestEntry(
+                document_id=document.id,
+                document_type=document.document_type,
+                file_format=document.file_format or self._legacy_file_format(document),
+                template_code=document.template_code,
+                package_type=document.package_type,
+                selection_method=document.selection_method,
+                classification_status=document.classification_status or "UNKNOWN",
+                filename=document.original_filename,
+                sha256=document.sha256,
+                version=document.version,
+                source=document.document_source,
+                status=self._document_identity_status(document),
+                stored_path=Path(document.stored_path),
+                uploaded_at=document.uploaded_at,
+            )
+            for document in documents
+        )
+        return TenderDocumentManifest(
+            tender_id=tender.id,
+            tender_identifier=self._notice_identifier(tender),
+            tender_title=tender.title or "Chưa có tên gói",
+            source=source,
+            identity_status="VERIFIED_LINKED",
+            documents=entries,
+        )
 
     def _atomic_store(self, source: Path, destination: Path) -> tuple[Path, bool]:
         temporary_path: Path | None = None
@@ -396,6 +696,11 @@ class DocumentIntakeService:
         tender_id: int | None,
         document_source: str,
         document_type: str,
+        file_format: str,
+        template_code: str | None,
+        package_type: str | None,
+        selection_method: str | None,
+        classification_status: str,
         display_name: str | None,
         original_filename: str,
         stored_path: Path,
@@ -406,11 +711,17 @@ class DocumentIntakeService:
         source_url: str | None,
         uploaded_by: str | None,
         zip_supported_entries: tuple[str, ...],
+        status: str,
     ) -> Document:
         document = Document(
             tender_id=tender_id,
             document_source=document_source,
             document_type=document_type,
+            file_format=file_format,
+            template_code=template_code,
+            package_type=package_type,
+            selection_method=selection_method,
+            classification_status=classification_status,
             display_name=display_name,
             original_filename=original_filename,
             stored_path=str(stored_path),
@@ -420,7 +731,7 @@ class DocumentIntakeService:
             version=version,
             source_url=source_url,
             uploaded_by=uploaded_by,
-            status="STORED",
+            status=status,
             zip_supported_entries=(
                 json.dumps(zip_supported_entries, ensure_ascii=False)
                 if zip_supported_entries
@@ -445,6 +756,10 @@ class DocumentIntakeService:
         document: Document,
         outcome: str,
         tender_identifier: str | None,
+        *,
+        identity_status: str,
+        expected_identity: str | None,
+        detected_identity: str | None,
     ) -> DocumentIntakeResult:
         entries = tuple(json.loads(document.zip_supported_entries or "[]"))
         return DocumentIntakeResult(
@@ -460,4 +775,20 @@ class DocumentIntakeService:
             tender_id=document.tender_id,
             tender_identifier=tender_identifier,
             discovered_files=entries,
+            identity_status=identity_status,
+            expected_identity=expected_identity,
+            detected_identity=detected_identity,
+            file_format=document.file_format or DocumentIntakeService._legacy_file_format(
+                document
+            ),
+            template_code=document.template_code,
+            package_type=document.package_type,
+            selection_method=document.selection_method,
+            classification_status=document.classification_status or "UNKNOWN",
         )
+
+    @staticmethod
+    def _legacy_file_format(document: Document) -> str | None:
+        if document.document_type in DOCUMENT_TYPES.values():
+            return document.document_type
+        return Path(document.original_filename).suffix.lstrip(".").upper() or None

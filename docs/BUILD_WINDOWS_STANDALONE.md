@@ -79,7 +79,7 @@ Viet va dung; ung dung khong tu tai ngầm.
 Copy toan bo `dist\QI-Crawler` sang may khong co Python/VS Code, sau do double-click
 `QI-Crawler.exe`. Kiem tra:
 
-1. GUI hien `QI-Crawler v0.6.1`.
+1. GUI hien `QI-Crawler v0.7.0`.
 2. Tim kiem tren database test/da copy vao thu muc user data.
 3. Xuat TBMT va mo file Excel.
 4. Crawl mot URL chi tiet duoc phep.

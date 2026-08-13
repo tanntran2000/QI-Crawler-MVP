@@ -73,7 +73,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0005_add_documents"
+            "0006_add_document_taxonomy"
         )
 
 
@@ -130,6 +130,52 @@ def test_upgrade_preserves_legacy_notice_data(tmp_path: Path) -> None:
         assert connection.scalar(text("SELECT title FROM notices")) == "Existing notice"
 
 
+def test_taxonomy_migration_preserves_wp1_document_and_file_format(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "wp1-documents.db"
+    config = _alembic_config(database)
+    command.upgrade(config, "0005_add_documents")
+    engine = create_engine(f"sqlite:///{database}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO documents (
+                    document_source, document_type, original_filename, stored_path,
+                    mime_type, file_size, sha256, version, uploaded_at, status,
+                    created_at, updated_at
+                ) VALUES (
+                    'manual_upload', 'PDF', 'legacy.pdf', 'legacy/path.pdf',
+                    'application/pdf', 6, :sha256, 1, :timestamp, 'UNLINKED',
+                    :timestamp, :timestamp
+                )
+                """
+            ),
+            {"sha256": "c" * 64, "timestamp": "2026-08-13 00:00:00"},
+        )
+    engine.dispose()
+
+    command.upgrade(config, "head")
+
+    upgraded = create_engine(f"sqlite:///{database}")
+    with upgraded.connect() as connection:
+        row = connection.execute(
+            text(
+                """
+                SELECT document_type, file_format, classification_status,
+                       original_filename, sha256
+                FROM documents
+                """
+            )
+        ).one()
+        assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0006_add_document_taxonomy"
+        )
+    upgraded.dispose()
+
+
 def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) -> None:
     """A database created by the former runtime must adopt, not recreate 0001."""
     database = tmp_path / "pre_alembic.db"
@@ -176,7 +222,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0005_add_documents"
+    assert result.revision == "0006_add_document_taxonomy"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -190,7 +236,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0005_add_documents"
+            "0006_add_document_taxonomy"
         )
     upgraded_engine.dispose()
 

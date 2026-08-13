@@ -2,6 +2,11 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
+## 0.7.0 - 2026-08-13
+
+- On dinh nen tang xu ly tai lieu va giao dien noi bo.
+- Bo sung kiem tra van hanh va bao mat truoc giai doan phat trien tiep theo.
+
 ## 0.6.1 - 2026-08-12
 
 - Cai thien kha nang xu ly du lieu dau thau tu nhieu nguon va xuat bao cao theo mau chung.

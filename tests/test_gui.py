@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,8 +15,20 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from qi_crawler import __version__, gui
 from qi_crawler.config import AppConfig
 from qi_crawler.crawler import ScanSummary
-from qi_crawler.document_intake import DocumentBatchResult, DocumentIntakeResult
-from qi_crawler.gui import FunctionWorker, QICrawlerWindow
+from qi_crawler.document_intake import (
+    DocumentBatchResult,
+    DocumentIdentityMismatch,
+    DocumentIntakeResult,
+    DocumentManifestEntry,
+    TenderDocumentManifest,
+)
+from qi_crawler.document_taxonomy import (
+    ClassificationStatus,
+    DocumentClassification,
+    TenderDocumentType,
+)
+from qi_crawler.gui import FunctionWorker, QICrawlerWindow, _standalone_smoke_requested
+from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 
 @pytest.fixture(scope="module")
@@ -47,6 +60,11 @@ def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.navigation.item(0).text() == "Quét gói thầu"
     assert window.navigation.item(5).text() == "HSMT / TÀI LIỆU"
     assert window.navigation.item(6).text() == "Nhật ký"
+
+
+def test_standalone_document_smoke_is_detected_before_qt_startup() -> None:
+    assert _standalone_smoke_requested(["QI-Crawler.exe", "--smoke-test-documents"])
+    assert not _standalone_smoke_requested(["QI-Crawler.exe"])
 
 
 def test_scan_default_max_pages_is_three(window: QICrawlerWindow) -> None:
@@ -498,15 +516,62 @@ def _document_result(path: Path) -> DocumentBatchResult:
                 document_id=7,
                 original_filename="HSMT.pdf",
                 stored_path=path,
-                document_type="PDF",
+                document_type="E_HSMT",
                 mime_type="application/pdf",
                 file_size=10,
                 sha256="a" * 64,
                 version=1,
-                tender_id=None,
-                tender_identifier=None,
+                tender_id=10,
+                tender_identifier="IB2600000001-00",
+                identity_status="VERIFIED_LINKED",
+                file_format="PDF",
+                classification_status="CANDIDATE",
             ),
         )
+    )
+
+
+def _document_manifest(path: Path) -> TenderDocumentManifest:
+    return TenderDocumentManifest(
+        tender_id=10,
+        tender_identifier="IB2600000001-00",
+        tender_title="Cung cấp thiết bị mạng",
+        source="egp",
+        identity_status="VERIFIED_LINKED",
+        documents=(
+            DocumentManifestEntry(
+                document_id=7,
+                document_type="E_HSMT",
+                file_format="PDF",
+                template_code="4",
+                package_type="Hàng hóa",
+                selection_method=None,
+                classification_status="VERIFIED",
+                filename="HSMT.pdf",
+                sha256="a" * 64,
+                version=1,
+                source="manual_upload",
+                status="VERIFIED_LINKED",
+                stored_path=path,
+                uploaded_at=datetime.now(UTC),
+            ),
+            DocumentManifestEntry(
+                document_id=8,
+                document_type="BOQ_BOM",
+                file_format="XLSX",
+                template_code=None,
+                package_type="Hàng hóa",
+                selection_method=None,
+                classification_status="CANDIDATE",
+                filename="BOQ.xlsx",
+                sha256="b" * 64,
+                version=2,
+                source="web",
+                status="VERIFIED_LINKED",
+                stored_path=path,
+                uploaded_at=datetime.now(UTC),
+            ),
+        ),
     )
 
 
@@ -543,10 +608,67 @@ def test_document_page_uses_existing_intake_service_and_renders_success(
         (source, "IB2600000001-00", "HSMT bản phát hành", "")
     ]
     assert "Đã nhập tài liệu" in window.document_status.text()
-    assert "SHA-256" in window.document_status.text()
+    assert "Mã gói: IB2600000001-00" in window.document_status.text()
+    assert "Identity: VERIFIED" in window.document_status.text()
+    assert "Loại tài liệu: Hồ sơ mời thầu qua mạng" in window.document_status.text()
+    assert window.document_classification_status.text() == "Nhận diện sơ bộ"
+    assert window.document_confirm_type_button.isEnabled()
+    assert "SHA-256" not in window.document_status.text()
     assert window.last_document_path == stored
     assert window.open_document_button.isEnabled()
     assert window.open_document_folder_button.isEnabled()
+    assert window.document_progress.isHidden()
+    assert window._active_long_operation is None
+
+
+def test_document_workspace_shows_tender_identity_documents_and_summary(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    manifest = _document_manifest(tmp_path / "documents" / "HSMT.pdf")
+
+    window._render_document_workspace(manifest)
+
+    assert "Mã gói: IB2600000001-00" in window.document_tender_summary.text()
+    assert "Tên gói: Cung cấp thiết bị mạng" in window.document_tender_summary.text()
+    assert "Nguồn: egp" in window.document_tender_summary.text()
+    assert not window.document_identity_banner.isHidden()
+    assert window.document_table.rowCount() == 2
+    assert window.document_table.item(0, 0).text() == "HSMT.pdf"
+    assert window.document_table.item(0, 1).text() == "Hồ sơ mời thầu qua mạng"
+    assert window.document_table.item(0, 3).text() == "v1"
+    assert window.document_metrics["total"].text() == "2"
+    assert window.document_metrics["verified"].text() == "1"
+    assert window.document_metrics["candidate"].text() == "1"
+    assert not window.document_analyze_button.isEnabled()
+    assert "Native Extraction" in window.document_analyze_button.toolTip()
+
+    window.document_table.selectRow(0)
+
+    assert window.last_document_id == 7
+    assert window.open_document_button.isEnabled()
+    assert window.document_confirm_type_button.isEnabled()
+
+
+def test_document_workspace_uses_service_and_resets_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest = _document_manifest(tmp_path / "documents" / "HSMT.pdf")
+    captured: list[str] = []
+
+    def workspace(_config: AppConfig, tender: str) -> TenderDocumentManifest:
+        captured.append(tender)
+        return manifest
+
+    monkeypatch.setattr(gui, "run_tender_document_workspace", workspace)
+    window.document_tender.setText("IB2600000001-00")
+    window.start_document_workspace()
+
+    assert not window.document_workspace_button.isEnabled()
+    _wait_until(lambda: window.document_workspace_button.isEnabled())
+    assert captured == ["IB2600000001-00"]
     assert window.document_progress.isHidden()
     assert window._active_long_operation is None
 
@@ -590,3 +712,152 @@ def test_document_open_actions_are_mocked_safely(
     window.open_document_folder()
 
     assert opened == [stored, stored.parent]
+
+
+def test_gui_identity_mismatch_releases_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "wrong-tender.pdf"
+    source.write_bytes(b"wrong tender")
+    messages: list[str] = []
+
+    def mismatch(*_args) -> None:
+        raise DocumentIdentityMismatch("IB-EXPECTED", "IB-DETECTED")
+
+    monkeypatch.setattr(gui, "run_document_intake", mismatch)
+    monkeypatch.setattr(
+        QMessageBox,
+        "critical",
+        lambda _parent, _title, message: messages.append(message),
+    )
+    window.document_path.setText(str(source))
+
+    window.start_document_intake()
+
+    _wait_until(lambda: window.document_import_button.isEnabled())
+    assert window._active_long_operation is None
+    assert window.document_progress.isHidden()
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+    assert "TÀI LIỆU KHÔNG KHỚP GÓI" in window.document_status.text()
+    assert "Expected: IB-EXPECTED" in window.document_status.text()
+    assert "Detected: IB-DETECTED" in window.document_status.text()
+    assert not window.document_identity_banner.isHidden()
+    assert "KHÔNG KHỚP" in window.document_identity_banner.text()
+    assert messages == [window.document_status.text()]
+
+
+def test_document_classification_gui_uses_vietnamese_and_confirms_type(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    stored = tmp_path / "documents" / "egp" / "IB" / "hash" / "HSMT.pdf"
+    window._render_document_result(_document_result(stored))
+    captured: list[tuple[int, str, str, str, str]] = []
+
+    def confirm(
+        _config: AppConfig,
+        document_id: int,
+        document_type: str,
+        template_code: str,
+        package_type: str,
+        selection_method: str,
+    ) -> DocumentClassification:
+        captured.append(
+            (
+                document_id,
+                document_type,
+                template_code,
+                package_type,
+                selection_method,
+            )
+        )
+        return DocumentClassification(
+            document_type=TenderDocumentType.E_HSMT,
+            template_code="4",
+            package_type="Hàng hóa",
+            selection_method="Một giai đoạn một túi hồ sơ",
+            status=ClassificationStatus.VERIFIED,
+        )
+
+    monkeypatch.setattr(gui, "run_document_classification_confirmation", confirm)
+    window.document_type_combo.setCurrentIndex(
+        window.document_type_combo.findData("E_HSMT")
+    )
+    window.document_template_combo.setCurrentIndex(
+        window.document_template_combo.findData("4")
+    )
+    window.document_package_type.setText("Hàng hóa")
+    window.document_selection_method.setText("Một giai đoạn một túi hồ sơ")
+
+    window.confirm_document_type()
+
+    _wait_until(lambda: window.document_confirm_type_button.isEnabled())
+    assert captured == [
+        (
+            7,
+            "E_HSMT",
+            "4",
+            "Hàng hóa",
+            "Một giai đoạn một túi hồ sơ",
+        )
+    ]
+    assert window.document_classification_status.text() == "Đã xác minh"
+    assert "Đã xác nhận loại tài liệu" in window.document_status.text()
+    assert "Hồ sơ mời thầu qua mạng" in window.document_status.text()
+
+
+def test_web_document_intake_renders_summary_and_releases_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    stored = tmp_path / "documents" / "egp" / "IB" / "hash" / "HSMT.pdf"
+
+    def acquire(_config: AppConfig, tender: str) -> WebDocumentIntakeSummary:
+        assert tender == "IB2600000001-00"
+        return WebDocumentIntakeSummary(
+            tender_identifier=tender,
+            discovered=3,
+            downloaded=3,
+            duplicates=1,
+            needs_review=1,
+            failed=0,
+            human_required=False,
+            results=_document_result(stored).results,
+            failures=(),
+        )
+
+    monkeypatch.setattr(gui, "run_web_document_intake", acquire)
+    window.document_tender.setText("IB2600000001-00")
+    window.start_web_document_intake()
+
+    assert not window.document_web_button.isEnabled()
+    _wait_until(lambda: window.document_web_button.isEnabled())
+    assert "Đã phát hiện: 3" in window.document_status.text()
+    assert "Đã tải: 3" in window.document_status.text()
+    assert "Trùng: 1" in window.document_status.text()
+    assert "Cần kiểm tra: 1" in window.document_status.text()
+    assert window.document_progress.isHidden()
+    assert window._active_long_operation is None
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+
+
+def test_web_document_intake_error_releases_busy_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail(*_args) -> None:
+        raise RuntimeError("download failure")
+
+    monkeypatch.setattr(gui, "run_web_document_intake", fail)
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+    window.document_tender.setText("IB2600000001-00")
+    window.start_web_document_intake()
+
+    _wait_until(lambda: window.document_web_button.isEnabled())
+    assert window.document_progress.isHidden()
+    assert window._active_long_operation is None
+    assert all(button.isEnabled() for button in window._long_operation_buttons)

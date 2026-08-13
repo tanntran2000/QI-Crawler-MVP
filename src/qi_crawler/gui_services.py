@@ -21,11 +21,17 @@ from .authenticated_sources import (
 from .config import AppConfig
 from .crawler import CrawlerService, ScanSummary
 from .db import Database
-from .document_intake import DocumentBatchResult, DocumentIntakeService
+from .document_intake import (
+    DocumentBatchResult,
+    DocumentIntakeService,
+    TenderDocumentManifest,
+)
+from .document_taxonomy import DocumentClassification, DocumentClassificationService
 from .export import TBMTExportResult, export_tbmt
 from .keywords import expand_keyword
 from .notice_search import search_notices
 from .source_filter import active_source_domains, active_source_names
+from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +157,58 @@ def run_document_intake(
         document_name=document_name or None,
         document_source="manual_upload",
         uploaded_by=uploaded_by or None,
+    )
+
+
+def run_tender_document_workspace(
+    config: AppConfig,
+    tender_reference: str,
+) -> TenderDocumentManifest:
+    """Read one tender's document manifest without changing document state."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return DocumentIntakeService(
+        database,
+        config.storage.document_dir,
+    ).manifest_for_tender(tender_reference)
+
+
+def run_web_document_intake(
+    config: AppConfig,
+    tender_reference: str,
+) -> WebDocumentIntakeSummary:
+    """Discover and import web attachments through the shared intake service."""
+
+    async def execute() -> WebDocumentIntakeSummary:
+        database = Database(config.storage.database_url)
+        database.require_current_schema()
+        intake = DocumentIntakeService(database, config.storage.document_dir)
+        service = TenderWebDocumentService(config, intake)
+        try:
+            return await service.acquire(tender_reference)
+        finally:
+            await service.close()
+
+    return asyncio.run(execute())
+
+
+def run_document_classification_confirmation(
+    config: AppConfig,
+    document_id: int,
+    document_type: str,
+    template_code: str = "",
+    package_type: str = "",
+    selection_method: str = "",
+) -> DocumentClassification:
+    """Confirm one candidate through the shared classification service."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return DocumentClassificationService(database).confirm(
+        document_id,
+        document_type,
+        template_code=template_code or None,
+        package_type=package_type or None,
+        selection_method=selection_method or None,
     )
 
 
