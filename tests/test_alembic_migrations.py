@@ -20,7 +20,7 @@ from sqlalchemy import (
 from alembic import command
 from qi_crawler.db import Database, SchemaNotReady
 from qi_crawler.migrations import upgrade_database
-from qi_crawler.models import Base, Document
+from qi_crawler.models import Base, Document, GroundTruthReview
 
 ROOT = Path(__file__).parent.parent
 CORE_TABLES = {
@@ -32,6 +32,8 @@ CORE_TABLES = {
     "documents",
     "document_extractions",
     "document_evidence",
+    "ground_truth_reviews",
+    "hsmt_facts",
     "tender_items",
     "inventory_items",
     "company_evidence",
@@ -75,7 +77,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0007_add_native_document_extraction"
+            "0011_add_hsmt_facts"
         )
 
 
@@ -173,9 +175,55 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0007_add_native_document_extraction"
+                "0011_add_hsmt_facts"
         )
     upgraded.dispose()
+
+
+def test_manual_workspace_migration_preserves_current_native_extraction(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "native-current.db"
+    config = _alembic_config(database)
+    command.upgrade(config, "0008_add_ground_truth_reviews")
+    engine = create_engine(f"sqlite:///{database}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO documents (
+                    document_source, document_type, original_filename, stored_path,
+                    mime_type, file_size, sha256, version, uploaded_at, status,
+                    created_at, updated_at
+                ) VALUES (
+                    'manual_upload', 'OTHER', 'native.pdf', 'native/path.pdf',
+                    'application/pdf', 6, :sha256, 1, :timestamp, 'STORED',
+                    :timestamp, :timestamp
+                )
+                """
+            ),
+            {"sha256": "d" * 64, "timestamp": "2026-08-14 00:00:00"},
+        )
+        document_id = connection.scalar(text("SELECT id FROM documents"))
+        connection.execute(
+            text(
+                """
+                INSERT INTO document_extractions (
+                    document_id, extractor_version, status, created_at
+                ) VALUES (:document_id, 'native-v1', 'NATIVE_OK', :timestamp)
+                """
+            ),
+            {"document_id": document_id, "timestamp": "2026-08-14 00:00:00"},
+        )
+    command.upgrade(config, "head")
+
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
+        assert "ground_truth_reviews" in inspect(engine).get_table_names()
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0011_add_hsmt_facts"
+        )
+    engine.dispose()
 
 
 def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) -> None:
@@ -184,6 +232,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     engine = create_engine(f"sqlite:///{database}")
     Base.metadata.create_all(engine)
     # Simulate the schema that existed before the Document model/migration.
+    GroundTruthReview.__table__.drop(engine)
     Document.__table__.drop(engine)
     with engine.begin() as connection:
         connection.execute(
@@ -191,10 +240,12 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
                 """
                 INSERT INTO notices (
                     source_url, url_hash, source_kind, notice_type, crawl_status,
-                    review_status, data_quality_status, title, first_seen_at, last_seen_at
+                    review_status, data_quality_status, title, first_seen_at, last_seen_at,
+                    source_origin, identity_status, business_priority
                 ) VALUES (
                     :source_url, :url_hash, :source_kind, :notice_type, :crawl_status,
-                    :review_status, :data_quality_status, :title, :first_seen_at, :last_seen_at
+                    :review_status, :data_quality_status, :title, :first_seen_at, :last_seen_at,
+                    'WEB', 'UNKNOWN', 'NORMAL'
                 )
                 """
             ),
@@ -224,7 +275,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0007_add_native_document_extraction"
+    assert result.revision == "0011_add_hsmt_facts"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -238,7 +289,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0007_add_native_document_extraction"
+            "0011_add_hsmt_facts"
         )
     upgraded_engine.dispose()
 

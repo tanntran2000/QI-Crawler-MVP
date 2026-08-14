@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import yaml
 
-from qi_crawler.standalone import prepare_standalone_runtime, resource_path
+from qi_crawler.standalone import prepare_standalone_runtime, resource_path, resource_root
 
 
 def test_required_packaging_resources_exist() -> None:
@@ -13,6 +14,21 @@ def test_required_packaging_resources_exist() -> None:
     assert resource_path("alembic", "versions").is_dir()
     assert resource_path("config.example.yaml").is_file()
     assert resource_path("keyword-groups.yaml").is_file()
+
+
+def test_frozen_bundle_uses_its_executable_sidecar_runtime(
+    tmp_path: Path, monkeypatch
+) -> None:
+    executable = tmp_path / "QI-Crawler.exe"
+    executable.touch()
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "stale-runtime"), raising=False)
+
+    assert resource_root() == runtime
 
 
 def test_standalone_user_data_is_separate_and_not_overwritten(tmp_path: Path) -> None:

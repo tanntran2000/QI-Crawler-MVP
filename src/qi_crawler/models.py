@@ -18,10 +18,17 @@ class Notice(Base):
     __tablename__ = "notices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text)
     url_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     content_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     source_kind: Mapped[str] = mapped_column(String(32), default="web")
+    source_origin: Mapped[str] = mapped_column(String(32), default="WEB", index=True)
+    identity_status: Mapped[str] = mapped_column(String(32), default="UNKNOWN", index=True)
+    screening_status: Mapped[str | None] = mapped_column(String(32), index=True)
+    business_priority: Mapped[str] = mapped_column(String(16), default="NORMAL", index=True)
+    reviewed_by: Mapped[str | None] = mapped_column(String(255))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    manual_note: Mapped[str | None] = mapped_column(Text)
     notice_code: Mapped[str | None] = mapped_column(String(255), index=True)
     source_notice_id: Mapped[str | None] = mapped_column(String(255), index=True)
     source_name: Mapped[str | None] = mapped_column(String(255), index=True)
@@ -139,6 +146,13 @@ class Document(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     source_url: Mapped[str | None] = mapped_column(Text)
     uploaded_by: Mapped[str | None] = mapped_column(String(255))
+    raw_notice_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    base_notice_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    notice_revision: Mapped[str | None] = mapped_column(String(64))
+    identity_source: Mapped[str | None] = mapped_column(String(32))
+    identity_evidence_locator: Mapped[str | None] = mapped_column(Text)
+    identity_match_status: Mapped[str | None] = mapped_column(String(64), index=True)
+    identity_candidates_json: Mapped[str | None] = mapped_column(Text)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     status: Mapped[str] = mapped_column(String(32), default="STORED", index=True)
     zip_supported_entries: Mapped[str | None] = mapped_column(Text)
@@ -202,6 +216,58 @@ class DocumentEvidence(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     extraction: Mapped[DocumentExtraction] = relationship(back_populates="evidence")
+
+
+class HSMTFact(Base):
+    """A derived, source-traceable fact; never an assessment or recommendation."""
+
+    __tablename__ = "hsmt_facts"
+    __table_args__ = (UniqueConstraint("fingerprint", name="uq_hsmt_fact_fingerprint"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tender_id: Mapped[int] = mapped_column(ForeignKey("notices.id", ondelete="CASCADE"), index=True)
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="SET NULL"), index=True)
+    evidence_id: Mapped[int | None] = mapped_column(ForeignKey("document_evidence.id", ondelete="SET NULL"), index=True)
+    fact_group: Mapped[str] = mapped_column(String(64), index=True)
+    fact_key: Mapped[str] = mapped_column(String(64), index=True)
+    normalized_value: Mapped[str | None] = mapped_column(Text)
+    raw_evidence_text: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(64), index=True)
+    source_locator: Mapped[str | None] = mapped_column(Text)
+    metadata_json: Mapped[str | None] = mapped_column(Text)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class GroundTruthReview(Base):
+    """Append-only human feedback for one immutable native extraction."""
+
+    __tablename__ = "ground_truth_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    extraction_id: Mapped[int] = mapped_column(
+        ForeignKey("document_extractions.id", ondelete="CASCADE"), index=True
+    )
+    evidence_id: Mapped[int | None] = mapped_column(
+        ForeignKey("document_evidence.id", ondelete="SET NULL"), index=True
+    )
+    target_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    predicted_value: Mapped[str | None] = mapped_column(Text)
+    predicted_status: Mapped[str | None] = mapped_column(String(64))
+    human_verdict: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    corrected_value: Mapped[str | None] = mapped_column(Text)
+    corrected_locator: Mapped[str | None] = mapped_column(Text)
+    error_type: Mapped[str | None] = mapped_column(String(64), index=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    review_role: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    review_status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    reviewer: Mapped[str] = mapped_column(String(255), nullable=False)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    crawler_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    rule_version: Mapped[str | None] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class TenderItem(Base):

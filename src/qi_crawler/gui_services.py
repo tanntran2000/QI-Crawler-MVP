@@ -7,10 +7,13 @@ services. It contains no parsing, crawling or persistence implementation.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import threading
 from dataclasses import dataclass
 from pathlib import Path
+
+from sqlalchemy import select
 
 from .authenticated_sources import (
     create_login_session,
@@ -28,7 +31,15 @@ from .document_intake import (
 )
 from .document_taxonomy import DocumentClassification, DocumentClassificationService
 from .export import TBMTExportResult, export_tbmt
+from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
+from .manual_tender import ManualTenderWorkspaceService
+from .models import Document, DocumentEvidence, DocumentExtraction
+from .native_extraction import (
+    SUPPORTED_FORMATS,
+    NativeExtractionError,
+    NativeHSMTExtractionService,
+)
 from .notice_search import search_notices
 from .source_filter import active_source_domains, active_source_names
 from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
@@ -43,6 +54,45 @@ class SearchRow:
     buyer: str
     source: str
     source_url: str
+
+
+@dataclass(frozen=True)
+class EvidencePreview:
+    source_locator: str
+    page_number: int | None
+    sheet_name: str | None
+    content_type: str
+    text: str | None
+    table_json: str | None
+
+
+@dataclass(frozen=True)
+class DocumentExtractionInspection:
+    document_id: int
+    filename: str
+    file_format: str
+    status: str
+    evidence_count: int
+    page_count: int
+    sheet_count: int
+    text_count: int
+    table_count: int
+    flags: tuple[str, ...]
+    evidence: tuple[EvidencePreview, ...]
+
+
+@dataclass(frozen=True)
+class HSMTFactDashboard:
+    tender_id: int
+    facts: tuple[HSMTFactView, ...]
+
+    def count_for(self, group: str) -> int:
+        return sum(item.fact_group == group for item in self.facts)
+
+    def review_count_for(self, group: str) -> int:
+        return sum(
+            item.fact_group == group and item.status != "FOUND" for item in self.facts
+        )
 
 
 def _keyword_terms(value: str) -> tuple[str, ...]:
@@ -151,13 +201,106 @@ def run_document_intake(
     database = Database(config.storage.database_url)
     database.require_current_schema()
     service = DocumentIntakeService(database, config.storage.document_dir)
-    return service.intake_path(
+    batch = service.intake_path(
         input_path,
         tender_reference=tender_reference or None,
         document_name=document_name or None,
         document_source="manual_upload",
         uploaded_by=uploaded_by or None,
     )
+    extractor = NativeHSMTExtractionService(database)
+    warnings: list[str] = []
+    for result in batch.results:
+        if result.file_format not in SUPPORTED_FORMATS:
+            continue
+        try:
+            extractor.extract_document(result.document_id)
+        except NativeExtractionError as exc:
+            logger.exception("Native extraction requires review document_id=%s", result.document_id)
+            warnings.append(str(exc))
+    return DocumentBatchResult(batch.results, tuple(warnings))
+
+
+def run_document_extraction_inspection(
+    config: AppConfig,
+    document_id: int,
+) -> DocumentExtractionInspection:
+    """Read persisted native extraction/evidence without changing document state."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    with database.session() as session:
+        document = session.get(Document, document_id)
+        if document is None:
+            raise ValueError("Khong tim thay tai lieu da chon.")
+        extraction = session.scalar(
+            select(DocumentExtraction)
+            .where(DocumentExtraction.document_id == document_id)
+            .order_by(DocumentExtraction.created_at.desc())
+        )
+        evidence_rows = ()
+        if extraction is not None:
+            evidence_rows = tuple(
+                session.scalars(
+                    select(DocumentEvidence)
+                    .where(DocumentEvidence.extraction_id == extraction.id)
+                    .order_by(DocumentEvidence.ordinal)
+                )
+            )
+
+        flags: set[str] = set()
+        for row in evidence_rows:
+            metadata = json.loads(row.metadata_json or "{}")
+            flags.update(metadata.get("flags") or ())
+        evidence = tuple(
+            EvidencePreview(
+                source_locator=row.source_locator,
+                page_number=row.page_number,
+                sheet_name=row.sheet_name,
+                content_type=row.content_type,
+                text=row.text,
+                table_json=row.table_json,
+            )
+            for row in evidence_rows
+        )
+        return DocumentExtractionInspection(
+            document_id=document.id,
+            filename=document.original_filename,
+            file_format=document.file_format or "-",
+            status=extraction.status if extraction is not None else "NOT_EXTRACTED",
+            evidence_count=len(evidence),
+            page_count=len({row.page_number for row in evidence_rows if row.page_number}),
+            sheet_count=len({row.sheet_name for row in evidence_rows if row.sheet_name}),
+            text_count=sum(row.content_type == "TEXT" for row in evidence_rows),
+            table_count=sum(row.content_type != "TEXT" for row in evidence_rows),
+            flags=tuple(sorted(flags)),
+            evidence=evidence,
+        )
+
+
+def run_create_manual_tender_workspace(
+    config: AppConfig,
+    tender_code: str,
+    package_name: str,
+    shortlisted: bool,
+    business_priority: str,
+    reviewed_by: str,
+    manual_note: str,
+) -> TenderDocumentManifest:
+    """Create one human-declared workspace, then read its existing manifest."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    workspace = ManualTenderWorkspaceService(database).create_workspace(
+        tender_code,
+        package_name=package_name or None,
+        shortlisted=shortlisted,
+        business_priority=business_priority,
+        reviewed_by=reviewed_by or None,
+        manual_note=manual_note or None,
+    )
+    return DocumentIntakeService(
+        database,
+        config.storage.document_dir,
+    ).manifest_for_tender(workspace.tender_code)
 
 
 def run_tender_document_workspace(
@@ -167,10 +310,22 @@ def run_tender_document_workspace(
     """Read one tender's document manifest without changing document state."""
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    return DocumentIntakeService(
+    manifest = DocumentIntakeService(
         database,
         config.storage.document_dir,
     ).manifest_for_tender(tender_reference)
+    HSMTFactService(database).refresh_tender(manifest.tender_id)
+    return manifest
+
+
+def run_hsmt_fact_dashboard(config: AppConfig, tender_id: int) -> HSMTFactDashboard:
+    """Read persisted/derived facts for one tender; no native extraction is invoked."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    service = HSMTFactService(database)
+    service.refresh_tender(tender_id)
+    facts = service.facts_for_tender(tender_id)
+    return HSMTFactDashboard(tender_id=tender_id, facts=facts)
 
 
 def run_web_document_intake(

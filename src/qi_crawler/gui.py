@@ -10,11 +10,25 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import (
+    QByteArray,
+    QObject,
+    QRect,
+    QRunnable,
+    QSettings,
+    Qt,
+    QThreadPool,
+    QTimer,
+    QUrl,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QCloseEvent, QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QFormLayout,
     QFrame,
@@ -29,6 +43,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QStackedWidget,
     QTableWidget,
@@ -58,10 +73,15 @@ from .document_taxonomy import (
     TenderDocumentType,
 )
 from .gui_services import (
+    DocumentExtractionInspection,
+    HSMTFactDashboard,
     SearchRow,
+    run_create_manual_tender_workspace,
     run_document_classification_confirmation,
+    run_document_extraction_inspection,
     run_document_intake,
     run_export,
+    run_hsmt_fact_dashboard,
     run_login,
     run_scan,
     run_search,
@@ -81,6 +101,11 @@ from .standalone_smoke import run_standalone_smoke
 from .web_document_intake import WebDocumentIntakeSummary
 
 logger = logging.getLogger(__name__)
+
+WINDOW_SETTINGS_ORGANIZATION = "QiTech"
+WINDOW_SETTINGS_APPLICATION = "QI-Crawler"
+PREFERRED_WINDOW_SIZE = (1440, 900)
+MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
 
@@ -188,13 +213,24 @@ class GuiTaskBridge(QObject):
 
 
 class QICrawlerWindow(QMainWindow):
-    def __init__(self, config: AppConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: AppConfig | None = None,
+        *,
+        settings: QSettings | None = None,
+    ) -> None:
         super().__init__()
         self.config = config or load_config()
+        self._settings = settings or QSettings(
+            WINDOW_SETTINGS_ORGANIZATION,
+            WINDOW_SETTINGS_APPLICATION,
+        )
         self.thread_pool = QThreadPool.globalInstance()
         self.last_export_path: Path | None = None
         self.last_document_path: Path | None = None
         self.last_document_id: int | None = None
+        self._selected_extraction: DocumentExtractionInspection | None = None
+        self._hsmt_fact_dashboard: HSMTFactDashboard | None = None
         self._document_workspace_tender: str | None = None
         self._document_session_duplicates = 0
         self._login_ready: threading.Event | None = None
@@ -202,11 +238,11 @@ class QICrawlerWindow(QMainWindow):
         self._active_jobs: list[GuiTaskBridge] = []
         self._active_long_operation: str | None = None
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
-        self.resize(1120, 740)
-        self.setMinimumSize(960, 640)
+        self.setMinimumSize(*MINIMUM_WINDOW_SIZE)
         self.setFont(QFont("Segoe UI", 10))
         self._apply_style()
         self._build_shell()
+        self._restore_window_geometry()
         self.statusBar().showMessage("QI-Crawler đã sẵn sàng")
         version_label = QLabel(f"QI-Crawler v{__version__}")
         self.statusBar().addPermanentWidget(version_label)
@@ -218,7 +254,50 @@ class QICrawlerWindow(QMainWindow):
             self.statusBar().showMessage(message, 10000)
             event.ignore()
             return
+        self._save_window_geometry()
         super().closeEvent(event)
+
+    def _restore_window_geometry(self) -> None:
+        geometry = self._settings.value("window/geometry", type=QByteArray)
+        screen = QApplication.primaryScreen()
+        if (
+            geometry
+            and self.restoreGeometry(geometry)
+            and (
+                screen is None
+                or self._geometry_is_usable(
+                    self.frameGeometry(),
+                    screen.availableGeometry(),
+                )
+            )
+        ):
+            if self._settings.value("window/maximized", False, type=bool):
+                self.showMaximized()
+            return
+        self._apply_default_window_geometry(screen.availableGeometry() if screen else None)
+
+    def _apply_default_window_geometry(self, available: QRect | None) -> None:
+        preferred_width, preferred_height = PREFERRED_WINDOW_SIZE
+        minimum_width, minimum_height = MINIMUM_WINDOW_SIZE
+        if available is None:
+            self.resize(preferred_width, preferred_height)
+            return
+        width = max(minimum_width, min(preferred_width, round(available.width() * 0.92)))
+        height = max(minimum_height, min(preferred_height, round(available.height() * 0.90)))
+        self.resize(width, height)
+        self.move(
+            available.x() + max(0, (available.width() - width) // 2),
+            available.y() + max(0, (available.height() - height) // 2),
+        )
+
+    @staticmethod
+    def _geometry_is_usable(geometry: QRect, available: QRect) -> bool:
+        return geometry.width() >= MINIMUM_WINDOW_SIZE[0] and geometry.height() >= MINIMUM_WINDOW_SIZE[1] and geometry.intersects(available)
+
+    def _save_window_geometry(self) -> None:
+        self._settings.setValue("window/geometry", self.saveGeometry())
+        self._settings.setValue("window/maximized", self.isMaximized())
+        self._settings.sync()
 
     def _apply_style(self) -> None:
         self.setStyleSheet(
@@ -515,11 +594,27 @@ class QICrawlerWindow(QMainWindow):
         layout.addStretch()
 
     def _build_document_page(self) -> None:
-        _page, layout = self._new_page(
+        _page, page_layout = self._new_page(
             "HSMT / Tài liệu",
             "Chọn một gói đã lưu để quản lý bộ HSMT, nguồn web và các phiên bản tài liệu. "
             "QI-Crawler chỉ lưu khi Identity Guard xác nhận liên kết an toàn.",
         )
+        self.document_scroll = QScrollArea()
+        self.document_scroll.setWidgetResizable(True)
+        self.document_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.document_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.document_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        document_content = QWidget()
+        layout = QVBoxLayout(document_content)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        self.document_scroll.setWidget(document_content)
+        page_layout.addWidget(self.document_scroll, 1)
+
         selected_box = QGroupBox("A. GÓI THẦU ĐANG CHỌN")
         selected_layout = QVBoxLayout(selected_box)
         form = QFormLayout()
@@ -528,37 +623,36 @@ class QICrawlerWindow(QMainWindow):
         self.document_tender = QLineEdit()
         self.document_tender.setPlaceholderText("Ví dụ: IB2600436179-00")
         self.document_tender.editingFinished.connect(self.start_document_workspace)
-        form.addRow("Tender / mã TBMT:", self.document_tender)
+        form.addRow("Mã TBMT:", self.document_tender)
         selected_layout.addLayout(form)
 
         self.document_identity_banner = QLabel()
         self.document_identity_banner.setWordWrap(True)
         self.document_identity_banner.setVisible(False)
         self.document_tender_summary = QLabel(
-            "Nhập mã gói và nhấn XEM BỘ HSMT để xem tài liệu đã lưu."
+            "Chưa chọn gói. Nhập mã TBMT rồi chọn/đổi gói để xem bộ tài liệu đã lưu."
         )
         self.document_tender_summary.setWordWrap(True)
-        self.document_workspace_button = QPushButton("XEM BỘ HSMT")
+        self.document_workspace_button = QPushButton("CHỌN / ĐỔI GÓI")
         self.document_workspace_button.clicked.connect(self.start_document_workspace)
+        self.manual_workspace_button = QPushButton("+ TẠO GÓI TỪ TEAM BID")
+        self.manual_workspace_button.clicked.connect(self.open_manual_workspace_dialog)
         selected_layout.addWidget(self.document_tender_summary)
-        selected_layout.addWidget(self.document_workspace_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        selected_actions = QHBoxLayout()
+        selected_actions.addWidget(self.document_workspace_button)
+        selected_actions.addWidget(self.manual_workspace_button)
+        selected_actions.addStretch()
+        selected_layout.addLayout(selected_actions)
         selected_layout.addWidget(self.document_identity_banner)
         layout.addWidget(selected_box)
 
         intake_box = QGroupBox("B. THÊM TÀI LIỆU")
         intake_layout = QVBoxLayout(intake_box)
-        intake_form = QFormLayout()
-        intake_form.setHorizontalSpacing(20)
-        intake_form.setVerticalSpacing(10)
         self.document_name = QLineEdit()
-        self.document_name.setPlaceholderText("Không bắt buộc; ví dụ HSMT bản phát hành")
+        self.document_name.hide()
         self.document_path = QLineEdit()
         self.document_path.setReadOnly(True)
-        self.document_path.setPlaceholderText("Chưa chọn file hoặc thư mục")
-        intake_form.addRow("Tên tài liệu:", self.document_name)
-        intake_form.addRow("File / thư mục chờ lưu:", self.document_path)
-        intake_form.addRow("Nguồn:", QLabel("Người dùng tải lên"))
-        intake_layout.addLayout(intake_form)
+        self.document_path.hide()
 
         picker_row = QHBoxLayout()
         self.document_file_button = QPushButton("THÊM FILE")
@@ -573,6 +667,11 @@ class QICrawlerWindow(QMainWindow):
         picker_row.addStretch()
         intake_layout.addLayout(picker_row)
 
+        self.document_pending_label = QLabel("Chờ chọn file hoặc thư mục.")
+        self.document_pending_label.setObjectName("documentPending")
+        self.document_pending_label.setWordWrap(True)
+        intake_layout.addWidget(self.document_pending_label)
+
         self.document_import_button = self._primary_button("LƯU TÀI LIỆU")
         self.document_import_button.clicked.connect(self.start_document_intake)
         self.document_folder_button.setText("THÊM THƯ MỤC")
@@ -586,47 +685,41 @@ class QICrawlerWindow(QMainWindow):
 
         collection_box = QGroupBox("C. BỘ TÀI LIỆU")
         collection_layout = QVBoxLayout(collection_box)
-        document_metrics = QGridLayout()
-        document_metrics.setSpacing(12)
         self.document_metrics: dict[str, QLabel] = {}
-        for index, (key, label) in enumerate(
-            (
-                ("total", "Tổng tài liệu"),
-                ("verified", "Đã xác minh"),
-                ("candidate", "Nhận diện sơ bộ"),
-                ("needs_review", "Cần kiểm tra"),
-                ("unknown", "Chưa xác định"),
-                ("duplicates", "Trùng"),
-            )
+        for key in (
+            "total",
+            "verified",
+            "candidate",
+            "needs_review",
+            "unknown",
+            "duplicates",
         ):
-            card, value = self._metric_card("0", label)
-            self.document_metrics[key] = value
-            document_metrics.addWidget(card, index // 3, index % 3)
-        collection_layout.addLayout(document_metrics)
-
-        self.document_table = QTableWidget(0, 5)
+            metric = QLabel("0", collection_box)
+            metric.hide()
+            self.document_metrics[key] = metric
+        self.document_table = QTableWidget(0, 6)
         self.document_table.setHorizontalHeaderLabels(
-            [
+            (
                 "Tên file",
                 "Loại tài liệu",
+                "Mẫu hồ sơ",
                 "Phiên bản",
                 "Identity",
                 "Trạng thái phân loại",
-            ]
+            )
         )
         self.document_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.document_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.document_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         header = self.document_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
-        for column in range(1, 5):
+        for column in range(1, 6):
             header.setSectionResizeMode(column, QHeaderView.ResizeToContents)
         self.document_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.document_table.setMinimumHeight(185)
+        self.document_table.setMinimumHeight(150)
         self.document_table.itemSelectionChanged.connect(self._on_document_selected)
-        collection_layout.addWidget(self.document_table)
+        collection_layout.addWidget(self.document_table, 1)
 
-        classification_form = QFormLayout()
         self.document_type_combo = QComboBox()
         for document_type, label in DOCUMENT_TYPE_LABELS.items():
             self.document_type_combo.addItem(label, document_type.value)
@@ -637,32 +730,75 @@ class QICrawlerWindow(QMainWindow):
         self.document_package_type = QLineEdit()
         self.document_package_type.setPlaceholderText("Không bắt buộc")
         self.document_selection_method = QLineEdit()
-        self.document_selection_method.setPlaceholderText("Không bắt buộc")
         self.document_classification_status = QLabel("Chưa xác định")
-        classification_form.addRow("Loại tài liệu:", self.document_type_combo)
-        classification_form.addRow("Mẫu hồ sơ:", self.document_template_combo)
-        classification_form.addRow("Loại gói:", self.document_package_type)
-        classification_form.addRow("Phương thức lựa chọn:", self.document_selection_method)
-        classification_form.addRow("Trạng thái:", self.document_classification_status)
-        collection_layout.addLayout(classification_form)
+        for widget in (
+            self.document_type_combo,
+            self.document_template_combo,
+            self.document_package_type,
+            self.document_selection_method,
+            self.document_classification_status,
+        ):
+            widget.hide()
         self.document_confirm_type_button = QPushButton("XÁC NHẬN LOẠI")
         self.document_confirm_type_button.setEnabled(False)
+        self.document_confirm_type_button.hide()
         self.document_confirm_type_button.clicked.connect(self.confirm_document_type)
-        collection_layout.addWidget(self.document_confirm_type_button, alignment=Qt.AlignmentFlag.AlignLeft)
 
         document_actions = QHBoxLayout()
         self.open_document_button = QPushButton("MỞ FILE")
         self.open_document_button.setEnabled(False)
+        self.open_document_button.hide()
         self.open_document_button.clicked.connect(self.open_document)
         self.open_document_folder_button = QPushButton("MỞ THƯ MỤC")
         self.open_document_folder_button.setEnabled(False)
+        self.open_document_folder_button.hide()
         self.open_document_folder_button.clicked.connect(self.open_document_folder)
+        document_actions.addWidget(self.document_confirm_type_button)
         document_actions.addWidget(self.open_document_button)
         document_actions.addWidget(self.open_document_folder_button)
         document_actions.addStretch()
         collection_layout.addLayout(document_actions)
-        layout.addWidget(collection_box)
-        layout.addStretch()
+        layout.addWidget(collection_box, 1)
+
+        self.document_extraction_box = QGroupBox("D. KẾT QUẢ ĐỌC TÀI LIỆU")
+        extraction_layout = QVBoxLayout(self.document_extraction_box)
+        self.document_extraction_summary = QLabel("Chọn một tài liệu để xem kết quả đọc native.")
+        self.document_extraction_summary.setWordWrap(True)
+        extraction_layout.addWidget(self.document_extraction_summary)
+        self.document_evidence_button = QPushButton("XEM EVIDENCE")
+        self.document_evidence_button.clicked.connect(self.show_document_evidence)
+        self.document_evidence_button.hide()
+        extraction_layout.addWidget(
+            self.document_evidence_button,
+            alignment=Qt.AlignmentFlag.AlignLeft,
+        )
+        self.document_evidence_view = QTextEdit()
+        self.document_evidence_view.setReadOnly(True)
+        self.document_evidence_view.setMinimumHeight(160)
+        self.document_evidence_view.hide()
+        extraction_layout.addWidget(self.document_evidence_view)
+        layout.addWidget(self.document_extraction_box)
+
+        self.hsmt_dashboard_box = QGroupBox("E. TỔNG HỢP HSMT")
+        dashboard_layout = QGridLayout(self.hsmt_dashboard_box)
+        self.hsmt_fact_cards: dict[str, QPushButton] = {}
+        for index, (group, label) in enumerate(
+            (
+                ("PACKAGE_OVERVIEW", "TỔNG QUAN GÓI"),
+                ("CHAPTER_III_EVALUATION", "TIÊU CHUẨN ĐÁNH GIÁ"),
+                ("CHAPTER_V_TECHNICAL", "YÊU CẦU KỸ THUẬT"),
+                ("BOM_SUPPLY", "BOM / DANH MỤC CUNG ỨNG"),
+                ("SCHEDULE_SOW", "THỜI GIAN & SCOPE OF WORK"),
+                ("REQUIRED_DOCUMENTS", "HỒ SƠ / CHỨNG TỪ"),
+                ("MISSING_INFORMATION", "THÔNG TIN CÒN THIẾU"),
+            )
+        ):
+            button = QPushButton(f"{label}\nChưa có dữ liệu")
+            button.setEnabled(False)
+            button.clicked.connect(lambda _checked=False, value=group: self.show_hsmt_fact_group(value))
+            self.hsmt_fact_cards[group] = button
+            dashboard_layout.addWidget(button, index // 2, index % 2)
+        layout.addWidget(self.hsmt_dashboard_box)
 
     def _build_log_page(self) -> None:
         _page, layout = self._new_page(
@@ -692,12 +828,20 @@ class QICrawlerWindow(QMainWindow):
         )
         if selected:
             self.document_path.setText(selected)
+            self._render_pending_document(Path(selected), "File chờ lưu")
 
     @Slot()
     def _choose_document_folder(self) -> None:
         selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục tài liệu")
         if selected:
             self.document_path.setText(selected)
+            self._render_pending_document(Path(selected), "Thư mục chờ lưu")
+
+    def _render_pending_document(self, path: Path, kind: str) -> None:
+        suffix = path.suffix.upper().lstrip(".") or "THƯ MỤC"
+        self.document_pending_label.setText(
+            f"{kind}: {path.name}\n{suffix} | {path}"
+        )
 
     def _set_document_identity_banner(
         self,
@@ -722,11 +866,82 @@ class QICrawlerWindow(QMainWindow):
     def _identity_label(status: str) -> str:
         return {
             "VERIFIED_LINKED": "Đúng gói",
+            "DOCUMENT_VERIFIED": "Đúng gói (xác thực từ nội dung)",
+            "HUMAN_DECLARED": "Team Bid cung cấp (đã khai báo)",
             "UNLINKED": "Chưa liên kết",
             "NEEDS_REVIEW": "Cần kiểm tra",
             "MISMATCH": "Sai gói – đã chặn",
             "DUPLICATE": "File đã tồn tại",
         }.get(status, status or "Chưa xác định")
+
+    @Slot()
+    def open_manual_workspace_dialog(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Tạo gói từ Team Bid")
+        layout = QVBoxLayout(dialog)
+        form = QFormLayout()
+        tender_code = QLineEdit()
+        tender_code.setPlaceholderText("Ví dụ: IB2500585490")
+        package_name = QLineEdit()
+        shortlisted = QCheckBox("Team Bid đã sơ tuyển")
+        priority = QComboBox()
+        for value, label in (
+            ("LOW", "Thấp"),
+            ("NORMAL", "Bình thường"),
+            ("HIGH", "Cao"),
+            ("CRITICAL", "Khẩn cấp"),
+        ):
+            priority.addItem(label, value)
+        reviewed_by = QLineEdit()
+        note = QTextEdit()
+        note.setFixedHeight(70)
+        form.addRow("Mã TBMT / mã gói:", tender_code)
+        form.addRow("Tên gói:", package_name)
+        form.addRow("Sơ tuyển:", shortlisted)
+        form.addRow("Mức ưu tiên:", priority)
+        form.addRow("Người review:", reviewed_by)
+        form.addRow("Ghi chú:", note)
+        layout.addLayout(form)
+        create_button = self._primary_button("TẠO WORKSPACE")
+        cancel_button = QPushButton("Hủy")
+        row = QHBoxLayout()
+        row.addWidget(create_button)
+        row.addWidget(cancel_button)
+        row.addStretch()
+        layout.addLayout(row)
+        cancel_button.clicked.connect(dialog.reject)
+
+        def create_workspace() -> None:
+            code = tender_code.text().strip()
+            if not code:
+                QMessageBox.warning(dialog, "QI-Crawler", "Vui lòng nhập mã TBMT / mã gói.")
+                return
+            dialog.accept()
+            self.document_status.setText("Đang tạo workspace Team Bid...")
+            self._submit(
+                run_create_manual_tender_workspace,
+                self.config,
+                code,
+                package_name.text().strip(),
+                shortlisted.isChecked(),
+                str(priority.currentData()),
+                reviewed_by.text().strip(),
+                note.toPlainText().strip(),
+                on_success=self._render_manual_workspace,
+                button=self.manual_workspace_button,
+                progress=self.document_progress,
+                status=self.document_status,
+                task_name="manual_tender_workspace",
+                long_operation=True,
+            )
+
+        create_button.clicked.connect(create_workspace)
+        dialog.exec()
+
+    def _render_manual_workspace(self, manifest: TenderDocumentManifest) -> None:
+        self.document_tender.setText(manifest.tender_identifier)
+        self._render_document_workspace(manifest)
+        self.document_status.setText("✓ Đã tạo workspace Team Bid. Có thể thêm tài liệu ngay.")
 
     def start_document_workspace(self) -> None:
         tender_reference = self.document_tender.text().strip()
@@ -762,15 +977,23 @@ class QICrawlerWindow(QMainWindow):
                 ]
             )
         )
-        self._set_document_identity_banner(
-            f"✓ Tender đã được xác minh: {manifest.tender_identifier}",
-        )
+        if manifest.identity_status == "HUMAN_DECLARED":
+            self._set_document_identity_banner(
+                f"✓ Team Bid cung cấp: {manifest.tender_identifier}. Chưa xác minh từ web.",
+            )
+        else:
+            self._set_document_identity_banner(
+                f"✓ Tender đã được xác minh: {manifest.tender_identifier}",
+            )
         self.document_table.setRowCount(0)
+        self.document_table.clearSelection()
+        self._hide_document_context_actions()
         for row, item in enumerate(manifest.documents):
             self.document_table.insertRow(row)
             values = (
                 item.filename,
                 self._document_type_label(item.document_type),
+                item.template_code or "—",
                 f"v{item.version}",
                 self._identity_label(item.status),
                 self._classification_label(item.classification_status),
@@ -781,15 +1004,76 @@ class QICrawlerWindow(QMainWindow):
                     cell.setData(Qt.ItemDataRole.UserRole, item)
                 self.document_table.setItem(row, column, cell)
         self._update_document_metrics(manifest)
+        self._refresh_hsmt_fact_dashboard(manifest.tender_id)
         self.document_status.setText(
             f"Đã tải bộ HSMT: {len(manifest.documents)} tài liệu."
         )
         if not manifest.documents:
             self.last_document_id = None
             self.last_document_path = None
-            self.document_confirm_type_button.setEnabled(False)
-            self.open_document_button.setEnabled(False)
-            self.open_document_folder_button.setEnabled(False)
+            self._hide_document_context_actions()
+
+    def _refresh_hsmt_fact_dashboard(self, tender_id: int) -> None:
+        try:
+            dashboard = run_hsmt_fact_dashboard(self.config, tender_id)
+        except Exception:
+            logger.exception("Cannot read persisted HSMT facts")
+            self._hsmt_fact_dashboard = None
+            for button in self.hsmt_fact_cards.values():
+                button.setText("Chưa thể đọc dữ liệu HSMT")
+                button.setEnabled(False)
+            return
+        self._hsmt_fact_dashboard = dashboard
+        for group, button in self.hsmt_fact_cards.items():
+            count = dashboard.count_for(group)
+            review = dashboard.review_count_for(group)
+            button.setText(f"{button.text().split(chr(10))[0]}\n{count} hạng mục | {review} cần kiểm tra")
+            button.setEnabled(bool(count))
+
+    @Slot()
+    def show_hsmt_fact_group(self, group: str) -> None:
+        dashboard = self._hsmt_fact_dashboard
+        if dashboard is None:
+            return
+        facts = [item for item in dashboard.facts if item.fact_group == group]
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chi tiết thông tin HSMT")
+        layout = QVBoxLayout(dialog)
+        table = QTableWidget(len(facts), 3)
+        table.setHorizontalHeaderLabels(("Thông tin", "Giá trị", "Trạng thái"))
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        for row, fact in enumerate(facts):
+            table.setItem(row, 0, QTableWidgetItem(fact.fact_key))
+            table.setItem(row, 1, QTableWidgetItem(fact.value or "Chưa tìm thấy"))
+            table.setItem(row, 2, QTableWidgetItem(fact.status))
+            table.item(row, 0).setData(Qt.ItemDataRole.UserRole, fact)
+        detail = QTextEdit()
+        detail.setReadOnly(True)
+        def render_detail() -> None:
+            selected = table.selectedItems()
+            if not selected:
+                return
+            fact = selected[0].data(Qt.ItemDataRole.UserRole)
+            if fact is None:
+                return
+            detail.setPlainText(
+                "\n".join(
+                    (
+                        f"Nguồn: {fact.filename or '-'}",
+                        f"Vị trí: {fact.source_locator or '-'}",
+                        f"Trạng thái: {fact.status}",
+                        "Evidence:",
+                        fact.raw_evidence_text or "Không có evidence văn bản.",
+                    )
+                )
+            )
+        table.itemSelectionChanged.connect(render_detail)
+        layout.addWidget(table)
+        layout.addWidget(detail)
+        dialog.resize(900, 580)
+        dialog.exec()
 
     @staticmethod
     def _document_type_label(value: str) -> str:
@@ -824,6 +1108,7 @@ class QICrawlerWindow(QMainWindow):
     def _on_document_selected(self) -> None:
         selected = self.document_table.selectedItems()
         if not selected:
+            self._hide_document_context_actions()
             return
         item = selected[0].data(Qt.ItemDataRole.UserRole)
         if not isinstance(item, DocumentManifestEntry):
@@ -831,8 +1116,11 @@ class QICrawlerWindow(QMainWindow):
         self.last_document_id = item.document_id
         self.last_document_path = item.stored_path
         self.open_document_button.setEnabled(True)
+        self.open_document_button.show()
         self.open_document_folder_button.setEnabled(True)
+        self.open_document_folder_button.show()
         self.document_confirm_type_button.setEnabled(item.status == "VERIFIED_LINKED")
+        self.document_confirm_type_button.setVisible(item.status == "VERIFIED_LINKED")
         self.document_type_combo.setCurrentIndex(
             self.document_type_combo.findData(item.document_type)
         )
@@ -842,6 +1130,70 @@ class QICrawlerWindow(QMainWindow):
         self.document_classification_status.setText(
             self._classification_label(item.classification_status)
         )
+        try:
+            self._render_document_extraction_inspection(
+                run_document_extraction_inspection(self.config, item.document_id)
+            )
+        except Exception:
+            logger.exception("Cannot read persisted native extraction")
+            self.document_extraction_summary.setText("Chưa thể đọc kết quả native. Xem Nhật ký để kiểm tra.")
+            self.document_evidence_button.hide()
+            self.document_evidence_view.clear()
+            self.document_evidence_view.hide()
+            self._selected_extraction = None
+
+    def _hide_document_context_actions(self) -> None:
+        for button in (
+            self.document_confirm_type_button,
+            self.document_evidence_button,
+            self.open_document_button,
+            self.open_document_folder_button,
+        ):
+            button.setEnabled(False)
+            button.hide()
+        self.document_extraction_summary.setText("Chọn một tài liệu để xem kết quả đọc native.")
+        self.document_evidence_view.hide()
+        self.document_evidence_view.clear()
+        self._selected_extraction = None
+
+    def _render_document_extraction_inspection(
+        self,
+        inspection: DocumentExtractionInspection,
+    ) -> None:
+        flags = ", ".join(inspection.flags) or (
+            "-" if inspection.status == "NOT_EXTRACTED" else "NATIVE_OK"
+        )
+        unit_count = (
+            f"Trang: {inspection.page_count}"
+            if inspection.page_count
+            else f"Sheet: {inspection.sheet_count}"
+        )
+        self.document_extraction_summary.setText(
+            "Kết quả đọc native: "
+            f"{inspection.status} | Định dạng: {inspection.file_format} | {unit_count} | "
+            f"Text: {inspection.text_count} | Bảng: {inspection.table_count} | "
+            f"Evidence: {inspection.evidence_count} | Cờ: {flags}"
+        )
+        self._selected_extraction = inspection
+        self.document_evidence_button.setEnabled(bool(inspection.evidence))
+        self.document_evidence_button.setVisible(bool(inspection.evidence))
+        self.document_evidence_view.clear()
+        self.document_evidence_view.hide()
+
+    @Slot()
+    def show_document_evidence(self) -> None:
+        inspection = getattr(self, "_selected_extraction", None)
+        if not isinstance(inspection, DocumentExtractionInspection):
+            return
+        lines = [f"Tài liệu: {inspection.filename}"]
+        for evidence in inspection.evidence:
+            location = evidence.source_locator
+            if evidence.sheet_name:
+                location = f"{evidence.sheet_name} | {location}"
+            value = evidence.text or evidence.table_json or ""
+            lines.extend((f"[{evidence.content_type}] {location}", value, ""))
+        self.document_evidence_view.setPlainText("\n".join(lines))
+        self.document_evidence_view.show()
 
     def _append_log(self, message: str) -> None:
         self.log_output.append(message)
@@ -1199,9 +1551,7 @@ class QICrawlerWindow(QMainWindow):
             return
         self.last_document_id = None
         self.last_document_path = None
-        self.open_document_button.setEnabled(False)
-        self.open_document_folder_button.setEnabled(False)
-        self.document_confirm_type_button.setEnabled(False)
+        self._hide_document_context_actions()
         self._set_document_identity_banner()
         self.document_status.setText("Đang kiểm tra và lưu bản gốc an toàn...")
         self._submit(
@@ -1229,9 +1579,7 @@ class QICrawlerWindow(QMainWindow):
             return
         self.last_document_id = None
         self.last_document_path = None
-        self.open_document_button.setEnabled(False)
-        self.open_document_folder_button.setEnabled(False)
-        self.document_confirm_type_button.setEnabled(False)
+        self._hide_document_context_actions()
         self._set_document_identity_banner()
         self.document_status.setText("Đang phát hiện và tải tài liệu từ trang tender...")
         self._submit(
@@ -1252,10 +1600,12 @@ class QICrawlerWindow(QMainWindow):
             self.last_document_path = result.stored_path
             self.last_document_id = result.document_id
             self.open_document_button.setEnabled(True)
+            self.open_document_button.show()
             self.open_document_folder_button.setEnabled(True)
-            self.document_confirm_type_button.setEnabled(
-                result.identity_status == "VERIFIED_LINKED"
-            )
+            self.open_document_folder_button.show()
+            is_verified = result.identity_status in {"VERIFIED_LINKED", "DOCUMENT_VERIFIED"}
+            self.document_confirm_type_button.setEnabled(is_verified)
+            self.document_confirm_type_button.setVisible(is_verified)
         if self._document_workspace_tender != summary.tender_identifier:
             self._document_workspace_tender = summary.tender_identifier
             self._document_session_duplicates = 0
@@ -1289,10 +1639,12 @@ class QICrawlerWindow(QMainWindow):
         self.last_document_path = result.stored_path
         self.last_document_id = result.document_id
         self.open_document_button.setEnabled(True)
+        self.open_document_button.show()
         self.open_document_folder_button.setEnabled(True)
-        self.document_confirm_type_button.setEnabled(
-            result.identity_status == "VERIFIED_LINKED"
-        )
+        self.open_document_folder_button.show()
+        is_verified = result.identity_status in {"VERIFIED_LINKED", "DOCUMENT_VERIFIED"}
+        self.document_confirm_type_button.setEnabled(is_verified)
+        self.document_confirm_type_button.setVisible(is_verified)
         document_type = (
             TenderDocumentType(result.document_type)
             if result.document_type in TenderDocumentType._value2member_map_
@@ -1319,6 +1671,8 @@ class QICrawlerWindow(QMainWindow):
             f"✓ {outcome}",
             f"Mã gói: {tender}",
             f"Identity: {identity}",
+            f"Mã trong nội dung: {result.raw_notice_id or '-'}",
+            f"Revision: {result.notice_revision or '-'}",
             f"Tên file: {result.original_filename}",
             f"Loại file: {result.file_format or '-'}",
             f"Loại tài liệu: {DOCUMENT_TYPE_LABELS[document_type]}",
@@ -1330,6 +1684,8 @@ class QICrawlerWindow(QMainWindow):
                 1,
                 f"Tổng số: {len(batch.results)}; mới: {batch.imported}; trùng: {batch.duplicates}",
             )
+        if batch.extraction_warnings:
+            lines.append("Bóc tách native cần kiểm tra; tài liệu gốc đã được lưu an toàn.")
         self.document_status.setText("\n".join(lines))
         self._append_log(
             f"Nhập tài liệu hoàn tất: mới {batch.imported}, trùng {batch.duplicates}."

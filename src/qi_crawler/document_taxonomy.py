@@ -196,7 +196,7 @@ def classify_document(
     if len(matches) == 1:
         status = (
             ClassificationStatus.CANDIDATE
-            if identity_status == "VERIFIED_LINKED"
+            if identity_status in {"VERIFIED_LINKED", "DOCUMENT_VERIFIED"}
             else ClassificationStatus.NEEDS_REVIEW
         )
         return DocumentClassification(
@@ -214,7 +214,7 @@ def classify_document(
         selection_method=selection_method,
         status=(
             ClassificationStatus.UNKNOWN
-            if identity_status == "VERIFIED_LINKED"
+            if identity_status in {"VERIFIED_LINKED", "DOCUMENT_VERIFIED"}
             else ClassificationStatus.NEEDS_REVIEW
         ),
     )
@@ -254,7 +254,7 @@ class DocumentClassificationService:
             )
             if document is None:
                 raise DocumentClassificationError("Không tìm thấy tài liệu.")
-            identity_verified = document.status == "VERIFIED_LINKED" or (
+            identity_verified = document.status in {"VERIFIED_LINKED", "DOCUMENT_VERIFIED"} or (
                 document.status == "STORED" and document.tender_id is not None
             )
             if not identity_verified:

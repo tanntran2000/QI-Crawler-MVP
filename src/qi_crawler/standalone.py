@@ -38,6 +38,10 @@ def is_frozen() -> bool:
 
 
 def resource_root() -> Path:
+    if is_frozen():
+        sidecar_root = Path(sys.executable).resolve().parent / "runtime"
+        if sidecar_root.is_dir():
+            return sidecar_root
     bundled_root = getattr(sys, "_MEIPASS", None)
     if bundled_root:
         return Path(bundled_root).resolve()

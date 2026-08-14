@@ -15,7 +15,11 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
+from xml.etree import ElementTree
 
+from openpyxl import load_workbook
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from sqlalchemy import func, or_, select
 
 from .db import Database
@@ -37,6 +41,9 @@ MIME_TYPES = {
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ".zip": "application/zip",
 }
+_NOTICE_ID_PATTERN = re.compile(r"\bIB\d{6,}(?:-\d{2,3})?\b", re.IGNORECASE)
+_CONTENT_SCAN_MAX_PAGES = 3
+_CONTENT_SCAN_MAX_ROWS = 100
 WINDOWS_RESERVED_NAMES = {
     "CON",
     "PRN",
@@ -92,11 +99,19 @@ class DocumentIntakeResult:
     package_type: str | None = None
     selection_method: str | None = None
     classification_status: str = "UNKNOWN"
+    raw_notice_id: str | None = None
+    base_notice_id: str | None = None
+    notice_revision: str | None = None
+    identity_source: str | None = None
+    identity_evidence_locator: str | None = None
+    identity_match_status: str | None = None
+    identity_candidates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class DocumentBatchResult:
     results: tuple[DocumentIntakeResult, ...]
+    extraction_warnings: tuple[str, ...] = ()
 
     @property
     def imported(self) -> int:
@@ -123,6 +138,10 @@ class DocumentManifestEntry:
     status: str
     stored_path: Path
     uploaded_at: datetime
+    raw_notice_id: str | None = None
+    base_notice_id: str | None = None
+    notice_revision: str | None = None
+    identity_match_status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -146,11 +165,26 @@ class TenderDocumentTarget:
 
 
 @dataclass(frozen=True)
+class DocumentContentIdentity:
+    """Raw tender identifiers found in native document content, never filenames."""
+
+    raw_notice_id: str | None = None
+    base_notice_id: str | None = None
+    revision: str | None = None
+    identity_source: str | None = None
+    evidence_locator: str | None = None
+    candidates: tuple[str, ...] = ()
+    status: str = "NO_CONTENT_ID"
+
+
+@dataclass(frozen=True)
 class _IdentityResolution:
     status: str
     tender: Notice | None
     expected: str | None
     detected: str | None
+    content_identity: DocumentContentIdentity | None = None
+    match_status: str | None = None
 
 
 def sanitize_filename(filename: str) -> str:
@@ -171,6 +205,121 @@ def sanitize_filename(filename: str) -> str:
 def _safe_scope(value: str) -> str:
     safe = sanitize_filename(value).rsplit(".", 1)[0]
     return safe or "unlinked"
+
+
+def extract_document_identity(path: Path) -> DocumentContentIdentity:
+    """Read early native content only; no filename-derived identity is accepted."""
+    backend = _identity_backend(path)
+    try:
+        regions = _identity_content_regions(path)
+    except (OSError, PdfReadError, ValueError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
+        logger.info(
+            "IDENTITY_PRECHECK backend=%s file=%s pages_scanned=0 text_chars=0 "
+            "candidates=() read_error=%s: %s",
+            backend,
+            path.name,
+            type(exc).__name__,
+            str(exc)[:200],
+        )
+        return DocumentContentIdentity()
+    except Exception as exc:  # noqa: BLE001 - fail closed at the native-reader boundary.
+        logger.warning(
+            "IDENTITY_EXTRACTION_FAILED backend=%s file=%s exception=%s: %s",
+            backend,
+            path.name,
+            type(exc).__name__,
+            str(exc)[:200],
+        )
+        return DocumentContentIdentity(
+            identity_source="DOCUMENT_CONTENT",
+            status="EXTRACTION_FAILED",
+        )
+    candidates: list[tuple[str, str]] = []
+    for locator, text in regions:
+        for raw_value in _NOTICE_ID_PATTERN.findall(text):
+            raw = raw_value.upper()
+            if raw not in {value for value, _locator in candidates}:
+                candidates.append((raw, locator))
+    logger.info(
+        "IDENTITY_PRECHECK backend=%s file=%s pages_scanned=%s text_chars=%s candidates=%s",
+        backend,
+        path.name,
+        len(regions),
+        sum(len(text) for _locator, text in regions),
+        tuple(raw for raw, _locator in candidates),
+    )
+    if not candidates:
+        return DocumentContentIdentity()
+    bases = {_notice_id_parts(raw)[0] for raw, _locator in candidates}
+    raw_values = tuple(raw for raw, _locator in candidates)
+    if len(bases) != 1:
+        return DocumentContentIdentity(
+            identity_source="DOCUMENT_CONTENT",
+            evidence_locator="; ".join(locator for _raw, locator in candidates),
+            candidates=raw_values,
+            status="AMBIGUOUS",
+        )
+    raw, locator = candidates[0]
+    base, revision = _notice_id_parts(raw)
+    return DocumentContentIdentity(
+        raw_notice_id=raw,
+        base_notice_id=base,
+        revision=revision,
+        identity_source="DOCUMENT_CONTENT",
+        evidence_locator=locator,
+        candidates=raw_values,
+        status="FOUND",
+    )
+
+
+def _identity_backend(path: Path) -> str:
+    return {
+        ".pdf": "pypdf",
+        ".docx": "zipfile_xml",
+        ".xlsx": "openpyxl",
+    }.get(path.suffix.lower(), "unsupported")
+
+
+def _notice_id_parts(value: str) -> tuple[str, str | None]:
+    normalized = value.strip().upper()
+    base, separator, revision = normalized.rpartition("-")
+    if separator and revision.isdigit():
+        return base, revision
+    return normalized, None
+
+
+def _identity_content_regions(path: Path) -> list[tuple[str, str]]:
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        reader = PdfReader(str(path))
+        return [
+            (f"file:{path.name}:page:{number}", page.extract_text() or "")
+            for number, page in enumerate(reader.pages[:_CONTENT_SCAN_MAX_PAGES], start=1)
+        ]
+    if suffix == ".docx":
+        with zipfile.ZipFile(path) as archive:
+            root = ElementTree.fromstring(archive.read("word/document.xml"))
+        text = " ".join(node.text or "" for node in root.iter() if node.text)
+        return [(f"file:{path.name}:word/document.xml", text)]
+    if suffix == ".xlsx":
+        workbook = load_workbook(path, read_only=True, data_only=False)
+        try:
+            regions: list[tuple[str, str]] = []
+            for worksheet in workbook.worksheets[:_CONTENT_SCAN_MAX_PAGES]:
+                for row_number, row in enumerate(
+                    worksheet.iter_rows(values_only=True), start=1
+                ):
+                    text = " ".join(str(value) for value in row if value is not None)
+                    if text:
+                        regions.append(
+                            (f"file:{path.name}:sheet:{worksheet.title}!{row_number}", text)
+                        )
+                    if row_number >= _CONTENT_SCAN_MAX_ROWS:
+                        break
+            return regions
+        finally:
+            workbook.close()
+    return []
 
 
 class DocumentIntakeService:
@@ -283,15 +432,17 @@ class DocumentIntakeService:
         sha256, file_size = self._hash_file(path)
         logger.info("HASH_DONE sha256=%s file_size=%s", sha256, file_size)
         discovered_files = self._inspect_zip(path) if path.suffix.lower() == ".zip" else ()
+        content_identity = extract_document_identity(path)
         identity = self._resolve_identity(
             tender_reference,
             detected_tender_reference=detected_tender_reference,
             source_url=source_url,
+            content_identity=content_identity,
         )
         duplicate = self._find_duplicate(sha256)
         logger.info("DUPLICATE_CHECK_DONE duplicate=%s", duplicate is not None)
         if duplicate is not None:
-            self._guard_duplicate_identity(duplicate, identity)
+            duplicate = self._guard_duplicate_identity(duplicate, identity)
             stored_path = Path(duplicate.stored_path)
             if not stored_path.is_file():
                 raise DocumentStorageError(
@@ -348,6 +499,8 @@ class DocumentIntakeService:
                 uploaded_by=(uploaded_by or "").strip() or None,
                 zip_supported_entries=discovered_files,
                 status=identity.status,
+                content_identity=identity.content_identity or DocumentContentIdentity(),
+                identity_match_status=identity.match_status,
             )
         except Exception:
             if created:
@@ -478,7 +631,9 @@ class DocumentIntakeService:
         *,
         detected_tender_reference: str | None,
         source_url: str | None,
+        content_identity: DocumentContentIdentity | None = None,
     ) -> _IdentityResolution:
+        content_identity = content_identity or DocumentContentIdentity()
         expected_value = (tender_reference or "").strip() or None
         detected_value = (detected_tender_reference or "").strip() or None
         logger.info(
@@ -520,6 +675,18 @@ class DocumentIntakeService:
             raise DocumentIdentityMismatch(expected_identifier, detected_identifier)
 
         tender = expected or detected
+        if content_identity.status == "EXTRACTION_FAILED":
+            logger.warning(
+                "DOCUMENT_IDENTITY_UNLINKED status=NEEDS_REVIEW reason=EXTRACTION_FAILED"
+            )
+            return _IdentityResolution(
+                status="NEEDS_REVIEW",
+                tender=tender,
+                expected=expected_value,
+                detected=detected_value,
+                content_identity=content_identity,
+                match_status="EXTRACTION_FAILED",
+            )
         if tender is None:
             logger.info("DOCUMENT_IDENTITY_UNLINKED status=UNLINKED")
             return _IdentityResolution(
@@ -530,19 +697,73 @@ class DocumentIntakeService:
             )
 
         identifier = self._notice_identifier(tender)
-        logger.info("DOCUMENT_IDENTITY_VERIFIED tender=%s", identifier)
+        if content_identity.status == "AMBIGUOUS":
+            logger.warning(
+                "DOCUMENT_IDENTITY_UNLINKED status=AMBIGUOUS expected=%s candidates=%s",
+                identifier,
+                content_identity.candidates,
+            )
+            return _IdentityResolution(
+                status="NEEDS_REVIEW",
+                tender=tender,
+                expected=expected_value or identifier,
+                detected=detected_value,
+                content_identity=content_identity,
+                match_status="AMBIGUOUS",
+            )
+        if content_identity.status == "FOUND":
+            expected_base, expected_revision = _notice_id_parts(identifier)
+            if expected_base != content_identity.base_notice_id:
+                logger.error(
+                    "DOCUMENT_IDENTITY_MISMATCH expected=%s detected=%s source=DOCUMENT_CONTENT",
+                    identifier,
+                    content_identity.raw_notice_id,
+                )
+                raise DocumentIdentityMismatch(identifier, content_identity.raw_notice_id or "UNKNOWN")
+            match_status = (
+                "SAME_TENDER"
+                if expected_revision == content_identity.revision
+                else "SAME_TENDER_DIFFERENT_REVISION"
+            )
+            if expected_revision is None and not self._has_other_document_revision(
+                tender.id,
+                content_identity.revision,
+            ):
+                match_status = "SAME_TENDER"
+            logger.info(
+                "DOCUMENT_IDENTITY_VERIFIED tender=%s detected=%s match=%s",
+                identifier,
+                content_identity.raw_notice_id,
+                match_status,
+            )
+            return _IdentityResolution(
+                status="DOCUMENT_VERIFIED",
+                tender=tender,
+                expected=expected_value or identifier,
+                detected=content_identity.raw_notice_id,
+                content_identity=content_identity,
+                match_status=match_status,
+            )
+        identity_status = (
+            "HUMAN_DECLARED"
+            if tender.source_origin == "MANUAL_TEAM_BID"
+            else "VERIFIED_LINKED"
+        )
+        logger.info("DOCUMENT_IDENTITY_VERIFIED tender=%s status=%s", identifier, identity_status)
         return _IdentityResolution(
-            status="VERIFIED_LINKED",
+            status=identity_status,
             tender=tender,
             expected=expected_value or identifier,
             detected=detected_value,
+            content_identity=content_identity,
+            match_status="NO_CONTENT_ID",
         )
 
     def _guard_duplicate_identity(
         self,
         duplicate: Document,
         identity: _IdentityResolution,
-    ) -> None:
+    ) -> Document:
         if (
             identity.status == "NEEDS_REVIEW"
             and identity.expected is not None
@@ -557,9 +778,11 @@ class DocumentIntakeService:
             )
             raise DocumentIdentityMismatch(identity.expected, detected)
         if identity.tender is None:
-            return
+            return duplicate
         if duplicate.tender_id == identity.tender.id:
-            return
+            return duplicate
+        if duplicate.tender_id is None and identity.status == "DOCUMENT_VERIFIED":
+            return self._link_verified_unlinked_duplicate(duplicate, identity)
         expected = self._notice_identifier(identity.tender)
         detected = self._tender_identifier(duplicate.tender_id) or "UNLINKED"
         logger.error(
@@ -570,6 +793,39 @@ class DocumentIntakeService:
         )
         raise DocumentIdentityMismatch(expected, detected)
 
+    def _link_verified_unlinked_duplicate(
+        self,
+        duplicate: Document,
+        identity: _IdentityResolution,
+    ) -> Document:
+        """Link an old unlinked SHA duplicate only after content verifies its tender."""
+        tender = identity.tender
+        assert tender is not None
+        content_identity = identity.content_identity
+        assert content_identity is not None
+        with self.database.session() as session:
+            document = session.get(Document, duplicate.id)
+            assert document is not None
+            document.tender_id = tender.id
+            document.version = self._next_version(tender.id)
+            document.status = identity.status
+            document.raw_notice_id = content_identity.raw_notice_id
+            document.base_notice_id = content_identity.base_notice_id
+            document.notice_revision = content_identity.revision
+            document.identity_source = content_identity.identity_source
+            document.identity_evidence_locator = content_identity.evidence_locator
+            document.identity_match_status = identity.match_status
+            document.identity_candidates_json = json.dumps(
+                content_identity.candidates, ensure_ascii=False
+            )
+            session.flush()
+            logger.info(
+                "DOCUMENT_UNLINKED_DUPLICATE_LINKED document_id=%s tender=%s",
+                document.id,
+                self._notice_identifier(tender),
+            )
+            return document
+
     def _next_version(self, tender_id: int | None) -> int:
         with self.database.session() as session:
             predicate = (
@@ -579,6 +835,24 @@ class DocumentIntakeService:
             )
             current = session.scalar(select(func.max(Document.version)).where(predicate))
         return int(current or 0) + 1
+
+    def _has_other_document_revision(
+        self,
+        tender_id: int,
+        revision: str | None,
+    ) -> bool:
+        if revision is None:
+            return False
+        with self.database.session() as session:
+            return session.scalar(
+                select(Document.id)
+                .where(
+                    Document.tender_id == tender_id,
+                    Document.notice_revision.is_not(None),
+                    Document.notice_revision != revision,
+                )
+                .limit(1)
+            ) is not None
 
     @staticmethod
     def _tender_scope(tender: Notice | None) -> str:
@@ -608,6 +882,8 @@ class DocumentIntakeService:
     def _document_identity_status(document: Document) -> str:
         if document.status in {
             "VERIFIED_LINKED",
+            "DOCUMENT_VERIFIED",
+            "HUMAN_DECLARED",
             "UNLINKED",
             "MISMATCH",
             "NEEDS_REVIEW",
@@ -645,6 +921,10 @@ class DocumentIntakeService:
                 status=self._document_identity_status(document),
                 stored_path=Path(document.stored_path),
                 uploaded_at=document.uploaded_at,
+                raw_notice_id=document.raw_notice_id,
+                base_notice_id=document.base_notice_id,
+                notice_revision=document.notice_revision,
+                identity_match_status=document.identity_match_status,
             )
             for document in documents
         )
@@ -653,7 +933,10 @@ class DocumentIntakeService:
             tender_identifier=self._notice_identifier(tender),
             tender_title=tender.title or "Chưa có tên gói",
             source=source,
-            identity_status="VERIFIED_LINKED",
+            identity_status=(
+                tender.identity_status
+                or ("HUMAN_DECLARED" if tender.source_origin == "MANUAL_TEAM_BID" else "VERIFIED_LINKED")
+            ),
             documents=entries,
         )
 
@@ -712,6 +995,8 @@ class DocumentIntakeService:
         uploaded_by: str | None,
         zip_supported_entries: tuple[str, ...],
         status: str,
+        content_identity: DocumentContentIdentity,
+        identity_match_status: str | None,
     ) -> Document:
         document = Document(
             tender_id=tender_id,
@@ -732,6 +1017,17 @@ class DocumentIntakeService:
             source_url=source_url,
             uploaded_by=uploaded_by,
             status=status,
+            raw_notice_id=content_identity.raw_notice_id,
+            base_notice_id=content_identity.base_notice_id,
+            notice_revision=content_identity.revision,
+            identity_source=content_identity.identity_source,
+            identity_evidence_locator=content_identity.evidence_locator,
+            identity_match_status=identity_match_status,
+            identity_candidates_json=(
+                json.dumps(content_identity.candidates, ensure_ascii=False)
+                if content_identity.candidates
+                else None
+            ),
             zip_supported_entries=(
                 json.dumps(zip_supported_entries, ensure_ascii=False)
                 if zip_supported_entries
@@ -785,6 +1081,13 @@ class DocumentIntakeService:
             package_type=document.package_type,
             selection_method=document.selection_method,
             classification_status=document.classification_status or "UNKNOWN",
+            raw_notice_id=document.raw_notice_id,
+            base_notice_id=document.base_notice_id,
+            notice_revision=document.notice_revision,
+            identity_source=document.identity_source,
+            identity_evidence_locator=document.identity_evidence_locator,
+            identity_match_status=document.identity_match_status,
+            identity_candidates=tuple(json.loads(document.identity_candidates_json or "[]")),
         )
 
     @staticmethod

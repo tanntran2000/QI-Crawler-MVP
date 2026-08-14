@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,7 +10,16 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QThreadPool, QTimer
+from PySide6.QtCore import (
+    QByteArray,
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QSettings,
+    Qt,
+    QThreadPool,
+    QTimer,
+)
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QGroupBox, QMessageBox
 
@@ -29,6 +39,12 @@ from qi_crawler.document_taxonomy import (
     TenderDocumentType,
 )
 from qi_crawler.gui import FunctionWorker, QICrawlerWindow, _standalone_smoke_requested
+from qi_crawler.gui_services import (
+    DocumentExtractionInspection,
+    EvidencePreview,
+    HSMTFactDashboard,
+)
+from qi_crawler.hsmt_facts import HSMTFactView
 from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 
@@ -52,8 +68,19 @@ def config(tmp_path: Path) -> AppConfig:
 
 
 @pytest.fixture
-def window(application: QApplication, config: AppConfig) -> QICrawlerWindow:
-    widget = QICrawlerWindow(config)
+def settings(tmp_path: Path) -> QSettings:
+    value = QSettings(str(tmp_path / "gui-settings.ini"), QSettings.Format.IniFormat)
+    value.clear()
+    return value
+
+
+@pytest.fixture
+def window(
+    application: QApplication,
+    config: AppConfig,
+    settings: QSettings,
+) -> QICrawlerWindow:
+    widget = QICrawlerWindow(config, settings=settings)
     yield widget
     assert QThreadPool.globalInstance().waitForDone(5000)
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -70,6 +97,54 @@ def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.navigation.item(0).text() == "Quét gói thầu"
     assert window.navigation.item(5).text() == "HSMT / TÀI LIỆU"
     assert window.navigation.item(6).text() == "Nhật ký"
+
+
+def test_window_uses_resizable_preferred_geometry(window: QICrawlerWindow) -> None:
+    assert window.minimumWidth() == 1180
+    assert window.minimumHeight() == 680
+    assert window.maximumWidth() > window.minimumWidth()
+    assert window.maximumHeight() > window.minimumHeight()
+
+
+def test_window_restores_saved_geometry(
+    config: AppConfig,
+    settings: QSettings,
+) -> None:
+    original = QICrawlerWindow(config, settings=settings)
+    original.resize(1240, 720)
+    original.move(0, 0)
+    original._save_window_geometry()
+
+    restored = QICrawlerWindow(config, settings=settings)
+
+    screen = QApplication.primaryScreen()
+    assert settings.value("window/geometry", type=QByteArray)
+    if screen is not None and screen.availableGeometry().width() >= 1240:
+        assert restored.size() == original.size()
+    else:
+        assert restored.width() >= 1180
+        assert restored.height() >= 680
+    original.deleteLater()
+    restored.deleteLater()
+
+
+def test_invalid_saved_geometry_uses_safe_default(
+    config: AppConfig,
+    settings: QSettings,
+    application: QApplication,
+) -> None:
+    settings.setValue("window/geometry", QByteArray(b"invalid-geometry"))
+    window = QICrawlerWindow(config, settings=settings)
+    screen = application.primaryScreen()
+
+    assert window.width() >= 1180
+    assert window.height() >= 680
+    if screen is not None:
+        assert window._geometry_is_usable(
+            window.frameGeometry(),
+            screen.availableGeometry(),
+        )
+    window.deleteLater()
 
 
 def test_standalone_document_smoke_is_detected_before_qt_startup() -> None:
@@ -650,6 +725,33 @@ def test_document_page_uses_existing_intake_service_and_renders_success(
     assert window._active_long_operation is None
 
 
+def test_content_verified_document_is_not_rendered_as_mismatch(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    original = _document_result(tmp_path / "HSMT.pdf").results[0]
+    batch = DocumentBatchResult(
+        (
+            replace(
+                original,
+                identity_status="DOCUMENT_VERIFIED",
+                raw_notice_id="IB2500585490-00",
+                base_notice_id="IB2500585490",
+                notice_revision="00",
+                identity_source="DOCUMENT_CONTENT",
+                identity_match_status="SAME_TENDER",
+            ),
+        )
+    )
+
+    window._render_document_result(batch)
+
+    assert "xác thực từ nội dung" in window.document_status.text()
+    assert "Revision: 00" in window.document_status.text()
+    assert "KHÔNG KHỚP" not in window.document_status.text()
+    assert window.document_confirm_type_button.isEnabled()
+
+
 def test_document_workspace_shows_tender_identity_documents_and_summary(
     window: QICrawlerWindow,
     tmp_path: Path,
@@ -665,36 +767,196 @@ def test_document_workspace_shows_tender_identity_documents_and_summary(
     assert window.document_table.rowCount() == 2
     assert window.document_table.item(0, 0).text() == "HSMT.pdf"
     assert window.document_table.item(0, 1).text() == "Hồ sơ mời thầu qua mạng"
-    assert window.document_table.item(0, 2).text() == "v1"
+    assert window.document_table.item(0, 2).text() == "4"
+    assert window.document_table.item(0, 3).text() == "v1"
     assert window.document_metrics["total"].text() == "2"
     assert window.document_metrics["verified"].text() == "1"
     assert window.document_metrics["candidate"].text() == "1"
     assert not hasattr(window, "document_analyze_button")
+    assert window.open_document_button.isHidden()
+    assert window.open_document_folder_button.isHidden()
+    assert window.document_confirm_type_button.isHidden()
 
     window.document_table.selectRow(0)
 
     assert window.last_document_id == 7
     assert window.open_document_button.isEnabled()
+    assert not window.open_document_button.isHidden()
     assert window.document_confirm_type_button.isEnabled()
+    assert not window.document_confirm_type_button.isHidden()
 
 
-@pytest.mark.parametrize("width,height", [(1280, 720), (1366, 768), (1920, 1080)])
+def test_document_selection_shows_persisted_native_extraction(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    inspection = DocumentExtractionInspection(
+        document_id=7,
+        filename="HSMT.pdf",
+        file_format="PDF",
+        status="NATIVE_OK",
+        evidence_count=152,
+        page_count=152,
+        sheet_count=0,
+        text_count=2,
+        table_count=0,
+        flags=("NATIVE_OK",),
+        evidence=(
+            EvidencePreview("page:1", 1, None, "TEXT", "Noi dung trang mot", None),
+            EvidencePreview("page:2", 2, None, "TEXT", "Noi dung trang hai", None),
+        ),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_document_extraction_inspection",
+        lambda _config, _document_id: inspection,
+    )
+
+    window._render_document_workspace(_document_manifest(tmp_path / "documents" / "HSMT.pdf"))
+    window.document_table.selectRow(0)
+
+    assert "NATIVE_OK" in window.document_extraction_summary.text()
+    assert "Trang: 152" in window.document_extraction_summary.text()
+    assert window.document_extraction_box.title() == "D. KẾT QUẢ ĐỌC TÀI LIỆU"
+    assert not window.document_evidence_button.isHidden()
+
+    window.show_document_evidence()
+
+    assert not window.document_evidence_view.isHidden()
+    assert "page:1" in window.document_evidence_view.toPlainText()
+    assert "Noi dung trang mot" in window.document_evidence_view.toPlainText()
+
+
+def test_document_extraction_inspector_resets_and_refreshes_for_each_selection(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    inspections = {
+        7: DocumentExtractionInspection(
+            7, "HSMT.pdf", "PDF", "NATIVE_OK", 1, 1, 0, 1, 0, ("NATIVE_OK",), ()
+        ),
+        8: DocumentExtractionInspection(
+            8, "BOQ.xlsx", "XLSX", "NEEDS_REVIEW", 4, 0, 1, 2, 2,
+            ("TABLE_STRUCTURE_UNCERTAIN",), (),
+        ),
+    }
+    monkeypatch.setattr(
+        gui,
+        "run_document_extraction_inspection",
+        lambda _config, document_id: inspections[document_id],
+    )
+
+    window._render_document_workspace(_document_manifest(tmp_path / "documents" / "HSMT.pdf"))
+    assert "Chọn một tài liệu" in window.document_extraction_summary.text()
+    assert window.document_evidence_button.isHidden()
+    window.document_table.selectRow(0)
+    assert "Trang: 1" in window.document_extraction_summary.text()
+    window.document_table.selectRow(1)
+    assert "Định dạng: XLSX" in window.document_extraction_summary.text()
+    assert "TABLE_STRUCTURE_UNCERTAIN" in window.document_extraction_summary.text()
+
+    window.document_table.clearSelection()
+    assert "Chọn một tài liệu" in window.document_extraction_summary.text()
+    assert window.document_evidence_button.isHidden()
+
+
+def test_hsmt_dashboard_cards_render_persisted_fact_counts(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    dashboard = HSMTFactDashboard(
+        tender_id=10,
+        facts=(
+            HSMTFactView(
+                1,
+                "BOM_SUPPLY",
+                "SUPPLY_ITEM",
+                "Day mang CAT6 | 14 | thung",
+                "FOUND",
+                "BOQ.xlsx",
+                "sheet:BOQ!A2:C2",
+                "Day mang CAT6 | 14 | thung",
+            ),
+            HSMTFactView(
+                2,
+                "BOM_SUPPLY",
+                "SUPPLY_ITEM",
+                None,
+                "NOT_FOUND_IN_AVAILABLE_SOURCES",
+                None,
+                None,
+                None,
+            ),
+        ),
+    )
+    monkeypatch.setattr(gui, "run_hsmt_fact_dashboard", lambda _config, _tender: dashboard)
+
+    window._render_document_workspace(_document_manifest(tmp_path / "documents" / "HSMT.pdf"))
+
+    card = window.hsmt_fact_cards["BOM_SUPPLY"]
+    assert card.isEnabled()
+    assert "2 hạng mục | 1 cần kiểm tra" in card.text()
+
+def test_manual_workspace_renders_human_declared_identity(window: QICrawlerWindow, tmp_path: Path) -> None:
+    manifest = replace(
+        _document_manifest(tmp_path / "documents" / "HSMT.pdf"),
+        source="team_bid",
+        identity_status="HUMAN_DECLARED",
+    )
+
+    window._render_manual_workspace(manifest)
+
+    assert window.manual_workspace_button.text() == "+ TẠO GÓI TỪ TEAM BID"
+    assert window.document_tender.text() == "IB2600000001-00"
+    assert "Team Bid cung cấp" in window.document_tender_summary.text()
+    assert "Chưa xác minh từ web" in window.document_identity_banner.text()
+
+
+@pytest.mark.parametrize(
+    "width,height",
+    [(1280, 720), (1366, 768), (1440, 900), (1920, 1080)],
+)
 def test_document_workspace_layout_has_three_clear_blocks(
     window: QICrawlerWindow, width: int, height: int
 ) -> None:
+    window.navigation.setCurrentRow(5)
     window.resize(width, height)
     window.show()
     QApplication.processEvents()
 
     blocks = {group.title(): group for group in window.findChildren(QGroupBox)}
     assert {"A. GÓI THẦU ĐANG CHỌN", "B. THÊM TÀI LIỆU", "C. BỘ TÀI LIỆU"}.issubset(blocks)
-    assert window.document_table.columnCount() == 5
+    assert window.document_table.columnCount() == 6
     assert [
         window.document_table.horizontalHeaderItem(column).text()
         for column in range(window.document_table.columnCount())
-    ] == ["Tên file", "Loại tài liệu", "Phiên bản", "Identity", "Trạng thái phân loại"]
+    ] == [
+        "Tên file",
+        "Loại tài liệu",
+        "Mẫu hồ sơ",
+        "Phiên bản",
+        "Identity",
+        "Trạng thái phân loại",
+    ]
     assert window.document_table.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
+    assert window.document_scroll.widgetResizable()
+    assert window.document_scroll.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert window.document_scroll.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
     assert all(block.width() > 0 for block in blocks.values())
+    assert window.document_tender.isVisible()
+    assert window.document_pending_label.isVisible()
+    assert window.document_name.isHidden()
+    assert window.document_path.isHidden()
+
+
+def test_document_workspace_hides_unavailable_context_actions(window: QICrawlerWindow) -> None:
+    assert window.document_confirm_type_button.isHidden()
+    assert window.open_document_button.isHidden()
+    assert window.open_document_folder_button.isHidden()
+    assert not hasattr(window, "document_analyze_button")
 
 
 def test_document_workspace_uses_service_and_resets_busy_state(
