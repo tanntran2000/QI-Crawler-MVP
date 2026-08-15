@@ -787,7 +787,7 @@ class QICrawlerWindow(QMainWindow):
                 ("PACKAGE_OVERVIEW", "TỔNG QUAN GÓI"),
                 ("CHAPTER_III_EVALUATION", "TIÊU CHUẨN ĐÁNH GIÁ"),
                 ("CHAPTER_V_TECHNICAL", "YÊU CẦU KỸ THUẬT"),
-                ("BOM_SUPPLY", "BOM / DANH MỤC CUNG ỨNG"),
+                ("BOM_SUPPLY", "YÊU CẦU CUNG ỨNG"),
                 ("SCHEDULE_SOW", "THỜI GIAN & SCOPE OF WORK"),
                 ("REQUIRED_DOCUMENTS", "HỒ SƠ / CHỨNG TỪ"),
                 ("MISSING_INFORMATION", "THÔNG TIN CÒN THIẾU"),
@@ -1045,7 +1045,7 @@ class QICrawlerWindow(QMainWindow):
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for row, fact in enumerate(facts):
-            table.setItem(row, 0, QTableWidgetItem(fact.fact_key))
+            table.setItem(row, 0, QTableWidgetItem(self._hsmt_fact_label(fact.fact_key)))
             table.setItem(row, 1, QTableWidgetItem(fact.value or "Chưa tìm thấy"))
             table.setItem(row, 2, QTableWidgetItem(fact.status))
             table.item(row, 0).setData(Qt.ItemDataRole.UserRole, fact)
@@ -1074,6 +1074,23 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(detail)
         dialog.resize(900, 580)
         dialog.exec()
+
+    @staticmethod
+    def _hsmt_fact_label(value: str) -> str:
+        return {
+            "PACKAGE_PURPOSE": "Mục đích gói thầu",
+            "SELECTION_METHOD": "Hình thức lựa chọn",
+            "SELECTION_PROCEDURE": "Phương thức lựa chọn",
+            "CONTRACT_TYPE": "Loại hợp đồng",
+            "SUPPLY_REQUIREMENT": "Yêu cầu cung ứng",
+            "ITEM_TECHNICAL_SPEC": "Thông số kỹ thuật",
+            "EXECUTION_PERIOD": "Thời gian thực hiện",
+            "WORK_SCOPE": "Phạm vi công việc",
+            "WORK_QUANTITY": "Khối lượng công việc",
+            "REQUIRED_DOCUMENTS": "Tài liệu yêu cầu",
+            "SUPPLY_REQUIREMENT_UNCERTAIN": "Yêu cầu cung ứng cần kiểm tra",
+            "TECHNICAL_SOURCE_DOCUMENT": "Tài liệu kỹ thuật được tham chiếu",
+        }.get(value, "Thông tin HSMT")
 
     @staticmethod
     def _document_type_label(value: str) -> str:

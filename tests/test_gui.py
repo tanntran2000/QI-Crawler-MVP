@@ -899,6 +899,8 @@ def test_hsmt_dashboard_cards_render_persisted_fact_counts(
     card = window.hsmt_fact_cards["BOM_SUPPLY"]
     assert card.isEnabled()
     assert "2 hạng mục | 1 cần kiểm tra" in card.text()
+    assert window._hsmt_fact_label("SELECTION_PROCEDURE") == "Phương thức lựa chọn"
+    assert window._hsmt_fact_label("SUPPLY_REQUIREMENT") == "Yêu cầu cung ứng"
 
 def test_manual_workspace_renders_human_declared_identity(window: QICrawlerWindow, tmp_path: Path) -> None:
     manifest = replace(
