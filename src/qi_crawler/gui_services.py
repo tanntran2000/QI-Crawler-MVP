@@ -13,7 +13,7 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from .authenticated_sources import (
     create_login_session,
@@ -27,6 +27,7 @@ from .db import Database
 from .document_intake import (
     DocumentBatchResult,
     DocumentIntakeService,
+    DocumentValidationError,
     TenderDocumentManifest,
 )
 from .document_taxonomy import DocumentClassification, DocumentClassificationService
@@ -34,7 +35,7 @@ from .export import TBMTExportResult, export_tbmt
 from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
-from .models import Document, DocumentEvidence, DocumentExtraction
+from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
     SUPPORTED_FORMATS,
     NativeExtractionError,
@@ -93,6 +94,14 @@ class HSMTFactDashboard:
         return sum(
             item.fact_group == group and item.status != "FOUND" for item in self.facts
         )
+
+
+@dataclass(frozen=True)
+class WorkspaceDocumentIntakeResult:
+    """One explicit workspace switch followed by a guarded document intake."""
+
+    manifest: TenderDocumentManifest
+    batch: DocumentBatchResult
 
 
 def _keyword_terms(value: str) -> tuple[str, ...]:
@@ -316,6 +325,84 @@ def run_tender_document_workspace(
     ).manifest_for_tender(tender_reference)
     HSMTFactService(database).refresh_tender(manifest.tender_id)
     return manifest
+
+
+def run_open_or_create_tender_document_workspace(
+    config: AppConfig,
+    tender_reference: str,
+) -> TenderDocumentManifest:
+    """Open an existing tender workspace or create an explicit Team Bid workspace."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    intake = DocumentIntakeService(database, config.storage.document_dir)
+    try:
+        manifest = intake.manifest_for_tender(tender_reference)
+    except DocumentValidationError:
+        manifest = _manifest_for_base_or_new_workspace(
+            database,
+            intake,
+            tender_reference,
+        )
+    HSMTFactService(database).refresh_tender(manifest.tender_id)
+    return manifest
+
+
+def run_workspace_document_intake(
+    config: AppConfig,
+    input_path: Path,
+    tender_reference: str,
+    document_name: str = "",
+) -> WorkspaceDocumentIntakeResult:
+    """Switch only after confirmation, then intake against that isolated workspace."""
+    opened = run_open_or_create_tender_document_workspace(config, tender_reference)
+    batch = run_document_intake(
+        config,
+        input_path,
+        opened.tender_identifier,
+        document_name,
+    )
+    manifest = run_tender_document_workspace(config, opened.tender_identifier)
+    return WorkspaceDocumentIntakeResult(manifest=manifest, batch=batch)
+
+
+def _manifest_for_base_or_new_workspace(
+    database: Database,
+    intake: DocumentIntakeService,
+    tender_reference: str,
+) -> TenderDocumentManifest:
+    """Resolve a single existing revision before creating a human workspace."""
+    base = _base_tender_reference(tender_reference)
+    with database.session() as session:
+        candidates = tuple(
+            session.scalars(
+                select(Notice)
+                .where(
+                    or_(
+                        Notice.notice_code == base,
+                        Notice.source_notice_id == base,
+                        Notice.notice_code.like(f"{base}-%"),
+                        Notice.source_notice_id.like(f"{base}-%"),
+                    )
+                )
+                .limit(2)
+            )
+        )
+    if len(candidates) == 1:
+        identifier = candidates[0].notice_code or candidates[0].source_notice_id
+        assert identifier is not None
+        return intake.manifest_for_tender(identifier)
+    if len(candidates) > 1:
+        raise DocumentValidationError(
+            "Mã gói có nhiều revision trong dữ liệu; hãy chọn đúng gói trước khi nhập tài liệu."
+        )
+    workspace = ManualTenderWorkspaceService(database).create_workspace(base)
+    return intake.manifest_for_tender(workspace.tender_code)
+
+
+def _base_tender_reference(value: str) -> str:
+    normalized = value.strip().upper()
+    base, separator, revision = normalized.rpartition("-")
+    return base if separator and revision.isdigit() else normalized
 
 
 def run_hsmt_fact_dashboard(config: AppConfig, tender_id: int) -> HSMTFactDashboard:

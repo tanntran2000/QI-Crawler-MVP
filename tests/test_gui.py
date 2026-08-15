@@ -28,6 +28,7 @@ from qi_crawler.config import AppConfig
 from qi_crawler.crawler import ScanSummary
 from qi_crawler.document_intake import (
     DocumentBatchResult,
+    DocumentContentIdentity,
     DocumentIdentityMismatch,
     DocumentIntakeResult,
     DocumentManifestEntry,
@@ -43,6 +44,7 @@ from qi_crawler.gui_services import (
     DocumentExtractionInspection,
     EvidencePreview,
     HSMTFactDashboard,
+    WorkspaceDocumentIntakeResult,
 )
 from qi_crawler.hsmt_facts import HSMTFactView
 from qi_crawler.web_document_intake import WebDocumentIntakeSummary
@@ -750,6 +752,142 @@ def test_content_verified_document_is_not_rendered_as_mismatch(
     assert "Revision: 00" in window.document_status.text()
     assert "KHÔNG KHỚP" not in window.document_status.text()
     assert window.document_confirm_type_button.isEnabled()
+
+
+def test_different_document_package_requests_confirmation_without_mutating_active_workspace(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "other-package.pdf"
+    source.write_bytes(b"source")
+    window._render_document_workspace(_document_manifest(tmp_path / "A.pdf"))
+    window.document_path.setText(str(source))
+    monkeypatch.setattr(
+        gui,
+        "extract_document_identity",
+        lambda _path: DocumentContentIdentity(
+            raw_notice_id="IB2600163730-00",
+            base_notice_id="IB2600163730",
+            revision="00",
+            identity_source="DOCUMENT_CONTENT",
+            status="FOUND",
+        ),
+    )
+    monkeypatch.setattr(
+        window,
+        "_confirm_document_workspace_switch",
+        lambda *_args: "cancel",
+    )
+    called: list[Path] = []
+    monkeypatch.setattr(gui, "run_document_intake", lambda *_args: called.append(source))
+
+    window.start_document_intake()
+
+    assert window._document_workspace_tender == "IB2600000001-00"
+    assert window.document_table.rowCount() == 2
+    assert called == []
+
+
+def test_same_package_different_revision_stays_in_current_workspace(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "revision-01.pdf"
+    source.write_bytes(b"source")
+    window._render_document_workspace(_document_manifest(tmp_path / "A.pdf"))
+    window.document_path.setText(str(source))
+    captured: list[str] = []
+    monkeypatch.setattr(
+        gui,
+        "extract_document_identity",
+        lambda _path: DocumentContentIdentity(
+            raw_notice_id="IB2600000001-01",
+            base_notice_id="IB2600000001",
+            revision="01",
+            identity_source="DOCUMENT_CONTENT",
+            status="FOUND",
+        ),
+    )
+    monkeypatch.setattr(
+        window,
+        "_confirm_document_workspace_switch",
+        lambda *_args: pytest.fail("same base must not request a workspace switch"),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_document_intake",
+        lambda _config, _path, tender, *_args: captured.append(tender)
+        or _document_result(tmp_path / "stored.pdf"),
+    )
+
+    window.start_document_intake()
+
+    _wait_until(lambda: window.document_import_button.isEnabled())
+    assert captured == ["IB2600000001-00"]
+    assert window._document_workspace_tender == "IB2600000001-00"
+
+
+def test_confirmed_document_package_switch_opens_workspace_then_intakes_into_it(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "other-package.pdf"
+    source.write_bytes(b"source")
+    manifest_b = replace(
+        _document_manifest(tmp_path / "B.pdf"),
+        tender_id=20,
+        tender_identifier="IB2600163730",
+        tender_title="Gói B",
+        documents=(),
+    )
+    stored = tmp_path / "documents" / "team_bid" / "IB2600163730" / "hash" / "HSMT.pdf"
+    result_b = replace(
+        _document_result(stored).results[0],
+        tender_id=20,
+        tender_identifier="IB2600163730",
+        raw_notice_id="IB2600163730-00",
+        base_notice_id="IB2600163730",
+        notice_revision="00",
+        identity_status="DOCUMENT_VERIFIED",
+        identity_match_status="SAME_TENDER",
+    )
+    captured: list[str] = []
+    window._render_document_workspace(_document_manifest(tmp_path / "A.pdf"))
+    window.document_path.setText(str(source))
+    window.last_document_id = 7
+    monkeypatch.setattr(
+        gui,
+        "extract_document_identity",
+        lambda _path: DocumentContentIdentity(
+            raw_notice_id="IB2600163730-00",
+            base_notice_id="IB2600163730",
+            revision="00",
+            identity_source="DOCUMENT_CONTENT",
+            status="FOUND",
+        ),
+    )
+    monkeypatch.setattr(window, "_confirm_document_workspace_switch", lambda *_args: "switch")
+    def intake(
+        _config: AppConfig,
+        _path: Path,
+        tender: str,
+        *_args: str,
+    ) -> WorkspaceDocumentIntakeResult:
+        captured.append(tender)
+        return WorkspaceDocumentIntakeResult(manifest_b, DocumentBatchResult((result_b,)))
+
+    monkeypatch.setattr(gui, "run_workspace_document_intake", intake)
+    window.start_document_intake()
+
+    _wait_until(lambda: window.document_import_button.isEnabled())
+    assert captured == ["IB2600163730"]
+    assert window._document_workspace_tender == "IB2600163730"
+    assert window.document_tender.text() == "IB2600163730"
+    assert window.last_document_id == result_b.document_id
+    assert window.document_path.text() == ""
 
 
 def test_document_workspace_shows_tender_identity_documents_and_summary(

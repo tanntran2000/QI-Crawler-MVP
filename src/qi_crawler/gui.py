@@ -60,9 +60,11 @@ from .crawler import ScanSummary
 from .db import Database, SchemaNotReady
 from .document_intake import (
     DocumentBatchResult,
+    DocumentContentIdentity,
     DocumentIdentityMismatch,
     DocumentManifestEntry,
     TenderDocumentManifest,
+    extract_document_identity,
 )
 from .document_taxonomy import (
     CLASSIFICATION_STATUS_LABELS,
@@ -88,6 +90,7 @@ from .gui_services import (
     run_single_crawl,
     run_tender_document_workspace,
     run_web_document_intake,
+    run_workspace_document_intake,
 )
 from .logging_utils import configure_logging
 from .migrations import upgrade_database
@@ -967,10 +970,14 @@ class QICrawlerWindow(QMainWindow):
         if self._document_workspace_tender != manifest.tender_identifier:
             self._document_workspace_tender = manifest.tender_identifier
             self._document_session_duplicates = 0
+        self.document_tender.setText(manifest.tender_identifier)
+        _base, separator, revision = manifest.tender_identifier.rpartition("-")
+        workspace_revision = revision if separator and revision.isdigit() else "—"
         self.document_tender_summary.setText(
             "\n".join(
                 [
                     f"Mã gói: {manifest.tender_identifier}",
+                    f"Revision: {workspace_revision}",
                     f"Tên gói: {manifest.tender_title}",
                     f"Nguồn: {manifest.source}",
                     f"Identity: {self._identity_label(manifest.identity_status)}",
@@ -1566,6 +1573,138 @@ class QICrawlerWindow(QMainWindow):
         if not value:
             self.document_status.setText("Vui lòng chọn một file hoặc thư mục tài liệu.")
             return
+        input_path = Path(value)
+        identity = self._document_identity_for_workspace_switch(input_path)
+        if self._requires_document_workspace_switch(identity):
+            self._request_document_workspace_switch(input_path, identity)
+            return
+        self._submit_document_intake(
+            input_path,
+            self.document_tender.text().strip(),
+            self.document_name.text().strip(),
+        )
+
+    @staticmethod
+    def _base_tender_identifier(value: str) -> str:
+        normalized = value.strip().upper()
+        base, separator, revision = normalized.rpartition("-")
+        return base if separator and revision.isdigit() else normalized
+
+    @staticmethod
+    def _document_identity_for_workspace_switch(path: Path) -> DocumentContentIdentity:
+        if not path.is_file():
+            return DocumentContentIdentity()
+        return extract_document_identity(path)
+
+    def _requires_document_workspace_switch(
+        self,
+        identity: DocumentContentIdentity,
+    ) -> bool:
+        current = self._base_tender_identifier(
+            self._document_workspace_tender or self.document_tender.text()
+        )
+        return bool(
+            current
+            and identity.status == "FOUND"
+            and identity.base_notice_id
+            and current != identity.base_notice_id
+        )
+
+    def _request_document_workspace_switch(
+        self,
+        input_path: Path,
+        identity: DocumentContentIdentity,
+    ) -> None:
+        detected_base = identity.base_notice_id
+        detected_raw = identity.raw_notice_id
+        if not detected_base or not detected_raw:
+            return
+        choice = self._confirm_document_workspace_switch(
+            self._document_workspace_tender or self.document_tender.text(),
+            detected_raw,
+            detected_base,
+        )
+        if choice != "switch":
+            if choice == "choose_other":
+                self.document_path.clear()
+                self.document_name.clear()
+                self.document_pending_label.setText("Chờ chọn file hoặc thư mục.")
+            return
+        display_name = self.document_name.text().strip()
+        self._clear_document_workspace_transient_state()
+        self.document_status.setText(f"Đang mở gói HSMT {detected_base}...")
+        self._submit(
+            run_workspace_document_intake,
+            self.config,
+            input_path,
+            detected_base,
+            display_name,
+            on_success=self._render_workspace_document_intake,
+            button=self.document_workspace_button,
+            progress=self.document_progress,
+            status=self.document_status,
+            task_name="open_document_workspace",
+            long_operation=True,
+        )
+
+    def _confirm_document_workspace_switch(
+        self,
+        current_base: str,
+        detected_raw: str,
+        detected_base: str,
+    ) -> str:
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Icon.Warning)
+        dialog.setWindowTitle("Phát hiện một gói HSMT khác")
+        dialog.setText("PHÁT HIỆN MỘT GÓI HSMT KHÁC")
+        dialog.setInformativeText(
+            f"Gói hiện tại: {self._base_tender_identifier(current_base)}\n"
+            f"Gói phát hiện: {detected_raw}\n\n"
+            "Mỗi gói HSMT được lưu trong một workspace riêng."
+        )
+        switch = dialog.addButton(
+            f"MỞ / TẠO GÓI {detected_base}",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        choose_other = dialog.addButton(
+            "CHỌN FILE KHÁC",
+            QMessageBox.ButtonRole.DestructiveRole,
+        )
+        cancel = dialog.addButton("HỦY", QMessageBox.ButtonRole.RejectRole)
+        dialog.exec()
+        if dialog.clickedButton() is switch:
+            return "switch"
+        if dialog.clickedButton() is choose_other:
+            return "choose_other"
+        assert dialog.clickedButton() is cancel or dialog.clickedButton() is None
+        return "cancel"
+
+    def _clear_document_workspace_transient_state(self) -> None:
+        self.document_path.clear()
+        self.document_name.clear()
+        self.document_pending_label.setText("Chờ chọn file hoặc thư mục.")
+        self.last_document_id = None
+        self.last_document_path = None
+        self._document_session_duplicates = 0
+        self._set_document_identity_banner()
+        self.document_table.setRowCount(0)
+        self.document_table.clearSelection()
+        self._hide_document_context_actions()
+        self._hsmt_fact_dashboard = None
+        for button in self.hsmt_fact_cards.values():
+            button.setText(f"{button.text().split(chr(10))[0]}\nChưa có dữ liệu")
+            button.setEnabled(False)
+
+    def _render_workspace_document_intake(self, result: Any) -> None:
+        self._render_document_workspace(result.manifest)
+        self._render_document_result(result.batch)
+
+    def _submit_document_intake(
+        self,
+        input_path: Path,
+        tender_reference: str,
+        document_name: str,
+    ) -> None:
         self.last_document_id = None
         self.last_document_path = None
         self._hide_document_context_actions()
@@ -1574,9 +1713,9 @@ class QICrawlerWindow(QMainWindow):
         self._submit(
             run_document_intake,
             self.config,
-            Path(value),
-            self.document_tender.text().strip(),
-            self.document_name.text().strip(),
+            input_path,
+            tender_reference,
+            document_name,
             "",
             on_success=self._render_document_result,
             button=self.document_import_button,
