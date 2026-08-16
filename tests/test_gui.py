@@ -573,7 +573,7 @@ def test_export_returns_from_busy_state(
     monkeypatch.setattr(
         gui,
         "run_export",
-        lambda _config: SimpleNamespace(
+        lambda _config, *, snapshot=False: SimpleNamespace(
             output=output,
             exported_records=2,
             warning_records=0,
@@ -589,13 +589,36 @@ def test_export_returns_from_busy_state(
     assert "Đã xuất: 2" in window.export_status.text()
 
 
+def test_export_snapshot_uses_existing_service_with_snapshot_flag(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "archive" / "2026" / "2026-08" / "TBMT_2026-08-16_1030_run_7.xlsx"
+    calls: list[bool] = []
+
+    def export(_config: AppConfig, *, snapshot: bool = False) -> SimpleNamespace:
+        calls.append(snapshot)
+        return SimpleNamespace(output=output, exported_records=1, warning_records=0)
+
+    monkeypatch.setattr(gui, "run_export", export)
+
+    window.start_export_snapshot()
+
+    _wait_until(lambda: window.export_snapshot_button.isEnabled())
+    assert calls == [True]
+    assert window.export_path.text() == str(output)
+    assert window.export_button.text() == "XUẤT / CẬP NHẬT BẢN MỚI NHẤT"
+    assert window.open_export_button.text() == "MỞ BÁO CÁO"
+
+
 def test_export_failure_returns_from_busy_state(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     messages: list[str] = []
 
-    def fail(_config: AppConfig) -> None:
+    def fail(_config: AppConfig, *, snapshot: bool = False) -> None:
         raise RuntimeError("expected export failure")
 
     monkeypatch.setattr(gui, "run_export", fail)

@@ -185,7 +185,7 @@ def run_search(config: AppConfig, keyword: str, limit: int = 100) -> list[Search
     ]
 
 
-def run_export(config: AppConfig) -> TBMTExportResult:
+def run_export(config: AppConfig, *, snapshot: bool = False) -> TBMTExportResult:
     """Export today's active-source notices through the existing exporter."""
     database = Database(config.storage.database_url)
     database.require_current_schema()
@@ -193,6 +193,7 @@ def run_export(config: AppConfig) -> TBMTExportResult:
         database,
         report_dir=config.storage.report_dir,
         rejects_dir=config.storage.rejects_dir,
+        snapshot=snapshot,
         current_day_only=True,
         active_source_names=tuple(active_source_names(config)),
         active_source_domains=active_source_domains(config),

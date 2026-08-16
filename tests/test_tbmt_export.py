@@ -4,13 +4,21 @@ import asyncio
 import hashlib
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from openpyxl import load_workbook
 
 from qi_crawler import __version__
 from qi_crawler.config import AppConfig
 from qi_crawler.crawler import CrawlerService
 from qi_crawler.db import Database
-from qi_crawler.export.tbmt_excel import TEMPLATE_PATH, TBMTExportResult, export_tbmt
+from qi_crawler.export import tbmt_excel
+from qi_crawler.export.tbmt_excel import (
+    LATEST_REPORT_NAME,
+    TEMPLATE_PATH,
+    ReportOutputError,
+    TBMTExportResult,
+    export_tbmt,
+)
 from qi_crawler.export.tbmt_mapper import TBMTExcelMapper
 from qi_crawler.export.tbmt_schema import META_SHEET_NAME, SHEET_NAME, TBMT_COLUMNS
 from qi_crawler.models import Notice
@@ -159,7 +167,7 @@ def test_description_is_preferred_over_package_name() -> None:
     )
 
 
-def test_tbmt_export_rejects_invalid_records_and_never_overwrites(tmp_path) -> None:
+def test_tbmt_export_rejects_invalid_records_and_replaces_explicit_output(tmp_path) -> None:
     db = _database(tmp_path)
     with db.session() as session:
         session.add(
@@ -184,7 +192,7 @@ def test_tbmt_export_rejects_invalid_records_and_never_overwrites(tmp_path) -> N
     )
 
     assert first.output.name == "TBMT.xlsx"
-    assert second.output.name == "TBMT_v2.xlsx"
+    assert second.output.name == "TBMT.xlsx"
     assert first.rejected_records == 1
     assert first.reject_output is not None
     assert first.reject_output.exists()
@@ -196,6 +204,83 @@ def test_tbmt_export_rejects_invalid_records_and_never_overwrites(tmp_path) -> N
     _assert_reconciled(first)
     workbook = load_workbook(first.output)
     assert workbook[SHEET_NAME].max_row == 10
+
+
+def test_default_export_replaces_latest_without_versioned_clutter(tmp_path) -> None:
+    db = _database(tmp_path)
+    legacy = tmp_path / "reports" / "TBMT_1_2_2026.xlsx"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_bytes(b"legacy report")
+    with db.session() as session:
+        session.add(
+            Notice(
+                source_url="https://example.test/latest",
+                url_hash="l" * 64,
+                notice_code="IB-LATEST",
+                title="Bản đầu tiên",
+            )
+        )
+
+    first = export_tbmt(db, report_dir=legacy.parent, rejects_dir=tmp_path / "rejects")
+    with db.session() as session:
+        session.get(Notice, 1).title = "Bản đã cập nhật"
+    second = export_tbmt(db, report_dir=legacy.parent, rejects_dir=tmp_path / "rejects")
+
+    assert first.output == legacy.parent / LATEST_REPORT_NAME
+    assert second.output == first.output
+    assert not list(legacy.parent.glob("TBMT_Latest_v*.xlsx"))
+    assert legacy.read_bytes() == b"legacy report"
+    meta = load_workbook(second.output, read_only=True)[META_SHEET_NAME]
+    assert meta["B3"].value == __version__
+    assert "current_day_only=False" in meta["B7"].value
+
+
+def test_latest_output_preserves_existing_report_when_atomic_replace_fails(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    db = _database(tmp_path)
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    latest = reports / LATEST_REPORT_NAME
+    latest.write_bytes(b"keep previous latest")
+
+    monkeypatch.setattr(tbmt_excel.os, "replace", lambda *_args: (_ for _ in ()).throw(OSError("locked")))
+
+    with pytest.raises(ReportOutputError, match="đang được mở"):
+        export_tbmt(db, report_dir=reports, rejects_dir=tmp_path / "rejects")
+
+    assert latest.read_bytes() == b"keep previous latest"
+    assert not list(reports.glob(f".{latest.stem}.*.xlsx"))
+
+
+def test_snapshot_exports_to_archive_with_collision_safe_name(tmp_path) -> None:
+    db = _database(tmp_path)
+    generated_at = datetime(2026, 8, 16, 10, 30, tzinfo=UTC)
+
+    first = export_tbmt(
+        db,
+        report_dir=tmp_path / "reports",
+        rejects_dir=tmp_path / "rejects",
+        snapshot=True,
+        generated_at=generated_at,
+    )
+    second = export_tbmt(
+        db,
+        report_dir=tmp_path / "reports",
+        rejects_dir=tmp_path / "rejects",
+        snapshot=True,
+        generated_at=generated_at,
+    )
+
+    archive = tmp_path / "reports" / "archive" / "2026" / "2026-08"
+    assert first.output.parent == archive
+    assert second.output.parent == archive
+    assert first.output.name.startswith("TBMT_2026-08-16_1030_run_unassigned_")
+    assert first.output != second.output
+    assert load_workbook(first.output, read_only=True)[META_SHEET_NAME]["B2"].value.startswith(
+        "2026-08-16T10:30"
+    )
 
 
 def test_duplicate_record_is_explicitly_accounted(tmp_path, caplog) -> None:

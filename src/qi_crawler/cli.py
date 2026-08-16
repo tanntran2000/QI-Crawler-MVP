@@ -972,7 +972,7 @@ def xuat_tbmt(
         None,
         "--tep",
         "-o",
-        help="Duong dan file .xlsx; bo trong de dat ten TBMT_ngay_thang_nam",
+        help="Duong dan file .xlsx; bo trong de cap nhat TBMT_Latest.xlsx",
     ),
     ngay: str | None = typer.Option(None, "--ngay", "--date", help="Ngay dang tai YYYY-MM-DD"),
     tu_ngay: str | None = typer.Option(
@@ -997,6 +997,11 @@ def xuat_tbmt(
         "--all-runs",
         help="Xuat tat ca goi hop le da luu, khong gioi han trong ngay hom nay",
     ),
+    snapshot: bool = typer.Option(
+        False,
+        "--snapshot",
+        help="Luu ban lich su vao data/reports/archive thay vi cap nhat TBMT_Latest.xlsx",
+    ),
     run_id: int | None = typer.Option(
         None, "--run-id", min=1, help="Chi xuat mot crawl run cu the"
     ),
@@ -1011,6 +1016,7 @@ def xuat_tbmt(
         report_dir=cfg.storage.report_dir,
         rejects_dir=cfg.storage.rejects_dir,
         output=output,
+        snapshot=snapshot,
         on_date=_date_option(ngay, "--ngay"),
         from_date=_date_option(tu_ngay, "--tu-ngay"),
         to_date=_date_option(den_ngay, "--den-ngay"),

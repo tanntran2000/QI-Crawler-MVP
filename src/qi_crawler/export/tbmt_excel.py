@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
+from collections.abc import Mapping
 from copy import copy
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from uuid import uuid4
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -37,6 +41,11 @@ logger = logging.getLogger(__name__)
 
 TEMPLATE_PATH = resource_path("templates", "TBMT_template_v1.xlsx")
 DATETIME_NUMBER_FORMAT = 'hh" giờ "mm" ngày "dd/mm/yyyy'
+LATEST_REPORT_NAME = "TBMT_Latest.xlsx"
+
+
+class ReportOutputError(RuntimeError):
+    """A report destination could not be safely updated."""
 
 
 @dataclass(slots=True)
@@ -65,8 +74,42 @@ def _unique_output(path: Path) -> Path:
         version += 1
 
 
-def _default_name(report_date: date) -> str:
-    return f"TBMT_{report_date.day}_{report_date.month}_{report_date.year}.xlsx"
+def _snapshot_output(
+    report_dir: Path,
+    *,
+    generated_at: datetime,
+    crawl_run_id: int | None,
+) -> Path:
+    archive_dir = report_dir / "archive" / generated_at.strftime("%Y") / generated_at.strftime("%Y-%m")
+    run_label = str(crawl_run_id) if crawl_run_id is not None else f"unassigned_{uuid4().hex[:8]}"
+    stem = f"TBMT_{generated_at:%Y-%m-%d_%H%M}_run_{run_label}"
+    destination = archive_dir / f"{stem}.xlsx"
+    if destination.exists():
+        destination = archive_dir / f"{stem}_{uuid4().hex[:8]}.xlsx"
+    return destination
+
+
+def _safe_replace_workbook(workbook, destination: Path) -> None:
+    """Save to a sibling temporary workbook before atomically replacing output."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        prefix=f".{destination.stem}", suffix=".xlsx", dir=destination.parent, delete=False
+    ) as handle:
+        temporary = Path(handle.name)
+    try:
+        workbook.save(temporary)
+        validated_workbook = load_workbook(temporary, read_only=True)
+        validated_workbook.close()
+        try:
+            os.replace(temporary, destination)
+        except OSError as exc:
+            raise ReportOutputError(
+                "Không thể cập nhật báo cáo vì file đang được mở hoặc bị khóa. "
+                "Hãy đóng file rồi thử lại."
+            ) from exc
+    finally:
+        if temporary.exists():
+            temporary.unlink(missing_ok=True)
 
 
 def _excel_datetime(value: object) -> object:
@@ -266,6 +309,7 @@ def _write_meta_sheet(
     *,
     generated_at: datetime,
     crawl_run_id: int | None,
+    filter_context: Mapping[str, object],
 ) -> None:
     if META_SHEET_NAME in workbook.sheetnames:
         del workbook[META_SHEET_NAME]
@@ -277,7 +321,15 @@ def _write_meta_sheet(
         ("Crawl Run", crawl_run_id),
         ("Total Records", len(rows)),
         ("Reviewed Records", sum(row.record.review_status == "approved" for row, _ in rows)),
-        ("Source", ", ".join(sorted({row.record.source_kind or "unknown" for row, _ in rows}))),
+        (
+            "Source",
+            "; ".join(
+                [
+                    ", ".join(sorted({row.record.source_kind or "unknown" for row, _ in rows})),
+                    *(f"{key}={value}" for key, value in filter_context.items()),
+                ]
+            ),
+        ),
     ]
     for key, value in summary:
         sheet.append([key, safe_excel_value(value)])
@@ -359,6 +411,7 @@ def export_tbmt(
     report_dir: Path = Path("data/reports"),
     rejects_dir: Path = Path("data/rejects"),
     output: Path | None = None,
+    snapshot: bool = False,
     on_date: date | None = None,
     from_date: date | None = None,
     to_date: date | None = None,
@@ -371,6 +424,7 @@ def export_tbmt(
     template_path: Path = TEMPLATE_PATH,
     active_source_names: tuple[str, ...] | None = None,
     active_source_domains: tuple[str, ...] | None = None,
+    generated_at: datetime | None = None,
 ) -> TBMTExportResult:
     """Export the stable TBMT-1.0 workbook without mutating the source template."""
     logger.info("EXPORT_START")
@@ -455,11 +509,20 @@ def export_tbmt(
             f"mapped={len(mapped_records)} accounted={accounted}"
         )
 
-    generated_at = datetime.now(UTC)
-    report_date = on_date or generated_at.astimezone().date()
-    destination = output or report_dir / _default_name(report_date)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination = _unique_output(destination)
+    if output is not None and snapshot:
+        raise ValueError("Không thể vừa chỉ định đường dẫn vừa lưu snapshot.")
+    generated_at = generated_at or datetime.now(UTC)
+    if generated_at.tzinfo is None:
+        generated_at = generated_at.replace(tzinfo=UTC)
+    destination = output or (
+        _snapshot_output(
+            report_dir,
+            generated_at=generated_at,
+            crawl_run_id=selected_run_id,
+        )
+        if snapshot
+        else report_dir / LATEST_REPORT_NAME
+    )
 
     workbook = load_workbook(template_path)
     _write_main_sheet(workbook, accepted, highlight=highlight)
@@ -468,9 +531,20 @@ def export_tbmt(
         accepted,
         generated_at=generated_at,
         crawl_run_id=selected_run_id,
+        filter_context={
+            "current_day_only": current_day_only,
+            "latest_run_only": latest_run_only,
+            "crawl_run_id": selected_run_id or "",
+            "on_date": on_date.isoformat() if on_date else "",
+            "from_date": from_date.isoformat() if from_date else "",
+            "to_date": to_date.isoformat() if to_date else "",
+            "status": status or "",
+            "keyword": keyword or "",
+            "active_sources": ",".join(active_source_names or ()),
+        },
     )
     logger.info("WORKBOOK_SAVE_START output=%s", destination)
-    workbook.save(destination)
+    _safe_replace_workbook(workbook, destination)
     logger.info("WORKBOOK_SAVE_DONE output=%s", destination)
 
     reject_output = None

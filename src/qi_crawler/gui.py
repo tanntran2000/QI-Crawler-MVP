@@ -392,6 +392,7 @@ class QICrawlerWindow(QMainWindow):
             self.scan_button,
             self.crawl_button,
             self.export_button,
+            self.export_snapshot_button,
             self.login_button,
             self.document_import_button,
             self.document_web_button,
@@ -534,22 +535,34 @@ class QICrawlerWindow(QMainWindow):
             "Xuất báo cáo Excel TBMT",
             "Xuất các gói thầu hợp lệ theo mẫu TBMT để Team Bid kiểm tra và trình duyệt.",
         )
-        self.export_button = self._primary_button("Xuất Excel TBMT")
+        self.export_button = self._primary_button("XUẤT / CẬP NHẬT BẢN MỚI NHẤT")
         self.export_button.clicked.connect(self.start_export)
+        self.export_snapshot_button = QPushButton("LƯU SNAPSHOT")
+        self.export_snapshot_button.clicked.connect(self.start_export_snapshot)
         self.export_progress = self._progress_bar()
         self.export_path = QLineEdit()
         self.export_path.setReadOnly(True)
         self.export_status = QLabel("Chưa xuất báo cáo trong phiên làm việc này.")
         self.export_status.setWordWrap(True)
-        self.open_export_button = QPushButton("Mở file Excel")
+        self.open_export_button = QPushButton("MỞ BÁO CÁO")
         self.open_export_button.setEnabled(False)
         self.open_export_button.clicked.connect(self.open_export)
-        layout.addWidget(self.export_button)
+        self.open_export_folder_button = QPushButton("MỞ THƯ MỤC")
+        self.open_export_folder_button.clicked.connect(self.open_export_folder)
+        actions = QHBoxLayout()
+        actions.addWidget(self.export_button)
+        actions.addWidget(self.export_snapshot_button)
+        actions.addStretch()
+        layout.addLayout(actions)
         layout.addWidget(self.export_progress)
         layout.addWidget(self.export_status)
         layout.addWidget(QLabel("File đã xuất:"))
         layout.addWidget(self.export_path)
-        layout.addWidget(self.open_export_button)
+        open_actions = QHBoxLayout()
+        open_actions.addWidget(self.open_export_button)
+        open_actions.addWidget(self.open_export_folder_button)
+        open_actions.addStretch()
+        layout.addLayout(open_actions)
         layout.addStretch()
 
     def _build_crawl_page(self) -> None:
@@ -1448,12 +1461,20 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_export(self) -> None:
-        self.export_status.setText("Đang tạo file Excel TBMT...")
+        self._start_export(snapshot=False)
+
+    @Slot()
+    def start_export_snapshot(self) -> None:
+        self._start_export(snapshot=True)
+
+    def _start_export(self, *, snapshot: bool) -> None:
+        self.export_status.setText(
+            "Đang lưu snapshot Excel TBMT..." if snapshot else "Đang cập nhật báo cáo Excel TBMT..."
+        )
         self._submit(
-            run_export,
-            self.config,
+            lambda: run_export(self.config, snapshot=snapshot),
             on_success=self._render_export_result,
-            button=self.export_button,
+            button=self.export_snapshot_button if snapshot else self.export_button,
             progress=self.export_progress,
             status=self.export_status,
             task_name="export",
@@ -1492,6 +1513,16 @@ class QICrawlerWindow(QMainWindow):
                 self,
                 "QI-Crawler",
                 f"Không thể tự mở file. Bạn có thể mở thủ công tại:\n{self.last_export_path}",
+            )
+
+    @Slot()
+    def open_export_folder(self) -> None:
+        folder = self.last_export_path.parent if self.last_export_path else self.config.storage.report_dir
+        if not open_path(folder):
+            QMessageBox.warning(
+                self,
+                "QI-Crawler",
+                f"Không thể tự mở thư mục. Bạn có thể mở thủ công tại:\n{folder}",
             )
 
     @Slot()
