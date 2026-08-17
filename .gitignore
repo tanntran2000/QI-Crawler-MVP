@@ -44,6 +44,9 @@ data/urls.txt
 evaluation_output/
 outputs/
 
+# Runtime HSMT/document storage - never commit user documents
+data/documents/
+
 data/downloads/*
 !data/downloads/.gitkeep
 

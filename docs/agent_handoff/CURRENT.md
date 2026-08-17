@@ -1,65 +1,107 @@
-# Current handoff
+# QI-Crawler Agent Handoff
 
 ## Task
 
-WP2.6-R4.3A / P0-B Preparation
+CI-Hardening-1 — Technical CI Foundation & Runtime Document Git Safety
 
 ## Status
 
-PASS — preparation only. P0-B has not been implemented.
+PASS — local verification and remote GitHub CI both passed.
 
 ## Previous verified checkpoint
 
-P0-A Warehouse Bundle Guard: PASS.
+- WP2.6-R4.3A / P0-A Warehouse Bundle Guard: PASS.
+- Verified commit: `74cab1f`
+- Pushed to: `origin/main`
+- P0-B implementation has NOT started.
 
 ## What was done
 
-- Prepared the already-verified P0-A scope for one Git checkpoint.
-- Inspected only document intake, managed storage, SHA/dedup, bundle identity, model/schema, and focused tests.
-- Recorded P0-B storage findings and the next smallest patch; no P0-B behavior was implemented.
+- Added Git protection for runtime HSMT/user documents under `data/documents/`.
+- Expanded GitHub CI from the previous single Ubuntu/Python 3.12 job.
+- Added separately named CI jobs:
+  - Code Quality
+  - Tests Ubuntu 3.12
+  - Tests Windows 3.12
+  - Compatibility Ubuntu 3.11
+- Changed Ruff CI scope from `src tests` to the canonical repository-wide `ruff check .`.
+- Corrected stale P0-A Git checkpoint information in the handoff.
+- No production Python/business/extraction behavior was changed.
 
 ## Files changed
 
-- `src/qi_crawler/models.py`
-- `src/qi_crawler/document_intake.py`
-- `src/qi_crawler/db.py`
-- `alembic/versions/0012_add_document_bundle_membership.py`
-- `tests/test_document_bundle_guard.py`
-- `tests/test_alembic_migrations.py`
+- `.github/workflows/ci.yml`
+- `.gitignore`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Architecture / contracts affected
 
-- Current flow: `intake_file` validates the external file, hashes it, runs Identity/Bundle Guard, then `_atomic_store` copies it into `document_dir/<source>/<tender>/<sha256>/<safe-original-name>` before persisting `Document.stored_path`.
-- The stored path is crawler-managed and native extraction/UI reopen it; successful intake no longer depends on the original external path.
-- Reusable P0-B components: `DocumentIntakeService._hash_file`, `_atomic_store`, `_cleanup_orphan`, `_find_duplicate`, `Document`, immutable `sha256`, `stored_path`, and the P0-A bundle fields/guards.
-- P0-B gaps only: no `warehouse/staging|vault|packages|quarantine|trash` layout; no separate immutable Vault and canonical Package Shelf path; no persisted MISSING/RECOVERABLE state; no explicit restore service.
-- P0-B migration required: **YES**. The current single `stored_path` cannot represent independent Vault/Shelf copies plus their recovery state. Use a new migration after `0012`; never reuse `0012`.
-- Proposed P0-B sequence: (1) Managed Storage Independence regression, (2) SHA Vault, (3) Canonical Package Shelf, (4) explicit Missing → Recoverable → Safe Restore.
-- Exact next micro-patch: **P0-B1 — add the focused regression proving a successful current intake remains readable after the external original is deleted.** No production/schema change is needed for that first contract test.
+- CI-Hardening-1 establishes the first technical layer of the locked 3-Tier Quality Gate v2.
+- `data/documents/` is runtime/user data and must never be committed to Git.
+- Windows 3.12 is now represented as a first-class CI test environment.
+- Ubuntu 3.11 is a compatibility environment.
+- Canonical Ruff scope is repository-wide.
 
 ## Database / runtime data
 
-- Existing migration: `0012_add_document_bundle_membership`.
-- New migration created: NO (during this preparation task).
-- Runtime data modified: NO. Existing user data deleted: NO. `data/documents/` modified: NO.
+- Migration: NO
+- Runtime data modified: NO
+- Existing user data deleted: NO
+- `data/documents/` content modified: NO
+- `data/documents/` is now Git-ignored.
 
-## Verification
+## Local Verification
 
-- Previous P0-A: 34 targeted passed; 307 full passed; Ruff PASS; diff-check PASS.
-- Current preparation: `git diff --check` PASS; `git diff --name-status` reviewed. No Python/test/migration code was added in this preparation task.
+- `python -m pytest`: 307 passed in 225.78s
+- Test collection regression: NONE (verified baseline = 307)
+- `python -m ruff check .`: PASS
+- `git diff --check`: PASS
+- `git diff --name-status`: PASS
+- Changed files: exactly 3 intended files
+
+## Remote CI Verification
+
+- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
+- Branch: `ci/hardening-1`
+- Code Quality: PASS
+- Tests Ubuntu 3.12: PASS
+- Tests Windows 3.12: PASS
+- Compatibility Ubuntu 3.11: PASS
+- Overall remote CI: PASS
 
 ## Known issues / blockers
 
-- No master checkpoint file was present; no implementation blocker was found.
-- P0-B must define a compatible migration and backward-read behavior for legacy `stored_path` records before Vault/Shelf writes are enabled.
+- Remote GitHub CI still needs to validate the new workflow.
+- Branch Protection has not yet been configured.
+- Architecture Contract Gate, Semantic Safety Gate, and Golden HSMT Gate are not part of CI-Hardening-1.
 
 ## Explicitly NOT done
 
-- P0-B implementation, P0-C, R4.3B / SupplyItemParser 13→8, R5+, cold archive, cloud/NAS, export, GUI redesign, installer.
+- No P0-B implementation.
+- No Vault / Package Shelf / Recovery implementation.
+- No P0-C Bundle Completeness implementation.
+- No R4.3B / SupplyItemParser 13→8 fix.
+- No Semantic Safety implementation.
+- No Golden HSMT CI Gate.
+- No installer build.
+- No release.
+
+## Next recommended task
+
+After CI-Hardening-1 is remotely verified:
+
+`WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression`
+
+Prove that after successful Document Intake, deleting the original external file does not break the crawler-managed stored document.
 
 ## Git state
 
-- Branch: `main`; HEAD before checkpoint: `fe8187f`.
-- Commit created: YES (this authorized P0-A checkpoint). Push performed: pending command. PR: NONE.
-- Working tree before staging contains only P0-A source/migration/tests and this handoff, plus pre-existing untracked `data/documents/` which must remain unstaged.
+- Base branch: `main`
+- Verified base commit: `74cab1f`
+- Current working branch: `ci/hardening-1`
+- Functional commit created: YES
+- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
+- Push performed: YES
+- Remote branch: `origin/ci/hardening-1`
+- PR: NONE
+- CI-Hardening-1: PASS
