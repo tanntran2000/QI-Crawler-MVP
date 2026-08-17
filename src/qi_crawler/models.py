@@ -153,6 +153,13 @@ class Document(Base):
     identity_evidence_locator: Mapped[str | None] = mapped_column(Text)
     identity_match_status: Mapped[str | None] = mapped_column(String(64), index=True)
     identity_candidates_json: Mapped[str | None] = mapped_column(Text)
+    # Bundle membership is deliberately separate from content identity.  A document
+    # may have no identifier in its own content yet be safely linked by provenance.
+    bundle_base_notice_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    bundle_revision: Mapped[str | None] = mapped_column(String(64))
+    bundle_membership_status: Mapped[str | None] = mapped_column(String(64), index=True)
+    bundle_membership_source: Mapped[str | None] = mapped_column(String(32))
+    bundle_membership_evidence: Mapped[str | None] = mapped_column(Text)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     status: Mapped[str] = mapped_column(String(32), default="STORED", index=True)
     zip_supported_entries: Mapped[str | None] = mapped_column(Text)

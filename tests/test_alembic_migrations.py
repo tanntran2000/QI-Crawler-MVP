@@ -77,7 +77,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0011_add_hsmt_facts"
+            "0012_add_document_bundle_membership"
         )
 
 
@@ -175,7 +175,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0011_add_hsmt_facts"
+                "0012_add_document_bundle_membership"
         )
     upgraded.dispose()
 
@@ -221,7 +221,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0011_add_hsmt_facts"
+            "0012_add_document_bundle_membership"
         )
     engine.dispose()
 
@@ -275,7 +275,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0011_add_hsmt_facts"
+    assert result.revision == "0012_add_document_bundle_membership"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -289,7 +289,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0011_add_hsmt_facts"
+            "0012_add_document_bundle_membership"
         )
     upgraded_engine.dispose()
 

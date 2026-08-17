@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0011_add_hsmt_facts"
+CURRENT_SCHEMA_REVISION = "0012_add_document_bundle_membership"
 
 
 class SchemaNotReady(click.ClickException):

@@ -15,6 +15,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
 from openpyxl import load_workbook
@@ -78,6 +79,18 @@ class DocumentIdentityMismatch(DocumentValidationError):
 
 
 @dataclass(frozen=True)
+class BundleMembershipClaim:
+    """Explicit non-filename evidence for a document without a content identifier."""
+
+    kind: str
+    evidence_locator: str
+    base_notice_id: str | None = None
+    revision: str | None = None
+    reference_document_id: int | None = None
+    confirmed_by: str | None = None
+
+
+@dataclass(frozen=True)
 class DocumentIntakeResult:
     outcome: str
     document_id: int
@@ -106,6 +119,11 @@ class DocumentIntakeResult:
     identity_evidence_locator: str | None = None
     identity_match_status: str | None = None
     identity_candidates: tuple[str, ...] = ()
+    bundle_base_notice_id: str | None = None
+    bundle_revision: str | None = None
+    bundle_membership_status: str | None = None
+    bundle_membership_source: str | None = None
+    bundle_membership_evidence: str | None = None
 
 
 @dataclass(frozen=True)
@@ -142,6 +160,9 @@ class DocumentManifestEntry:
     base_notice_id: str | None = None
     notice_revision: str | None = None
     identity_match_status: str | None = None
+    bundle_base_notice_id: str | None = None
+    bundle_revision: str | None = None
+    bundle_membership_status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -185,6 +206,17 @@ class _IdentityResolution:
     detected: str | None
     content_identity: DocumentContentIdentity | None = None
     match_status: str | None = None
+
+
+@dataclass(frozen=True)
+class _BundleMembership:
+    """Logical bundle placement, distinct from the document's own identity evidence."""
+
+    base_notice_id: str | None
+    revision: str | None
+    status: str
+    source: str | None = None
+    evidence_locator: str | None = None
 
 
 def sanitize_filename(filename: str) -> str:
@@ -368,6 +400,7 @@ class DocumentIntakeService:
         source_url: str | None = None,
         uploaded_by: str | None = None,
         detected_tender_reference: str | None = None,
+        bundle_claim: BundleMembershipClaim | None = None,
     ) -> DocumentBatchResult:
         candidate = input_path.expanduser()
         if candidate.is_symlink():
@@ -389,6 +422,7 @@ class DocumentIntakeService:
                     source_url=source_url,
                     uploaded_by=uploaded_by,
                     detected_tender_reference=detected_tender_reference,
+                    bundle_claim=bundle_claim,
                 )
                 for path in supported
             )
@@ -403,6 +437,7 @@ class DocumentIntakeService:
                     source_url=source_url,
                     uploaded_by=uploaded_by,
                     detected_tender_reference=detected_tender_reference,
+                    bundle_claim=bundle_claim,
                 ),
             )
         )
@@ -417,6 +452,7 @@ class DocumentIntakeService:
         source_url: str | None = None,
         uploaded_by: str | None = None,
         detected_tender_reference: str | None = None,
+        bundle_claim: BundleMembershipClaim | None = None,
     ) -> DocumentIntakeResult:
         logger.info(
             "DOCUMENT_INTAKE_START source=%s filename=%s",
@@ -439,10 +475,16 @@ class DocumentIntakeService:
             source_url=source_url,
             content_identity=content_identity,
         )
+        membership = self._resolve_bundle_membership(
+            identity,
+            document_source=document_source,
+            source_url=source_url,
+            claim=bundle_claim,
+        )
         duplicate = self._find_duplicate(sha256)
         logger.info("DUPLICATE_CHECK_DONE duplicate=%s", duplicate is not None)
         if duplicate is not None:
-            duplicate = self._guard_duplicate_identity(duplicate, identity)
+            duplicate = self._guard_duplicate_identity(duplicate, identity, membership)
             stored_path = Path(duplicate.stored_path)
             if not stored_path.is_file():
                 raise DocumentStorageError(
@@ -501,6 +543,7 @@ class DocumentIntakeService:
                 status=identity.status,
                 content_identity=identity.content_identity or DocumentContentIdentity(),
                 identity_match_status=identity.match_status,
+                bundle_membership=membership,
             )
         except Exception:
             if created:
@@ -759,10 +802,116 @@ class DocumentIntakeService:
             match_status="NO_CONTENT_ID",
         )
 
+    def _resolve_bundle_membership(
+        self,
+        identity: _IdentityResolution,
+        *,
+        document_source: str,
+        source_url: str | None,
+        claim: BundleMembershipClaim | None,
+    ) -> _BundleMembership:
+        """Place a document in a revision bundle without weakening Identity Guard."""
+        tender = identity.tender
+        content = identity.content_identity or DocumentContentIdentity()
+        if tender is None:
+            return _BundleMembership(None, None, "NEEDS_REVIEW")
+
+        expected_base, expected_revision = _notice_id_parts(
+            self._notice_identifier(tender)
+        )
+        if content.status == "FOUND":
+            # _resolve_identity already rejects a different content-derived base.
+            assert content.base_notice_id == expected_base
+            status = (
+                "EXACT_BUNDLE"
+                if expected_revision in {None, content.revision}
+                else "SAME_TENDER_DIFFERENT_REVISION"
+            )
+            return _BundleMembership(
+                content.base_notice_id,
+                content.revision,
+                status,
+                "DOCUMENT_CONTENT",
+                content.evidence_locator,
+            )
+
+        if content.status in {"AMBIGUOUS", "EXTRACTION_FAILED"}:
+            return _BundleMembership(expected_base, expected_revision, "NEEDS_REVIEW")
+        if claim is None:
+            return _BundleMembership(expected_base, expected_revision, "NEEDS_REVIEW")
+
+        kind = claim.kind.strip().upper()
+        evidence = claim.evidence_locator.strip()
+        if kind not in {"REFERENCE_LINKED", "PROVENANCE_LINKED", "HUMAN_LINKED"}:
+            raise DocumentValidationError("Loại bằng chứng bundle không hợp lệ.")
+        if not evidence:
+            raise DocumentValidationError("Liên kết bundle phải có bằng chứng cụ thể.")
+
+        if kind == "REFERENCE_LINKED":
+            if claim.reference_document_id is None:
+                raise DocumentValidationError("REFERENCE_LINKED phải chỉ rõ tài liệu HSMT tham chiếu.")
+            with self.database.session() as session:
+                reference = session.get(Document, claim.reference_document_id)
+            if (
+                reference is None
+                or reference.tender_id != tender.id
+                or reference.document_type != "E_HSMT"
+                or not reference.bundle_base_notice_id
+                or not reference.bundle_revision
+            ):
+                raise DocumentValidationError(
+                    "Tài liệu HSMT tham chiếu không thuộc đúng bundle đang làm việc."
+                )
+            return _BundleMembership(
+                reference.bundle_base_notice_id,
+                reference.bundle_revision,
+                kind,
+                "PRIMARY_HSMT_REFERENCE",
+                evidence,
+            )
+
+        claim_base = (claim.base_notice_id or "").strip().upper()
+        claim_revision = (claim.revision or "").strip()
+        if claim_base != expected_base or not claim_revision:
+            raise DocumentValidationError(
+                "Liên kết bundle không chứng minh được mã gói và revision đang làm việc."
+            )
+        if expected_revision is not None and claim_revision != expected_revision:
+            raise DocumentValidationError(
+                "Liên kết bundle chỉ hợp lệ cho đúng revision của gói đang làm việc."
+            )
+        if kind == "PROVENANCE_LINKED":
+            if (
+                document_source != "web"
+                or not source_url
+                or not tender.source_url
+                or not self._same_origin(tender.source_url, source_url)
+            ):
+                raise DocumentValidationError(
+                    "PROVENANCE_LINKED phải thuộc cùng nguồn web chính thức của gói."
+                )
+            source = "OFFICIAL_DOWNLOAD_BATCH"
+        else:
+            if not (claim.confirmed_by or "").strip():
+                raise DocumentValidationError("HUMAN_LINKED phải ghi nhận người xác nhận Team Bid.")
+            source = "TEAM_BID_CONFIRMATION"
+        return _BundleMembership(claim_base, claim_revision, kind, source, evidence)
+
+    @staticmethod
+    def _same_origin(first_url: str, second_url: str) -> bool:
+        first = urlsplit(first_url)
+        second = urlsplit(second_url)
+        return (
+            first.scheme in {"http", "https"}
+            and first.scheme == second.scheme
+            and first.netloc.casefold() == second.netloc.casefold()
+        )
+
     def _guard_duplicate_identity(
         self,
         duplicate: Document,
         identity: _IdentityResolution,
+        membership: _BundleMembership,
     ) -> Document:
         if (
             identity.status == "NEEDS_REVIEW"
@@ -780,9 +929,10 @@ class DocumentIntakeService:
         if identity.tender is None:
             return duplicate
         if duplicate.tender_id == identity.tender.id:
+            self._guard_duplicate_bundle(duplicate, membership)
             return duplicate
         if duplicate.tender_id is None and identity.status == "DOCUMENT_VERIFIED":
-            return self._link_verified_unlinked_duplicate(duplicate, identity)
+            return self._link_verified_unlinked_duplicate(duplicate, identity, membership)
         expected = self._notice_identifier(identity.tender)
         detected = self._tender_identifier(duplicate.tender_id) or "UNLINKED"
         logger.error(
@@ -793,10 +943,28 @@ class DocumentIntakeService:
         )
         raise DocumentIdentityMismatch(expected, detected)
 
+    @staticmethod
+    def _guard_duplicate_bundle(
+        duplicate: Document,
+        membership: _BundleMembership,
+    ) -> None:
+        """A SHA duplicate may only reuse a known equivalent logical bundle."""
+        if not duplicate.bundle_base_notice_id or not duplicate.bundle_revision:
+            return
+        if (
+            duplicate.bundle_base_notice_id == membership.base_notice_id
+            and duplicate.bundle_revision == membership.revision
+        ):
+            return
+        raise DocumentValidationError(
+            "SHA-256 trùng nhưng thuộc bundle/revision khác; cần kiểm tra thủ công."
+        )
+
     def _link_verified_unlinked_duplicate(
         self,
         duplicate: Document,
         identity: _IdentityResolution,
+        membership: _BundleMembership,
     ) -> Document:
         """Link an old unlinked SHA duplicate only after content verifies its tender."""
         tender = identity.tender
@@ -818,6 +986,11 @@ class DocumentIntakeService:
             document.identity_candidates_json = json.dumps(
                 content_identity.candidates, ensure_ascii=False
             )
+            document.bundle_base_notice_id = membership.base_notice_id
+            document.bundle_revision = membership.revision
+            document.bundle_membership_status = membership.status
+            document.bundle_membership_source = membership.source
+            document.bundle_membership_evidence = membership.evidence_locator
             session.flush()
             logger.info(
                 "DOCUMENT_UNLINKED_DUPLICATE_LINKED document_id=%s tender=%s",
@@ -925,6 +1098,9 @@ class DocumentIntakeService:
                 base_notice_id=document.base_notice_id,
                 notice_revision=document.notice_revision,
                 identity_match_status=document.identity_match_status,
+                bundle_base_notice_id=document.bundle_base_notice_id,
+                bundle_revision=document.bundle_revision,
+                bundle_membership_status=document.bundle_membership_status,
             )
             for document in documents
         )
@@ -997,6 +1173,7 @@ class DocumentIntakeService:
         status: str,
         content_identity: DocumentContentIdentity,
         identity_match_status: str | None,
+        bundle_membership: _BundleMembership,
     ) -> Document:
         document = Document(
             tender_id=tender_id,
@@ -1028,6 +1205,11 @@ class DocumentIntakeService:
                 if content_identity.candidates
                 else None
             ),
+            bundle_base_notice_id=bundle_membership.base_notice_id,
+            bundle_revision=bundle_membership.revision,
+            bundle_membership_status=bundle_membership.status,
+            bundle_membership_source=bundle_membership.source,
+            bundle_membership_evidence=bundle_membership.evidence_locator,
             zip_supported_entries=(
                 json.dumps(zip_supported_entries, ensure_ascii=False)
                 if zip_supported_entries
@@ -1088,6 +1270,11 @@ class DocumentIntakeService:
             identity_evidence_locator=document.identity_evidence_locator,
             identity_match_status=document.identity_match_status,
             identity_candidates=tuple(json.loads(document.identity_candidates_json or "[]")),
+            bundle_base_notice_id=document.bundle_base_notice_id,
+            bundle_revision=document.bundle_revision,
+            bundle_membership_status=document.bundle_membership_status,
+            bundle_membership_source=document.bundle_membership_source,
+            bundle_membership_evidence=document.bundle_membership_evidence,
         )
 
     @staticmethod
