@@ -5,21 +5,90 @@ on:
   pull_request:
 
 jobs:
-  test:
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
-    env:
-      QT_QPA_PLATFORM: offscreen
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Ruff
+        run: python -m ruff check .
+
+  tests-ubuntu-312:
+    name: Tests Ubuntu 3.12
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
       - name: Install Linux Qt runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends libegl1 libgl1
+
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
-      - run: python -m pytest -q
-      - run: python -m ruff check src tests
+
+      - name: Full regression
+        run: python -m pytest -q
+
+  tests-windows-312:
+    name: Tests Windows 3.12
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Full regression
+        run: python -m pytest -q
+
+  compatibility-ubuntu-311:
+    name: Compatibility Ubuntu 3.11
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Linux Qt runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libegl1 libgl1
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Compatibility regression
+        run: python -m pytest -q
