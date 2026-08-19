@@ -21,7 +21,7 @@
 ## Engineering governance laws
 
 1. **LAW 1 — PLAN-FIRST**: Planner creates the design/work-order; Planner does not code.
-2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: Planner (Gemini) -> Reviewer/Auditor (ChatGPT) -> Builder (Codex/Single Writer) -> Machine Verifier (GitHub Actions CI) -> Merge Approver (Human).
+2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: Planner -> Independent Reviewer/Auditor -> Single Writer -> Machine Verifier -> Human Merge Approver.
 3. **LAW 3 — SYSTEMIC LESSONS ONLY**: Record durable architectural lessons; do not pollute lessons with minor typos.
 4. **LAW 4 — PROOF-GATED DEFINITION OF DONE**: Verify against the explicit Work Order contract; never claim unqualified perfection.
 5. **LAW 5 — MINIMAL COMPLETE FIX**: Fix at root cause with the smallest complete change; no masking or speculative refactoring.
