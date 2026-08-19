@@ -2,33 +2,39 @@
 
 ## Task
 
-CI-Hardening-2B — Global Runtime Budget + Node24 Action Maintenance
+MASTER-WP Documentation Consolidation — Program Blueprint / Active Roadmap
 
 ## Status
 
-READY_FOR_CHATGPT_CI_AUDIT — Global 15-minute runtime budget enforced on all 4 jobs, actions upgraded to Node24-compatible versions, least-privilege permissions declared.
+READY_FOR_REVIEW — Added the consolidated Master Work Package on a dedicated documentation branch. No production code, tests, migrations, CI workflow, or runtime data were intentionally changed by this task. GitHub CI for this documentation PR is still pending.
 
 ## Previous verified checkpoint
 
-- Governance Checkpoint: PASS (PR #15 merged into `main` at commit `8174f46`)
-- P0-B1: PR #13 OPEN (functional verification PASS, awaiting final integration)
+- CI-Hardening-2B: merged into `main` at `bf48c949d000a41bcecc60757785feece8e30e72`.
+- P0-B1 / PR #13: OPEN; functional contract PASS; merge gate HOLD.
+- CI-Hardening-2C / PR #17: OPEN; hosted Windows exact-head run remains cancelled at the 15-minute ceiling.
 
 ## What was done
 
-- **Global 15-Minute Runtime Budget:** Added explicit `timeout-minutes: 15` to `Code Quality` and `Tests Windows 3.12` jobs. All four required CI jobs now have explicit 15-minute runtime caps.
-- **Node24 Action Maintenance:** Upgraded `actions/checkout@v4` → `actions/checkout@v5` and `actions/setup-python@v5` → `actions/setup-python@v6` across all four required jobs to eliminate Node20 runtime deprecation warnings.
-- **Least-Privilege Workflow Permission:** Added top-level `permissions: contents: read` to `.github/workflows/ci.yml`.
-- **Preserved Core CI Gates:** Preserved all four job names (`Code Quality`, `Tests Ubuntu 3.12`, `Tests Windows 3.12`, `Compatibility Ubuntu 3.11`), exact Ruff repository-wide check, full Pytest commands, and Linux apt hardening options.
+- Added `docs/MASTER_WORK_PACKAGE.md` as the program-level blueprint consolidating the project mission, architecture boundaries, Warehouse roadmap, extraction-integrity invariants, Ground Truth model, KHMT/PL future lane, AI authority boundary, CI/CD governance, quality cadence and current roadmap.
+- Kept implementation explicitly micro-WP-only; the Master WP does not authorize coding outside the current Work Order.
+- Recorded the current exact GitHub state for PR #13 and PR #17 instead of copying stale handoff claims.
+- Confirmed PR #17 changes only the Windows pytest command to `python -m pytest -q -n 2` plus handoff text.
+- Confirmed PR #17 workflow run `32229107677`: Code Quality PASS, Ubuntu 3.12 PASS, Ubuntu 3.11 PASS, Windows 3.12 CANCELLED; Windows reached 255 passed in 847.56s before the hard timeout.
 
 ## Files changed
 
-- `.github/workflows/ci.yml`
+Intended documentation branch changes:
+
+- `docs/MASTER_WORK_PACKAGE.md`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Architecture / contracts affected
 
-- Continuous Integration infrastructure hardened and modernized to Node24 without weakening quality gates or altering runtime application behavior.
-- No production source code, tests, migrations, or database schema were modified.
+- Documentation only: formalized the already-agreed program blueprint and roadmap in-repo.
+- No new production authority was granted to AI, crawler, extractor, Legal lane, or CI.
+- `AGENTS.md` remains the constitutional engineering authority.
+- Product boundary remains: crawler reads/extracts/organizes/locates/surfaces; Team Bid validates/calculates/evaluates/decides.
 
 ## Database / runtime data
 
@@ -36,63 +42,61 @@ READY_FOR_CHATGPT_CI_AUDIT — Global 15-minute runtime budget enforced on all 4
 - Runtime data modified: NO
 - Existing user data deleted: NO
 - `data/documents/` touched: NO
+- Production source touched: NO
+- Tests touched: NO
+- CI workflow touched by this documentation branch: NO
 
-## Local Verification
+## Verification
 
-- Full regression suite: 307 passed
-- `python -m ruff check .`: PASS (`All checks passed!`)
-- `git diff --check`: PASS (0 errors)
-- `git diff --name-status`: exactly 2 intended files (`.github/workflows/ci.yml`, `docs/agent_handoff/CURRENT.md`)
+- GitHub source review performed against current `main`, PR #13 and PR #17.
+- Documentation content was committed through the GitHub connector.
+- Local pytest/Ruff were NOT executed by this connector-only documentation task.
+- Required GitHub CI is pending after PR creation; do not call this task CI-VERIFIED until exact-head checks complete.
 
-## Remote CI Verification
+## CI Fitness — Current Phase
 
-- PR: #16
-- Run ID: `32217088480`
-- Code Quality: PASS (32s)
-- Tests Ubuntu 3.12: PASS (1m49s, 307 passed)
-- Compatibility Ubuntu 3.11: PASS (2m6s, 307 passed)
-- Tests Windows 3.12: PASS (11m20s, 307 passed)
-- Node20 deprecation warnings: 0
-- Permission errors: 0
-
-## Active Pull Requests
-
-- PR #16: `CI-Hardening-2B: complete adaptive CI runtime guard` (OPEN on `ci/hardening-2b-global-runtime-node24`)
-- PR #13: `P0-B1: prove managed storage independence` (OPEN on `p0-b1-managed-storage-independence`)
-
-## CI Fitness — Current Phase (Warehouse / Managed Storage / Integrity)
-
-- **Classification:** `FIT`
-- **Rationale:** All four required CI jobs are explicitly bounded to 15 minutes, Node20 action deprecations are resolved, least-privilege permissions are declared, multi-OS matrix (Ubuntu 3.12, Windows 3.12, Ubuntu 3.11) is active, and code quality / test collection integrity are fully preserved.
+- **Classification:** `UNSTABLE`
+- **Reason:** PR #17's hosted Windows job still hits the 15-minute ceiling despite the `-n 2` experiment; local benchmark evidence does not prove hosted-runner headroom.
+- Baseline four required jobs and 15-minute governance remain unchanged.
 
 ## Known issues / blockers
 
-- None.
+1. PR #17 is not merge-ready: hosted Windows regression cancelled at the hard timeout.
+2. PR #13 remains HOLD until the required-CI baseline is stable and PR #13 receives fresh exact-head verification after synchronization.
+3. P0-B2 SHA Vault must not start before P0-B1 is closed under current governance.
 
 ## Explicitly NOT done
 
+- No P0-B1 production/test changes.
 - No P0-B2 SHA Vault implementation.
 - No P0-B3 Canonical Package Shelf implementation.
 - No P0-B4 Missing / Recoverable / Safe Restore implementation.
 - No P0-C Bundle Completeness implementation.
-- No R4.3B / SupplyItemParser 13→8 fix.
+- No P0-D / R4.3B SupplyItemParser 13→8 fix.
 - No Semantic Extraction changes.
-- No installer / release changes.
+- No KHMT/PL implementation.
+- No AI implementation.
+- No installer/CD implementation.
 
 ## Next recommended task
 
-1. ChatGPT audit PR for CI-Hardening-2B.
-2. Human merge CI-Hardening-2B into `main`.
-3. Synchronize `p0-b1-managed-storage-independence` with updated `main`.
-4. Run and verify P0-B1 GitHub CI on new head.
-5. Human merge P0-B1.
-6. Proceed to `WP2.6-R4.3A / P0-B2 — SHA Vault` under the approved Adaptive Verification governance.
+1. Review this Master-WP documentation PR for accuracy/scope.
+2. Keep PR #17 on HOLD and perform a bounded CI runtime root-cause investigation rather than repeated reruns.
+3. Once a CI fix is independently verified, Human merges the CI hardening.
+4. Synchronize PR #13 with the updated `main` and require fresh exact-head 4/4 GREEN.
+5. Independent final audit, then Human merge PR #13.
+6. Start `P0-B2 — SHA Vault` only after P0-B1 closure.
 
 ## Git state
 
-- Base branch: `main`
-- Verified base commit: `8174f46`
-- Working branch: `ci/hardening-2b-global-runtime-node24`
-- Commit created: YES
-- Push performed: YES
-- PR #16: OPEN (https://github.com/tanntran2000/QI-Crawler-MVP/pull/16)
+- Base branch when documentation branch was created: `main`
+- Documentation branch: `docs/master-work-package-2026-08-19`
+- Master-WP commit: `b1ae58a75089d014e5bd0fc35a11a8211b1197de`
+- Push performed: YES (GitHub connector commit)
+- PR: pending creation
+
+## Important notes for next agent
+
+- `docs/MASTER_WORK_PACKAGE.md` is a program blueprint, not an implementation Work Order.
+- Current `main` history contains two connector-created documentation-only commits from an accidental temporary probe: the probe file was created and immediately removed. The final repository tree has no `_tmp_probe.md`, but `main` advanced to `a90ffd4e17c389f2925cb5b6ce036be1530cd79a`. Do not hide or rewrite this history; no force push/reset is authorized.
+- Treat PR #17's CURRENT.md claims about local parallel headroom as local evidence only; hosted Windows exact-head evidence is authoritative for the merge gate.
