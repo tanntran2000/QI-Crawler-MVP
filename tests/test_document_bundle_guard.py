@@ -16,6 +16,7 @@ from qi_crawler.document_intake import (
 )
 from qi_crawler.manual_tender import ManualTenderWorkspaceService
 from qi_crawler.models import Document, Notice
+from qi_crawler.native_extraction import NativeHSMTExtractionService
 
 
 @pytest.fixture
@@ -186,3 +187,44 @@ def test_same_sha_in_one_bundle_reuses_one_logical_document(
     assert duplicate.document_id == first.document_id
     with intake.database.session() as session:
         assert session.scalar(select(func.count(Document.id))) == 1
+
+
+def test_managed_storage_remains_independent_when_external_source_is_deleted(
+    intake: DocumentIntakeService, tmp_path: Path
+) -> None:
+    external_dir = tmp_path / "downloads"
+    external_dir.mkdir(parents=True, exist_ok=True)
+    external_file = _pdf(external_dir / "external_hsmt.pdf", "IB2500585490-00")
+    original_bytes = external_file.read_bytes()
+    expected_sha = sha256(original_bytes).hexdigest()
+
+    result = intake.intake_file(
+        external_file,
+        tender_reference="IB2500585490",
+        document_name="Hồ sơ mời thầu chính",
+    )
+
+    assert result.outcome == "IMPORTED"
+    assert result.sha256 == expected_sha
+    assert result.stored_path.exists()
+    assert result.stored_path.resolve() != external_file.resolve()
+
+    # Destructive action: External original is deleted
+    external_file.unlink()
+    assert not external_file.exists()
+
+    # The crawler-managed copy must remain intact, readable, byte-identical, and match the SHA-256
+    assert result.stored_path.is_file()
+    assert result.stored_path.read_bytes() == original_bytes
+    assert sha256(result.stored_path.read_bytes()).hexdigest() == expected_sha
+
+    # Downstream extraction on the crawler-managed copy succeeds without external file
+    with intake.database.session() as session:
+        document = session.get(Document, result.document_id)
+        assert document is not None
+        assert Path(document.stored_path).is_file()
+        assert Path(document.stored_path).read_bytes() == original_bytes
+
+    extraction = NativeHSMTExtractionService(intake.database).extract_document(result.document_id)
+    assert extraction.document_id == result.document_id
+    assert extraction.status in {"NATIVE_OK", "NEEDS_REVIEW"}
