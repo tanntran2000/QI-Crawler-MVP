@@ -6,7 +6,7 @@ WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression
 
 ## Status
 
-PASS — regression test verified and full regression suite passed.
+PASS — regression test verified, full regression suite passed locally and on GitHub CI.
 
 ## Previous verified checkpoint
 
@@ -40,11 +40,19 @@ PASS — regression test verified and full regression suite passed.
 ## Local Verification
 
 - Targeted test: 9 passed in `tests/test_document_bundle_guard.py`
-- Full regression suite: 308 passed in 230.00s (0 failed, 0 error)
+- Full regression suite: 308 passed in 222.22s (0 failed, 0 error)
 - Test collection baseline: 307 -> 308 (+1 regression test)
 - `python -m ruff check .`: PASS (`All checks passed!`)
 - `git diff --check`: PASS
 - `git diff --name-status`: exactly 2 intended files (`tests/test_document_bundle_guard.py`, `docs/agent_handoff/CURRENT.md`)
+
+## Remote CI Verification (PR #13)
+
+- Code Quality: PASS (28s)
+- Tests Ubuntu 3.12: PASS (1m51s)
+- Tests Windows 3.12: PASS (12m6s)
+- Compatibility Ubuntu 3.11: PASS (2m47s)
+- Overall remote CI: PASS (Run 32205945287)
 
 ## Known issues / blockers
 
@@ -60,19 +68,20 @@ PASS — regression test verified and full regression suite passed.
 - No R4.3B / SupplyItemParser 13→8 fix.
 - No Semantic Extraction changes.
 - No installer / release changes.
+- No merge.
 
 ## Next recommended task
 
-`WP2.6-R4.3A / P0-B2 — SHA Vault`
-
-Define and implement the SHA-backed Vault contract in the next bounded Work Order.
+Human merge only after ChatGPT final PR audit.
+Followed by `WP2.6-R4.3A / P0-B2 — SHA Vault` (Define and implement the SHA-backed Vault contract in the next bounded Work Order).
 
 ## Git state
 
 - Base branch: `main`
-- Verified base commit: `762b5f5`
-- Working branch: `p0-b1-managed-storage-independence`
-- Working tree before commit: exactly 2 intended modified files (`tests/test_document_bundle_guard.py`, `docs/agent_handoff/CURRENT.md`)
-- Commit created: pending checkpoint
-- Push performed: NO
-- PR: NONE
+- Verified base commit: `762b5f5e95d9bcb9ba40a7b5fafef0691cad1ac7`
+- Feature branch: `p0-b1-managed-storage-independence`
+- Functional commit created: YES (`cd9ced167a1854eb9f9065cd748a98cbcd14b0f9`)
+- Push performed: YES (`origin/p0-b1-managed-storage-independence`)
+- PR: `#13` OPEN (https://github.com/tanntran2000/QI-Crawler-MVP/pull/13)
+- GitHub CI: ALL 4 JOBS PASS
+- Merge performed: NO (awaiting human merge approval)
