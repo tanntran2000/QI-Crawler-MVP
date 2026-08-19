@@ -2,106 +2,77 @@
 
 ## Task
 
-CI-Hardening-1 — Technical CI Foundation & Runtime Document Git Safety
+WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression
 
 ## Status
 
-PASS — local verification and remote GitHub CI both passed.
+PASS — regression test verified and full regression suite passed.
 
 ## Previous verified checkpoint
 
-- WP2.6-R4.3A / P0-A Warehouse Bundle Guard: PASS.
-- Verified commit: `74cab1f`
-- Pushed to: `origin/main`
-- P0-B implementation has NOT started.
+- CI-Hardening-1: PASS
+- Verified commit: `762b5f5` on `main` (PR #12 merged, 4 CI jobs passed)
 
 ## What was done
 
-- Added Git protection for runtime HSMT/user documents under `data/documents/`.
-- Expanded GitHub CI from the previous single Ubuntu/Python 3.12 job.
-- Added separately named CI jobs:
-  - Code Quality
-  - Tests Ubuntu 3.12
-  - Tests Windows 3.12
-  - Compatibility Ubuntu 3.11
-- Changed Ruff CI scope from `src tests` to the canonical repository-wide `ruff check .`.
-- Corrected stale P0-A Git checkpoint information in the handoff.
-- No production Python/business/extraction behavior was changed.
+- Added focused regression test `test_managed_storage_remains_independent_when_external_source_is_deleted` to `tests/test_document_bundle_guard.py`.
+- Verified that deleting the original external source file after successful intake leaves the crawler-managed copy intact, readable, byte-identical, and matching SHA-256.
+- Verified that downstream `NativeHSMTExtractionService` succeeds directly from `document.stored_path` without requiring the external source.
+- Production code change was NOT required; existing intake/storage architecture already satisfies this storage independence invariant.
 
 ## Files changed
 
-- `.github/workflows/ci.yml`
-- `.gitignore`
+- `tests/test_document_bundle_guard.py`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Architecture / contracts affected
 
-- CI-Hardening-1 establishes the first technical layer of the locked 3-Tier Quality Gate v2.
-- `data/documents/` is runtime/user data and must never be committed to Git.
-- Windows 3.12 is now represented as a first-class CI test environment.
-- Ubuntu 3.11 is a compatibility environment.
-- Canonical Ruff scope is repository-wide.
+- Core invariant proven: `SUCCESSFUL INTAKE = CRAWLER OWNS A MANAGED COPY`.
+- External file path is strictly an input; runtime document reopening and extraction depend solely on `stored_path` within `document_root`.
 
 ## Database / runtime data
 
 - Migration: NO
 - Runtime data modified: NO
 - Existing user data deleted: NO
-- `data/documents/` content modified: NO
-- `data/documents/` is now Git-ignored.
+- `data/documents/` touched: NO
 
 ## Local Verification
 
-- `python -m pytest`: 307 passed in 225.78s
-- Test collection regression: NONE (verified baseline = 307)
-- `python -m ruff check .`: PASS
+- Targeted test: 9 passed in `tests/test_document_bundle_guard.py`
+- Full regression suite: 308 passed in 230.00s (0 failed, 0 error)
+- Test collection baseline: 307 -> 308 (+1 regression test)
+- `python -m ruff check .`: PASS (`All checks passed!`)
 - `git diff --check`: PASS
-- `git diff --name-status`: PASS
-- Changed files: exactly 3 intended files
-
-## Remote CI Verification
-
-- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
-- Branch: `ci/hardening-1`
-- Code Quality: PASS
-- Tests Ubuntu 3.12: PASS
-- Tests Windows 3.12: PASS
-- Compatibility Ubuntu 3.11: PASS
-- Overall remote CI: PASS
+- `git diff --name-status`: exactly 2 intended files (`tests/test_document_bundle_guard.py`, `docs/agent_handoff/CURRENT.md`)
 
 ## Known issues / blockers
 
-- Remote GitHub CI still needs to validate the new workflow.
-- Branch Protection has not yet been configured.
-- Architecture Contract Gate, Semantic Safety Gate, and Golden HSMT Gate are not part of CI-Hardening-1.
+- P0-B1 has no functional blocker.
+- GitHub `main` Branch Protection is still not configured; this is outside P0-B1 scope.
 
 ## Explicitly NOT done
 
-- No P0-B implementation.
-- No Vault / Package Shelf / Recovery implementation.
+- No P0-B2 SHA Vault implementation.
+- No P0-B3 Canonical Package Shelf implementation.
+- No P0-B4 Missing / Recoverable / Safe Restore implementation.
 - No P0-C Bundle Completeness implementation.
 - No R4.3B / SupplyItemParser 13→8 fix.
-- No Semantic Safety implementation.
-- No Golden HSMT CI Gate.
-- No installer build.
-- No release.
+- No Semantic Extraction changes.
+- No installer / release changes.
 
 ## Next recommended task
 
-After CI-Hardening-1 is remotely verified:
+`WP2.6-R4.3A / P0-B2 — SHA Vault`
 
-`WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression`
-
-Prove that after successful Document Intake, deleting the original external file does not break the crawler-managed stored document.
+Define and implement the SHA-backed Vault contract in the next bounded Work Order.
 
 ## Git state
 
 - Base branch: `main`
-- Verified base commit: `74cab1f`
-- Current working branch: `ci/hardening-1`
-- Functional commit created: YES
-- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
-- Push performed: YES
-- Remote branch: `origin/ci/hardening-1`
+- Verified base commit: `762b5f5`
+- Working branch: `p0-b1-managed-storage-independence`
+- Working tree before commit: exactly 2 intended modified files (`tests/test_document_bundle_guard.py`, `docs/agent_handoff/CURRENT.md`)
+- Commit created: pending checkpoint
+- Push performed: NO
 - PR: NONE
-- CI-Hardening-1: PASS
