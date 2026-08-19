@@ -6,7 +6,7 @@ WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression
 
 ## Status
 
-READY_FOR_CHATGPT_FINAL_P0_B1_AUDIT — P0-B1 synchronized with main, regression test verified locally, awaiting fresh exact-head remote CI and final audit.
+READY_FOR_CHATGPT_FINAL_P0_B1_AUDIT — P0-B1 synchronized with main, regression test verified locally and on GitHub Actions CI (all 4 jobs passed), awaiting ChatGPT final audit.
 
 ## Previous verified checkpoint
 
@@ -48,6 +48,16 @@ READY_FOR_CHATGPT_FINAL_P0_B1_AUDIT — P0-B1 synchronized with main, regression
 - `git diff --check`: PASS (0 errors)
 - Effective PR diff against `origin/main`: exactly 2 files (`tests/test_document_bundle_guard.py`, `docs/agent_handoff/CURRENT.md`)
 
+## Remote CI Verification (PR #13)
+
+- PR: #13
+- Run ID: `32224124638`
+- Code Quality: PASS (33s)
+- Tests Ubuntu 3.12: PASS (1m58s, 308 passed)
+- Compatibility Ubuntu 3.11: PASS (2m24s, 308 passed)
+- Tests Windows 3.12: PASS (14m14s, 308 passed)
+- Mergeable: MERGEABLE
+
 ## Active Pull Requests
 
 - PR #13: `P0-B1: prove managed storage independence` (OPEN on `p0-b1-managed-storage-independence`)
@@ -73,16 +83,15 @@ READY_FOR_CHATGPT_FINAL_P0_B1_AUDIT — P0-B1 synchronized with main, regression
 
 ## Next recommended task
 
-1. Await exact-head remote CI run on PR #13.
-2. ChatGPT independent final audit on PR #13.
-3. Human merge PR #13 into `main`.
-4. Proceed to `WP2.6-R4.3A / P0-B2 — SHA Vault`.
+1. ChatGPT independent final audit on PR #13.
+2. Human merge PR #13 into `main`.
+3. Proceed to `WP2.6-R4.3A / P0-B2 — SHA Vault`.
 
 ## Git state
 
 - Base branch: `main`
 - Verified base commit: `bf48c949d000a41bcecc60757785feece8e30e72`
 - Working branch: `p0-b1-managed-storage-independence`
-- Integration commit: pending
-- Push performed: NO
+- Integration commit: `48dbf05d8315a0fc954418191a6db310ed8a03dd`
+- Push performed: YES
 - PR #13: OPEN (https://github.com/tanntran2000/QI-Crawler-MVP/pull/13)
