@@ -44,8 +44,20 @@ READY_FOR_CHATGPT_CI_AUDIT — Global 15-minute runtime budget enforced on all 4
 - `git diff --check`: PASS (0 errors)
 - `git diff --name-status`: exactly 2 intended files (`.github/workflows/ci.yml`, `docs/agent_handoff/CURRENT.md`)
 
+## Remote CI Verification
+
+- PR: #16
+- Run ID: `32217088480`
+- Code Quality: PASS (32s)
+- Tests Ubuntu 3.12: PASS (1m49s, 307 passed)
+- Compatibility Ubuntu 3.11: PASS (2m6s, 307 passed)
+- Tests Windows 3.12: PASS (11m20s, 307 passed)
+- Node20 deprecation warnings: 0
+- Permission errors: 0
+
 ## Active Pull Requests
 
+- PR #16: `CI-Hardening-2B: complete adaptive CI runtime guard` (OPEN on `ci/hardening-2b-global-runtime-node24`)
 - PR #13: `P0-B1: prove managed storage independence` (OPEN on `p0-b1-managed-storage-independence`)
 
 ## CI Fitness — Current Phase (Warehouse / Managed Storage / Integrity)
@@ -81,6 +93,6 @@ READY_FOR_CHATGPT_CI_AUDIT — Global 15-minute runtime budget enforced on all 4
 - Base branch: `main`
 - Verified base commit: `8174f46`
 - Working branch: `ci/hardening-2b-global-runtime-node24`
-- Commit created: pending checkpoint
-- Push performed: NO
-- PR: pending
+- Commit created: YES
+- Push performed: YES
+- PR #16: OPEN (https://github.com/tanntran2000/QI-Crawler-MVP/pull/16)
