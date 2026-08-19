@@ -2,106 +2,80 @@
 
 ## Task
 
-CI-Hardening-1 — Technical CI Foundation & Runtime Document Git Safety
+Governance + Adaptive CI Verification + Branch Hygiene Checkpoint
 
 ## Status
 
-PASS — local verification and remote GitHub CI both passed.
+PASS — Governance institutionalized in AGENTS.md, stale remote branches cleaned, PR topology verified.
 
 ## Previous verified checkpoint
 
-- WP2.6-R4.3A / P0-A Warehouse Bundle Guard: PASS.
-- Verified commit: `74cab1f`
-- Pushed to: `origin/main`
-- P0-B implementation has NOT started.
+- CI-Hardening-2A: PASS (PR #14 merged into `main` at commit `7909ccd`)
+- P0-B1: PR #13 OPEN (functional verification PASS, awaiting final integration)
 
 ## What was done
 
-- Added Git protection for runtime HSMT/user documents under `data/documents/`.
-- Expanded GitHub CI from the previous single Ubuntu/Python 3.12 job.
-- Added separately named CI jobs:
-  - Code Quality
-  - Tests Ubuntu 3.12
-  - Tests Windows 3.12
-  - Compatibility Ubuntu 3.11
-- Changed Ruff CI scope from `src tests` to the canonical repository-wide `ruff check .`.
-- Corrected stale P0-A Git checkpoint information in the handoff.
-- No production Python/business/extraction behavior was changed.
+- **Governance Institutionalization:** Added **LAW 8 — Adaptive Verification** to `AGENTS.md` requiring CI/test contracts to match the active Work Package's capability, risk profile, and maturity stage.
+- **CI Runtime & Triage Governance:** Enforced a durable 15-minute runtime budget for all CI jobs and a 5-way root-cause triage workflow for stalls (`WP_CODE_DEFECT`, `CI_INFRASTRUCTURE_DEFECT`, `DEPENDENCY/NETWORK_DEFECT`, `PRE-EXISTING_TECH_DEBT`, `UNKNOWN`).
+- **Work Order CI Fitness Contract:** Mandated explicit CI Fitness Contracts in every future Work Order before implementation.
+- **Branch Hygiene:**
+  - Safely deleted 5 obsolete merged remote branches: `ci/hardening-1`, `ci/hardening-2a-apt-resilience`, `codex/v071-release`, `codex/fix-dependency-graph`, `codex/windows-installer-v070`.
+  - Kept active branches: `main` and `p0-b1-managed-storage-independence` (PR #13).
+  - Pruned remote-tracking refs and removed local merged branch `ci/hardening-2a-apt-resilience`.
 
 ## Files changed
 
-- `.github/workflows/ci.yml`
-- `.gitignore`
+- `AGENTS.md`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Architecture / contracts affected
 
-- CI-Hardening-1 establishes the first technical layer of the locked 3-Tier Quality Gate v2.
-- `data/documents/` is runtime/user data and must never be committed to Git.
-- Windows 3.12 is now represented as a first-class CI test environment.
-- Ubuntu 3.11 is a compatibility environment.
-- Canonical Ruff scope is repository-wide.
+- Project-wide engineering governance updated to enforce phase-adaptive CI evaluation.
+- No application source code, tests, migrations, or database schema were modified.
 
 ## Database / runtime data
 
 - Migration: NO
 - Runtime data modified: NO
 - Existing user data deleted: NO
-- `data/documents/` content modified: NO
-- `data/documents/` is now Git-ignored.
+- `data/documents/` touched: NO
 
 ## Local Verification
 
-- `python -m pytest`: 307 passed in 225.78s
-- Test collection regression: NONE (verified baseline = 307)
-- `python -m ruff check .`: PASS
-- `git diff --check`: PASS
-- `git diff --name-status`: PASS
-- Changed files: exactly 3 intended files
+- Full regression suite: 307 passed
+- `python -m ruff check .`: PASS (`All checks passed!`)
+- `git diff --check`: PASS (0 errors)
+- `git diff --name-status`: exactly 2 intended files (`AGENTS.md`, `docs/agent_handoff/CURRENT.md`)
 
-## Remote CI Verification
+## Active Pull Requests
 
-- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
-- Branch: `ci/hardening-1`
-- Code Quality: PASS
-- Tests Ubuntu 3.12: PASS
-- Tests Windows 3.12: PASS
-- Compatibility Ubuntu 3.11: PASS
-- Overall remote CI: PASS
+- PR #13: `P0-B1: prove managed storage independence` (OPEN on `p0-b1-managed-storage-independence`)
 
 ## Known issues / blockers
 
-- Remote GitHub CI still needs to validate the new workflow.
-- Branch Protection has not yet been configured.
-- Architecture Contract Gate, Semantic Safety Gate, and Golden HSMT Gate are not part of CI-Hardening-1.
+- None.
 
 ## Explicitly NOT done
 
-- No P0-B implementation.
-- No Vault / Package Shelf / Recovery implementation.
+- No P0-B2 SHA Vault implementation.
+- No P0-B3 Canonical Package Shelf implementation.
+- No P0-B4 Missing / Recoverable / Safe Restore implementation.
 - No P0-C Bundle Completeness implementation.
 - No R4.3B / SupplyItemParser 13→8 fix.
-- No Semantic Safety implementation.
-- No Golden HSMT CI Gate.
-- No installer build.
-- No release.
+- No Semantic Extraction changes.
+- No installer / release changes.
 
 ## Next recommended task
 
-After CI-Hardening-1 is remotely verified:
-
-`WP2.6-R4.3A / P0-B1 — Managed Storage Independence Regression`
-
-Prove that after successful Document Intake, deleting the original external file does not break the crawler-managed stored document.
+1. Complete ChatGPT independent audit & Human merge for governance and PR #13.
+2. Synchronize feature branches with updated `main`.
+3. Proceed to `WP2.6-R4.3A / P0-B2 — SHA Vault` under the new Adaptive Verification governance.
 
 ## Git state
 
 - Base branch: `main`
-- Verified base commit: `74cab1f`
-- Current working branch: `ci/hardening-1`
-- Functional commit created: YES
-- Functional commit SHA: `80ece6ebeca56d4ea8a4b813131d5d0c9df74ecc`
-- Push performed: YES
-- Remote branch: `origin/ci/hardening-1`
-- PR: NONE
-- CI-Hardening-1: PASS
+- Verified base commit: `7909ccd`
+- Working branch: `governance/adaptive-ci-and-branch-hygiene`
+- Commit created: pending checkpoint
+- Push performed: NO
+- PR: pending
