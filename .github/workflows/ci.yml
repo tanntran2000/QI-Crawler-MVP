@@ -26,6 +26,7 @@ jobs:
   tests-ubuntu-312:
     name: Tests Ubuntu 3.12
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       QT_QPA_PLATFORM: offscreen
 
@@ -38,9 +39,23 @@ jobs:
           cache: pip
 
       - name: Install Linux Qt runtime dependencies
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libegl1 libgl1
+          set -euo pipefail
+
+          sudo apt-get \
+            -o Acquire::Retries=3 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            update
+
+          sudo apt-get \
+            -o Acquire::Retries=3 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            install --yes --no-install-recommends \
+            libegl1 \
+            libgl1
 
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
@@ -71,6 +86,7 @@ jobs:
   compatibility-ubuntu-311:
     name: Compatibility Ubuntu 3.11
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       QT_QPA_PLATFORM: offscreen
 
@@ -83,9 +99,23 @@ jobs:
           cache: pip
 
       - name: Install Linux Qt runtime dependencies
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends libegl1 libgl1
+          set -euo pipefail
+
+          sudo apt-get \
+            -o Acquire::Retries=3 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            update
+
+          sudo apt-get \
+            -o Acquire::Retries=3 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            install --yes --no-install-recommends \
+            libegl1 \
+            libgl1
 
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
