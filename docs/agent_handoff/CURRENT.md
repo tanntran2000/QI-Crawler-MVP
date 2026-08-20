@@ -6,8 +6,8 @@ WP-MI-1 — KHMT Import + Normalization + Province/City Resolution + Core Filter
 
 ## Status
 
-LOCAL PASS — bounded backend implementation; Draft PR hosted CI is running
-naturally. Real golden workbook was not available on this machine.
+LOCAL PASS — real-golden audit fix verified locally; Draft PR exact-head CI
+will run naturally. The real workbook remains unavailable on this machine.
 
 ## CI Fitness Contract
 
@@ -44,6 +44,12 @@ RATIONALE: MI-1 adds an isolated backend over the frozen MI-0 source contract.
 - Added deterministic filters for inclusive budget, province/city, include-ANY
   and exclude keywords, and selection method. Results include reason codes and
   matched fields; no score or bid decision exists.
+- Audit fix parses only the bounded first comma-delimited selection-method
+  component while preserving the complete raw source cell. Unsupported nonblank
+  methods now emit an explicit import issue and cannot match a filter.
+- Added a small versioned mapping for the approved `xã Châu Đức`, `xã Phú Giáo`,
+  and `phường Thới An` evidence patterns. These resolve to HCM as `INFERRED`;
+  generic, unknown, or conflicting units remain `NEEDS_REVIEW`.
 
 ## Files changed
 
@@ -59,18 +65,21 @@ RATIONALE: MI-1 adds an isolated backend over the frozen MI-0 source contract.
 ## Verification
 
 - Collection baseline at task start: `319` tests, zero collection errors.
-- Targeted MI-0/MI-1 regression: `60 passed`.
-- Full local regression: `370 passed` in `272.94s`.
+- Targeted MI-0/MI-1 audit regression: `70 passed`.
+- Full local regression: `380 passed` in `237.96s`.
 - Ruff: PASS; `git diff --check`: PASS.
 - One pre-existing local pytest-cache permission warning; no test failure.
 - Synthetic XLSX fixtures cover valid and malformed schemas/rows, all observed
-  headers plus extras, PL revisions, price formats, location evidence/conflict,
-  and deterministic filter combinations.
+  headers plus extras, PL revisions, real composite selection shapes, approved
+  subunit evidence, price formats, location conflict, and deterministic filters.
 
 ## Real golden and data safety
 
 - `KHMT_19_8_2026.xlsx` was searched for under the user profile and was not found;
   real golden validation is therefore unavailable, not falsely claimed as PASS.
+- ChatGPT's external read-only audit reported `413` source rows and `413` valid
+  PL/package rows. It identified composite selection values normalizing to `None`
+  and three approved HCM subunit patterns; both defects now have sanitized tests.
 - No real KHMT rows, runtime DB, documents, sessions, source fixtures, or secrets
   were read into or added to the repository.
 - No migration, persistence, crawler, HSMT, GUI, export, or CI workflow change.
@@ -90,6 +99,8 @@ RATIONALE: MI-1 adds an isolated backend over the frozen MI-0 source contract.
 - Branch: `wp/mi-1-khmt-import-filter-engine`.
 - Head at task start: `7866eed8b4a6ac182df96d83f5b21bb6e54033e3`.
 - Implementation commit: `6c6ddb0` (`Implement KHMT import and filter engine`).
+- Audit-fix implementation head: `73f21ad4314e5ed986ecc0fbdbf2802df076c7d2`
+  (`Fix KHMT real golden normalization`).
 - Draft PR: [#26](https://github.com/tanntran2000/QI-Crawler-MVP/pull/26) to `main`.
-- Commit/push: implementation commit pushed; handoff update follows on same branch.
-- Hosted CI: natural PR run only; no manual rerun and no merge.
+- Commit/push: audit-fix implementation pushed; this handoff follows on the same branch.
+- Hosted CI: exact-head natural PR run only; no manual rerun and no merge.
