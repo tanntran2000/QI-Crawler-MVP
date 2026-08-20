@@ -549,6 +549,74 @@ def test_human_required_dialog_is_friendly(window: QICrawlerWindow, monkeypatch)
     assert "HTTP 403" in window.log_output.toPlainText()
 
 
+def test_structured_diagnostic_log_redacts_and_copies_ai_report(
+    window: QICrawlerWindow,
+) -> None:
+    try:
+        raise RuntimeError(
+            "Authorization: Bearer secret-auth Cookie: session=secret-cookie; "
+            "password=secret-password otp=123456 api_key=secret-api"
+        )
+    except RuntimeError as error:
+        window._append_log(
+            "Quét lỗi: Authorization: Bearer secret-auth "
+            "session_token=secret-session password=secret-password",
+            level="ERROR",
+            component="crawler",
+            operation="scan",
+            status="FAILED",
+            error_code="SCAN_FAILED",
+            run_id=17,
+            package_id="IB2600000001",
+            document_id=9,
+            exception=error,
+        )
+
+    event = window._diagnostic_events[-1]
+    raw = window.log_raw_output.toPlainText()
+    assert window.log_events_table.rowCount() == 1
+    assert event.level == "ERROR"
+    assert event.operation == "scan"
+    assert event.exception_type == "RuntimeError"
+    assert "[REDACTED]" in raw
+    for secret in (
+        "secret-auth",
+        "secret-cookie",
+        "secret-password",
+        "123456",
+        "secret-api",
+        "secret-session",
+    ):
+        assert secret not in raw
+
+    window.copy_diagnostic_for_ai()
+
+    report = QApplication.clipboard().text()
+    assert "QI-CRAWLER DIAGNOSTIC REPORT" in report
+    assert "Operation: scan" in report
+    assert "Package: IB2600000001" in report
+    assert "Document: 9" in report
+    assert "Recent relevant events:" in report
+    assert "[REDACTED]" in report
+    assert "secret-auth" not in report
+
+
+def test_structured_diagnostic_log_refreshes_selected_event(window: QICrawlerWindow) -> None:
+    window._append_log("Quét danh sách hoàn tất.", operation="scan")
+    window._append_log(
+        "Cần người dùng xử lý.",
+        level="WARNING",
+        operation="access_check",
+        status="HUMAN_REQUIRED",
+    )
+
+    window.log_events_table.selectRow(0)
+
+    assert "Thao tác: scan" in window.log_output.toPlainText()
+    assert '"operation": "scan"' in window.log_raw_output.toPlainText()
+    assert window.copy_diagnostic_button.isEnabled()
+
+
 def test_export_open_action_can_be_mocked_safely(
     window: QICrawlerWindow,
     monkeypatch,
