@@ -88,7 +88,8 @@ def normalize_selection_method(value: Any) -> str | None:
     raw = compact_text(value)
     if raw is None:
         return None
-    return _SELECTION_METHODS.get(normalize_keyword(raw))
+    first_component = raw.split(",", maxsplit=1)[0]
+    return _SELECTION_METHODS.get(normalize_keyword(first_component))
 
 
 def normalize_search_value(value: Any) -> str:

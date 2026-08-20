@@ -6,6 +6,11 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook
 
+from qi_crawler.market_intelligence.filter_engine import (
+    FilterProfile,
+    FilterReasonCode,
+    evaluate_plan_package,
+)
 from qi_crawler.market_intelligence.khmt_contract import OBSERVED_KHMT_HEADERS
 from qi_crawler.market_intelligence.khmt_importer import (
     KHMTImportError,
@@ -205,3 +210,69 @@ def test_invalid_price_is_none_with_issue_while_zero_remains_numeric(tmp_path: P
     assert result.packages[0].package_price_raw == "ambiguous 12,34"
     assert result.packages[1].package_price == 0
     assert KHMTIssueCode.INVALID_PRICE in {issue.code for issue in result.issues}
+
+
+def test_real_golden_shapes_normalize_and_match_without_scoring(tmp_path: Path) -> None:
+    composite_method = (
+        "Chỉ định thầu rút gọn, Không qua mạng, Không sơ tuyển, Một giai đoạn một túi hồ sơ"
+    )
+    rows = [
+        _source_row(
+            **{
+                "SỐ KẾ HOẠCH": f"PL260000010{index}-00",
+                "TÊN DỰ ÁN": f"Synthetic project at {subunit}",
+                "TÊN CHỦ ĐẦU TƯ": "Synthetic unit",
+                "TÊN GÓI THẦU": f"Synthetic package {index}",
+                "GIÁ GÓI THẦU": price,
+                "HÌNH THỨC LỰA CHỌN": composite_method,
+            }
+        )
+        for index, (subunit, price) in enumerate(
+            [
+                ("xã Châu Đức", 477850000),
+                ("xã Phú Giáo", 301214700),
+                ("phường Thới An", 270736180),
+            ],
+            start=1,
+        )
+    ]
+    result = import_khmt_workbook(_write_workbook(tmp_path / "golden-shapes.xlsx", rows))
+    profile = FilterProfile(
+        max_budget=500000000,
+        province_city_codes={"HCM"},
+        selection_methods={"CHI_DINH_THAU_RUT_GON"},
+    )
+
+    evaluations = [evaluate_plan_package(package, profile) for package in result.packages]
+
+    assert all(evaluation.matched for evaluation in evaluations)
+    assert all(
+        evaluation.reasons
+        == (
+            FilterReasonCode.MATCH_BUDGET,
+            FilterReasonCode.MATCH_PROVINCE,
+            FilterReasonCode.MATCH_SELECTION_METHOD,
+        )
+        for evaluation in evaluations
+    )
+    assert all(package.selection_method_raw == composite_method for package in result.packages)
+    assert all(package.province_city_status.value == "INFERRED" for package in result.packages)
+
+
+def test_unknown_method_is_visible_and_does_not_match(tmp_path: Path) -> None:
+    result = import_khmt_workbook(
+        _write_workbook(
+            tmp_path / "unsupported-method.xlsx",
+            [_source_row(**{"HÌNH THỨC LỰA CHỌN": "Unknown future method, Qua mạng"})],
+        )
+    )
+
+    evaluation = evaluate_plan_package(
+        result.packages[0],
+        FilterProfile(selection_methods={"CHI_DINH_THAU_RUT_GON"}),
+    )
+
+    assert result.packages[0].selection_method is None
+    assert KHMTIssueCode.UNSUPPORTED_SELECTION_METHOD in {issue.code for issue in result.issues}
+    assert evaluation.matched is False
+    assert FilterReasonCode.SELECTION_METHOD_NOT_MATCHED in evaluation.reasons

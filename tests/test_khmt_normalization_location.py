@@ -59,11 +59,24 @@ def test_package_price_parsing_is_conservative(raw: object, expected: Decimal | 
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("Chỉ định thầu", "CHI_DINH_THAU"),
-        ("Chỉ định thầu rút gọn", "CHI_DINH_THAU_RUT_GON"),
-        ("Chào hàng cạnh tranh", "CHAO_HANG_CANH_TRANH"),
-        ("Đấu thầu rộng rãi", "DAU_THAU_RONG_RAI"),
+        (
+            "Chỉ định thầu, Không qua mạng, Không sơ tuyển, Một giai đoạn một túi hồ sơ",
+            "CHI_DINH_THAU",
+        ),
+        (
+            "Chỉ định thầu rút gọn, Không qua mạng, Không sơ tuyển, Một giai đoạn một túi hồ sơ",
+            "CHI_DINH_THAU_RUT_GON",
+        ),
+        (
+            "Chào hàng cạnh tranh, Qua mạng, Không sơ tuyển, Một giai đoạn một túi hồ sơ",
+            "CHAO_HANG_CANH_TRANH",
+        ),
+        (
+            "Đấu thầu rộng rãi, Qua mạng, Không sơ tuyển, Một giai đoạn một túi hồ sơ",
+            "DAU_THAU_RONG_RAI",
+        ),
         ("Unknown future method", None),
+        ("Unknown future method, Qua mạng", None),
         (None, None),
     ],
 )
@@ -84,6 +97,29 @@ def test_explicit_hcm_alias_is_confirmed_with_source_evidence(alias: str) -> Non
     assert resolution.name == "Thành phố Hồ Chí Minh"
     assert resolution.status is ProvinceCityStatus.CONFIRMED
     assert resolution.evidence == f"TÊN CHỦ ĐẦU TƯ: Synthetic unit, {alias}"
+
+
+@pytest.mark.parametrize("subunit", ["xã Châu Đức", "xã Phú Giáo", "phường Thới An"])
+def test_approved_hcm_subunit_is_inferred_with_versioned_source_evidence(
+    subunit: str,
+) -> None:
+    raw = f"Synthetic project at {subunit}"
+
+    resolution = resolve_province_city({"TÊN DỰ ÁN": raw})
+
+    assert resolution.code == "HCM"
+    assert resolution.name == "Thành phố Hồ Chí Minh"
+    assert resolution.status is ProvinceCityStatus.INFERRED
+    assert f"TÊN DỰ ÁN: {raw}" in resolution.evidence
+    assert "mapping=" in resolution.evidence
+
+
+@pytest.mark.parametrize("unknown", ["xã", "phường", "Tân Phú", "xã Chưa Xác Định"])
+def test_generic_or_unknown_subunit_remains_needs_review(unknown: str) -> None:
+    resolution = resolve_province_city({"TÊN DỰ ÁN": f"Synthetic project {unknown}"})
+
+    assert resolution.code is None
+    assert resolution.status is ProvinceCityStatus.NEEDS_REVIEW
 
 
 def test_unknown_or_missing_geography_needs_review_without_guessing() -> None:

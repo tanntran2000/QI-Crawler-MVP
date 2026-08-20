@@ -41,6 +41,7 @@ class KHMTIssueCode(StrEnum):
     UNSUPPORTED_WORKBOOK = "UNSUPPORTED_WORKBOOK"
     NO_USABLE_SHEET = "NO_USABLE_SHEET"
     LOCATION_AMBIGUOUS = "LOCATION_AMBIGUOUS"
+    UNSUPPORTED_SELECTION_METHOD = "UNSUPPORTED_SELECTION_METHOD"
 
 
 class KHMTImportError(ValueError):
@@ -252,6 +253,18 @@ def import_khmt_workbook(
                     )
                 )
 
+            selection_method_raw = compact_text(raw_fields.get("HÌNH THỨC LỰA CHỌN"))
+            selection_method = normalize_selection_method(selection_method_raw)
+            if selection_method_raw is not None and selection_method is None:
+                issues.append(
+                    KHMTImportIssue(
+                        KHMTIssueCode.UNSUPPORTED_SELECTION_METHOD,
+                        "Selection method component is not in the bounded mapping",
+                        source_row=row_number,
+                        source_field="HÌNH THỨC LỰA CHỌN",
+                    )
+                )
+
             plan_key = (identity.base_id, identity.revision)
             plan = plans.setdefault(
                 plan_key,
@@ -274,10 +287,8 @@ def import_khmt_workbook(
                     total_investment_raw=compact_text(raw_fields.get("TỔNG MỨC ĐẦU TƯ")),
                     approval_content_raw=compact_text(raw_fields.get("NỘI DUNG PHÊ DUYỆT")),
                     funding_source=compact_text(raw_fields.get("NGUỒN VỐN")),
-                    selection_method_raw=compact_text(raw_fields.get("HÌNH THỨC LỰA CHỌN")),
-                    selection_method=normalize_selection_method(
-                        raw_fields.get("HÌNH THỨC LỰA CHỌN")
-                    ),
+                    selection_method_raw=selection_method_raw,
+                    selection_method=selection_method,
                     selection_schedule_raw=compact_text(raw_fields.get("THỜI GIAN LỰA CHỌN")),
                     contract_type_raw=compact_text(raw_fields.get("HÌNH THỨC HỢP ĐỒNG")),
                     execution_duration_raw=compact_text(raw_fields.get("THỜI GIAN THỰC HIỆN")),

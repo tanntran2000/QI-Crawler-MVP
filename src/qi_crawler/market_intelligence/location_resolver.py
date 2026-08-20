@@ -11,7 +11,8 @@ from qi_crawler.keywords import normalize_keyword
 from .khmt_contract import ProvinceCityStatus
 from .khmt_normalization import compact_text
 
-LOCATION_ALIAS_VERSION = "mi-1-2026-08"
+LOCATION_ALIAS_VERSION = "mi-1-2026-08.1"
+ADMIN_UNIT_MAPPING_VERSION = "mi-1-golden-hcm-2026-08.1"
 LOCATION_EVIDENCE_FIELDS = (
     "TÊN CHỦ ĐẦU TƯ",
     "TÊN DỰ ÁN",
@@ -27,6 +28,13 @@ _LOCATIONS = {
     "HN": (
         "Thành phố Hà Nội",
         ("thành phố hà nội", "tp. hà nội", "tp hà nội", "hà nội"),
+    ),
+}
+
+_ADMIN_UNIT_LOCATIONS = {
+    "HCM": (
+        "Thành phố Hồ Chí Minh",
+        ("xã Châu Đức", "xã Phú Giáo", "phường Thới An"),
     ),
 }
 
@@ -51,27 +59,42 @@ def _contains_alias(text: str, alias: str) -> bool:
 
 
 def resolve_province_city(raw_fields: dict[str, Any]) -> ProvinceCityResolution:
-    matches: dict[str, tuple[str, list[str], str]] = {}
+    matches: dict[str, dict[str, Any]] = {}
     for field_name in LOCATION_EVIDENCE_FIELDS:
         raw_value = compact_text(raw_fields.get(field_name))
         if raw_value is None:
             continue
         for code, (name, aliases) in _LOCATIONS.items():
             if any(_contains_alias(raw_value, alias) for alias in aliases):
-                existing = matches.setdefault(code, (name, [], raw_value))
-                existing[1].append(f"{field_name}: {raw_value}")
+                existing = matches.setdefault(
+                    code,
+                    {"name": name, "evidence": [], "raw": raw_value, "explicit": False},
+                )
+                existing["explicit"] = True
+                existing["evidence"].append(f"{field_name}: {raw_value}")
+        for code, (name, subunits) in _ADMIN_UNIT_LOCATIONS.items():
+            if any(_contains_alias(raw_value, subunit) for subunit in subunits):
+                existing = matches.setdefault(
+                    code,
+                    {"name": name, "evidence": [], "raw": raw_value, "explicit": False},
+                )
+                existing["evidence"].append(
+                    f"{field_name}: {raw_value} [mapping={ADMIN_UNIT_MAPPING_VERSION}]"
+                )
 
     if len(matches) == 1:
-        code, (name, evidence, location_text) = next(iter(matches.items()))
+        code, match = next(iter(matches.items()))
         return ProvinceCityResolution(
             code=code,
-            name=name,
-            status=ProvinceCityStatus.CONFIRMED,
-            evidence=" | ".join(evidence),
-            location_detail_raw=location_text,
+            name=match["name"],
+            status=(
+                ProvinceCityStatus.CONFIRMED if match["explicit"] else ProvinceCityStatus.INFERRED
+            ),
+            evidence=" | ".join(dict.fromkeys(match["evidence"])),
+            location_detail_raw=match["raw"],
         )
     if len(matches) > 1:
-        evidence = [item for _, (_, items, _) in matches.items() for item in items]
+        evidence = [item for match in matches.values() for item in match["evidence"]]
         return ProvinceCityResolution(
             code=None,
             name=None,
