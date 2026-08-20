@@ -2,78 +2,68 @@
 
 ## Task
 
-CI-H2D — Linux Provisioning Stability
+CI-H2E — Windows Required-Gate Runtime Attribution
 
 ## Status
 
-PARTIAL — Linux provisioning is proven stable on the exact implementation head; required Windows serial regression exceeded the 15-minute job budget and was cancelled. Windows is outside this work order and was not changed or rerun.
+PARTIAL — bounded Windows-only observability is implemented locally; exact-head hosted CI is pending. This work package diagnoses runtime only and makes no performance change.
 
-## Baseline and evidence
+## CI Fitness Contract
 
-- Remote `main`: `a90ffd4e17c389f2925cb5b6ce036be1530cd79a`.
-- Baseline collection in the project virtual environment: `307` tests, zero collection errors.
-- PR #18 run `32236391130`: Ubuntu 3.12 completed pytest (`307 passed`); Ubuntu 3.11 stalled in `apt-get` before pytest and was cancelled at the 15-minute job cap.
-- The GUI suite imports PySide6 with `QT_QPA_PLATFORM=offscreen`; `libEGL.so.1` and `libGL.so.1` remain required Linux runtime libraries.
+```text
+CURRENT WP: CI-H2E — Windows Required-Gate Runtime Attribution
+CAPABILITY UNDER CHANGE: Windows serial pytest runtime observability
+CRITICAL RISKS: timeout before useful attribution; accidental canonical-gate change
+BASELINE GATES TO KEEP: four job names; 15-minute cap; Windows `python -m pytest -q`; Linux H2D patch
+WP-SPECIFIC GATES REQUIRED: module start/end/total timing markers visible in Windows logs
+GATES NOT REQUIRED YET: runtime optimization, xdist, test partitioning, timeout increase
+MAX JOB RUNTIME: 15 minutes
+CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES
+RATIONALE: repeated runs vary between healthy and cancelled; timing attribution is needed before any tuning.
+```
+
+## Evidence and attribution boundary
+
+- Project virtual-environment collection baseline: `307` tests, zero collection errors.
+- Exact H2D implementation run `32326389686` (`ca0c1c2`): Windows cancelled after `247 passed in 776.66s`; progress reached 23%, 46%, and 70%, so no individual hanging test is proven.
+- Later exact H2D documentation-head run `32327482088` (`d9fad96`): Windows serial full regression passed in `619s` (10m19s).
+- Therefore the timeout is non-deterministic from current evidence. SQLAlchemy's `KeyboardInterrupt` location is interruption evidence, not root-cause attribution.
 
 ## What changed
 
-- Preserved all four required CI job names and their `timeout-minutes: 15` cap.
-- Preserved Qt offscreen coverage, Ubuntu 3.12, Ubuntu 3.11, and the serial Windows test command.
-- Added a Linux `ldconfig` preflight: when both runtime libraries already exist, apt is skipped.
-- When installation is needed, each `apt-get update` and `apt-get install` command has a hard `180s` foreground cap, retains the existing request retry/timeout settings, and fails explicitly on timeout/failure.
-- Re-checks both libraries after installation; missing libraries fail the job before pytest rather than silently weakening GUI coverage.
+- Added `scripts/ci_windows_runtime_attribution.py`, a Windows-CI-only pytest plugin.
+- It emits flushed `CI_WINDOWS_RUNTIME` markers for session start/finish and each test module's start, end, wall time, call time, and completed test count; interrupted runs still retain completed-module markers and the active module marker.
+- Windows `Full regression` remains exactly `python -m pytest -q`; only that step receives `PYTHONPATH` and `PYTEST_ADDOPTS` to load the observer.
+- No collection, test order, test outcome, production source, business test, migration, dependency, Linux workflow, timeout, or xdist setting changed.
 
 ## Files changed
 
 - `.github/workflows/ci.yml`
+- `scripts/ci_windows_runtime_attribution.py`
 - `docs/agent_handoff/CURRENT.md`
-
-## Architecture / governance impact
-
-- CI infrastructure only. No production source, tests, migrations, dependencies, runtime data, or application behavior changed.
-- CI fitness before this task: `UNSTABLE` because Linux provisioning could consume the full job budget.
-- Linux CI fitness after exact hosted evidence: `FIT` for Qt provisioning; overall required-CI fitness remains `UNSTABLE` because the Windows serial lane exceeds its cap.
 
 ## Local verification
 
-- No full pytest/Ruff run: this is workflow-only and hosted Linux is the relevant environment.
-- YAML CI contract: PASS; all required job names, 15-minute caps, Linux provisioning caps, and serial Windows command were checked.
-- Bash is unavailable on this Windows development machine; hosted Linux is required to execute the shell block.
-- `git diff --check`: PASS before the implementation commit; final documentation checkpoint verification is pending.
+- Targeted plugin run: `tests/test_datetime_utils.py` — `10 passed`; emitted session/group/total markers.
+- The first local targeted run encountered an existing permission denial in `%LOCALAPPDATA%\\Temp\\pytest-of-Admin`; rerun used approved generated path `.tmp/pytest/ci-h2e-plugin` and passed.
+- Targeted Ruff: PASS. Windows workflow contract validation: PASS; job names/caps and canonical serial command are unchanged.
 
-## GitHub verification
+## Exact CI required
 
-- Exact run: `32326389686`, implementation head `ca0c1c2cf7c64295f42e15e96f31b4b153ff696a`.
-- Code Quality: PASS (`28s`).
-- Tests Ubuntu 3.12: PASS (`2m42s`); Linux Qt provisioning completed and full regression passed.
-- Compatibility Ubuntu 3.11: PASS (`1m52s`); Linux Qt provisioning completed and compatibility regression passed.
-- Tests Windows 3.12: CANCELLED at the required `15-minute` cap while its serial full regression was running. This is a pre-existing required-CI blocker, not a Linux provisioning regression.
-- No blind rerun was performed.
-
-## Known blockers
-
-- Windows required-CI runtime remains unresolved: its serial full regression exceeded the cap on run `32326389686`; it is not changed in CI-H2D.
-- PR #13 P0-B1 remains functionally PASS but merge HOLD until required CI is stable.
+- Push the H2E branch and create a draft PR.
+- Read the Windows job for the exact implementation head; record module markers and all four job outcomes.
+- Do not rerun blindly. If the Windows job cancels again, use the final completed-module marker and active-module marker to classify the bottleneck. If it passes, preserve the module totals as healthy-run baseline evidence.
 
 ## Explicitly NOT done
 
-- No P0-B1/P0-B2/P0-C work, production/test/migration change, pytest-xdist change, timeout increase, test skip, dependency change, PR merge, installer or release work.
-
-## PR status
-
-- PR #13: OPEN / HOLD; untouched.
-- PR #17: OPEN / HOLD; its Windows `-n 2` experiment is not continued here.
-- PR #18: DRAFT; untouched.
+- No optimization, test skip/weakening, xdist, serial-command change, timeout increase, Windows runner change, production/test/migration/dependency change, Linux H2D change, P0-B2, WP-MI, merge, installer, or release work.
 
 ## Next recommended task
 
-Create a bounded Windows CI-runtime triage work order. It must diagnose the serial full-regression stall before any change; do not alter the Linux hardening patch or merge P0-B1 while the required lane is unstable.
+After exact-head evidence, request an independent ChatGPT audit. Only then create a separate, bounded work order if a specific runtime bottleneck is proven.
 
 ## Git state
 
-- Branch: `ci/hardening-2d-linux-provisioning-stability`.
-- Base: `a90ffd4e17c389f2925cb5b6ce036be1530cd79a`.
-- Implementation commit: `ca0c1c2cf7c64295f42e15e96f31b4b153ff696a` (`Bound Linux CI Qt provisioning`).
-- Push: `origin/ci/hardening-2d-linux-provisioning-stability` complete.
-- Draft PR: `#19` (`https://github.com/tanntran2000/QI-Crawler-MVP/pull/19`).
-- Documentation checkpoint commit/push: pending final local verification.
+- Branch: `ci/hardening-2e-windows-runtime-attribution`.
+- Base includes CI-H2D branch head `d9fad96` while PR #19 remains unmerged.
+- Commit/push/PR: pending final local verification.

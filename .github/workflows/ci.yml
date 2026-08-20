@@ -102,6 +102,9 @@ jobs:
       - run: python -m pip install -e ".[dev]"
 
       - name: Full regression
+        env:
+          PYTHONPATH: ${{ github.workspace }}\scripts
+          PYTEST_ADDOPTS: -p ci_windows_runtime_attribution
         run: python -m pytest -q
 
   compatibility-ubuntu-311:
