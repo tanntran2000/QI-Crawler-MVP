@@ -105,6 +105,9 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
 
+      - name: Windows environment probes
+        run: python scripts/ci_windows_environment_probe.py
+
       - name: Full regression
         env:
           PYTHONPATH: ${{ github.workspace }}\scripts
