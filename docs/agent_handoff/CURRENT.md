@@ -6,7 +6,7 @@ CI-H3A — Deduplicate Feature-Branch CI Triggers
 
 ## Status
 
-PARTIAL — local trigger-only change is complete; remote PR verification is pending. Historical Windows runtime root cause remains `UNKNOWN`; no runtime optimization is performed in this work package.
+PARTIAL — trigger deduplication is proven on the H3A implementation head, but its single required Windows gate was cancelled at the 15-minute job cap. Historical Windows runtime root cause remains `UNKNOWN`; no runtime optimization is performed in this work package.
 
 ## CI Fitness Contract
 
@@ -58,7 +58,16 @@ RATIONALE: unrestricted push plus pull_request triggers duplicate full CI for on
 
 - Collection baseline: `307` tests, zero collection errors.
 - Workflow inspection confirms exactly `push → main` and `pull_request → main`.
-- Remote verification: pending H3A branch push and PR creation; no manual rerun will be used.
+- H3A implementation-head remote verification: one `pull_request` Python CI run, with no separate feature-branch `push` Python CI for the same commit. No manual rerun was used.
+
+## H3A remote verification
+
+- Draft PR `#21`: `https://github.com/tanntran2000/QI-Crawler-MVP/pull/21`.
+- Implementation head: `956967f4d2f0566af98e998d353ce7c8989e971d`.
+- Exactly one Python CI run was created for that head: `32335767001`, event `pull_request`; no `push`-event Python CI was created for the feature branch.
+- Code Quality: PASS (`34s`); Compatibility Ubuntu 3.11: PASS (`1m35s`); Tests Ubuntu 3.12: PASS (`1m53s`).
+- Tests Windows 3.12: CANCELLED at the unchanged 15-minute job cap. Pytest reached `806.289s`; `tests/test_multisource_tbmt.py` was the active group with `0` completed tests when GitHub cancelled it. This is attribution evidence, not proof that the module caused the historical slow runs.
+- Largest observed **NON-CALL WALL TIME** before cancellation: `test_document_intake.py` `127.655s` wall / `8.496s` call and `test_manual_tender_workspace.py` `107.321s` wall / `14.939s` call. No optimization is authorized in H3A.
 
 ## Historical H2E evidence
 
@@ -73,10 +82,11 @@ RATIONALE: unrestricted push plus pull_request triggers duplicate full CI for on
 
 ## Next recommended task
 
-After remote H3A verification, request independent ChatGPT audit. If the single canonical Windows run exceeds its cap, stop and use H2E attribution evidence; do not optimize in H3A.
+ChatGPT independent audit of H3A remote evidence. The next CI task, if authorized, must be a separate bounded attribution/fix work order using the H2E markers; do not optimize in H3A.
 
 ## Git state
 
 - Base main: `83123cd8cc369cec32bc4cadaf8be0ef104e2a1b` (PR `#19` / CI-H2D and PR `#20` / CI-H2E merged).
 - Branch: `ci/h3a-deduplicate-workflow-triggers`.
-- H3A commit/push/PR: pending remote verification.
+- H3A implementation commit: `956967f4d2f0566af98e998d353ce7c8989e971d` (`Deduplicate feature branch CI triggers`).
+- H3A push: complete; draft PR `#21` is open and unmerged.
