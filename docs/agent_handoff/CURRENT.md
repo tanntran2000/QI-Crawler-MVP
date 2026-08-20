@@ -6,8 +6,8 @@ WP-MI-0 — KHMT Data Contract + Sanitized Golden Fixture
 
 ## Status
 
-LOCAL PASS — bounded contract and synthetic CI fixture only; hosted CI will run
-naturally after the draft PR is pushed.
+LOCAL PASS — bounded contract and synthetic CI fixture only; hosted CI is
+running naturally for the Draft PR exact head.
 
 ## CI Fitness Contract
 
@@ -76,4 +76,7 @@ RATIONALE: MI-0 freezes source facts before any operational Market Intelligence 
 
 - Branch: `wp/mi-0-khmt-data-contract`.
 - Head at task start: `b4db1574737872df1138a75856fa586221b97cab`.
-- Commit/push: pending final verification; no merge.
+- Commit: `cc949db078cb16a1d7a84e09d4317286a8fd2dc9` (`Define KHMT data contract and golden fixture`).
+- Push: completed to `origin/wp/mi-0-khmt-data-contract`; no merge.
+- Draft PR: [#25](https://github.com/tanntran2000/QI-Crawler-MVP/pull/25) to `main`.
+- Hosted CI: naturally in progress for the Draft PR; no manual rerun.
