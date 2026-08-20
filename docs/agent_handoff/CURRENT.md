@@ -6,7 +6,7 @@ CI-H2F — Windows Broad Runtime Degradation Attribution
 
 ## Status
 
-PARTIAL — bounded Windows-environment observability is implemented locally. Hosted evidence is still required; the historical Windows runtime root cause remains `UNKNOWN`. No performance optimization is authorized.
+PASS — bounded Windows-environment observability is proven by hosted run `32340771540`. The historical Windows runtime root cause remains `UNKNOWN`; no performance optimization is authorized.
 
 ## CI Fitness Contract
 
@@ -40,6 +40,15 @@ RATIONALE: two post-H3A Windows serial runs showed broad degradation, but H2E pe
 - All probes use temporary/generated data; filesystem and SQLite probes clean up their own temporary directories. The process probe has a `10s` bound. No metric is a pass/fail threshold; an individual probe error is logged and pytest still runs.
 - H2E `CI_WINDOWS_RUNTIME` module markers remain unchanged, so a future run can compare environmental probes and per-module call/non-call timings.
 
+## H2F hosted evidence
+
+- Exact implementation head: `2416b27dac13dd17c63616ab8a09de2015e29b9e`; exact pull-request run: `32340771540`; result: `SUCCESS`.
+- Required jobs all passed: Code Quality (`27s`), Compatibility Ubuntu 3.11 (`1m56s`), Tests Ubuntu 3.12 (`2m16s`), and Tests Windows 3.12 (`11m30s`).
+- Windows probes: `CPU` `0.204s`; `FILESYSTEM` create/write/read/delete of `360448` bytes `0.002s`; `SQLITE` create/write/read/close of `250` rows `0.126s`; `PROCESS` `0.024s`; `QT` initialization `0.132s`. All recorded `status=OK`.
+- Windows canonical pytest remained `python -m pytest -q`: `307 passed`; H2E session time `606.184s`, compared with healthy H2E baseline about `579.35s`.
+- H2E call-time leaders in this run: `test_tbmt_export.py` `70.302s`; `test_coteccons_scan.py` `45.490s`; `test_hsmt_facts.py` `44.550s`; `test_web_document_intake.py` `37.419s`; `test_gui.py` `25.151s`.
+- **FACT:** this sampled run has normal basic CPU/temp-filesystem/SQLite/subprocess/Qt probe timings and passes below the cap. **INFERENCE:** it provides no evidence of broad environment degradation at job start. It does not establish the cause of either historical slow run.
+
 ## What changed
 
 - Windows CI adds one `Windows environment probes` step before the unchanged canonical `python -m pytest -q` command.
@@ -54,7 +63,7 @@ RATIONALE: two post-H3A Windows serial runs showed broad degradation, but H2E pe
 ## Local verification
 
 - Collection baseline: `307` tests, zero collection errors.
-- The probe script runs locally with isolated temporary files and exits without performance thresholds.
+- The probe script runs locally with isolated temporary files and exits without performance thresholds. A full local pytest attempt encountered pre-existing `%TEMP%` access denial and is not used as H2F evidence; hosted run `32340771540` is the verification authority.
 - Workflow inspection confirms: `push → main`; `pull_request → main`; all four required jobs retain `timeout-minutes: 15`; Windows command remains exactly `python -m pytest -q` with H2E markers enabled.
 
 ## Explicitly NOT done
@@ -63,10 +72,11 @@ RATIONALE: two post-H3A Windows serial runs showed broad degradation, but H2E pe
 
 ## Next recommended task
 
-Allow one naturally triggered CI-H2F pull-request run, compare its `CI_WINDOWS_DIAG` and H2E `CI_WINDOWS_RUNTIME` output with the healthy and two slow runs, then perform a separate evidence review. No H2F follow-up or optimization without new hosted evidence.
+Independent evidence review of the three H2E/H2F hosted samples. Do not open CI-H2G or optimize tests unless a future slow/cancelled run provides new comparable probes and module markers.
 
 ## Git state
 
 - Base main: `9906fe4d33ee50e48719328d2fa78d1eb984d626` (PR `#21` merged).
 - Branch: `ci/h2f-windows-broad-runtime-attribution`.
-- Commit/push: pending local verification; no merge.
+- H2F implementation commit: `2416b27dac13dd17c63616ab8a09de2015e29b9e`; hosted evidence commit pending.
+- No merge.
