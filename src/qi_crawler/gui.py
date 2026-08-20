@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import sys
 import threading
+import traceback
 from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +50,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSpinBox,
+    QSplitter,
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
@@ -112,6 +118,49 @@ PREFERRED_WINDOW_SIZE = (1440, 900)
 MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
+
+_DIAGNOSTIC_SECRET_PATTERN = re.compile(
+    r"(?i)\b(password|passphrase|pwd|otp|cookie|authorization|api[_ -]?key|"
+    r"client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|session[_ -]?(?:id|token)?)"
+    r"\s*([:=])\s*(?:bearer\s+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)"
+)
+_DIAGNOSTIC_COOKIE_HEADER_PATTERN = re.compile(r"(?im)\b((?:set-)?cookie)\s*:\s*[^\r\n]*")
+_DIAGNOSTIC_QUERY_SECRET_PATTERN = re.compile(
+    r"(?i)([?&](?:password|otp|token|api[_-]?key|secret|session(?:_id)?))="
+    r"(?:\"[^\"]*\"|'[^']*'|[^&\s]+)"
+)
+
+
+@dataclass(frozen=True)
+class DiagnosticEvent:
+    """Redacted GUI diagnostic event used by the local log workspace."""
+
+    timestamp: str
+    level: str
+    component: str
+    operation: str
+    status: str
+    error_code: str | None
+    message: str
+    run_id: int | str | None
+    correlation_id: str | None
+    package_id: str | None
+    document_id: int | None
+    elapsed_ms: int | None
+    exception_type: str | None
+    traceback: str | None
+    app_version: str
+
+
+def _redact_diagnostic_text(value: str) -> str:
+    """Remove credential-like values before any GUI diagnostic persistence/display."""
+
+    value = _DIAGNOSTIC_COOKIE_HEADER_PATTERN.sub(
+        lambda match: f"{match.group(1)}=[REDACTED]",
+        value,
+    )
+    value = _DIAGNOSTIC_SECRET_PATTERN.sub(lambda match: f"{match.group(1)}=[REDACTED]", value)
+    return _DIAGNOSTIC_QUERY_SECRET_PATTERN.sub(r"\1=[REDACTED]", value)
 
 
 class WorkerSignals(QObject):
@@ -241,6 +290,7 @@ class QICrawlerWindow(QMainWindow):
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
         self._active_long_operation: str | None = None
+        self._diagnostic_events: list[DiagnosticEvent] = []
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
         self.setMinimumSize(*MINIMUM_WINDOW_SIZE)
         self.setFont(QFont("Segoe UI", 10))
@@ -846,13 +896,45 @@ class QICrawlerWindow(QMainWindow):
 
     def _build_log_page(self) -> None:
         _page, layout = self._new_page(
-            "Nhật ký kỹ thuật",
-            "Thông tin chi tiết dành cho IT khi cần kiểm tra. Team Bid có thể dùng các trang "
-            "chức năng mà không cần đọc phần này.",
+            "Nhật ký chẩn đoán",
+            "Chọn một sự kiện để xem chi tiết hoặc sao chép báo cáo đã che thông tin nhạy cảm "
+            "cho AI/IT hỗ trợ.",
         )
+        actions = QHBoxLayout()
+        self.copy_diagnostic_button = QPushButton("COPY CHO AI")
+        self.copy_diagnostic_button.clicked.connect(self.copy_diagnostic_for_ai)
+        actions.addWidget(self.copy_diagnostic_button)
+        actions.addStretch()
+        layout.addLayout(actions)
+
+        self.log_events_table = QTableWidget(0, 4)
+        self.log_events_table.setHorizontalHeaderLabels(
+            ["Thời gian", "Mức độ", "Thao tác", "Nội dung"]
+        )
+        self.log_events_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.log_events_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.log_events_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.log_events_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.log_events_table.itemSelectionChanged.connect(self._render_selected_diagnostic_event)
+
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
-        layout.addWidget(self.log_output)
+        self.log_raw_output = QTextEdit()
+        self.log_raw_output.setReadOnly(True)
+        details = QGroupBox("CHI TIẾT SỰ KIỆN")
+        details_layout = QVBoxLayout(details)
+        details_layout.addWidget(self.log_output)
+        raw = QGroupBox("DỮ LIỆU KỸ THUẬT ĐÃ CHE")
+        raw_layout = QVBoxLayout(raw)
+        raw_layout.addWidget(self.log_raw_output)
+        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter.addWidget(self.log_events_table)
+        splitter.addWidget(details)
+        splitter.addWidget(raw)
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(2, 1)
+        layout.addWidget(splitter, 1)
 
     def _on_scan_source_changed(self) -> None:
         known_url = str(self.scan_source.currentData() or "")
@@ -1260,9 +1342,125 @@ class QICrawlerWindow(QMainWindow):
         self.document_evidence_view.setPlainText("\n".join(lines))
         self.document_evidence_view.show()
 
-    def _append_log(self, message: str) -> None:
-        self.log_output.append(message)
+    def _append_log(
+        self,
+        message: str,
+        *,
+        level: str = "INFO",
+        component: str = "gui",
+        operation: str = "ui_event",
+        status: str = "COMPLETED",
+        error_code: str | None = None,
+        run_id: int | str | None = None,
+        correlation_id: str | None = None,
+        package_id: str | None = None,
+        document_id: int | None = None,
+        elapsed_ms: int | None = None,
+        exception: BaseException | None = None,
+    ) -> None:
+        event = DiagnosticEvent(
+            timestamp=datetime.now(UTC).isoformat(),
+            level=level,
+            component=component,
+            operation=operation,
+            status=status,
+            error_code=error_code,
+            message=_redact_diagnostic_text(message),
+            run_id=run_id,
+            correlation_id=correlation_id,
+            package_id=package_id,
+            document_id=document_id,
+            elapsed_ms=elapsed_ms,
+            exception_type=type(exception).__name__ if exception else None,
+            traceback=(
+                _redact_diagnostic_text("".join(traceback.format_exception(exception)))
+                if exception
+                else None
+            ),
+            app_version=__version__,
+        )
+        self._diagnostic_events.append(event)
+        row = self.log_events_table.rowCount()
+        self.log_events_table.insertRow(row)
+        for column, value in enumerate(
+            (
+                event.timestamp.replace("T", " ")[:19],
+                event.level,
+                event.operation,
+                event.message,
+            )
+        ):
+            item = QTableWidgetItem(value)
+            item.setData(Qt.ItemDataRole.UserRole, row)
+            self.log_events_table.setItem(row, column, item)
+        self.log_events_table.selectRow(row)
         self.statusBar().showMessage("Đã cập nhật Nhật ký kỹ thuật.", 5000)
+
+    def _selected_diagnostic_event(self) -> DiagnosticEvent | None:
+        selected = self.log_events_table.selectedItems()
+        if not selected:
+            return None
+        index = selected[0].data(Qt.ItemDataRole.UserRole)
+        if isinstance(index, int) and 0 <= index < len(self._diagnostic_events):
+            return self._diagnostic_events[index]
+        return None
+
+    @Slot()
+    def _render_selected_diagnostic_event(self) -> None:
+        event = self._selected_diagnostic_event()
+        if event is None:
+            self.log_output.clear()
+            self.log_raw_output.clear()
+            return
+        details = [
+            f"Thời gian: {event.timestamp}",
+            f"Mức độ: {event.level}",
+            f"Thành phần: {event.component}",
+            f"Thao tác: {event.operation}",
+            f"Trạng thái: {event.status}",
+            f"Mã lỗi: {event.error_code or '-'}",
+            f"Gói: {event.package_id or '-'}",
+            f"Tài liệu: {event.document_id or '-'}",
+            f"Thông điệp: {event.message}",
+        ]
+        if event.exception_type:
+            details.append(f"Ngoại lệ: {event.exception_type}")
+        if event.traceback:
+            details.extend(("Traceback đã che:", event.traceback))
+        self.log_output.setPlainText("\n".join(details))
+        self.log_raw_output.setPlainText(json.dumps(asdict(event), ensure_ascii=False, indent=2))
+
+    @Slot()
+    def copy_diagnostic_for_ai(self) -> None:
+        event = self._selected_diagnostic_event()
+        if event is None:
+            QMessageBox.information(self, "QI-Crawler", "Chưa có sự kiện để sao chép.")
+            return
+        recent = self._diagnostic_events[max(0, len(self._diagnostic_events) - 5) :]
+        recent_lines = [
+            f"- {item.timestamp} | {item.level} | {item.operation} | {item.message}"
+            for item in recent
+        ]
+        report = "\n".join(
+            (
+                "QI-CRAWLER DIAGNOSTIC REPORT",
+                f"Version: {event.app_version}",
+                f"Time: {event.timestamp}",
+                f"Level: {event.level}",
+                f"Component: {event.component}",
+                f"Operation: {event.operation}",
+                f"Package: {event.package_id or '-'}",
+                f"Document: {event.document_id or '-'}",
+                f"Error code: {event.error_code or '-'}",
+                f"Message: {event.message}",
+                f"Exception: {event.exception_type or '-'}",
+                "Recent relevant events:",
+                *recent_lines,
+                f"Environment/context: platform={sys.platform}; active_operation={self._active_long_operation or '-'}",
+            )
+        )
+        QApplication.clipboard().setText(_redact_diagnostic_text(report))
+        self.statusBar().showMessage("Đã sao chép báo cáo chẩn đoán đã che thông tin nhạy cảm.", 5000)
 
     def _submit(
         self,
@@ -1285,6 +1483,12 @@ class QICrawlerWindow(QMainWindow):
             self._active_long_operation = task_name
             self._set_long_operation_controls_enabled(False)
         self._set_job_busy(button, progress, busy=True)
+        self._append_log(
+            "Đã bắt đầu tác vụ giao diện.",
+            component="gui",
+            operation=task_name,
+            status="STARTED",
+        )
         bridge = GuiTaskBridge(
             self,
             button=button,
@@ -1394,8 +1598,13 @@ class QICrawlerWindow(QMainWindow):
             if status is self.document_status:
                 self._set_document_identity_banner(message, critical=True)
             self._append_log(
-                f"DOCUMENT_IDENTITY_MISMATCH expected={error.expected} "
-                f"detected={error.detected}"
+                f"DOCUMENT_IDENTITY_MISMATCH expected={error.expected} detected={error.detected}",
+                level="ERROR",
+                component="document_intake",
+                operation="identity_check",
+                status="BLOCKED",
+                error_code="DOCUMENT_IDENTITY_MISMATCH",
+                exception=error,
             )
             QMessageBox.critical(self, "QI-Crawler", message)
             return
@@ -1410,7 +1619,15 @@ class QICrawlerWindow(QMainWindow):
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
         if status is not None:
             status.setText(message)
-        self._append_log(f"LỖI: {message} Chi tiết kỹ thuật: {error}")
+        self._append_log(
+            f"LỖI: {message} Chi tiết kỹ thuật: {error}",
+            level="ERROR",
+            component="gui_worker",
+            operation="operation",
+            status="FAILED",
+            error_code=type(error).__name__.upper(),
+            exception=error,
+        )
         QMessageBox.critical(self, "QI-Crawler", message)
 
     @Slot()
@@ -1456,7 +1673,10 @@ class QICrawlerWindow(QMainWindow):
         )
         self._append_log(
             f"Quét xong run {summary.run_id or '-'}: {summary.success} thành công, "
-            f"{summary.failed} lỗi, {summary.pending} chờ xử lý."
+            f"{summary.failed} lỗi, {summary.pending} chờ xử lý.",
+            component="crawler",
+            operation="scan",
+            run_id=summary.run_id,
         )
 
     @Slot()
@@ -1964,7 +2184,14 @@ class QICrawlerWindow(QMainWindow):
 
     def show_human_required(self, technical_detail: str) -> None:
         logger.warning("HUMAN_REQUIRED: %s", technical_detail)
-        self._append_log(f"HUMAN_REQUIRED: {technical_detail}")
+        self._append_log(
+            f"HUMAN_REQUIRED: {technical_detail}",
+            level="WARNING",
+            component="compliance",
+            operation="access_check",
+            status="HUMAN_REQUIRED",
+            error_code="HUMAN_REQUIRED",
+        )
         QMessageBox.warning(
             self,
             "Cần người dùng xử lý",
