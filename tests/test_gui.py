@@ -554,13 +554,17 @@ def test_structured_diagnostic_log_redacts_and_copies_ai_report(
 ) -> None:
     try:
         raise RuntimeError(
-            "Authorization: Bearer secret-auth Cookie: session=secret-cookie; "
-            "password=secret-password otp=123456 api_key=secret-api"
+            "Authorization: Bearer secret-auth\n"
+            "Cookie: sid=secret-cookie; csrftoken=secret-csrf\n"
+            "Set-Cookie: refresh=secret-refresh; path=/\n"
+            'password="my secret" otp=123456 api_key=secret-api'
         )
     except RuntimeError as error:
         window._append_log(
-            "Quét lỗi: Authorization: Bearer secret-auth "
-            "session_token=secret-session password=secret-password",
+            "Quét lỗi: Authorization: Bearer secret-auth\n"
+            "Cookie: sid=secret-cookie; csrftoken=secret-csrf\n"
+            "Set-Cookie: refresh=secret-refresh; path=/\n"
+            'session_token=secret-session password="my secret"',
             level="ERROR",
             component="crawler",
             operation="scan",
@@ -582,7 +586,9 @@ def test_structured_diagnostic_log_redacts_and_copies_ai_report(
     for secret in (
         "secret-auth",
         "secret-cookie",
-        "secret-password",
+        "secret-csrf",
+        "secret-refresh",
+        "my secret",
         "123456",
         "secret-api",
         "secret-session",

@@ -6,7 +6,7 @@ WP-UI-3 — Structured Diagnostic Log + Copy for AI
 
 ## Status
 
-LOCAL PASS — hosted CI verification pending on the draft PR.
+LOCAL PASS — audit-fix hosted CI will run naturally for the new exact head after commit/push.
 
 ## CI Fitness Contract
 
@@ -34,6 +34,7 @@ RATIONALE: diagnostics are a GUI-only view over existing GUI log call sites.
 - GUI events now retain timestamp, level, component, operation, status, error code, correlation fields, package/document IDs, exception/traceback, and app version when available.
 - Nhật ký presents a readable event table, selected-event detail, and redacted JSON; `COPY CHO AI` copies a concise local report with recent context.
 - Passwords, OTPs, cookies, sessions, Authorization values, API keys, and matching query values are redacted before GUI raw display or clipboard output.
+- Multi-value `Cookie`/`Set-Cookie` headers are redacted as a complete header; quoted secret values are also redacted.
 
 ## Files changed
 
@@ -46,7 +47,7 @@ RATIONALE: diagnostics are a GUI-only view over existing GUI log call sites.
 - Collection baseline: `308` tests, zero collection errors.
 - Targeted GUI regression: `52 passed` (one pre-existing pytest cache permission warning).
 - Full local regression: `310 passed` (one pre-existing pytest cache permission warning).
-- Ruff and diff checks are pending final execution.
+- Ruff: PASS; `git diff --check`: PASS.
 - No migration, runtime-user-data, crawler, parser, extraction, identity, taxonomy, or database change.
 
 ## Explicitly NOT done
@@ -60,5 +61,5 @@ RATIONALE: diagnostics are a GUI-only view over existing GUI log call sites.
 ## Git state
 
 - Branch: `wp/ui-3-structured-diagnostic-log`.
-- HEAD at handoff preparation: `78f1934aea7472ee911e03c6c6ccd3a3fd86616c` plus uncommitted bounded GUI/test/documentation changes.
-- Commit/push: not yet performed.
+- Parent PR head: `facbbc22cb1044b3ed571b9c8b7cfc87a986d5bb`; audit-fix commit/push follows on the same branch.
+- Hosted CI: pending naturally for the audit-fix exact head; no rerun/cancel/merge.

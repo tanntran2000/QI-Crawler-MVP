@@ -122,10 +122,12 @@ COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
 _DIAGNOSTIC_SECRET_PATTERN = re.compile(
     r"(?i)\b(password|passphrase|pwd|otp|cookie|authorization|api[_ -]?key|"
     r"client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|session[_ -]?(?:id|token)?)"
-    r"\s*([:=])\s*(?:bearer\s+)?[^\s,;]+"
+    r"\s*([:=])\s*(?:bearer\s+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;]+)"
 )
+_DIAGNOSTIC_COOKIE_HEADER_PATTERN = re.compile(r"(?im)\b((?:set-)?cookie)\s*:\s*[^\r\n]*")
 _DIAGNOSTIC_QUERY_SECRET_PATTERN = re.compile(
-    r"(?i)([?&](?:password|otp|token|api[_-]?key|secret|session(?:_id)?))=[^&\s]+"
+    r"(?i)([?&](?:password|otp|token|api[_-]?key|secret|session(?:_id)?))="
+    r"(?:\"[^\"]*\"|'[^']*'|[^&\s]+)"
 )
 
 
@@ -153,6 +155,10 @@ class DiagnosticEvent:
 def _redact_diagnostic_text(value: str) -> str:
     """Remove credential-like values before any GUI diagnostic persistence/display."""
 
+    value = _DIAGNOSTIC_COOKIE_HEADER_PATTERN.sub(
+        lambda match: f"{match.group(1)}=[REDACTED]",
+        value,
+    )
     value = _DIAGNOSTIC_SECRET_PATTERN.sub(lambda match: f"{match.group(1)}=[REDACTED]", value)
     return _DIAGNOSTIC_QUERY_SECRET_PATTERN.sub(r"\1=[REDACTED]", value)
 
