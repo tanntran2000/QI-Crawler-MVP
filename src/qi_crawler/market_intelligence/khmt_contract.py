@@ -15,6 +15,22 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+OBSERVED_KHMT_HEADERS = (
+    "GÓI TIN",
+    "SỐ KẾ HOẠCH",
+    "TÊN DỰ ÁN",
+    "TÊN CHỦ ĐẦU TƯ",
+    "TỔNG MỨC ĐẦU TƯ",
+    "NỘI DUNG PHÊ DUYỆT",
+    "TÊN GÓI THẦU",
+    "NGUỒN VỐN",
+    "GIÁ GÓI THẦU",
+    "HÌNH THỨC LỰA CHỌN",
+    "HÌNH THỨC HỢP ĐỒNG",
+    "THỜI GIAN LỰA CHỌN",
+    "THỜI GIAN THỰC HIỆN",
+)
+
 
 class ProvinceCityStatus(StrEnum):
     """Confidence of the source-provided province/city assignment."""
@@ -39,6 +55,7 @@ class KHMTImportBatch:
 class ProcurementPlan:
     """A procurement plan identity in the PL namespace only."""
 
+    plan_id_raw: str
     plan_base_id: str
     plan_revision: str | None
     import_batch: KHMTImportBatch
@@ -60,10 +77,14 @@ class PlanPackage:
     project: str | None
     package_price_raw: str | None
     package_price: Decimal | None
+    total_investment_raw: str | None
+    approval_content_raw: str | None
     funding_source: str | None
     selection_method_raw: str | None
     selection_method: str | None
     selection_schedule_raw: str | None
+    contract_type_raw: str | None
+    execution_duration_raw: str | None
     location_detail_raw: str | None
     province_city_code: str | None
     province_city_name: str | None
@@ -97,6 +118,7 @@ def load_sanitized_khmt_fixture(path: Path) -> tuple[KHMTImportBatch, tuple[Plan
         plan = plans.setdefault(
             key,
             ProcurementPlan(
+                plan_id_raw=row["plan_id_raw"],
                 plan_base_id=key[0],
                 plan_revision=key[1],
                 import_batch=batch,
@@ -112,10 +134,14 @@ def load_sanitized_khmt_fixture(path: Path) -> tuple[KHMTImportBatch, tuple[Plan
                 project=row.get("project"),
                 package_price_raw=row.get("package_price_raw"),
                 package_price=Decimal(price) if price is not None else None,
+                total_investment_raw=row.get("total_investment_raw"),
+                approval_content_raw=row.get("approval_content_raw"),
                 funding_source=row.get("funding_source"),
                 selection_method_raw=row.get("selection_method_raw"),
                 selection_method=row.get("selection_method"),
                 selection_schedule_raw=row.get("selection_schedule_raw"),
+                contract_type_raw=row.get("contract_type_raw"),
+                execution_duration_raw=row.get("execution_duration_raw"),
                 location_detail_raw=row.get("location_detail_raw"),
                 province_city_code=row.get("province_city_code"),
                 province_city_name=row.get("province_city_name"),

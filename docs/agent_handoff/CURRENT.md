@@ -40,8 +40,10 @@ RATIONALE: MI-0 freezes source facts before any operational Market Intelligence 
 - `PL` and `IB` remain separate namespaces. An optional notice relation may
   only be supplied explicitly; it is never derived from a `PL` value.
 - Added an entirely synthetic deterministic fixture covering multiple package
-  rows for one plan revision, a plan revision change, confirmed province/city
-  records, and an unresolved `NEEDS_REVIEW` location.
+  rows for one plan revision, a plan revision change, all 13 observed KHMT
+  source headers, and unresolved `NEEDS_REVIEW` geography evidence.
+- Preserves raw plan ID separately from base/revision and adds first-class raw
+  total-investment, approval-content, contract-type, and execution-duration fields.
 - Added contract documentation and regression tests for revision identity,
   provenance, raw/normalized coexistence, and no geography guessing.
 
@@ -57,8 +59,8 @@ RATIONALE: MI-0 freezes source facts before any operational Market Intelligence 
 ## Verification
 
 - Collection baseline: `316` tests, zero collection errors.
-- Targeted MI-0 regression: `6 passed` (one pre-existing pytest cache permission warning).
-- Full local regression: `316 passed` (one pre-existing pytest cache permission warning).
+- Targeted MI-0 audit-fix regression: `9 passed` (one pre-existing pytest cache permission warning).
+- Full local regression: `319 passed` (one pre-existing pytest cache permission warning).
 - Ruff: PASS; `git diff --check`: PASS.
 - No migration, runtime-user-data, crawler, parser, extraction, warehouse, or UI change.
 
@@ -76,7 +78,6 @@ RATIONALE: MI-0 freezes source facts before any operational Market Intelligence 
 
 - Branch: `wp/mi-0-khmt-data-contract`.
 - Head at task start: `b4db1574737872df1138a75856fa586221b97cab`.
-- Commit: `cc949db078cb16a1d7a84e09d4317286a8fd2dc9` (`Define KHMT data contract and golden fixture`).
-- Push: completed to `origin/wp/mi-0-khmt-data-contract`; no merge.
+- Commit/push: audit-fix pending final local gate; no merge.
 - Draft PR: [#25](https://github.com/tanntran2000/QI-Crawler-MVP/pull/25) to `main`.
 - Hosted CI: naturally in progress for the Draft PR; no manual rerun.
