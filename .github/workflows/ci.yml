@@ -47,19 +47,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          sudo apt-get \
-            -o Acquire::Retries=3 \
-            -o Acquire::http::Timeout=20 \
-            -o Acquire::https::Timeout=20 \
-            update
+          has_qt_runtime() {
+            local cache
+            cache="$(ldconfig -p)"
+            [[ "$cache" == *"libEGL.so.1"* ]] && [[ "$cache" == *"libGL.so.1"* ]]
+          }
 
-          sudo apt-get \
-            -o Acquire::Retries=3 \
-            -o Acquire::http::Timeout=20 \
-            -o Acquire::https::Timeout=20 \
-            install --yes --no-install-recommends \
-            libegl1 \
-            libgl1
+          apt_with_cap() {
+            if ! timeout --foreground 180s sudo apt-get \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 \
+              "$@"; then
+              echo "ERROR: Linux Qt provisioning failed or exceeded its 180-second cap: apt-get $*" >&2
+              exit 1
+            fi
+          }
+
+          if has_qt_runtime; then
+            echo "Linux Qt runtime libraries already available; skipping apt-get."
+            exit 0
+          fi
+
+          apt_with_cap update
+          apt_with_cap install --yes --no-install-recommends libegl1 libgl1
+
+          if ! has_qt_runtime; then
+            echo "ERROR: libEGL.so.1 and libGL.so.1 are required for PySide6 offscreen tests." >&2
+            exit 1
+          fi
 
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
@@ -108,19 +124,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          sudo apt-get \
-            -o Acquire::Retries=3 \
-            -o Acquire::http::Timeout=20 \
-            -o Acquire::https::Timeout=20 \
-            update
+          has_qt_runtime() {
+            local cache
+            cache="$(ldconfig -p)"
+            [[ "$cache" == *"libEGL.so.1"* ]] && [[ "$cache" == *"libGL.so.1"* ]]
+          }
 
-          sudo apt-get \
-            -o Acquire::Retries=3 \
-            -o Acquire::http::Timeout=20 \
-            -o Acquire::https::Timeout=20 \
-            install --yes --no-install-recommends \
-            libegl1 \
-            libgl1
+          apt_with_cap() {
+            if ! timeout --foreground 180s sudo apt-get \
+              -o Acquire::Retries=3 \
+              -o Acquire::http::Timeout=20 \
+              -o Acquire::https::Timeout=20 \
+              "$@"; then
+              echo "ERROR: Linux Qt provisioning failed or exceeded its 180-second cap: apt-get $*" >&2
+              exit 1
+            fi
+          }
+
+          if has_qt_runtime; then
+            echo "Linux Qt runtime libraries already available; skipping apt-get."
+            exit 0
+          fi
+
+          apt_with_cap update
+          apt_with_cap install --yes --no-install-recommends libegl1 libgl1
+
+          if ! has_qt_runtime; then
+            echo "ERROR: libEGL.so.1 and libGL.so.1 are required for PySide6 offscreen tests." >&2
+            exit 1
+          fi
 
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"

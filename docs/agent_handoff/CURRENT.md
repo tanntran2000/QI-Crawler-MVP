@@ -2,97 +2,73 @@
 
 ## Task
 
-CI-Hardening-2B — Global Runtime Budget + Node24 Action Maintenance
+CI-H2D — Linux Provisioning Stability
 
 ## Status
 
-READY_FOR_CHATGPT_CI_AUDIT — Global 15-minute runtime budget enforced on all 4 jobs, actions upgraded to Node24-compatible versions, least-privilege permissions declared.
+PARTIAL — bounded Linux provisioning patch prepared; exact-head GitHub CI is pending after feature-branch push.
 
-## Previous verified checkpoint
+## Baseline and evidence
 
-- Governance Checkpoint: PASS (PR #15 merged into `main` at commit `8174f46`)
-- P0-B1: PR #13 OPEN (functional verification PASS, awaiting final integration)
+- Remote `main`: `a90ffd4e17c389f2925cb5b6ce036be1530cd79a`.
+- Baseline collection in the project virtual environment: `307` tests, zero collection errors.
+- PR #18 run `32236391130`: Ubuntu 3.12 completed pytest (`307 passed`); Ubuntu 3.11 stalled in `apt-get` before pytest and was cancelled at the 15-minute job cap.
+- The GUI suite imports PySide6 with `QT_QPA_PLATFORM=offscreen`; `libEGL.so.1` and `libGL.so.1` remain required Linux runtime libraries.
 
-## What was done
+## What changed
 
-- **Global 15-Minute Runtime Budget:** Added explicit `timeout-minutes: 15` to `Code Quality` and `Tests Windows 3.12` jobs. All four required CI jobs now have explicit 15-minute runtime caps.
-- **Node24 Action Maintenance:** Upgraded `actions/checkout@v4` → `actions/checkout@v5` and `actions/setup-python@v5` → `actions/setup-python@v6` across all four required jobs to eliminate Node20 runtime deprecation warnings.
-- **Least-Privilege Workflow Permission:** Added top-level `permissions: contents: read` to `.github/workflows/ci.yml`.
-- **Preserved Core CI Gates:** Preserved all four job names (`Code Quality`, `Tests Ubuntu 3.12`, `Tests Windows 3.12`, `Compatibility Ubuntu 3.11`), exact Ruff repository-wide check, full Pytest commands, and Linux apt hardening options.
+- Preserved all four required CI job names and their `timeout-minutes: 15` cap.
+- Preserved Qt offscreen coverage, Ubuntu 3.12, Ubuntu 3.11, and the serial Windows test command.
+- Added a Linux `ldconfig` preflight: when both runtime libraries already exist, apt is skipped.
+- When installation is needed, each `apt-get update` and `apt-get install` command has a hard `180s` foreground cap, retains the existing request retry/timeout settings, and fails explicitly on timeout/failure.
+- Re-checks both libraries after installation; missing libraries fail the job before pytest rather than silently weakening GUI coverage.
 
 ## Files changed
 
 - `.github/workflows/ci.yml`
 - `docs/agent_handoff/CURRENT.md`
 
-## Architecture / contracts affected
+## Architecture / governance impact
 
-- Continuous Integration infrastructure hardened and modernized to Node24 without weakening quality gates or altering runtime application behavior.
-- No production source code, tests, migrations, or database schema were modified.
+- CI infrastructure only. No production source, tests, migrations, dependencies, runtime data, or application behavior changed.
+- CI fitness before this task: `UNSTABLE` because Linux provisioning could consume the full job budget.
+- CI fitness after local workflow review: `FIT_WITH_ADDITION`, pending hosted exact-head proof.
 
-## Database / runtime data
+## Local verification
 
-- Migration: NO
-- Runtime data modified: NO
-- Existing user data deleted: NO
-- `data/documents/` touched: NO
+- No full pytest/Ruff run: this is workflow-only and hosted Linux is the relevant environment.
+- YAML CI contract: PASS; all required job names, 15-minute caps, Linux provisioning caps, and serial Windows command were checked.
+- Bash is unavailable on this Windows development machine; hosted Linux is required to execute the shell block.
+- `git diff --check` and scope review pending final verification.
 
-## Local Verification
+## GitHub verification
 
-- Full regression suite: 307 passed
-- `python -m ruff check .`: PASS (`All checks passed!`)
-- `git diff --check`: PASS (0 errors)
-- `git diff --name-status`: exactly 2 intended files (`.github/workflows/ci.yml`, `docs/agent_handoff/CURRENT.md`)
+- Exact GitHub CI run/head SHA: pending feature-branch push.
+- Required outcomes to record: Code Quality; Tests Ubuntu 3.12; Tests Windows 3.12; Compatibility Ubuntu 3.11.
+- A repeated Linux provisioning timeout is a stop condition; no blind reruns.
 
-## Remote CI Verification
+## Known blockers
 
-- PR: #16
-- Run ID: `32217088480`
-- Code Quality: PASS (32s)
-- Tests Ubuntu 3.12: PASS (1m49s, 307 passed)
-- Compatibility Ubuntu 3.11: PASS (2m6s, 307 passed)
-- Tests Windows 3.12: PASS (11m20s, 307 passed)
-- Node20 deprecation warnings: 0
-- Permission errors: 0
-
-## Active Pull Requests
-
-- PR #16: `CI-Hardening-2B: complete adaptive CI runtime guard` (OPEN on `ci/hardening-2b-global-runtime-node24`)
-- PR #13: `P0-B1: prove managed storage independence` (OPEN on `p0-b1-managed-storage-independence`)
-
-## CI Fitness — Current Phase (Warehouse / Managed Storage / Integrity)
-
-- **Classification:** `FIT`
-- **Rationale:** All four required CI jobs are explicitly bounded to 15 minutes, Node20 action deprecations are resolved, least-privilege permissions are declared, multi-OS matrix (Ubuntu 3.12, Windows 3.12, Ubuntu 3.11) is active, and code quality / test collection integrity are fully preserved.
-
-## Known issues / blockers
-
-- None.
+- Windows required-CI runtime remains unresolved and is not changed in CI-H2D.
+- PR #13 P0-B1 remains functionally PASS but merge HOLD until required CI is stable.
 
 ## Explicitly NOT done
 
-- No P0-B2 SHA Vault implementation.
-- No P0-B3 Canonical Package Shelf implementation.
-- No P0-B4 Missing / Recoverable / Safe Restore implementation.
-- No P0-C Bundle Completeness implementation.
-- No R4.3B / SupplyItemParser 13→8 fix.
-- No Semantic Extraction changes.
-- No installer / release changes.
+- No P0-B1/P0-B2/P0-C work, production/test/migration change, pytest-xdist change, timeout increase, test skip, dependency change, PR merge, installer or release work.
+
+## PR status
+
+- PR #13: OPEN / HOLD; untouched.
+- PR #17: OPEN / HOLD; its Windows `-n 2` experiment is not continued here.
+- PR #18: DRAFT; untouched.
 
 ## Next recommended task
 
-1. ChatGPT audit PR for CI-Hardening-2B.
-2. Human merge CI-Hardening-2B into `main`.
-3. Synchronize `p0-b1-managed-storage-independence` with updated `main`.
-4. Run and verify P0-B1 GitHub CI on new head.
-5. Human merge P0-B1.
-6. Proceed to `WP2.6-R4.3A / P0-B2 — SHA Vault` under the approved Adaptive Verification governance.
+Read exact-head CI evidence for CI-H2D; if all four required jobs pass under 15 minutes, request independent audit before any P0-B1 integration decision.
 
 ## Git state
 
-- Base branch: `main`
-- Verified base commit: `8174f46`
-- Working branch: `ci/hardening-2b-global-runtime-node24`
-- Commit created: YES
-- Push performed: YES
-- PR #16: OPEN (https://github.com/tanntran2000/QI-Crawler-MVP/pull/16)
+- Branch: `ci/hardening-2d-linux-provisioning-stability`.
+- Base: `a90ffd4e17c389f2925cb5b6ce036be1530cd79a`.
+- Commit: pending.
+- Push: pending.
