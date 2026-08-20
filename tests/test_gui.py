@@ -94,11 +94,33 @@ def window(
 
 def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.windowTitle() == f"QI-CRAWLER v{__version__}"
-    assert window.navigation.count() == 7
-    assert window.pages.count() == 7
-    assert window.navigation.item(0).text() == "Quét gói thầu"
-    assert window.navigation.item(5).text() == "HSMT / TÀI LIỆU"
-    assert window.navigation.item(6).text() == "Nhật ký"
+    assert window.navigation.count() == 5
+    assert window.pages.count() == 5
+    assert [window.navigation.item(index).text() for index in range(5)] == [
+        "THU THẬP",
+        "Tìm kiếm",
+        "Xuất TBMT",
+        "HSMT / PHÂN TÍCH",
+        "Nhật ký",
+    ]
+
+
+def test_collection_navigation_keeps_all_crawl_capabilities_reachable(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.collection_tabs.count() == 3
+    assert [window.collection_tabs.tabText(index) for index in range(3)] == [
+        "QUÉT DANH SÁCH",
+        "CRAWL URL",
+        "NGUỒN / ĐĂNG NHẬP",
+    ]
+    assert window.collection_tabs.widget(0) is window.collection_scan_page
+    assert window.collection_tabs.widget(1) is window.collection_crawl_page
+    assert window.collection_tabs.widget(2) is window.collection_login_page
+    assert window.scan_button.parentWidget() is not None
+    assert window.crawl_button.parentWidget() is not None
+    assert window.login_button.parentWidget() is not None
+    assert window.scan_advanced_options.title() == "TÙY CHỌN NÂNG CAO"
 
 
 def test_window_uses_resizable_preferred_geometry(window: QICrawlerWindow) -> None:
@@ -1085,7 +1107,7 @@ def test_manual_workspace_renders_human_declared_identity(window: QICrawlerWindo
 def test_document_workspace_layout_has_three_clear_blocks(
     window: QICrawlerWindow, width: int, height: int
 ) -> None:
-    window.navigation.setCurrentRow(5)
+    window.navigation.setCurrentRow(3)
     window.resize(width, height)
     window.show()
     QApplication.processEvents()
