@@ -2,64 +2,78 @@
 
 ## Task
 
-WP-UI-3 — Structured Diagnostic Log + Copy for AI
+WP-MI-0 — KHMT Data Contract + Sanitized Golden Fixture
 
 ## Status
 
-LOCAL PASS — audit-fix hosted CI will run naturally for the new exact head after commit/push.
+LOCAL PASS — bounded contract and synthetic CI fixture only; hosted CI will run
+naturally after the draft PR is pushed.
 
 ## CI Fitness Contract
 
 ```text
-CURRENT WP: WP-UI-3 — Structured Diagnostic Log + Copy for AI
-CAPABILITY UNDER CHANGE: local PySide6 diagnostic presentation and clipboard output
-CRITICAL RISKS: exposing secrets, losing exception context, or breaking existing GUI log behavior
+CURRENT WP: MI-0 Data Contract + Sanitized Golden Fixture
+CAPABILITY UNDER CHANGE: import-free KHMT source-data contract and deterministic fixture
+CRITICAL RISKS: PL/IB namespace confusion, revision collapse, source-data guessing, or sensitive data in CI
 BASELINE GATES TO KEEP: full regression, Ruff, diff check, existing required hosted jobs
-WP-SPECIFIC GATES REQUIRED: structured-event, redaction, copy-report, and GUI layout tests
-GATES NOT REQUIRED YET: crawler, extraction, schema, migration, authentication, or CI-runtime changes
+WP-SPECIFIC GATES REQUIRED: contract identity, multiple plan rows, raw/normalized coexistence, geography status, provenance, fixture determinism
+GATES NOT REQUIRED YET: Excel import, persistence/migration, filtering, ranking, GUI, human confirmation, export, or legal output
 MAX JOB RUNTIME: 15 minutes
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
-RATIONALE: diagnostics are a GUI-only view over existing GUI log call sites.
+RATIONALE: MI-0 freezes source facts before any operational Market Intelligence behavior exists.
 ```
 
-## Baseline and CI context
+## Baseline and locked numbering
 
-- Base `main`: `78f1934aea7472ee911e03c6c6ccd3a3fd86616c`.
-- WP-UI-1 is merged. CI-H2D, CI-H2E, and CI-H3A are merged; the CI hardening phase is closed.
-- Windows hosted runtime variance remains known technical debt. It is not attributed to this UI work package.
-- CI-H2F is not currently authorized for this work package.
+- Base `main`: `b4db1574737872df1138a75856fa586221b97cab`.
+- WP-UI-3 is merged into this base.
+- `MI-0` Data Contract + Sanitized Golden Fixture.
+- `MI-1` Import + Normalize + Province/City Resolution + Core Filter Engine.
+- `MI-2` Discovery Buckets + Targeted Search Contract.
+- `MI-3` Human Confirmation; `MI-4` Confirmed Excel Export; `MI-5` Legal DOCX;
+  `MI-6` Bid Radar GUI; `PIC-MI-1` Real Business Golden Flow.
 
 ## What changed
 
-- GUI events now retain timestamp, level, component, operation, status, error code, correlation fields, package/document IDs, exception/traceback, and app version when available.
-- Nhật ký presents a readable event table, selected-event detail, and redacted JSON; `COPY CHO AI` copies a concise local report with recent context.
-- Passwords, OTPs, cookies, sessions, Authorization values, API keys, and matching query values are redacted before GUI raw display or clipboard output.
-- Multi-value `Cookie`/`Set-Cookie` headers are redacted as a complete header; quoted secret values are also redacted.
+- Added a bounded in-memory KHMT contract in `market_intelligence`; it has no
+  importer, database model, business score, or UI behavior.
+- `PL` and `IB` remain separate namespaces. An optional notice relation may
+  only be supplied explicitly; it is never derived from a `PL` value.
+- Added an entirely synthetic deterministic fixture covering multiple package
+  rows for one plan revision, a plan revision change, confirmed province/city
+  records, and an unresolved `NEEDS_REVIEW` location.
+- Added contract documentation and regression tests for revision identity,
+  provenance, raw/normalized coexistence, and no geography guessing.
 
 ## Files changed
 
-- `src/qi_crawler/gui.py`
-- `tests/test_gui.py`
+- `src/qi_crawler/market_intelligence/__init__.py`
+- `src/qi_crawler/market_intelligence/khmt_contract.py`
+- `tests/fixtures/khmt/khmt_sanitized_golden.json`
+- `tests/test_khmt_contract.py`
+- `docs/KHMT_DATA_CONTRACT.md`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Verification
 
-- Collection baseline: `308` tests, zero collection errors.
-- Targeted GUI regression: `52 passed` (one pre-existing pytest cache permission warning).
-- Full local regression: `310 passed` (one pre-existing pytest cache permission warning).
+- Collection baseline: `316` tests, zero collection errors.
+- Targeted MI-0 regression: `6 passed` (one pre-existing pytest cache permission warning).
+- Full local regression: `316 passed` (one pre-existing pytest cache permission warning).
 - Ruff: PASS; `git diff --check`: PASS.
-- No migration, runtime-user-data, crawler, parser, extraction, identity, taxonomy, or database change.
+- No migration, runtime-user-data, crawler, parser, extraction, warehouse, or UI change.
 
 ## Explicitly NOT done
 
-- No AI integration, automatic log sending, database migration, crawler/parser/extraction/authentication change, CI tuning, HSMT UI2, WP-MI, installer, or release work.
+- No real KHMT workbook read or commit; no Excel importer, filter/search,
+  persistence/schema migration, Human Confirmation, export, Legal DOCX, GUI,
+  PL-to-IB watcher, AI, GO/HOLD/NO-GO, vendor/model/SKU decision, or scoring.
 
 ## Next action
 
-- Complete local gates, push this branch, create one draft PR to `main`, then let its CI run naturally for ChatGPT review. Do not merge.
+- ChatGPT audit of the MI-0 draft PR, then authorize MI-1 separately.
 
 ## Git state
 
-- Branch: `wp/ui-3-structured-diagnostic-log`.
-- Parent PR head: `facbbc22cb1044b3ed571b9c8b7cfc87a986d5bb`; audit-fix commit/push follows on the same branch.
-- Hosted CI: pending naturally for the audit-fix exact head; no rerun/cancel/merge.
+- Branch: `wp/mi-0-khmt-data-contract`.
+- Head at task start: `b4db1574737872df1138a75856fa586221b97cab`.
+- Commit/push: pending final verification; no merge.
