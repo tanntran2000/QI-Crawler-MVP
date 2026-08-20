@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -369,23 +370,19 @@ class QICrawlerWindow(QMainWindow):
         self.navigation.setObjectName("navigation")
         self.navigation.addItems(
             [
-                "Quét gói thầu",
+                "THU THẬP",
                 "Tìm kiếm",
                 "Xuất TBMT",
-                "Crawl một URL",
-                "Đăng nhập nguồn",
-                "HSMT / TÀI LIỆU",
+                "HSMT / PHÂN TÍCH",
                 "Nhật ký",
             ]
         )
         sidebar_layout.addWidget(self.navigation, 1)
 
         self.pages = QStackedWidget()
-        self._build_scan_page()
+        self._build_collection_page()
         self._build_search_page()
         self._build_export_page()
-        self._build_crawl_page()
-        self._build_login_page()
         self._build_document_page()
         self._build_log_page()
         self._long_operation_buttons = (
@@ -405,7 +402,13 @@ class QICrawlerWindow(QMainWindow):
         shell.addWidget(self.pages, 1)
         self.setCentralWidget(central)
 
-    def _new_page(self, title: str, description: str) -> tuple[QWidget, QVBoxLayout]:
+    def _new_page(
+        self,
+        title: str,
+        description: str,
+        *,
+        add_to_stack: bool = True,
+    ) -> tuple[QWidget, QVBoxLayout]:
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(34, 28, 34, 28)
@@ -418,7 +421,8 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(title_label)
         layout.addWidget(description_label)
         layout.addSpacing(8)
-        self.pages.addWidget(page)
+        if add_to_stack:
+            self.pages.addWidget(page)
         return page, layout
 
     @staticmethod
@@ -449,11 +453,27 @@ class QICrawlerWindow(QMainWindow):
         card_layout.addWidget(name_label)
         return card, value_label
 
-    def _build_scan_page(self) -> None:
+    def _build_collection_page(self) -> None:
+        _page, layout = self._new_page(
+            "Thu thập gói thầu",
+            "Chọn cách thu thập phù hợp: quét danh sách, đọc một URL hoặc đăng nhập nguồn.",
+        )
+        self.collection_tabs = QTabWidget()
+        self.collection_tabs.setObjectName("collectionTabs")
+        self.collection_scan_page = self._build_scan_page()
+        self.collection_crawl_page = self._build_crawl_page()
+        self.collection_login_page = self._build_login_page()
+        self.collection_tabs.addTab(self.collection_scan_page, "QUÉT DANH SÁCH")
+        self.collection_tabs.addTab(self.collection_crawl_page, "CRAWL URL")
+        self.collection_tabs.addTab(self.collection_login_page, "NGUỒN / ĐĂNG NHẬP")
+        layout.addWidget(self.collection_tabs, 1)
+
+    def _build_scan_page(self) -> QWidget:
         _page, layout = self._new_page(
             "Quét danh sách gói thầu",
             "Chọn nguồn, giới hạn số trang danh sách và thêm từ khóa nếu chỉ muốn lọc "
             "một nhóm gói cụ thể.",
+            add_to_stack=False,
         )
         form = QFormLayout()
         form.setHorizontalSpacing(20)
@@ -471,10 +491,13 @@ class QICrawlerWindow(QMainWindow):
         self.scan_keywords = QLineEdit()
         self.scan_keywords.setPlaceholderText("Để trống = tất cả; ví dụ: chống thấm, sơn")
         form.addRow("Nguồn đấu thầu:", self.scan_source)
-        form.addRow("URL danh sách:", self.scan_url)
         form.addRow("Số trang tối đa:", self.scan_max_pages)
         form.addRow("Từ khóa tùy chọn:", self.scan_keywords)
         layout.addLayout(form)
+        self.scan_advanced_options = QGroupBox("TÙY CHỌN NÂNG CAO")
+        advanced_form = QFormLayout(self.scan_advanced_options)
+        advanced_form.addRow("URL danh sách:", self.scan_url)
+        layout.addWidget(self.scan_advanced_options)
         action_row = QHBoxLayout()
         self.scan_button = self._primary_button("Bắt đầu quét")
         self.scan_button.clicked.connect(self.start_scan)
@@ -504,6 +527,7 @@ class QICrawlerWindow(QMainWindow):
             metrics.addWidget(card, index // 4, index % 4)
         layout.addLayout(metrics)
         layout.addStretch()
+        return _page
 
     def _build_search_page(self) -> None:
         _page, layout = self._new_page(
@@ -565,10 +589,11 @@ class QICrawlerWindow(QMainWindow):
         layout.addLayout(open_actions)
         layout.addStretch()
 
-    def _build_crawl_page(self) -> None:
+    def _build_crawl_page(self) -> QWidget:
         _page, layout = self._new_page(
             "Crawl một gói cụ thể",
             "Dùng khi bạn đã có URL trang chi tiết của một gói thầu và muốn lưu ngay vào hệ thống.",
+            add_to_stack=False,
         )
         self.crawl_url = QLineEdit()
         self.crawl_url.setPlaceholderText("Dán URL chi tiết một gói thầu")
@@ -583,12 +608,14 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(self.crawl_progress)
         layout.addWidget(self.crawl_status)
         layout.addStretch()
+        return _page
 
-    def _build_login_page(self) -> None:
+    def _build_login_page(self) -> QWidget:
         _page, layout = self._new_page(
             "Đăng nhập nguồn đấu thầu",
             "QI-Crawler mở trình duyệt để bạn tự đăng nhập. Công cụ không lưu mật khẩu, "
             "OTP hoặc CAPTCHA.",
+            add_to_stack=False,
         )
         self.login_source = QLineEdit("egp")
         self.login_button = self._primary_button("Mở trình duyệt đăng nhập")
@@ -608,10 +635,11 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(self.login_progress)
         layout.addWidget(self.login_status)
         layout.addStretch()
+        return _page
 
     def _build_document_page(self) -> None:
         _page, page_layout = self._new_page(
-            "HSMT / Tài liệu",
+            "HSMT / Phân tích",
             "Chọn một gói đã lưu để quản lý bộ HSMT, nguồn web và các phiên bản tài liệu. "
             "QI-Crawler chỉ lưu khi Identity Guard xác nhận liên kết an toàn.",
         )
