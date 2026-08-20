@@ -78,6 +78,8 @@ RATIONALE: MI-0 freezes source facts before any operational Market Intelligence 
 
 - Branch: `wp/mi-0-khmt-data-contract`.
 - Head at task start: `b4db1574737872df1138a75856fa586221b97cab`.
-- Commit/push: audit-fix pending final local gate; no merge.
+- Audit-fix commit: `0f49b49d09423d7cc10d4c42aab3457ca276c044`
+  (`Preserve observed KHMT source columns`).
+- Push: completed to `origin/wp/mi-0-khmt-data-contract`; no merge.
 - Draft PR: [#25](https://github.com/tanntran2000/QI-Crawler-MVP/pull/25) to `main`.
-- Hosted CI: naturally in progress for the Draft PR; no manual rerun.
+- Hosted CI: naturally in progress for the audit-fix exact head; no manual rerun.
