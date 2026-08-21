@@ -38,7 +38,8 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 - Canonical main base: `2daf4e16d7a3ef7e7bdcda48e1b36faf18bdc750`.
 - Branch: `wp/mi-6-bid-radar-gui`; Draft PR #36:
   `https://github.com/tanntran2000/QI-Crawler-MVP/pull/36`.
-- Previous implementation head: `89d941d`; amendment is ready to commit.
+- Amendment implementation head: `e515cad` (`Harden Bid Radar source switching and errors`).
+- This handoff update is the final documentation commit on the same PR branch.
 - No merge and no manual CI rerun. Natural exact-head CI evidence will be
   recorded after push.
 
