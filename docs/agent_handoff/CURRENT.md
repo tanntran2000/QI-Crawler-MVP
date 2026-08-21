@@ -1,10 +1,52 @@
 # QI-Crawler Agent Handoff
 
-## Current task — WP-MI-4 Confirmed Package Excel Export
+## Current task — CI-RUNTIME-1 Adaptive Runtime Budget
 
 ### Status
 
-LOCAL PASS / DRAFT PR #31 CI PENDING.
+LOCAL PASS / DRAFT PR PENDING.
+
+### CI Fitness Contract
+
+```text
+CURRENT WP: CI-RUNTIME-1 Adaptive Runtime Budget
+CAPABILITY UNDER CHANGE: finite job-specific GitHub Actions runtime budgets
+CRITICAL RISKS: valid Windows regression cancelled by an overly narrow job budget
+BASELINE GATES TO KEEP: unchanged test commands, Ruff, full regression, finite timeouts
+WP-SPECIFIC GATES REQUIRED: Code Quality 10m; Ubuntu 3.12 20m; Windows 3.12 25m;
+  Ubuntu 3.11 20m
+GATES NOT REQUIRED YET: xdist, test changes, dependency changes, production changes
+MAX JOB RUNTIME: 25 minutes (Windows); finite per-job budgets remain mandatory
+CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES
+RATIONALE: Windows full regression can require approximately 12–14 minutes of pytest;
+  a 15-minute total job ceiling can cancel otherwise-valid verification.
+```
+
+### Baseline and execution discipline
+
+- Exact base main: `5592c9cacd1a4da8a7dd13b711fc687b7b04a952` (MI-4 merged).
+- Branch: `ci/adaptive-runtime-budget`.
+- Baseline collection: `430`; no test, dependency, or production-code changes are in scope.
+- Intended files: `.github/workflows/ci.yml` and this handoff only.
+- Test commands remain unchanged; xdist is not introduced.
+
+### Implemented locally
+
+- Code Quality timeout: 10 minutes.
+- Tests Ubuntu 3.12 timeout: 20 minutes.
+- Tests Windows 3.12 timeout: 25 minutes.
+- Compatibility Ubuntu 3.11 timeout: 20 minutes.
+- MI-4 confirmed-package export is merged into `main`; no MI-4 behavior is changed.
+
+### Verification and next action
+
+- Targeted/full pytest, Ruff, diff check, and diff name-status are required before handoff.
+- No manual CI rerun; one Draft PR and natural CI only.
+- Next action: allow natural CI, then ChatGPT independent audit. NO MERGE.
+
+---
+
+## Previous completed task — WP-MI-4 Confirmed Package Excel Export
 
 ### CI Fitness Contract
 
