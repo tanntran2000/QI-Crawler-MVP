@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -274,6 +274,34 @@ class GroundTruthReview(Base):
     extractor_version: Mapped[str] = mapped_column(String(32), nullable=False)
     rule_version: Mapped[str | None] = mapped_column(String(64))
     schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CandidateReviewEvent(Base):
+    """Append-only explicit human decision for one exact KHMT source row."""
+
+    __tablename__ = "candidate_review_events"
+    __table_args__ = (
+        Index("ix_candidate_review_events_candidate_key_id", "candidate_key", "id"),
+        Index("ix_candidate_review_events_source_sha256", "source_sha256"),
+        Index("ix_candidate_review_events_plan_base_id", "plan_base_id"),
+        Index("ix_candidate_review_events_plan_revision", "plan_revision"),
+        Index("ix_candidate_review_events_decision", "decision"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    candidate_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_sheet: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_row: Mapped[int] = mapped_column(Integer, nullable=False)
+    plan_id_raw: Mapped[str] = mapped_column(String(255), nullable=False)
+    plan_base_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    plan_revision: Mapped[str | None] = mapped_column(String(64))
+    decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(255), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    package_snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
+    snapshot_schema_version: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

@@ -1,5 +1,102 @@
 # QI-Crawler Agent Handoff
 
+## Current task — WP-MI-3 Human Confirmation / Candidate Review
+
+### Status
+
+LOCAL PASS / PR CI PENDING.
+
+### CI Fitness Contract
+
+```text
+CURRENT WP: MI-3 Human Confirmation / Candidate Review
+CAPABILITY UNDER CHANGE: explicit append-only human review of exact KHMT candidates
+CRITICAL RISKS: machine auto-confirmation, SHA/revision/row identity collapse,
+  overwritten history, stale historical confirmation, provenance loss
+BASELINE GATES TO KEEP: full regression, Ruff, diff check, Alembic single head
+WP-SPECIFIC GATES REQUIRED: exact identity, human-only writes, append-only history,
+  restart/reattachment, current-confirmed query, migration upgrade/downgrade
+GATES NOT REQUIRED YET: GUI, Excel export, Legal DOCX, AI, scoring, GO/HOLD/NO-GO
+MAX JOB RUNTIME: 15 minutes
+CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
+RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage facts.
+```
+
+### Baseline and execution discipline
+
+- Isolated worktree: `egp-crawler-python-mi3`.
+- Branch: `wp/mi-3-human-candidate-review`.
+- Base main: `313fd7c0dea8da23381ae18c6f4a814c0bcae6b8`.
+- Baseline correction: PR #29 merged; stale release-document test contract closed.
+- CodeGraph was synchronized to the current feature HEAD; impact/edit/test radii
+  are bounded to the MI review domain, ORM/migration support, and MI tests.
+- CodeGraph verdict: `SAFE_TO_VERIFY`; `.codegraph/` remains untracked tool state.
+- Approved Work Order retained; planning override was not used and retroactive TDD
+  was exempt for the pre-existing MI-3 implementation. One new test-only Golden
+  coverage addition required no production behavior change.
+- Systematic debugging was not needed after baseline sync.
+- Verification-before-completion and internal review were executed.
+
+### Implemented locally
+
+- Added `HumanReviewDecision`: `CONFIRMED`, `REJECTED`, `NEEDS_REVIEW`.
+- Exact identity uses source SHA-256, sheet, source row, and raw plan identifier;
+  filename is excluded.
+- `CandidateReviewService` is the sole MI-3 write authority.
+- `CandidateReviewEvent` is append-only; current state uses maximum event ID.
+- An exact repeat of candidate, normalized decision, reviewer and note returns the
+  latest event without adding meaningless history; changed note or reviewer appends.
+- Package snapshots are deterministic, versioned, Unicode-safe JSON.
+- Current-confirmed lookup uses only each exact candidate's latest event.
+- Search, discovery and importer do not write human review events.
+
+### Identity/history contract
+
+- Same SHA/sheet/row/raw PL under a different filename reattaches review state.
+- Changed SHA is a new unreviewed candidate.
+- Revisions and source rows remain isolated.
+- No event means `UNREVIEWED`; no fake unreviewed event is stored.
+- `CONFIRMED -> REJECTED` is excluded from current-confirmed output.
+- `REJECTED -> CONFIRMED` is included.
+- Review never mutates source facts or `PlanPackage`.
+
+### Schema, Golden checks and verification
+
+- Migration: `0012_add_document_bundle_membership` →
+  `0013_add_candidate_review_events`; one Alembic head.
+- Upgrade, downgrade to 0012, and re-upgrade are covered and pass; unrelated
+  tables are preserved.
+- Intended files: `src/qi_crawler/db.py`, `src/qi_crawler/models.py`,
+  `src/qi_crawler/market_intelligence/candidate_review.py`,
+  `alembic/versions/0013_add_candidate_review_events.py`,
+  `tests/test_candidate_review.py`, `tests/test_alembic_migrations.py`, and this handoff.
+- Collection: `423` tests; no collection decrease or error.
+- Candidate-review targeted: `16 passed`; MI targeted: `112 passed`; migration:
+  `7 passed`.
+- Synthetic Golden: 3 explicit confirmations survive service restart and exact
+  source re-import; rejecting one preserves history and reduces current-confirmed
+  count to 2.
+- Real Golden: `NOT EXECUTED / FILE UNAVAILABLE`; the unrelated TBMT workbook was
+  not substituted.
+- Full regression: `423 passed`.
+- Ruff: PASS; diff check: PASS.
+- Internal review: PASS, no Critical/Important/Minor findings.
+
+### Safety, known issues and next action
+
+- Runtime/user database, documents, sessions, cookies and secrets: NOT MODIFIED.
+- Real KHMT workbook: NOT MODIFIED / unavailable. Existing `TBMT_19_8_2026.xlsx`
+  and old `.gitignore` change remain untouched.
+- Known issue: hosted CI is pending; historical Windows runtime variance remains
+  governed by LAW8.
+- Explicitly not done: MI-4 Excel export, MI-5 Legal DOCX, MI-6 GUI, AI,
+  ranking/scoring, GO/HOLD/NO-GO, and PL→IB linking.
+- Next action: ChatGPT Independent Audit after natural Draft PR CI.
+
+---
+
+## Historical MI-2 handoff
+
 ## Task
 
 WP-MI-2 — Discovery Buckets + Targeted Search Contract
