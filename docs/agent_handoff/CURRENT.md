@@ -4,9 +4,7 @@
 
 ### Status
 
-BLOCKED — MI-3 implementation and targeted verification pass, but the approved
-base fails canonical full regression because the simplified README lacks the
-release-version phrase required by `tests/test_cli_help.py`.
+LOCAL PASS / PR CI PENDING.
 
 ### CI Fitness Contract
 
@@ -24,16 +22,20 @@ CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
 RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage facts.
 ```
 
-### Baseline and Phase 0
+### Baseline and execution discipline
 
 - Isolated worktree: `egp-crawler-python-mi3`.
 - Branch: `wp/mi-3-human-candidate-review`.
-- Exact base/HEAD/origin-main: `5dc8cc4008c4eaab94ab0a9dd0e9c4047797d8da`.
-- Fresh local CodeGraph index created for that exact worktree; `.codegraph/` is
-  untracked tool state and must not be committed.
-- Alembic had one head: `0012_add_document_bundle_membership`.
-- Old checkout remains untouched with modified `.gitignore` and untracked
-  `TBMT_19_8_2026.xlsx`.
+- Base main: `313fd7c0dea8da23381ae18c6f4a814c0bcae6b8`.
+- Baseline correction: PR #29 merged; stale release-document test contract closed.
+- CodeGraph was synchronized to the current feature HEAD; impact/edit/test radii
+  are bounded to the MI review domain, ORM/migration support, and MI tests.
+- CodeGraph verdict: `SAFE_TO_VERIFY`; `.codegraph/` remains untracked tool state.
+- Approved Work Order retained; planning override was not used and retroactive TDD
+  was exempt for the pre-existing MI-3 implementation. One new test-only Golden
+  coverage addition required no production behavior change.
+- Systematic debugging was not needed after baseline sync.
+- Verification-before-completion and internal review were executed.
 
 ### Implemented locally
 
@@ -56,28 +58,37 @@ RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage f
 - `REJECTED -> CONFIRMED` is included.
 - Review never mutates source facts or `PlanPackage`.
 
-### Schema, files and verification
+### Schema, Golden checks and verification
 
-- New expected head: `0013_add_candidate_review_events`.
+- Migration: `0012_add_document_bundle_membership` →
+  `0013_add_candidate_review_events`; one Alembic head.
+- Upgrade, downgrade to 0012, and re-upgrade are covered and pass; unrelated
+  tables are preserved.
 - Intended files: `src/qi_crawler/db.py`, `src/qi_crawler/models.py`,
   `src/qi_crawler/market_intelligence/candidate_review.py`,
   `alembic/versions/0013_add_candidate_review_events.py`,
   `tests/test_candidate_review.py`, `tests/test_alembic_migrations.py`, and this handoff.
-- Collection baseline: `406` tests.
-- Targeted MI-3/migration/KHMT contract: `28 passed`.
-- Full regression: `418 passed, 1 failed`.
-- Ruff: PASS; diff check: PASS before this handoff update.
-- Sole failure: missing `Co gi moi trong 0.7.1` in base `README.md`.
-- Runtime/user data impact: NONE.
+- Collection: `420` tests; no collection decrease or error.
+- Targeted MI-0..MI-3: `115 passed`; candidate-review/migration recheck: `20 passed`.
+- Synthetic Golden: 3 explicit confirmations survive service restart and exact
+  source re-import; rejecting one preserves history and reduces current-confirmed
+  count to 2.
+- Real Golden: `NOT EXECUTED / FILE UNAVAILABLE`; the unrelated TBMT workbook was
+  not substituted.
+- Full regression: `420 passed`.
+- Ruff: PASS; diff check: PASS.
+- Internal review: PASS, no Critical/Important/Minor findings.
 
-### Blocker and next action
+### Safety, known issues and next action
 
-- README repair is outside authorized MI-3 scope; no unrelated fix was made.
-- Commit/push/Draft PR: NO.
-- Reviewer should authorize or merge a separate bounded baseline README fix,
-  then rerun full verification and continue MI-3 checkpoint.
-- Not done: MI-4/MI-5/MI-6, GUI, Excel/Legal export, AI, scoring,
-  GO/HOLD/NO-GO, real workbook use, runtime data changes.
+- Runtime/user database, documents, sessions, cookies and secrets: NOT MODIFIED.
+- Real KHMT workbook: NOT MODIFIED / unavailable. Existing `TBMT_19_8_2026.xlsx`
+  and old `.gitignore` change remain untouched.
+- Known issue: hosted CI is pending; historical Windows runtime variance remains
+  governed by LAW8.
+- Explicitly not done: MI-4 Excel export, MI-5 Legal DOCX, MI-6 GUI, AI,
+  ranking/scoring, GO/HOLD/NO-GO, and PL→IB linking.
+- Next action: ChatGPT Independent Audit after natural Draft PR CI.
 
 ---
 
