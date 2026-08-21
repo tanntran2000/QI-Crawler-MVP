@@ -1,5 +1,88 @@
 # QI-Crawler Agent Handoff
 
+## Current task — WP-MI-3 Human Confirmation / Candidate Review
+
+### Status
+
+BLOCKED — MI-3 implementation and targeted verification pass, but the approved
+base fails canonical full regression because the simplified README lacks the
+release-version phrase required by `tests/test_cli_help.py`.
+
+### CI Fitness Contract
+
+```text
+CURRENT WP: MI-3 Human Confirmation / Candidate Review
+CAPABILITY UNDER CHANGE: explicit append-only human review of exact KHMT candidates
+CRITICAL RISKS: machine auto-confirmation, SHA/revision/row identity collapse,
+  overwritten history, stale historical confirmation, provenance loss
+BASELINE GATES TO KEEP: full regression, Ruff, diff check, Alembic single head
+WP-SPECIFIC GATES REQUIRED: exact identity, human-only writes, append-only history,
+  restart/reattachment, current-confirmed query, migration upgrade/downgrade
+GATES NOT REQUIRED YET: GUI, Excel export, Legal DOCX, AI, scoring, GO/HOLD/NO-GO
+MAX JOB RUNTIME: 15 minutes
+CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
+RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage facts.
+```
+
+### Baseline and Phase 0
+
+- Isolated worktree: `egp-crawler-python-mi3`.
+- Branch: `wp/mi-3-human-candidate-review`.
+- Exact base/HEAD/origin-main: `5dc8cc4008c4eaab94ab0a9dd0e9c4047797d8da`.
+- Fresh local CodeGraph index created for that exact worktree; `.codegraph/` is
+  untracked tool state and must not be committed.
+- Alembic had one head: `0012_add_document_bundle_membership`.
+- Old checkout remains untouched with modified `.gitignore` and untracked
+  `TBMT_19_8_2026.xlsx`.
+
+### Implemented locally
+
+- Added `HumanReviewDecision`: `CONFIRMED`, `REJECTED`, `NEEDS_REVIEW`.
+- Exact identity uses source SHA-256, sheet, source row, and raw plan identifier;
+  filename is excluded.
+- `CandidateReviewService` is the sole MI-3 write authority.
+- `CandidateReviewEvent` is append-only; current state uses maximum event ID.
+- Package snapshots are deterministic, versioned, Unicode-safe JSON.
+- Current-confirmed lookup uses only each exact candidate's latest event.
+- Search, discovery and importer do not write human review events.
+
+### Identity/history contract
+
+- Same SHA/sheet/row/raw PL under a different filename reattaches review state.
+- Changed SHA is a new unreviewed candidate.
+- Revisions and source rows remain isolated.
+- No event means `UNREVIEWED`; no fake unreviewed event is stored.
+- `CONFIRMED -> REJECTED` is excluded from current-confirmed output.
+- `REJECTED -> CONFIRMED` is included.
+- Review never mutates source facts or `PlanPackage`.
+
+### Schema, files and verification
+
+- New expected head: `0013_add_candidate_review_events`.
+- Intended files: `src/qi_crawler/db.py`, `src/qi_crawler/models.py`,
+  `src/qi_crawler/market_intelligence/candidate_review.py`,
+  `alembic/versions/0013_add_candidate_review_events.py`,
+  `tests/test_candidate_review.py`, `tests/test_alembic_migrations.py`, and this handoff.
+- Collection baseline: `406` tests.
+- Targeted MI-3/migration/KHMT contract: `28 passed`.
+- Full regression: `418 passed, 1 failed`.
+- Ruff: PASS; diff check: PASS before this handoff update.
+- Sole failure: missing `Co gi moi trong 0.7.1` in base `README.md`.
+- Runtime/user data impact: NONE.
+
+### Blocker and next action
+
+- README repair is outside authorized MI-3 scope; no unrelated fix was made.
+- Commit/push/Draft PR: NO.
+- Reviewer should authorize or merge a separate bounded baseline README fix,
+  then rerun full verification and continue MI-3 checkpoint.
+- Not done: MI-4/MI-5/MI-6, GUI, Excel/Legal export, AI, scoring,
+  GO/HOLD/NO-GO, real workbook use, runtime data changes.
+
+---
+
+## Historical MI-2 handoff
+
 ## Task
 
 WP-MI-2 — Discovery Buckets + Targeted Search Contract
