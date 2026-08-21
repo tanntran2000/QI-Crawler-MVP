@@ -94,11 +94,12 @@ def window(
 
 def test_gui_imports_and_starts(window: QICrawlerWindow) -> None:
     assert window.windowTitle() == f"QI-CRAWLER v{__version__}"
-    assert window.navigation.count() == 5
-    assert window.pages.count() == 5
-    assert [window.navigation.item(index).text() for index in range(5)] == [
+    assert window.navigation.count() == 6
+    assert window.pages.count() == 6
+    assert [window.navigation.item(index).text() for index in range(6)] == [
         "THU THẬP",
         "Tìm kiếm",
+        "Bid Radar",
         "Xuất TBMT",
         "HSMT / PHÂN TÍCH",
         "Nhật ký",
@@ -1181,7 +1182,7 @@ def test_manual_workspace_renders_human_declared_identity(window: QICrawlerWindo
 def test_document_workspace_layout_has_three_clear_blocks(
     window: QICrawlerWindow, width: int, height: int
 ) -> None:
-    window.navigation.setCurrentRow(3)
+    window.navigation.setCurrentRow(4)
     window.resize(width, height)
     window.show()
     QApplication.processEvents()
