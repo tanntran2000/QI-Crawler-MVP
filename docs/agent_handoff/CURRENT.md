@@ -1,6 +1,6 @@
 # QI-Crawler Agent Handoff
 
-## Current task — WP-MI-6 Bid Radar GUI Integration (final audit amendment)
+## Current task — WP-MI-6 source-identity hardening
 
 ### Status
 
@@ -12,6 +12,9 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
   MI-3 human review, MI-4 XLSX export and MI-5 Legal DOCX.
 - Selecting a different KHMT source clears the loaded package universe and
   blocks derived exports until the new source imports successfully.
+- A successful KHMT import retains the existing source SHA-256 contract. Before
+  XLSX or Legal DOCX export, the current file is re-hashed; content changed at
+  the same path clears stale Bid Radar state and requires re-import.
 - Import issues show code, source row when available, and a user-readable message.
 - Expected MI validation/import/review/export errors are mapped to safe Vietnamese
   messages; unexpected exceptions remain generic and redacted in the UI.
@@ -20,18 +23,18 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 ### CodeGraph and verification evidence
 
 - `codegraph sync .` and `codegraph status .`: index up to date (140 files,
-  2,935 nodes, 8,024 edges).
+  2,946 nodes, 8,061 edges).
 - MCP `mcp__codegraph__codegraph_explore` succeeded for the Bid Radar GUI/service
   flow and for `_build_bid_radar_page`, source selection, render, submit and
   worker-error paths. Impact radius: GUI → gui_services → MI-1..MI-5;
   edit radius: `gui.py`, `test_bid_radar_gui.py`, this handoff; test radius:
   Bid Radar, GUI and MI-1..MI-5 suites.
-- TDD RED: four new regression cases failed before the production patch.
-- Targeted MI + GUI verification: `116 passed`.
+- TDD RED: the same-path content-change export test failed before the SHA guard;
+  GREEN after the minimal patch.
+- Targeted MI + GUI verification: `117 passed`.
 - Final GUI verification: `62 passed`.
-- Full regression: `447 passed` with a short Windows basetemp; Ruff: PASS;
-  `git diff --check`: PASS. A longer repo-local basetemp reproduced one
-  unrelated Windows path-length smoke failure, while the short-basetemp run passed.
+- Full regression: `448 passed` with a short Windows basetemp; Ruff: PASS;
+  `git diff --check`: PASS.
 
 ### Git/PR/CI handoff
 
@@ -39,7 +42,8 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 - Branch: `wp/mi-6-bid-radar-gui`; Draft PR #36:
   `https://github.com/tanntran2000/QI-Crawler-MVP/pull/36`.
 - Amendment implementation head: `e515cad` (`Harden Bid Radar source switching and errors`).
-- This handoff update is the final documentation commit on the same PR branch.
+- Source-identity hardening is the next bounded change on the same PR branch;
+  implementation and handoff commit hashes will be recorded after commit.
 - No merge and no manual CI rerun. Natural exact-head CI evidence will be
   recorded after push.
 

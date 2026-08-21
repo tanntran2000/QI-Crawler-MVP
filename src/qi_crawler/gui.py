@@ -107,7 +107,7 @@ from .gui_services import (
 )
 from .logging_utils import configure_logging
 from .market_intelligence.candidate_review import CandidateReviewError
-from .market_intelligence.khmt_importer import KHMTImportError
+from .market_intelligence.khmt_importer import KHMTImportError, _sha256
 from .market_intelligence.legal_docx import LegalDocxExportError
 from .market_intelligence.search import TargetedSearchValidationError
 from .migrations import upgrade_database
@@ -299,6 +299,7 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_packages: tuple[Any, ...] = ()
         self._bid_radar_rows: tuple[BidRadarRow, ...] = ()
         self._bid_radar_loaded_source: Path | None = None
+        self._bid_radar_loaded_sha256: str | None = None
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -765,6 +766,7 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_packages = ()
         self._bid_radar_rows = ()
         self._bid_radar_loaded_source = None
+        self._bid_radar_loaded_sha256 = None
         self.bid_radar_table.setRowCount(0)
         self.bid_radar_table.clearSelection()
         self.bid_radar_reviewer.clear()
@@ -778,10 +780,24 @@ class QICrawlerWindow(QMainWindow):
         if (
             not self._bid_radar_packages
             or self._bid_radar_loaded_source is None
+            or self._bid_radar_loaded_sha256 is None
             or current != self._bid_radar_loaded_source
         ):
             self.bid_radar_status.setText(
                 f"Chưa có dữ liệu KHMT hợp lệ để {action}. Hãy nhập file hiện tại trước."
+            )
+            return False
+        try:
+            current_sha256 = _sha256(current)
+        except OSError:
+            self.bid_radar_status.setText(
+                "Không thể đọc file KHMT hiện tại. Hãy chọn và nhập lại file trước khi xuất."
+            )
+            return False
+        if current_sha256 != self._bid_radar_loaded_sha256:
+            self._clear_bid_radar_loaded_state()
+            self.bid_radar_status.setText(
+                "File KHMT đã thay đổi. Hãy nhập lại trước khi xuất XLSX hoặc Legal DOCX."
             )
             return False
         return True
@@ -861,6 +877,7 @@ class QICrawlerWindow(QMainWindow):
         )
         source_path = getattr(result, "source_path", None)
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
+        self._bid_radar_loaded_sha256 = getattr(result, "source_sha256", None)
         self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
         for row_index, row in enumerate(self._bid_radar_rows):
             package = row.package

@@ -140,6 +140,7 @@ class BidRadarRow:
 @dataclass(frozen=True)
 class BidRadarResult:
     source_path: Path
+    source_sha256: str
     packages: tuple[PlanPackage, ...]
     issues: tuple[KHMTImportIssue, ...]
     rows: tuple[BidRadarRow, ...]
@@ -178,6 +179,7 @@ def run_bid_radar_import_search(
     database.require_current_schema()
     return BidRadarResult(
         source_path=Path(source_path),
+        source_sha256=imported.batch.source_sha256,
         packages=imported.packages,
         issues=imported.issues,
         rows=_bid_radar_rows(database, searched.evaluated),

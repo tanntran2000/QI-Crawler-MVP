@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -163,6 +164,7 @@ def test_review_delegates_to_candidate_review_service(
 def test_exports_delegate_to_mi4_and_mi5_services(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     calls: list[object] = []
 
@@ -170,9 +172,11 @@ def test_exports_delegate_to_mi4_and_mi5_services(
         calls.append(function)
 
     monkeypatch.setattr(window, "_submit", fake_submit)
-    source = Path("khmt.xlsx").resolve()
+    source = tmp_path / "khmt.xlsx"
+    source.write_bytes(b"khmt-source")
     window.bid_radar_path.setText(str(source))
     window._bid_radar_loaded_source = source
+    window._bid_radar_loaded_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     window._bid_radar_packages = (object(),)
 
     window.start_bid_radar_export()
@@ -231,6 +235,46 @@ def test_switching_khmt_source_clears_stale_rows_and_blocks_export(
     assert window._bid_radar_packages == ()
     assert captured == []
     assert "nhập" in window.bid_radar_status.text().lower()
+
+
+def test_changed_khmt_content_at_same_path_blocks_both_exports(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "khmt.xlsx"
+    source.write_bytes(b"source-a")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    package = SimpleNamespace(
+        plan=SimpleNamespace(plan_id_raw="PL-A", plan_base_id="PL-A", plan_revision=None),
+        package_name="Gói A",
+        package_price=100,
+        province_city_name="Hà Nội",
+    )
+    row = SimpleNamespace(package=package, matched=True, reasons=(), review_state="UNREVIEWED")
+    window.bid_radar_path.setText(str(source))
+    window._render_bid_radar_result(
+        SimpleNamespace(
+            source_path=source,
+            source_sha256=source_sha,
+            packages=(package,),
+            rows=(row,),
+            issues=(),
+            matched_count=1,
+            total_examined=1,
+        )
+    )
+    source.write_bytes(b"source-b")
+    captured: list[object] = []
+    monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
+
+    window.start_bid_radar_export()
+    status_after_xlsx = window.bid_radar_status.text().lower()
+    window.start_bid_radar_legal_docx()
+
+    assert captured == []
+    assert "thay đổi" in status_after_xlsx
+    assert "nhập lại" in status_after_xlsx
 
 
 def test_bid_radar_import_issues_show_code_row_and_message(
