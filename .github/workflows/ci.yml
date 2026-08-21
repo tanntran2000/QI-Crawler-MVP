@@ -15,7 +15,7 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v5
@@ -34,7 +34,7 @@ jobs:
   tests-ubuntu-312:
     name: Tests Ubuntu 3.12
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       QT_QPA_PLATFORM: offscreen
 
@@ -90,7 +90,7 @@ jobs:
   tests-windows-312:
     name: Tests Windows 3.12
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       QT_QPA_PLATFORM: offscreen
 
@@ -114,7 +114,7 @@ jobs:
   compatibility-ubuntu-311:
     name: Compatibility Ubuntu 3.11
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       QT_QPA_PLATFORM: offscreen
 
