@@ -48,12 +48,13 @@ The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this
 
 ## CI runtime & triage governance
 
-1. **15-Minute Budget:** Every required CI job must have a maximum runtime budget of 15 minutes.
-2. **Timeout / Stall Triage:** If a required job exceeds 15 minutes or stalls:
+1. **Finite Adaptive Budgets:** Every required CI job must have a finite, job-specific, evidence-based runtime budget defined by the active CI Fitness Contract.
+2. **Timeout / Stall Triage:** If a required job reaches its configured finite budget or stalls, HOLD verification and begin root-cause triage:
    - **HOLD** verification immediately.
    - **Root-Cause Triage:** Classify as `WP_CODE_DEFECT`, `CI_INFRASTRUCTURE_DEFECT`, `DEPENDENCY/NETWORK_DEFECT`, `PRE-EXISTING_TECH_DEBT`, or `UNKNOWN`.
    - If transient CI infrastructure: at most **ONE** rerun. If repeated, stop rerunning and create a bounded CI-hardening task.
    - A fast explicit failure is strictly preferred over an unbounded hang.
+   - Never increase a budget merely to mask defects or instability.
 
 ## Work Order CI fitness contract requirement
 
@@ -68,7 +69,7 @@ CRITICAL RISKS:
 BASELINE GATES TO KEEP:
 WP-SPECIFIC GATES REQUIRED:
 GATES NOT REQUIRED YET:
-MAX JOB RUNTIME: 15 minutes
+MAX JOB RUNTIME: <finite WP/job-specific budget>
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES / NO
 RATIONALE:
 ```

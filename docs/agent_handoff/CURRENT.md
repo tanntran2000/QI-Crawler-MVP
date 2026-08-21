@@ -1,52 +1,51 @@
 # QI-Crawler Agent Handoff
 
-## Current task — CI-RUNTIME-1 Adaptive Runtime Budget
+## Current task — GOVERNANCE-RECONCILE-1
 
 ### Status
 
-LOCAL PASS / DRAFT PR PENDING.
+LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 
 ### CI Fitness Contract
 
 ```text
-CURRENT WP: CI-RUNTIME-1 Adaptive Runtime Budget
-CAPABILITY UNDER CHANGE: finite job-specific GitHub Actions runtime budgets
-CRITICAL RISKS: valid Windows regression cancelled by an overly narrow job budget
-BASELINE GATES TO KEEP: unchanged test commands, Ruff, full regression, finite timeouts
-WP-SPECIFIC GATES REQUIRED: Code Quality 10m; Ubuntu 3.12 20m; Windows 3.12 25m;
-  Ubuntu 3.11 20m
-GATES NOT REQUIRED YET: xdist, test changes, dependency changes, production changes
-MAX JOB RUNTIME: 25 minutes (Windows); finite per-job budgets remain mandatory
-CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES
-RATIONALE: Windows full regression can require approximately 12–14 minutes of pytest;
-  a 15-minute total job ceiling can cancel otherwise-valid verification.
+CURRENT WP: GOVERNANCE-RECONCILE-1
+CAPABILITY UNDER CHANGE: governance and handoff documentation only
+CRITICAL RISKS: stale CI policy or branch history causing incorrect merge decisions
+BASELINE GATES TO KEEP: canonical main, unchanged CI commands, full regression, Ruff, diff check
+WP-SPECIFIC GATES REQUIRED: current finite adaptive budgets and accurate MI handoff
+GATES NOT REQUIRED YET: production changes, test changes, dependency changes, workflow command changes
+MAX JOB RUNTIME: finite, job-specific; current maximum is 25 minutes for Windows Python 3.12
+CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
+RATIONALE: `.github/workflows/ci.yml` already contains the approved adaptive budgets.
 ```
 
 ### Baseline and execution discipline
 
-- Exact base main: `5592c9cacd1a4da8a7dd13b711fc687b7b04a952` (MI-4 merged).
-- Branch: `ci/adaptive-runtime-budget`.
-- Baseline collection: `430`; no test, dependency, or production-code changes are in scope.
-- Intended files: `.github/workflows/ci.yml` and this handoff only.
-- Test commands remain unchanged; xdist is not introduced.
+- Canonical `main` HEAD/origin: `2546155685202abd8d0bae7bd3447651f4d8745b`.
+- PR #32 (`ci/adaptive-runtime-budget`) is merged; one canonical `main` is authoritative.
+- MI-0 through MI-4 are merged into `main`; no feature branch should be treated as canonical.
+- Baseline collection: `430`; this WP changes governance documents only.
+- `.codegraph/` is local-only tooling state and must never be committed.
 
 ### Implemented locally
 
-- Code Quality timeout: 10 minutes.
-- Tests Ubuntu 3.12 timeout: 20 minutes.
-- Tests Windows 3.12 timeout: 25 minutes.
-- Compatibility Ubuntu 3.11 timeout: 20 minutes.
-- MI-4 confirmed-package export is merged into `main`; no MI-4 behavior is changed.
+- Removed the stale universal 15-minute CI rule from `AGENTS.md`.
+- Recorded the canonical adaptive budgets: Quality 10m, Ubuntu 3.12 20m,
+  Windows 3.12 25m, Ubuntu 3.11 20m.
+- Refreshed this handoff to match merged main and the next MI sequence.
+- PR #13 and PR #18 are stale and must not be merged as-is.
 
 ### Verification and next action
 
-- Targeted/full pytest, Ruff, diff check, and diff name-status are required before handoff.
-- No manual CI rerun; one Draft PR and natural CI only.
-- Next action: allow natural CI, then ChatGPT independent audit. NO MERGE.
+- Required local gates: pytest, Ruff, diff check, and diff name-status.
+- Next roadmap: MI-5 Legal DOCX → MI-6 GUI → Real Golden validation.
+- No production code, tests, migrations, dependencies, business data, plugins, or CI commands changed.
+- One short-lived governance branch and one Draft PR only; do not merge.
 
 ---
 
-## Previous completed task — WP-MI-4 Confirmed Package Excel Export
+## Previous completed task — WP-MI-4 Confirmed Package Excel Export (MERGED)
 
 ### CI Fitness Contract
 
@@ -59,7 +58,7 @@ BASELINE GATES TO KEEP: full regression, Ruff, diff check, Alembic single head
 WP-SPECIFIC GATES REQUIRED: latest-state confirmed-only export, exact 13 source
   columns, audit provenance, deterministic ordering, XLSX round-trip, DB immutability
 GATES NOT REQUIRED YET: Legal DOCX, GUI, AI, scoring, GO/HOLD/NO-GO
-MAX JOB RUNTIME: 15 minutes
+MAX JOB RUNTIME: finite, job-specific; current canonical maximum is 25 minutes for Windows Python 3.12
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
 RATIONALE: bounded derived export consuming the already-approved MI-3 read contract.
 ```
@@ -152,7 +151,7 @@ CRITICAL RISKS: missing/double-counted rows, unknown values dropped, second filt
 BASELINE GATES TO KEEP: full regression, Ruff, diff check, existing required hosted jobs
 WP-SPECIFIC GATES REQUIRED: location/budget/selection reconciliation, request validation, MI-1 evaluator reuse, deterministic ordering
 GATES NOT REQUIRED YET: persistence, GUI, human confirmation, export, Legal DOCX, AI, ranking
-MAX JOB RUNTIME: 15 minutes
+MAX JOB RUNTIME: finite, job-specific; current canonical maximum is 25 minutes for Windows Python 3.12
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
 RATIONALE: pure in-memory contracts over the normalized MI-1 package universe.
 ```
