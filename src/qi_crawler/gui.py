@@ -106,6 +106,10 @@ from .gui_services import (
     run_workspace_document_intake,
 )
 from .logging_utils import configure_logging
+from .market_intelligence.candidate_review import CandidateReviewError
+from .market_intelligence.khmt_importer import KHMTImportError
+from .market_intelligence.legal_docx import LegalDocxExportError
+from .market_intelligence.search import TargetedSearchValidationError
 from .migrations import upgrade_database
 from .standalone import (
     StandaloneResourceError,
@@ -294,6 +298,7 @@ class QICrawlerWindow(QMainWindow):
         self._document_session_duplicates = 0
         self._bid_radar_packages: tuple[Any, ...] = ()
         self._bid_radar_rows: tuple[BidRadarRow, ...] = ()
+        self._bid_radar_loaded_source: Path | None = None
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -749,7 +754,37 @@ class QICrawlerWindow(QMainWindow):
             "Excel KHMT (*.xlsx)",
         )
         if path:
-            self.bid_radar_path.setText(path)
+            selected = Path(path).resolve()
+            current_text = self.bid_radar_path.text().strip()
+            current = Path(current_text).resolve() if current_text else None
+            if current is not None and current != selected:
+                self._clear_bid_radar_loaded_state()
+            self.bid_radar_path.setText(str(selected))
+
+    def _clear_bid_radar_loaded_state(self) -> None:
+        self._bid_radar_packages = ()
+        self._bid_radar_rows = ()
+        self._bid_radar_loaded_source = None
+        self.bid_radar_table.setRowCount(0)
+        self.bid_radar_table.clearSelection()
+        self.bid_radar_reviewer.clear()
+        self.bid_radar_note.clear()
+        self.bid_radar_status.setText("Đã đổi file KHMT. Hãy nhập lại để tải dữ liệu mới.")
+        self._on_bid_radar_selected()
+
+    def _bid_radar_export_ready(self, action: str) -> bool:
+        current_text = self.bid_radar_path.text().strip()
+        current = Path(current_text).resolve() if current_text else None
+        if (
+            not self._bid_radar_packages
+            or self._bid_radar_loaded_source is None
+            or current != self._bid_radar_loaded_source
+        ):
+            self.bid_radar_status.setText(
+                f"Chưa có dữ liệu KHMT hợp lệ để {action}. Hãy nhập file hiện tại trước."
+            )
+            return False
+        return True
 
     @staticmethod
     def _split_bid_radar_values(value: str) -> tuple[str, ...]:
@@ -786,6 +821,11 @@ class QICrawlerWindow(QMainWindow):
         if not source.is_file() or source.suffix.lower() != ".xlsx":
             self.bid_radar_status.setText("Vui lòng chọn một file KHMT .xlsx hợp lệ.")
             return
+        if (
+            self._bid_radar_loaded_source is not None
+            and source.resolve() != self._bid_radar_loaded_source
+        ):
+            self._clear_bid_radar_loaded_state()
         try:
             request = self._bid_radar_request()
         except ValueError as exc:
@@ -819,6 +859,8 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_packages = tuple(
             getattr(result, "packages", tuple(row.package for row in self._bid_radar_rows))
         )
+        source_path = getattr(result, "source_path", None)
+        self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
         self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
         for row_index, row in enumerate(self._bid_radar_rows):
             package = row.package
@@ -834,10 +876,17 @@ class QICrawlerWindow(QMainWindow):
             )
             for column, value in enumerate(values):
                 self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
-        self.bid_radar_status.setText(
-            f"Đã nhập {len(self._bid_radar_packages)} gói; phù hợp {result.matched_count}; "
-            f"cảnh báo {len(getattr(result, 'issues', ()))}. Lọc không đồng nghĩa xác nhận."
-        )
+        status_lines = [
+            (
+                f"Đã nhập {len(self._bid_radar_packages)} gói; phù hợp {result.matched_count}; "
+                f"cảnh báo {len(getattr(result, 'issues', ()))}. Lọc không đồng nghĩa xác nhận."
+            )
+        ]
+        for issue in getattr(result, "issues", ()):
+            code = getattr(getattr(issue, "code", None), "value", getattr(issue, "code", "UNKNOWN"))
+            row = f" dòng {issue.source_row}" if getattr(issue, "source_row", None) else ""
+            status_lines.append(f"- {code}{row}: {issue.message}")
+        self.bid_radar_status.setText("\n".join(status_lines))
 
     def _on_bid_radar_selected(self) -> None:
         selected = self.bid_radar_table.currentRow()
@@ -903,8 +952,7 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_bid_radar_export(self) -> None:
-        if not self._bid_radar_packages:
-            self.bid_radar_status.setText("Chưa có dữ liệu KHMT để xuất.")
+        if not self._bid_radar_export_ready("xuất XLSX"):
             return
         self._submit(
             run_bid_radar_export,
@@ -925,8 +973,7 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_bid_radar_legal_docx(self) -> None:
-        if not self._bid_radar_packages:
-            self.bid_radar_status.setText("Chưa có dữ liệu KHMT để tạo Legal DOCX.")
+        if not self._bid_radar_export_ready("tạo Legal DOCX"):
             return
         self._submit(
             run_bid_radar_legal_docx,
@@ -1956,7 +2003,20 @@ class QICrawlerWindow(QMainWindow):
                 status.setText("Cần người dùng xử lý trước khi chạy lại.")
             self.show_human_required(str(error))
             return
-        if isinstance(error, SchemaNotReady):
+        if status is self.bid_radar_status:
+            if isinstance(error, KHMTImportError):
+                message = f"Không thể nhập KHMT: {error}"
+            elif isinstance(error, TargetedSearchValidationError):
+                message = f"Bộ lọc KHMT chưa hợp lệ: {error}"
+            elif isinstance(error, CandidateReviewError):
+                message = f"Không thể lưu quyết định review: {error}"
+            elif isinstance(error, LegalDocxExportError):
+                message = f"Không thể tạo Legal DOCX: {error}"
+            elif isinstance(error, OSError):
+                message = "Không thể ghi file Bid Radar. Hãy đóng file đang mở rồi thử lại."
+            else:
+                message = "Không thể hoàn tất thao tác Bid Radar. Dữ liệu không bị ghi sai."
+        elif isinstance(error, SchemaNotReady):
             message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
