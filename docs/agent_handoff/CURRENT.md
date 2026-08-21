@@ -2,105 +2,102 @@
 
 ## Task
 
-WP-MI-1 — KHMT Import + Normalization + Province/City Resolution + Core Filter Engine
+WP-MI-2 — Discovery Buckets + Targeted Search Contract
 
 ## Status
 
-LOCAL PASS — real-golden audit fix verified locally; Draft PR exact-head CI
-will run naturally. The real workbook remains unavailable on this machine.
+LOCAL PASS — bounded in-memory discovery/search backend. Draft PR #27 exact-head
+CI runs naturally; final DONE requires independent ChatGPT audit.
 
 ## CI Fitness Contract
 
 ```text
-CURRENT WP: MI-1 KHMT Import + Normalization + Province/City Resolution + Core Filter Engine
-CAPABILITY UNDER CHANGE: fail-closed XLSX intake and deterministic explainable filtering
-CRITICAL RISKS: source-column loss, PL/revision collapse, fabricated prices or geography, opaque filtering
+CURRENT WP: MI-2 Discovery Buckets + Targeted Search Contract
+CAPABILITY UNDER CHANGE: in-memory discovery aggregation and reusable targeted search
+CRITICAL RISKS: missing/double-counted rows, unknown values dropped, second filter engine, provenance loss, scoring
 BASELINE GATES TO KEEP: full regression, Ruff, diff check, existing required hosted jobs
-WP-SPECIFIC GATES REQUIRED: schema validation, raw provenance, identity/price/method normalization, location evidence, filter reason codes
-GATES NOT REQUIRED YET: persistence/migration, GUI, discovery buckets, human confirmation, exports, Legal DOCX, AI or scoring
+WP-SPECIFIC GATES REQUIRED: location/budget/selection reconciliation, request validation, MI-1 evaluator reuse, deterministic ordering
+GATES NOT REQUIRED YET: persistence, GUI, human confirmation, export, Legal DOCX, AI, ranking
 MAX JOB RUNTIME: 15 minutes
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
-RATIONALE: MI-1 adds an isolated backend over the frozen MI-0 source contract.
+RATIONALE: pure in-memory contracts over the normalized MI-1 package universe.
 ```
 
-## Baseline and locked numbering
+## Baseline
 
-- Base `main`: `7866eed8b4a6ac182df96d83f5b21bb6e54033e3`.
-- MI-0 is merged into this base.
-- `MI-1` Import + Normalize + Province/City Resolution + Core Filter Engine.
-- `MI-2` Discovery Buckets + Targeted Search Contract.
-- `MI-3` Human Confirmation; `MI-4` Confirmed Excel Export; `MI-5` Legal DOCX;
-  `MI-6` Bid Radar GUI; `PIC-MI-1` Real Business Golden Flow.
+- Base `main`: `63f5a9875ddbe377ec61b6184c6ec21f9134bb63`.
+- MI-0 and MI-1 are merged into this base.
+- Collection baseline: `380` tests, zero collection errors.
 
 ## What changed
 
-- Added a read-only `.xlsx` importer that validates required headers, preserves
-  all 13 observed fields plus extra columns, records SHA/sheet/source-row
-  provenance, and reports malformed rows without returning false-safe success.
-- Added conservative normalization for raw/base/revision `PL` identity, integer
-  package prices, and a bounded set of selection-method values. No `IB` is derived.
-- Added an offline evidence-first province/city resolver. It uses supported source
-  text only; conflicting or absent evidence remains `NEEDS_REVIEW`.
-- Added deterministic filters for inclusive budget, province/city, include-ANY
-  and exclude keywords, and selection method. Results include reason codes and
-  matched fields; no score or bid decision exists.
-- Audit fix parses only the bounded first comma-delimited selection-method
-  component while preserving the complete raw source cell. Unsupported nonblank
-  methods now emit an explicit import issue and cannot match a filter.
-- Added a small versioned mapping for the approved `xã Châu Đức`, `xã Phú Giáo`,
-  and `phường Thới An` evidence patterns. These resolve to HCM as `INFERRED`;
-  generic, unknown, or conflicting units remain `NEEDS_REVIEW`.
+- Added `DiscoverySnapshot` with province/city buckets retaining separate
+  `CONFIRMED` and `INFERRED` counts plus explicit `NEEDS_REVIEW` population.
+- Added mutually exclusive budget buckets: `<=100M`, `>100M..<=300M`,
+  `>300M..<=500M`, `>500M..<=1B`, `>1B`, and `UNKNOWN_PRICE`.
+- Added normalized selection-method counts plus explicit unsupported/unknown count.
+- Added validated `TargetedSearchRequest`, complete per-row evaluations, matched
+  hits, stable input ordering, and explicit examined/matched/nonmatched totals.
+- Search converts the request into MI-1 `FilterProfile` and calls
+  `evaluate_plan_package` once for every package. No second filter engine exists.
+
+## Discovery contract and reconciliation
+
+- Discovery counts `PlanPackage` rows, never unique PL bases; revisions and
+  repeated rows under one plan/revision remain distinct.
+- `resolved location + NEEDS_REVIEW = total_packages`.
+- `all price buckets including UNKNOWN_PRICE = total_packages`.
+- `known selection methods + unsupported/unknown = total_packages`.
+- Invalid resolved-location identity and negative normalized price fail clearly.
+
+## Search contract
+
+- Supports min/max budget, province/city codes, include-ANY keywords,
+  exclude-ANY keywords, and normalized selection methods.
+- Negative budgets and `min > max` fail with `TargetedSearchValidationError`.
+- Every input package receives one `FilterEvaluation`; no unknown value is
+  pre-dropped. Results preserve the original `PlanPackage`, raw fields, and provenance.
+- No score, ranking, confirmation, rejection, GO/HOLD/NO-GO, or business decision.
 
 ## Files changed
 
-- `src/qi_crawler/market_intelligence/filter_engine.py`
-- `src/qi_crawler/market_intelligence/khmt_importer.py`
-- `src/qi_crawler/market_intelligence/khmt_normalization.py`
-- `src/qi_crawler/market_intelligence/location_resolver.py`
-- `tests/test_khmt_filter_engine.py`
-- `tests/test_khmt_importer.py`
-- `tests/test_khmt_normalization_location.py`
+- `src/qi_crawler/market_intelligence/discovery.py`
+- `src/qi_crawler/market_intelligence/search.py`
+- `tests/test_khmt_discovery.py`
+- `tests/test_khmt_search.py`
+- `docs/KHMT_DATA_CONTRACT.md`
 - `docs/agent_handoff/CURRENT.md`
 
 ## Verification
 
-- Collection baseline at task start: `319` tests, zero collection errors.
-- Targeted MI-0/MI-1 audit regression: `70 passed`.
-- Full local regression: `380 passed` in `237.96s`.
+- Targeted MI-0/MI-1/MI-2: `96 passed`.
+- Full local regression: `406 passed` in `258.07s`.
 - Ruff: PASS; `git diff --check`: PASS.
-- One pre-existing local pytest-cache permission warning; no test failure.
-- Synthetic XLSX fixtures cover valid and malformed schemas/rows, all observed
-  headers plus extras, PL revisions, real composite selection shapes, approved
-  subunit evidence, price formats, location conflict, and deterministic filters.
+- One pre-existing local pytest-cache permission warning; no failure.
+- Tests cover empty input, row/revision preservation, all budget boundaries,
+  location/method reconciliation, search validation/reasons/order/provenance,
+  direct MI-1 evaluator reuse, and three synthetic Golden-shaped matches.
 
-## Real golden and data safety
+## Real Golden and safety
 
-- `KHMT_19_8_2026.xlsx` was searched for under the user profile and was not found;
-  real golden validation is therefore unavailable, not falsely claimed as PASS.
-- ChatGPT's external read-only audit reported `413` source rows and `413` valid
-  PL/package rows. It identified composite selection values normalizing to `None`
-  and three approved HCM subunit patterns; both defects now have sanitized tests.
-- No real KHMT rows, runtime DB, documents, sessions, source fixtures, or secrets
-  were read into or added to the repository.
-- No migration, persistence, crawler, HSMT, GUI, export, or CI workflow change.
+- `KHMT_19_8_2026.xlsx` was searched for under the user profile and was not found:
+  `file_available = NO`; no real-Golden PASS or bucket counts are fabricated.
+- Migration = NO; GUI = NO; runtime/user data modified = NO; real workbook modified = NO.
+- No source row, DB, document, session, secret, or external data was committed.
 
-## Explicitly NOT done
+## Known issues and explicitly NOT done
 
-- No MI-2+ work, persistence/schema migration, GUI, discovery bucket, ranking,
-  Human Confirmation, Excel export, Legal DOCX, PL-to-IB watcher, AI, scoring,
-  GO/HOLD/NO-GO, vendor/model/SKU decision, or real-data commit.
+- Real Golden discovery/search acceptance remains pending until the workbook is
+  available read-only on the Codex machine.
+- No MI-3+, saved profile, persistence, GUI, Human Confirmation, confirmed Excel,
+  Legal DOCX, watcher, API, AI, score, notification, or scheduled monitoring.
 
-## Next action
+## Git state and next action
 
-- ChatGPT audit of Draft PR #26. Do not merge or start MI-2 without authorization.
-
-## Git state
-
-- Branch: `wp/mi-1-khmt-import-filter-engine`.
-- Head at task start: `7866eed8b4a6ac182df96d83f5b21bb6e54033e3`.
-- Implementation commit: `6c6ddb0` (`Implement KHMT import and filter engine`).
-- Audit-fix implementation head: `73f21ad4314e5ed986ecc0fbdbf2802df076c7d2`
-  (`Fix KHMT real golden normalization`).
-- Draft PR: [#26](https://github.com/tanntran2000/QI-Crawler-MVP/pull/26) to `main`.
-- Commit/push: audit-fix implementation pushed; this handoff follows on the same branch.
-- Hosted CI: exact-head natural PR run only; no manual rerun and no merge.
+- Branch: `wp/mi-2-discovery-targeted-search`.
+- Implementation head: `c025317334c71649177c0fdf4bbad222db632a7e`
+  (`Add KHMT discovery and targeted search contract`).
+- Push: implementation commit completed to the feature branch.
+- Draft PR: [#27](https://github.com/tanntran2000/QI-Crawler-MVP/pull/27) to `main`.
+- CI: natural PR run only; no manual rerun, workflow edit, or merge.
+- Next: ChatGPT independent audit. Do not start MI-3 without authorization.
