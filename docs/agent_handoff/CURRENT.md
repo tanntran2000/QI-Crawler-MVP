@@ -42,8 +42,9 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 - Branch: `wp/mi-6-bid-radar-gui`; Draft PR #36:
   `https://github.com/tanntran2000/QI-Crawler-MVP/pull/36`.
 - Amendment implementation head: `e515cad` (`Harden Bid Radar source switching and errors`).
-- Source-identity hardening is the next bounded change on the same PR branch;
-  implementation and handoff commit hashes will be recorded after commit.
+- Source-identity hardening commit: `ac9330b9edbe3ea3dd4de767d54255c4e874aa31`.
+- Natural exact-head CI run `32510703090` is in progress; no manual rerun and no
+  merge.
 - No merge and no manual CI rerun. Natural exact-head CI evidence will be
   recorded after push.
 
