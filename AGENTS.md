@@ -48,12 +48,13 @@ The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this
 
 ## CI runtime & triage governance
 
-1. **Finite Adaptive Budgets:** Every required CI job must have a finite, job-specific runtime budget. The current canonical budgets are Code Quality 10 minutes, Ubuntu Python 3.12 20 minutes, Windows Python 3.12 25 minutes, and Ubuntu Python 3.11 20 minutes.
-2. **Timeout / Stall Triage:** If a required job reaches its configured finite budget or stalls:
+1. **Finite Adaptive Budgets:** Every required CI job must have a finite, job-specific, evidence-based runtime budget defined by the active CI Fitness Contract.
+2. **Timeout / Stall Triage:** If a required job reaches its configured finite budget or stalls, HOLD verification and begin root-cause triage:
    - **HOLD** verification immediately.
    - **Root-Cause Triage:** Classify as `WP_CODE_DEFECT`, `CI_INFRASTRUCTURE_DEFECT`, `DEPENDENCY/NETWORK_DEFECT`, `PRE-EXISTING_TECH_DEBT`, or `UNKNOWN`.
    - If transient CI infrastructure: at most **ONE** rerun. If repeated, stop rerunning and create a bounded CI-hardening task.
    - A fast explicit failure is strictly preferred over an unbounded hang.
+   - Never increase a budget merely to mask defects or instability.
 
 ## Work Order CI fitness contract requirement
 
@@ -68,7 +69,7 @@ CRITICAL RISKS:
 BASELINE GATES TO KEEP:
 WP-SPECIFIC GATES REQUIRED:
 GATES NOT REQUIRED YET:
-MAX JOB RUNTIME: finite, job-specific; current maximum is 25 minutes for Windows Python 3.12
+MAX JOB RUNTIME: <finite WP/job-specific budget>
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES / NO
 RATIONALE:
 ```
