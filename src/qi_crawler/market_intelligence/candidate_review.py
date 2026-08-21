@@ -125,6 +125,22 @@ class CandidateReviewService:
         snapshot = serialize_package_snapshot(package)
 
         with self.database.session() as session:
+            latest = session.scalar(
+                select(CandidateReviewEvent)
+                .where(CandidateReviewEvent.candidate_key == identity.candidate_key)
+                .order_by(CandidateReviewEvent.id.desc())
+                .limit(1)
+            )
+            if latest is not None and (
+                latest.decision,
+                latest.reviewer,
+                latest.note,
+            ) == (
+                normalized_decision.value,
+                normalized_reviewer,
+                normalized_note,
+            ):
+                return latest
             event = CandidateReviewEvent(
                 candidate_key=identity.candidate_key,
                 source_sha256=identity.source_sha256,

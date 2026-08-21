@@ -44,6 +44,8 @@ RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage f
   filename is excluded.
 - `CandidateReviewService` is the sole MI-3 write authority.
 - `CandidateReviewEvent` is append-only; current state uses maximum event ID.
+- An exact repeat of candidate, normalized decision, reviewer and note returns the
+  latest event without adding meaningless history; changed note or reviewer appends.
 - Package snapshots are deterministic, versioned, Unicode-safe JSON.
 - Current-confirmed lookup uses only each exact candidate's latest event.
 - Search, discovery and importer do not write human review events.
@@ -68,14 +70,15 @@ RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage f
   `src/qi_crawler/market_intelligence/candidate_review.py`,
   `alembic/versions/0013_add_candidate_review_events.py`,
   `tests/test_candidate_review.py`, `tests/test_alembic_migrations.py`, and this handoff.
-- Collection: `420` tests; no collection decrease or error.
-- Targeted MI-0..MI-3: `115 passed`; candidate-review/migration recheck: `20 passed`.
+- Collection: `423` tests; no collection decrease or error.
+- Candidate-review targeted: `16 passed`; MI targeted: `112 passed`; migration:
+  `7 passed`.
 - Synthetic Golden: 3 explicit confirmations survive service restart and exact
   source re-import; rejecting one preserves history and reduces current-confirmed
   count to 2.
 - Real Golden: `NOT EXECUTED / FILE UNAVAILABLE`; the unrelated TBMT workbook was
   not substituted.
-- Full regression: `420 passed`.
+- Full regression: `423 passed`.
 - Ruff: PASS; diff check: PASS.
 - Internal review: PASS, no Critical/Important/Minor findings.
 

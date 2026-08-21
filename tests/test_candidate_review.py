@@ -88,6 +88,59 @@ def test_explicit_decisions_are_append_only_and_latest_id_is_current(tmp_path: P
     assert service.current_event(package).id == third.id
 
 
+def test_exact_duplicate_human_decision_returns_latest_without_new_event(
+    tmp_path: Path,
+) -> None:
+    _, service = _service(tmp_path)
+    package = _packages()[0]
+
+    first = service.record_decision(
+        package,
+        decision=" confirmed ",
+        reviewer=" Team Bid ",
+        note=" Đã kiểm tra ",
+    )
+    duplicate = service.record_decision(
+        package,
+        decision=HumanReviewDecision.CONFIRMED,
+        reviewer="Team Bid",
+        note="Đã kiểm tra",
+    )
+
+    assert duplicate.id == first.id
+    assert [event.id for event in service.list_history(package)] == [first.id]
+
+
+def test_same_decision_with_changed_note_appends_event(tmp_path: Path) -> None:
+    _, service = _service(tmp_path)
+    package = _packages()[0]
+
+    first = service.record_decision(
+        package, decision="CONFIRMED", reviewer="Team Bid", note="Lần một"
+    )
+    changed = service.record_decision(
+        package, decision="CONFIRMED", reviewer="Team Bid", note="Lần hai"
+    )
+
+    assert changed.id != first.id
+    assert [event.id for event in service.list_history(package)] == [first.id, changed.id]
+
+
+def test_same_decision_with_changed_reviewer_appends_event(tmp_path: Path) -> None:
+    _, service = _service(tmp_path)
+    package = _packages()[0]
+
+    first = service.record_decision(
+        package, decision="CONFIRMED", reviewer="Maker", note="Đã kiểm tra"
+    )
+    changed = service.record_decision(
+        package, decision="CONFIRMED", reviewer="Checker", note="Đã kiểm tra"
+    )
+
+    assert changed.id != first.id
+    assert [event.id for event in service.list_history(package)] == [first.id, changed.id]
+
+
 def test_current_confirmed_uses_latest_decision_not_historical_confirmation(
     tmp_path: Path,
 ) -> None:
