@@ -26,7 +26,11 @@ RATIONALE: bounded derived output using the existing MI-3 review authority and M
 - MI-0 through MI-4 are merged into `main`; this WP is on `wp/mi-5-legal-docx`.
 - Baseline collection: `430`; no unexpected collection decrease is allowed.
 - `.codegraph/` is local-only tooling state and must never be committed.
-- CodeGraph was attempted first but is unavailable because this checkout has no `.codegraph/` index.
+- CodeGraph was initialized, synchronized, and status-verified in this checkout; MCP
+  `codegraph_explore` succeeded for the MI-3 → MI-4/MI-5 flow. `.codegraph/` is local-only.
+- Impact radius: `current_confirmed → ReviewedCandidate → PlanPackage →
+  confirmed_package_export / legal_docx`; edit radius for this amendment is the MI-5 test only;
+  test radius is `tests/test_legal_docx.py` plus the MI-3/MI-4 targeted suite.
 
 ### Implemented locally
 
@@ -40,13 +44,14 @@ RATIONALE: bounded derived output using the existing MI-3 review authority and M
 
 ### Verification and next action
 
-- Targeted MI-3 + MI-4 + MI-5: `29 passed`.
-- Full regression: `436 passed`; Ruff: PASS; `git diff --check`: PASS.
+- Targeted MI-3 + MI-4 + MI-5: `30 passed`.
+- Full regression: `437 passed`; Ruff: PASS; `git diff --check`: PASS.
 - Real Golden `ThongTin_PL*.docx`: `NOT EXECUTED / FILE UNAVAILABLE`; SOP DOCX was not substituted.
 - No database migration, GUI/CLI wiring, business data, runtime data, or source documents changed.
-- Commit: `55ef48afb94133cff18a1cded4ebf8f4c488ac24` (`Add MI-5 legal DOCX generator`).
+- Latest commit: `e7cba6f156271254310cd3e231dcce50fde62693` (same PR collision regression).
 - Push: completed on `wp/mi-5-legal-docx`; Draft PR #35 is open against `main`.
-- Hosted CI is in progress; no manual rerun and no merge.
+- Hosted CI: Code Quality, Ubuntu 3.12 and Ubuntu 3.11 PASS; Windows 3.12 PENDING.
+  No manual rerun and no merge.
 
 ---
 
