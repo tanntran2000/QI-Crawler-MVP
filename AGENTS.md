@@ -10,7 +10,7 @@
 ## Workspace policy
 
 - Use one canonical checkout: `egp-crawler-python`.
-- Work on one active short-lived feature branch at a time; do not create sibling worktrees, clones, or folders.
+- Work in place on one active short-lived feature branch at a time; never create any Git worktree anywhere, including sibling or project-local/nested `.worktrees/` or `worktrees/`, sibling clones, or WP-named folders.
 - After an approved merge, return to `main`, fast-forward from `origin/main`, and delete the merged local branch.
 
 ## Safety rules
