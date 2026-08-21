@@ -7,6 +7,12 @@
 - Important root helpers: `evaluate_qi_crawler.py`, `pyproject.toml`, `alembic.ini`, tracked build/release scripts.
 - Generated only: `.pytest_cache/`, `.ruff_cache/`, `__pycache__/`, `build/`, `dist/`, `release_staging/`, approved `.tmp/` children.
 
+## Workspace policy
+
+- Use one canonical checkout: `egp-crawler-python`.
+- Work on one active short-lived feature branch at a time; do not create sibling worktrees, clones, or folders.
+- After an approved merge, return to `main`, fast-forward from `origin/main`, and delete the merged local branch.
+
 ## Safety rules
 
 1. Unknown is **KEEP**. Never delete a tracked file without the user's exact request.
