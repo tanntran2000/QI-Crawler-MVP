@@ -1,6 +1,6 @@
 # QI-Crawler Agent Handoff
 
-## Current task — GOVERNANCE-RECONCILE-1
+## Current task — WP-MI-5 Legal DOCX Generator
 
 ### Status
 
@@ -9,39 +9,49 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 ### CI Fitness Contract
 
 ```text
-CURRENT WP: GOVERNANCE-RECONCILE-1
-CAPABILITY UNDER CHANGE: governance and handoff documentation only
-CRITICAL RISKS: stale CI policy or branch history causing incorrect merge decisions
-BASELINE GATES TO KEEP: canonical main, unchanged CI commands, full regression, Ruff, diff check
-WP-SPECIFIC GATES REQUIRED: current finite adaptive budgets and accurate MI handoff
-GATES NOT REQUIRED YET: production changes, test changes, dependency changes, workflow command changes
-MAX JOB RUNTIME: finite, job-specific; current maximum is 25 minutes for Windows Python 3.12
+CURRENT WP: WP-MI-5 Legal DOCX Generator
+CAPABILITY UNDER CHANGE: read-only DOCX derived from latest human CONFIRMED PlanPackage rows
+CRITICAL RISKS: stale/rejected confirmation leakage, source-value loss, cross-package contamination, overwrite
+BASELINE GATES TO KEEP: full regression, Ruff, diff check, unchanged MI-3/MI-4 contracts
+WP-SPECIFIC GATES REQUIRED: current_confirmed-only eligibility, exact 15-field order, DOCX reopen/Unicode, collision failure, DB immutability
+GATES NOT REQUIRED YET: GUI, CLI, migrations, AI, scoring, GO/HOLD/NO-GO, real golden unavailable
+MAX JOB RUNTIME: finite, job-specific
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
-RATIONALE: `.github/workflows/ci.yml` already contains the approved adaptive budgets.
+RATIONALE: bounded derived output using the existing MI-3 review authority and MI-4 source contract.
 ```
 
 ### Baseline and execution discipline
 
-- Canonical `main` HEAD/origin: `2546155685202abd8d0bae7bd3447651f4d8745b`.
-- PR #32 (`ci/adaptive-runtime-budget`) is merged; one canonical `main` is authoritative.
-- MI-0 through MI-4 are merged into `main`; no feature branch should be treated as canonical.
-- Baseline collection: `430`; this WP changes governance documents only.
+- Canonical `main` base: `311f6fb763f4486830efeed8caa0df4b08ae3093`.
+- MI-0 through MI-4 are merged into `main`; this WP is on `wp/mi-5-legal-docx`.
+- Baseline collection: `430`; no unexpected collection decrease is allowed.
 - `.codegraph/` is local-only tooling state and must never be committed.
+- CodeGraph was initialized, synchronized, and status-verified in this checkout; MCP
+  `codegraph_explore` succeeded for the MI-3 → MI-4/MI-5 flow. `.codegraph/` is local-only.
+- Impact radius: `current_confirmed → ReviewedCandidate → PlanPackage →
+  confirmed_package_export / legal_docx`; edit radius for this amendment is the MI-5 test only;
+  test radius is `tests/test_legal_docx.py` plus the MI-3/MI-4 targeted suite.
 
 ### Implemented locally
 
-- Removed the stale universal 15-minute CI rule from `AGENTS.md`.
-- Recorded the canonical adaptive budgets: Quality 10m, Ubuntu 3.12 20m,
-  Windows 3.12 25m, Ubuntu 3.11 20m.
-- Refreshed this handoff to match merged main and the next MI sequence.
-- PR #13 and PR #18 are stale and must not be merged as-is.
+- Added `market_intelligence/legal_docx.py`, consuming only
+  `CandidateReviewService.current_confirmed()` and preserving source/raw values.
+- DOCX output is `ThongTin_<PL_BASE>.docx` with the exact 15-field order;
+  unsupported fields remain blank and existing targets fail without overwrite.
+- Added focused MI-5 tests for latest confirmation state, rejection, Unicode,
+  field order, revision isolation, collision handling, and DB/review immutability.
+- Added the single allowed dependency `python-docx>=1.1,<2`; no schema migration.
 
 ### Verification and next action
 
-- Required local gates: pytest, Ruff, diff check, and diff name-status.
-- Next roadmap: MI-5 Legal DOCX → MI-6 GUI → Real Golden validation.
-- No production code, tests, migrations, dependencies, business data, plugins, or CI commands changed.
-- One short-lived governance branch and one Draft PR only; do not merge.
+- Targeted MI-3 + MI-4 + MI-5: `30 passed`.
+- Full regression: `437 passed`; Ruff: PASS; `git diff --check`: PASS.
+- Real Golden `ThongTin_PL*.docx`: `NOT EXECUTED / FILE UNAVAILABLE`; SOP DOCX was not substituted.
+- No database migration, GUI/CLI wiring, business data, runtime data, or source documents changed.
+- Latest commit: `e7cba6f156271254310cd3e231dcce50fde62693` (same PR collision regression).
+- Push: completed on `wp/mi-5-legal-docx`; Draft PR #35 is open against `main`.
+- Hosted CI: Code Quality, Ubuntu 3.12 and Ubuntu 3.11 PASS; Windows 3.12 PENDING.
+  No manual rerun and no merge.
 
 ---
 
