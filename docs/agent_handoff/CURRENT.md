@@ -1,97 +1,92 @@
 # QI-Crawler Agent Handoff
 
-## Current task — WP-MI-3 Human Confirmation / Candidate Review
+## Current task — WP-MI-4 Confirmed Package Excel Export
 
 ### Status
 
-LOCAL PASS / PR CI PENDING.
+LOCAL PASS / DRAFT PR #31 CI PENDING.
 
 ### CI Fitness Contract
 
 ```text
-CURRENT WP: MI-3 Human Confirmation / Candidate Review
-CAPABILITY UNDER CHANGE: explicit append-only human review of exact KHMT candidates
-CRITICAL RISKS: machine auto-confirmation, SHA/revision/row identity collapse,
-  overwritten history, stale historical confirmation, provenance loss
+CURRENT WP: MI-4 Confirmed Package Excel Export
+CAPABILITY UNDER CHANGE: derived XLSX export of MI-3 current human-confirmed candidates
+CRITICAL RISKS: stale confirmation export, unreviewed/rejected row leakage,
+  source-order/provenance loss, identity dedup regression, database mutation
 BASELINE GATES TO KEEP: full regression, Ruff, diff check, Alembic single head
-WP-SPECIFIC GATES REQUIRED: exact identity, human-only writes, append-only history,
-  restart/reattachment, current-confirmed query, migration upgrade/downgrade
-GATES NOT REQUIRED YET: GUI, Excel export, Legal DOCX, AI, scoring, GO/HOLD/NO-GO
+WP-SPECIFIC GATES REQUIRED: latest-state confirmed-only export, exact 13 source
+  columns, audit provenance, deterministic ordering, XLSX round-trip, DB immutability
+GATES NOT REQUIRED YET: Legal DOCX, GUI, AI, scoring, GO/HOLD/NO-GO
 MAX JOB RUNTIME: 15 minutes
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO
-RATIONALE: bounded SQLite/SQLAlchemy review overlay over immutable PlanPackage facts.
+RATIONALE: bounded derived export consuming the already-approved MI-3 read contract.
 ```
 
 ### Baseline and execution discipline
 
-- Isolated worktree: `egp-crawler-python-mi3`.
-- Branch: `wp/mi-3-human-candidate-review`.
-- Base main: `313fd7c0dea8da23381ae18c6f4a814c0bcae6b8`.
-- Baseline correction: PR #29 merged; stale release-document test contract closed.
-- CodeGraph was synchronized to the current feature HEAD; impact/edit/test radii
-  are bounded to the MI review domain, ORM/migration support, and MI tests.
-- CodeGraph verdict: `SAFE_TO_VERIFY`; `.codegraph/` remains untracked tool state.
-- Approved Work Order retained; planning override was not used and retroactive TDD
-  was exempt for the pre-existing MI-3 implementation. One new test-only Golden
-  coverage addition required no production behavior change.
+- Isolated worktree: `egp-crawler-python-mi4`.
+- Branch: `wp/mi-4-confirmed-package-excel-export`.
+- Exact base main: `b7be77214ae1885bb43e66c19407c5cccbd23db9` (MI-3 merged).
+- Baseline collection: `423`; MI-3 targeted baseline: `16 passed`.
+- CodeGraph was freshly initialized/synchronized at the exact checkout. The impact
+  radius includes MI-3 current-state review and Excel conventions; the edit radius
+  is limited to a new MI exporter, its tests, and this handoff.
+- No MI-5 consumer exists yet; the new exporter is the bounded future input boundary.
+- TDD evidence: the new targeted suite first failed on the missing exporter module,
+  then passed after the minimal implementation.
 - Systematic debugging was not needed after baseline sync.
-- Verification-before-completion and internal review were executed.
+- Verification-before-completion and internal review executed. The review's formula
+  injection finding was fixed by reusing the canonical Excel sanitizer for both
+  source and audit cells; focused RED/GREEN coverage was added.
 
 ### Implemented locally
 
-- Added `HumanReviewDecision`: `CONFIRMED`, `REJECTED`, `NEEDS_REVIEW`.
-- Exact identity uses source SHA-256, sheet, source row, and raw plan identifier;
-  filename is excluded.
-- `CandidateReviewService` is the sole MI-3 write authority.
-- `CandidateReviewEvent` is append-only; current state uses maximum event ID.
-- An exact repeat of candidate, normalized decision, reviewer and note returns the
-  latest event without adding meaningless history; changed note or reviewer appends.
-- Package snapshots are deterministic, versioned, Unicode-safe JSON.
-- Current-confirmed lookup uses only each exact candidate's latest event.
-- Search, discovery and importer do not write human review events.
+- Added `export_confirmed_packages()` as a read-only derived XLSX boundary.
+- It consumes `CandidateReviewService.current_confirmed()` directly; no second
+  confirmation/filter engine exists.
+- The first 13 columns are `OBSERVED_KHMT_HEADERS` in source order; missing raw
+  values remain blank and formula-like source strings are written as safe text.
+- Audit columns retain decision, reviewer, event ID/time, source filename/SHA,
+  sheet/row, plan base ID, and revision.
+- Rows sort deterministically by exact source identity and remain independent by
+  SHA, sheet, source row, raw plan identity, and review event.
 
 ### Identity/history contract
 
-- Same SHA/sheet/row/raw PL under a different filename reattaches review state.
-- Changed SHA is a new unreviewed candidate.
-- Revisions and source rows remain isolated.
-- No event means `UNREVIEWED`; no fake unreviewed event is stored.
-- `CONFIRMED -> REJECTED` is excluded from current-confirmed output.
-- `REJECTED -> CONFIRMED` is included.
-- Review never mutates source facts or `PlanPackage`.
+- Only the latest `CONFIRMED` event exports. `UNREVIEWED`, `REJECTED`, and
+  `NEEDS_REVIEW` never export.
+- Historical `CONFIRMED -> REJECTED` disappears on the next export.
+- Same SHA under a renamed source file reattaches; changed SHA remains unreviewed.
+- Exact duplicate input appears once; revisions and source rows stay independent.
+- Export/reopen does not mutate `PlanPackage`, event history, or the database.
 
 ### Schema, Golden checks and verification
 
-- Migration: `0012_add_document_bundle_membership` →
-  `0013_add_candidate_review_events`; one Alembic head.
-- Upgrade, downgrade to 0012, and re-upgrade are covered and pass; unrelated
-  tables are preserved.
-- Intended files: `src/qi_crawler/db.py`, `src/qi_crawler/models.py`,
-  `src/qi_crawler/market_intelligence/candidate_review.py`,
-  `alembic/versions/0013_add_candidate_review_events.py`,
-  `tests/test_candidate_review.py`, `tests/test_alembic_migrations.py`, and this handoff.
-- Collection: `423` tests; no collection decrease or error.
-- Candidate-review targeted: `16 passed`; MI targeted: `112 passed`; migration:
-  `7 passed`.
-- Synthetic Golden: 3 explicit confirmations survive service restart and exact
-  source re-import; rejecting one preserves history and reduces current-confirmed
-  count to 2.
+- Migration/schema change: NONE.
+- Intended files: `src/qi_crawler/market_intelligence/confirmed_package_export.py`,
+  `tests/test_confirmed_package_export.py`, and this handoff.
+- Collection after implementation: `430`; no decrease or collection error.
+- MI-3 + MI-4 targeted: `23 passed`.
+- Synthetic Golden: three human-confirmed rows export/reopen with exact headers and
+  provenance; rejecting one yields exactly two on the next export.
 - Real Golden: `NOT EXECUTED / FILE UNAVAILABLE`; the unrelated TBMT workbook was
   not substituted.
-- Full regression: `423 passed`.
-- Ruff: PASS; diff check: PASS.
-- Internal review: PASS, no Critical/Important/Minor findings.
+- Full regression: `430 passed`.
+- Full Ruff: PASS; diff check: PASS.
 
 ### Safety, known issues and next action
 
 - Runtime/user database, documents, sessions, cookies and secrets: NOT MODIFIED.
 - Real KHMT workbook: NOT MODIFIED / unavailable. Existing `TBMT_19_8_2026.xlsx`
   and old `.gitignore` change remain untouched.
-- Known issue: hosted CI is pending; historical Windows runtime variance remains
-  governed by LAW8.
-- Explicitly not done: MI-4 Excel export, MI-5 Legal DOCX, MI-6 GUI, AI,
+- `.codegraph/` is local untracked tool state and must not be committed.
+- Draft PR: `#31` (`Add confirmed package Excel export`) to `main`; natural
+  exact-head CI is pending and has not been manually rerun.
+- Known issue: historical Windows runtime variance remains governed by LAW8.
+- Explicitly not done: MI-5 Legal DOCX, MI-6 GUI, AI,
   ranking/scoring, GO/HOLD/NO-GO, and PL→IB linking.
-- Next action: ChatGPT Independent Audit after natural Draft PR CI.
+- Commit/push: bounded implementation is on the feature branch; `main` untouched.
+- Next action: allow natural CI, then ChatGPT independent audit. NO MERGE.
 
 ---
 
