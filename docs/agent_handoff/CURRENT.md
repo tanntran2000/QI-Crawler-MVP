@@ -4,7 +4,7 @@
 
 ### Status
 
-LOCAL IMPLEMENTATION PASS / DRAFT PR PENDING / NO MERGE.
+LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
 
 ### CI Fitness Contract
 
@@ -44,7 +44,9 @@ RATIONALE: bounded derived output using the existing MI-3 review authority and M
 - Full regression: `436 passed`; Ruff: PASS; `git diff --check`: PASS.
 - Real Golden `ThongTin_PL*.docx`: `NOT EXECUTED / FILE UNAVAILABLE`; SOP DOCX was not substituted.
 - No database migration, GUI/CLI wiring, business data, runtime data, or source documents changed.
-- Delivery: one short-lived branch and one Draft PR; commit/push pending; do not merge.
+- Commit: `55ef48afb94133cff18a1cded4ebf8f4c488ac24` (`Add MI-5 legal DOCX generator`).
+- Push: completed on `wp/mi-5-legal-docx`; Draft PR #35 is open against `main`.
+- Hosted CI is in progress; no manual rerun and no merge.
 
 ---
 
