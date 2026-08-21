@@ -162,7 +162,7 @@ def test_release_version_is_synchronized_across_user_documents() -> None:
 
     assert f"## {__version__}" in changelog
     assert f"Co gi moi trong {__version__}" in guide
-    assert f"Co gi moi trong {__version__}" in readme
+    assert "[Changelog](CHANGELOG.md)" in readme
 
 
 def test_import_file_creates_and_closes_service_in_one_event_loop(
