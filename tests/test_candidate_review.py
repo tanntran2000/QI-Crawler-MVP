@@ -240,3 +240,38 @@ def test_synthetic_three_candidate_golden_keeps_human_states_separate(
     assert [(item.package.source_row, item.event.decision) for item in current] == [
         (confirmed.source_row, "CONFIRMED")
     ]
+
+
+def test_synthetic_golden_survives_restart_exact_reimport_and_rejection(
+    tmp_path: Path,
+) -> None:
+    workbook_path = tmp_path / "synthetic-mi3-golden.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "KHMT"
+    sheet.append(list(OBSERVED_KHMT_HEADERS))
+    for index in range(3):
+        values = dict.fromkeys(OBSERVED_KHMT_HEADERS)
+        values["SỐ KẾ HOẠCH"] = f"PL900000000{index}-00"
+        values["TÊN GÓI THẦU"] = f"Synthetic candidate {index + 1}"
+        sheet.append([values[header] for header in OBSERVED_KHMT_HEADERS])
+    workbook.save(workbook_path)
+
+    database = Database(f"sqlite:///{tmp_path / 'synthetic-golden.db'}")
+    service = CandidateReviewService(database)
+    first_import = import_khmt_workbook(workbook_path)
+    for package in first_import.packages:
+        service.record_decision(package, decision="CONFIRMED", reviewer="Team Bid")
+    assert len(service.current_confirmed(first_import.packages)) == 3
+
+    reopened = CandidateReviewService(Database(database.url))
+    second_import = import_khmt_workbook(workbook_path)
+    assert len(reopened.current_confirmed(second_import.packages)) == 3
+
+    rejected = second_import.packages[0]
+    reopened.record_decision(rejected, decision="REJECTED", reviewer="Team Bid")
+    assert [event.decision for event in reopened.list_history(rejected)] == [
+        "CONFIRMED",
+        "REJECTED",
+    ]
+    assert len(reopened.current_confirmed(second_import.packages)) == 2
