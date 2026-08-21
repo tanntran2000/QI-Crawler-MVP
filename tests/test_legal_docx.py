@@ -163,6 +163,20 @@ def test_filename_collision_fails_without_overwrite(tmp_path: Path) -> None:
     assert first.read_bytes() == original
 
 
+def test_same_plan_base_collision_fails_before_any_docx_is_written(tmp_path: Path) -> None:
+    _, service = _service(tmp_path)
+    first, second = _packages()[:2]
+    assert first.plan.plan_base_id == second.plan.plan_base_id
+    service.record_decision(first, decision="CONFIRMED", reviewer="Team Bid")
+    service.record_decision(second, decision="CONFIRMED", reviewer="Team Bid")
+    output_dir = tmp_path / "out"
+
+    with pytest.raises(LegalDocxCollisionError):
+        export_confirmed_legal_docx(service, (first, second), output_dir=output_dir)
+
+    assert not output_dir.exists()
+
+
 def test_legal_export_does_not_mutate_review_history_or_database(tmp_path: Path) -> None:
     database, service = _service(tmp_path)
     package = _distinct_bases(_packages()[:1])[0]
