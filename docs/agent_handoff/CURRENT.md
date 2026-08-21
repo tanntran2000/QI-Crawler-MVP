@@ -4,7 +4,7 @@
 
 ### Status
 
-LOCAL PASS / DRAFT PR NOT YET CREATED.
+LOCAL PASS / DRAFT PR #31 CI PENDING.
 
 ### CI Fitness Contract
 
@@ -80,12 +80,13 @@ RATIONALE: bounded derived export consuming the already-approved MI-3 read contr
 - Real KHMT workbook: NOT MODIFIED / unavailable. Existing `TBMT_19_8_2026.xlsx`
   and old `.gitignore` change remain untouched.
 - `.codegraph/` is local untracked tool state and must not be committed.
-- Known issue: hosted CI has not started; historical Windows runtime variance remains
-  governed by LAW8.
+- Draft PR: `#31` (`Add confirmed package Excel export`) to `main`; natural
+  exact-head CI is pending and has not been manually rerun.
+- Known issue: historical Windows runtime variance remains governed by LAW8.
 - Explicitly not done: MI-5 Legal DOCX, MI-6 GUI, AI,
   ranking/scoring, GO/HOLD/NO-GO, and PL→IB linking.
-- Next action: bounded commit/push, one Draft PR, natural CI, then ChatGPT
-  independent audit. NO MERGE.
+- Commit/push: bounded implementation is on the feature branch; `main` untouched.
+- Next action: allow natural CI, then ChatGPT independent audit. NO MERGE.
 
 ---
 
