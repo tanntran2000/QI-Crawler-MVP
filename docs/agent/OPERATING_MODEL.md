@@ -13,6 +13,13 @@
 
 Roles describe authority, not a particular model or tool.
 
+## Human collaboration
+
+`docs/agent/HUMAN_COLLABORATION.md` records communication, language, context,
+and reporting preferences. It complements this operating model and does not
+override `AGENTS.md`, an approved Work Order, explicit Human decisions, or
+verified repository/GitHub evidence.
+
 ## Execution protocol
 
 1. Read the required memory and live repository state.

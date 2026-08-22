@@ -8,12 +8,14 @@ the merged codebase.
 
 1. `AGENTS.md` — durable laws and workspace safety.
 2. `docs/agent/OPERATING_MODEL.md` — roles, authority, and handoff protocol.
-3. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
-4. `docs/agent_handoff/CURRENT.md` — the single active snapshot.
-5. Live Git state: branch, `HEAD`, status, and relevant history.
-6. Live GitHub state when the Work Package involves a branch, PR, or CI.
-7. Relevant entries in `docs/agent/LESSONS.md`.
-8. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+3. `docs/agent/HUMAN_COLLABORATION.md` — Human-facing collaboration
+   preferences and context contract.
+4. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
+5. `docs/agent_handoff/CURRENT.md` — the single active snapshot.
+6. Live Git state: branch, `HEAD`, status, and relevant history.
+7. Live GitHub state when the Work Package involves a branch, PR, or CI.
+8. Relevant entries in `docs/agent/LESSONS.md`.
+9. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
 ## Read-in modes
 
