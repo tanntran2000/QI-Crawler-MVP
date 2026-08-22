@@ -1,5 +1,52 @@
 # QI-Crawler Agent Handoff
 
+## Current task — Windows Release Publish / Crawler tool
+
+### Status
+
+LOCAL PASS — release mechanics implemented and verified; no real
+`Crawler tool\\Current` publish performed on this feature branch. Commit/push/PR
+are pending final handoff.
+
+### Contract and evidence
+
+- Base/main before work: `3f847f366f7070f5224d572108cdab523976970f`.
+- Branch: `wp/windows-crawler-tool-publish`.
+- CodeGraph status/sync: index up to date; packaging/build/standalone impact
+  reviewed; `.codegraph/` remains local-only.
+- Collection baseline: `448` tests; final collection: `452` tests.
+- Targeted packaging/standalone tests: `10 passed`.
+- Full regression: `452 passed` (no failures or collection errors).
+- Ruff: PASS; `git diff --check`: PASS.
+- Fresh build cleans only allowlisted generated `build` and `dist\\QI-Crawler`
+  paths and refuses tracked/out-of-root targets.
+- `build_installer.ps1` performs onedir build, EXE verification, installer
+  build, isolated `--smoke-test-documents`, then publishes only with `-Publish`.
+- Publish requires clean `main`; candidate staging is validated before rotating
+  `Current` to `Previous` and candidate to `Current`.
+- Temporary publish behavior test verified `Current/Previous` rotation,
+  `BUILD_INFO.txt` metadata and preservation of the old `Current` after an
+  incomplete candidate. Real `Crawler tool\\Current` was not touched.
+
+### Files changed
+
+- `build_windows.ps1`
+- `build_installer.ps1`
+- `scripts/publish_windows_release.ps1`
+- `tests/test_windows_installer.py`
+- `docs/BUILD_WINDOWS_STANDALONE.md`
+- `docs/agent_handoff/CURRENT.md`
+
+### Explicitly not done
+
+- No version bump (remains `0.7.1`), production/business/GUI/DB/MI changes,
+  installer release, real publish, merge or manual CI rerun.
+
+### Next action
+
+Commit bounded changes, push this branch, create one Draft PR, allow natural CI,
+then stop for human/ChatGPT audit. NO MERGE.
+
 ## Current task — Real Golden Team Bid Acceptance (MI-1..MI-5)
 
 ### Status
