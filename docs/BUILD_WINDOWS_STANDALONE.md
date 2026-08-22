@@ -55,6 +55,30 @@ Cai [Inno Setup 7](https://jrsoftware.org/isdl.php) tren may build, sau do chay:
 powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
 ```
 
+Lenh tren chi tao build local trong `dist`; khong thay doi thu muc user-visible
+`Crawler tool`. Chi publish sau khi da merge vao `main`, working tree sach va
+da smoke-test:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build_installer.ps1 -Publish
+```
+
+`-Publish` tao candidate trong staging, kiem tra EXE/installer va sau do cap nhat
+an toan:
+
+```text
+..\Crawler tool\
+|-- Current\
+|   |-- QI-Crawler\QI-Crawler.exe
+|   |-- QI-Crawler-Setup-v0.7.1.exe
+|   `-- BUILD_INFO.txt
+`-- Previous\
+```
+
+`BUILD_INFO.txt` ghi version, commit SHA, branch, thoi diem build va SHA-256 cua
+EXE/installer. Neu staging hoac verification that bai, `Current` duoc giu nguyen.
+Chi giu mot ban `Previous`; cac report/DB/documents/session nam ngoai release.
+
 Neu Inno Setup nam o mot vi tri rieng, dat duong dan compiler trong phien
 PowerShell truoc khi build:
 

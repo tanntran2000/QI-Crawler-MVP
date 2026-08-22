@@ -2,6 +2,31 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = Join-Path $projectRoot ".venv\Scripts\python.exe"
+$generatedTargets = @("build", "dist\QI-Crawler")
+
+function Test-TrackedPath([string]$RelativePath) {
+    & git -C $projectRoot ls-files --error-unmatch -- $RelativePath 2>$null | Out-Null
+    return $LASTEXITCODE -eq 0
+}
+
+function Remove-GeneratedTarget([string]$RelativePath) {
+    $candidate = Join-Path $projectRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $candidate)) { return }
+    if (Test-TrackedPath $RelativePath) {
+        throw "Khong the xoa duong dan tracked: $RelativePath"
+    }
+    $resolved = (Resolve-Path -LiteralPath $candidate).Path
+    $prefix = "$projectRoot$([IO.Path]::DirectorySeparatorChar)"
+    if (-not $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Duong dan build nam ngoai project: $resolved"
+    }
+    Remove-Item -LiteralPath $resolved -Recurse -Force
+}
+
+foreach ($target in $generatedTargets) {
+    Remove-GeneratedTarget $target
+}
+
 $browserRoot = if ($env:QI_CRAWLER_BROWSER_DIR) {
     $env:QI_CRAWLER_BROWSER_DIR
 } else {
