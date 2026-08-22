@@ -13,6 +13,30 @@
 - Work in place on one active short-lived feature branch at a time; never create any Git worktree anywhere, including sibling or project-local/nested `.worktrees/` or `worktrees/`, sibling clones, or WP-named folders.
 - After an approved merge, return to `main`, fast-forward from `origin/main`, and delete the merged local branch.
 
+## Release and version governance
+
+Any change affecting a user-visible feature, GUI, packaged runtime, database
+compatibility, installer behavior, or Team Bid workflow requires a
+**RELEASE IMPACT ASSESSMENT**. A Team Bid release is one release, one version,
+one Git SHA, and one build identity; the canonical app/package version, GUI,
+installer, `BUILD_INFO`, and release manifest must agree. A mismatch is a
+release-gate failure.
+
+Use semantic versioning: PATCH for bug or stability corrections without new
+capability, MINOR for new capability or significant GUI/workflow change, and
+MAJOR for a breaking user/data/runtime contract. Docs-only, test-only,
+CI-only, and internal refactor commits without user-visible effect do not
+automatically require a version bump. Human authority approves the official
+Team Bid release/publish. Git main/new commit and `CHANGELOG.md` are not, by
+themselves, a Team Bid release.
+
+Every user-visible merged change updates `CHANGELOG.md` or `Unreleased` when
+appropriate. Every approved Team Bid release records the canonical application
+version, exact Git SHA, immutable annotated tag `vX.Y.Z`, GitHub Release
+`vX.Y.Z`, release notes, installer/EXE hashes, and `BUILD_INFO` or a release
+manifest. A Git commit or `CHANGELOG.md` entry alone is not a release.
+Historical tags and releases must never be silently moved.
+
 ## Safety rules
 
 1. Unknown is **KEEP**. Never delete a tracked file without the user's exact request.

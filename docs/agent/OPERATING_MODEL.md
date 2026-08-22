@@ -37,6 +37,30 @@ Entry outcomes are:
 - `ENTRY_NOTE`: a non-blocking observation is recorded.
 - `ENTRY_HOLD`: baseline, authority, or scope is unresolved; do not write.
 
+## Release lifecycle
+
+For a user-visible change, use this bounded sequence:
+
+```text
+user-visible change
+→ release-impact assessment
+→ version decision
+→ implementation
+→ tests
+→ exact-head CI
+→ independent audit
+→ verified Windows build
+→ runtime/data compatibility smoke
+→ Human release approval
+→ Git tag/GitHub Release
+→ CURRENT
+→ Team Bid Reference
+```
+
+`Implementation DONE` is not the same as `Team Bid RELEASED`. Historical
+tags/releases are immutable identities; only an approved, verified release may
+be presented as the latest Team Bid version.
+
 ## Collaboration boundaries
 
 CodeGraph provides impact intelligence only; it is not edit authority.
