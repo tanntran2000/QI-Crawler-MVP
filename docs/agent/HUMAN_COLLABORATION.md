@@ -88,7 +88,27 @@ the shortest complete prompt.
 Never generate an implementation prompt from this document alone. If current
 state cannot be reconciled, return `ENTRY_HOLD` instead of inventing facts.
 
-## 10. Role examples
+## 10. Release-aware prompt generation
+
+When generating a prompt for a user-visible change, first determine:
+
+```text
+RELEASE IMPACT: YES / NO / TBD
+VERSION IMPACT: NONE / PATCH / MINOR / MAJOR / HUMAN_DECISION_REQUIRED
+```
+
+If `RELEASE IMPACT` is not `NO`, the shortest-complete prompt must include:
+
+```text
+BASE → OBJECTIVE → SCOPE → RELEASE IMPACT → VERSION IMPACT → ACCEPTANCE → VERIFY → DELIVERY
+```
+
+The prompt must not silently omit version consistency, GUI version display,
+`CHANGELOG.md`, release metadata, Team Bid compatibility, or release/build
+verification when applicable. Never instruct a Builder to publish without
+explicit Human authority.
+
+## 11. Role examples
 
 Role determines authority, not model name. Examples only:
 
