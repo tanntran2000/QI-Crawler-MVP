@@ -18,7 +18,7 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE
 
 ## SNAPSHOT_HEAD
 
-`ffe1088cb9909896daf453646e9b9ac81c9d4f01` (approved base)
+`5c3b90f` (WP-GOV-02 implementation commit; verify exact tip live)
 
 ## UPDATED_BY_ROLE
 
@@ -93,8 +93,9 @@ state is in scope.
 
 ## Risks / blockers
 
-- This handoff is intentionally updated before final commit/push; its final
-  Git SHA and natural CI result must be recorded after delivery.
+- Commit: `5c3b90f` — Add Human Collaboration contract.
+- Push: DONE to `origin/wp/gov-human-collaboration-contract`.
+- Draft PR: #41 — natural CI is pending/live-only.
 - No production behavior is changed.
 
 ## Explicitly NOT done
@@ -105,9 +106,8 @@ artifact, AI, Legal, scoring, or future feature WP was started.
 
 ## Next objective
 
-Run repository verification, commit and push this bounded docs-only branch,
-create one Draft PR to `main`, allow natural CI, and stop for independent audit
-and human merge approval. Do not merge or manually rerun CI.
+Await independent audit and human merge approval for Draft PR #41. Read CI
+status live from GitHub; do not merge or manually rerun CI.
 
 ## Stop conditions
 
