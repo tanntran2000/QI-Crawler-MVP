@@ -4,7 +4,8 @@ param(
     [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$PublishRoot,
     [string]$CandidateRoot,
-    [string]$Version = "0.7.1"
+    [Parameter(Mandatory = $true)]
+    [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,12 +39,47 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion) {
     $bundle = Join-Path $Root "QI-Crawler"
     $exe = Join-Path $bundle "QI-Crawler.exe"
     $installer = Join-Path $Root "QI-Crawler-Setup-v$ReleaseVersion.exe"
+    $buildInfo = Join-Path $Root "BUILD_INFO.txt"
+    $manifestPath = Join-Path $Root "release_manifest.json"
     Resolve-ExistingPath $exe "Portable EXE" | Out-Null
     Resolve-ExistingPath $installer "Installer" | Out-Null
+    Resolve-ExistingPath $buildInfo "BUILD_INFO" | Out-Null
+    Resolve-ExistingPath $manifestPath "Release manifest" | Out-Null
+    try {
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        throw "Release manifest khong hop le: $manifestPath"
+    }
+    if ($manifest.product -ne "QI-Crawler" -or $manifest.version -ne $ReleaseVersion) {
+        throw "Release manifest khong khop version/product"
+    }
+    if ($manifest.alembic_head -ne "0013_add_candidate_review_events") {
+        throw "Release manifest thieu Alembic head 0013_add_candidate_review_events"
+    }
+    if ($manifest.portable_exe_sha256 -ne (Get-Sha256 $exe)) {
+        throw "Hash portable EXE khong khop release manifest"
+    }
+    if ($manifest.installer_sha256 -ne (Get-Sha256 $installer)) {
+        throw "Hash installer khong khop release manifest"
+    }
+    $infoText = Get-Content -LiteralPath $buildInfo -Raw -Encoding UTF8
+    foreach ($required in @(
+        "product=QI-Crawler",
+        "version=$ReleaseVersion",
+        "alembic_head=0013_add_candidate_review_events",
+        "portable_exe_sha256=$($manifest.portable_exe_sha256)",
+        "installer_sha256=$($manifest.installer_sha256)"
+    )) {
+        if ($infoText -notmatch [regex]::Escape($required)) {
+            throw "BUILD_INFO thieu thong tin: $required"
+        }
+    }
     return @{
         Bundle = $bundle
         Exe = $exe
         Installer = $installer
+        BuildInfo = $buildInfo
+        Manifest = $manifestPath
     }
 }
 
@@ -82,24 +118,15 @@ try {
     New-Item -ItemType Directory -Path $stagedBundle -Force | Out-Null
     Get-ChildItem -LiteralPath $candidateParts.Bundle -Force | Copy-Item -Destination $stagedBundle -Recurse -Force
     Copy-Item -LiteralPath $candidateParts.Installer -Destination (Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)) -Force
+    Copy-Item -LiteralPath $candidateParts.BuildInfo -Destination (Join-Path $stagedCurrent "BUILD_INFO.txt") -Force
+    Copy-Item -LiteralPath $candidateParts.Manifest -Destination (Join-Path $stagedCurrent "release_manifest.json") -Force
 
     $stagedExe = Join-Path $stagedCurrent "QI-Crawler\QI-Crawler.exe"
     $stagedInstaller = Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)
-    $commit = (& git -C $repo rev-parse HEAD).Trim()
-    $branch = (& git -C $repo branch --show-current).Trim()
-    $timestamp = (Get-Date).ToUniversalTime().ToString("o")
-    $info = @(
-        "product=QI-Crawler",
-        "version=$Version",
-        "commit_sha=$commit",
-        "source_branch=$branch",
-        "build_timestamp_utc=$timestamp",
-        "portable_exe_sha256=$(Get-Sha256 $stagedExe)",
-        "installer_sha256=$(Get-Sha256 $stagedInstaller)"
-    )
-    $info | Set-Content -LiteralPath (Join-Path $stagedCurrent "BUILD_INFO.txt") -Encoding UTF8
 
-    if (-not (Test-Path -LiteralPath $stagedExe) -or -not (Test-Path -LiteralPath $stagedInstaller)) {
+    if (-not (Test-Path -LiteralPath $stagedExe) -or -not (Test-Path -LiteralPath $stagedInstaller) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "BUILD_INFO.txt")) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_manifest.json"))) {
         throw "Candidate staging khong day du"
     }
 

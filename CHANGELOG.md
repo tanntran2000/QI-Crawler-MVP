@@ -13,6 +13,15 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 - Local regression dat 448 tests; GitHub CI exact-head cua Real Golden PASS tren Code Quality, Ubuntu 3.12, Ubuntu 3.11 va Windows 3.12.
 - Trusted Storage/Warehouse tiep tuc la lane uu tien: managed-copy behavior da ton tai, nhung SHA Vault, Canonical Package Shelf va Missing/Recoverable/Safe Restore chua duoc coi la da hoan tat.
 
+## 0.8.0 - 2026-08-23
+
+- Dong bo version ung dung, giao dien va goi Windows theo mot nguon version
+  canonical.
+- Bo sung release metadata de doi chieu commit, Alembic head va hash artifact
+  truoc khi phat hanh cho Team Bid.
+- Khoa quy trinh kiem tra candidate tach biet khoi du lieu Team Bid va release
+  chinh thuc.
+
 ## 0.7.1 - 2026-08-13
 
 - Hoan tat goi phat hanh Windows cho Team Bid va dong bo version ung dung/installer.

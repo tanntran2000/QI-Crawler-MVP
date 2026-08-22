@@ -2,7 +2,9 @@
 ; Mutable Bid data is deliberately never installed under {app}.
 
 #define AppName "QI-Crawler"
-#define AppVersion "0.7.1"
+#ifndef AppVersion
+  #error AppVersion must be supplied by build_installer.ps1
+#endif
 #define AppPublisher "QI Technologies"
 #define AppExeName "QI-Crawler.exe"
 

@@ -785,6 +785,12 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
+## Co gi moi trong 0.8.0
+
+- Dong bo version ung dung, giao dien va goi Windows theo mot nguon version canonical.
+- Candidate release tao `BUILD_INFO.txt` va `release_manifest.json` de doi chieu commit, hash artifact va Alembic head truoc khi phat hanh.
+- Quy trinh candidate tach biet khoi du lieu Team Bid; khong tu dong publish vao `Crawler tool\Current`.
+
 ## Co gi moi trong 0.7.1
 
 - Nen tang da san sang cho Team Bid quan ly tai lieu va kiem tra du lieu truoc khi phan tich noi dung.

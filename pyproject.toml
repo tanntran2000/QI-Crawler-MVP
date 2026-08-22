@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "QI-Crawler"
-version = "0.7.1"
+dynamic = ["version"]
 description = "Compliant async crawler and ETL toolkit for public e-procurement data"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -43,6 +43,9 @@ QI-Crawler-GUI = "qi_crawler.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "qi_crawler.__version__"}
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
