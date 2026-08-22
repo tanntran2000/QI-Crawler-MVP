@@ -35,6 +35,29 @@ from .export import TBMTExportResult, export_tbmt
 from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
+from .market_intelligence.candidate_review import (
+    CandidateReviewService,
+    HumanReviewDecision,
+)
+from .market_intelligence.confirmed_package_export import (
+    ConfirmedPackageExportResult,
+    export_confirmed_packages,
+)
+from .market_intelligence.khmt_contract import PlanPackage
+from .market_intelligence.khmt_importer import (
+    KHMTImportIssue,
+    import_khmt_workbook,
+)
+from .market_intelligence.legal_docx import (
+    LegalDocxExportResult,
+    export_confirmed_legal_docx,
+)
+from .market_intelligence.search import (
+    SearchEvaluation,
+    TargetedSearchRequest,
+    TargetedSearchResult,
+    search_packages,
+)
 from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
     SUPPORTED_FORMATS,
@@ -102,6 +125,114 @@ class WorkspaceDocumentIntakeResult:
 
     manifest: TenderDocumentManifest
     batch: DocumentBatchResult
+
+
+@dataclass(frozen=True)
+class BidRadarRow:
+    """One filter evaluation plus the latest explicit human review state."""
+
+    package: PlanPackage
+    matched: bool
+    reasons: tuple[str, ...]
+    review_state: str
+
+
+@dataclass(frozen=True)
+class BidRadarResult:
+    source_path: Path
+    source_sha256: str
+    packages: tuple[PlanPackage, ...]
+    issues: tuple[KHMTImportIssue, ...]
+    rows: tuple[BidRadarRow, ...]
+    matched_count: int
+    total_examined: int
+
+
+def _bid_radar_rows(
+    database: Database,
+    evaluations: tuple[SearchEvaluation, ...],
+) -> tuple[BidRadarRow, ...]:
+    review_service = CandidateReviewService(database)
+    rows: list[BidRadarRow] = []
+    for item in evaluations:
+        event = review_service.current_event(item.package)
+        rows.append(
+            BidRadarRow(
+                package=item.package,
+                matched=item.evaluation.matched,
+                reasons=tuple(reason.value for reason in item.evaluation.reasons),
+                review_state=event.decision if event is not None else "UNREVIEWED",
+            )
+        )
+    return tuple(rows)
+
+
+def run_bid_radar_import_search(
+    config: AppConfig,
+    source_path: Path,
+    request: TargetedSearchRequest,
+) -> BidRadarResult:
+    """Import and evaluate KHMT through MI-1/MI-2 without human decisions."""
+    imported = import_khmt_workbook(Path(source_path))
+    searched: TargetedSearchResult = search_packages(imported.packages, request)
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return BidRadarResult(
+        source_path=Path(source_path),
+        source_sha256=imported.batch.source_sha256,
+        packages=imported.packages,
+        issues=imported.issues,
+        rows=_bid_radar_rows(database, searched.evaluated),
+        matched_count=searched.matched_count,
+        total_examined=searched.total_examined,
+    )
+
+
+def run_bid_radar_review(
+    config: AppConfig,
+    package: PlanPackage,
+    decision: str,
+    reviewer: str,
+    note: str = "",
+) -> str:
+    """Record one explicit human decision through MI-3."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    event = CandidateReviewService(database).record_decision(
+        package,
+        decision=HumanReviewDecision(decision),
+        reviewer=reviewer,
+        note=note,
+    )
+    return event.decision
+
+
+def run_bid_radar_export(
+    config: AppConfig,
+    packages: tuple[PlanPackage, ...],
+) -> ConfirmedPackageExportResult:
+    """Export only MI-3 latest-state confirmations through MI-4."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return export_confirmed_packages(
+        CandidateReviewService(database),
+        packages,
+        output=config.storage.report_dir / "CÁC GÓI ĐÃ XÁC NHẬN.xlsx",
+    )
+
+
+def run_bid_radar_legal_docx(
+    config: AppConfig,
+    packages: tuple[PlanPackage, ...],
+) -> tuple[LegalDocxExportResult, ...]:
+    """Generate read-only Legal DOCX files through MI-5."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return export_confirmed_legal_docx(
+        CandidateReviewService(database),
+        packages,
+        output_dir=config.storage.report_dir,
+    )
 
 
 def _keyword_terms(value: str) -> tuple[str, ...]:

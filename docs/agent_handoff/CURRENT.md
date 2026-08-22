@@ -1,6 +1,56 @@
 # QI-Crawler Agent Handoff
 
-## Current task — WP-MI-5 Legal DOCX Generator
+## Current task — WP-MI-6 source-identity hardening
+
+### Status
+
+LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE.
+
+### Scope and contracts
+
+- Bid Radar remains a thin GUI/service integration over MI-1 import/search,
+  MI-3 human review, MI-4 XLSX export and MI-5 Legal DOCX.
+- Selecting a different KHMT source clears the loaded package universe and
+  blocks derived exports until the new source imports successfully.
+- A successful KHMT import retains the existing source SHA-256 contract. Before
+  XLSX or Legal DOCX export, the current file is re-hashed; content changed at
+  the same path clears stale Bid Radar state and requires re-import.
+- Import issues show code, source row when available, and a user-readable message.
+- Expected MI validation/import/review/export errors are mapped to safe Vietnamese
+  messages; unexpected exceptions remain generic and redacted in the UI.
+- No MI authority, schema, dependency, CI, crawler, extraction or business-data change.
+
+### CodeGraph and verification evidence
+
+- `codegraph sync .` and `codegraph status .`: index up to date (140 files,
+  2,946 nodes, 8,061 edges).
+- MCP `mcp__codegraph__codegraph_explore` succeeded for the Bid Radar GUI/service
+  flow and for `_build_bid_radar_page`, source selection, render, submit and
+  worker-error paths. Impact radius: GUI → gui_services → MI-1..MI-5;
+  edit radius: `gui.py`, `test_bid_radar_gui.py`, this handoff; test radius:
+  Bid Radar, GUI and MI-1..MI-5 suites.
+- TDD RED: the same-path content-change export test failed before the SHA guard;
+  GREEN after the minimal patch.
+- Targeted MI + GUI verification: `117 passed`.
+- Final GUI verification: `62 passed`.
+- Full regression: `448 passed` with a short Windows basetemp; Ruff: PASS;
+  `git diff --check`: PASS.
+
+### Git/PR/CI handoff
+
+- Canonical main base: `2daf4e16d7a3ef7e7bdcda48e1b36faf18bdc750`.
+- Branch: `wp/mi-6-bid-radar-gui`; Draft PR #36:
+  `https://github.com/tanntran2000/QI-Crawler-MVP/pull/36`.
+- Amendment implementation head: `e515cad` (`Harden Bid Radar source switching and errors`).
+- Source-identity hardening commit: `ac9330b9edbe3ea3dd4de767d54255c4e874aa31`.
+- Natural exact-head CI run `32510703090` is in progress; no manual rerun and no
+  merge.
+- No merge and no manual CI rerun. Natural exact-head CI evidence will be
+  recorded after push.
+
+---
+
+## Previous completed task — WP-MI-5 Legal DOCX Generator
 
 ### Status
 
