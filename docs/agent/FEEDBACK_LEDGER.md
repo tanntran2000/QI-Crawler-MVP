@@ -12,7 +12,7 @@ State: OPEN | REVIEWED | ACCEPTED | REJECTED | PARKED | PROMOTED | RESOLVED
 Author:
 Role:
 WP:
-Type:
+Type: BUSINESS | ARCHITECTURE | DEFECT | PROCESS | PLUGIN | TEST_GAP | HANDOFF | CI | OTHER
 Authority:
 Observation:
 Evidence:
@@ -37,6 +37,34 @@ Lower authority never overrides higher authority. A scope change requires a
 new approved Work Order or explicit human approval; it must not be smuggled
 into a feedback entry.
 
+## Retention
+
+Keep roughly 20–30 active material entries. Compact resolved, rejected, and
+promoted history into concise records rather than allowing an unbounded chat
+log to grow.
+
 ## Active feedback
 
-No active feedback entries recorded for this memory-v3 initialization.
+### FB-0001 — Reconcile stale local baseline before branching
+
+```text
+State: RESOLVED
+Author: PR #40 audit
+Role: REVIEWER_AUDITOR
+WP: WP-GOV-01
+Type: HANDOFF
+Authority: A3 REVIEW_FINDING
+Observation: Local main was one commit behind the verified remote main at
+entry, so the requested Work Order base was not initially present locally.
+Evidence: local e345256 was fast-forwarded to remote 07ef548 before branch
+creation.
+Impact: Starting from stale Git state could produce an invalid baseline and
+misleading handoff/CI conclusions.
+Suggestion: Reconcile main with fetch + fast-forward verification before any
+branch or file write.
+Scope change required: NO
+Response: The checkout was reconciled and the Entry Review was repeated before
+the WP approval lease was used.
+Disposition: PROMOTED to the durable LAW 9 read-in and Memory Index workflow.
+Promoted to: AGENTS.md LAW 9; docs/agent/MEMORY_INDEX.md
+```

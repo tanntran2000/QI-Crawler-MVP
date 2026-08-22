@@ -6,7 +6,7 @@ WP-GOV-01
 
 ## HANDOFF_REVISION
 
-1
+2
 
 ## WP
 
@@ -14,7 +14,7 @@ WP-GOV-01 — Multi-Agent Memory v3 + Handoff Continuity
 
 ## Status
 
-LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE
+LOCAL PASS / LIVE GITHUB VERIFICATION PENDING / NO MERGE
 
 ## SNAPSHOT_HEAD
 
@@ -48,11 +48,16 @@ without relying on chat history.
 - Added memory index, operating model, main-only project memory, systemic
   lessons, and structured feedback ledger.
 - Added LAW 9 to `AGENTS.md` without weakening LAW 1–8.
+- Applied the PR #40 audit amendment: volatile GitHub status is explicitly
+  live-only, the historical snapshot is clearly non-normative, and feedback
+  types/retention plus the baseline-reconciliation lesson are recorded.
 
 ## Pending / unverified
 
-- Push and natural CI for this branch.
-- Human/reviewer audit and merge approval.
+- Exact-head CI result must be verified live from GitHub.
+- Independent audit and human merge decision remain pending.
+- This tracked `CURRENT.md` intentionally does not assert final PR, CI, or
+  merge state; live GitHub is authoritative for those volatile facts.
 
 ## Locked decisions
 
@@ -79,8 +84,8 @@ or release artifact was changed.
 
 - Entry baseline fast-forward verified: `HEAD == origin/main == 07ef548…`.
 - Collection baseline recorded: `452`.
-- Full regression: `452 passed` using the approved `.tmp/pytest-gov`
-  basetemp; no failures or collection errors.
+- Full regression after amendment: `452 passed` using the approved
+  `.tmp/pytest-gov-audit` basetemp; no failures or collection errors.
 - Ruff: PASS; `git diff --check`: PASS.
 - Implementation snapshot commit: `26c1e91d26712f2cec344f0afdb6ab7ec9ae0b5e`.
 - This handoff update is a subsequent documentation-only commit; verify its
@@ -93,13 +98,14 @@ or release artifact was changed.
 
 ### NEXT
 
-Run the canonical verification gate, commit the bounded documentation change,
-push this feature branch, create one Draft PR, and stop for independent audit.
+Verify exact-head CI live from GitHub, then complete independent audit and the
+human merge decision.
 
 ### WHY
 
 The memory-v3 contract is useful only if its links, scope, and repository state
-are machine-verified and visible to the next agent.
+are machine-verified and visible to the next agent. CI, PR, and merge status
+must be read live rather than inferred from tracked prose.
 
 ### ENTRY CONDITION
 

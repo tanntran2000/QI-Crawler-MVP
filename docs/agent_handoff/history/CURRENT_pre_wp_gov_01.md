@@ -1,3 +1,6 @@
+> HISTORICAL / NON-NORMATIVE / MAY CONTAIN SUPERSEDED RULES.
+> Preserved for traceability; do not use this file as current authority.
+
 # QI-Crawler Agent Handoff
 
 ## Current task — Windows Release Publish / Crawler tool
