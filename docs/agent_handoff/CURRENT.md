@@ -18,7 +18,7 @@ LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE
 
 ## SNAPSHOT_HEAD
 
-`e166859c21ec727e2791baf9ad84e63bba68f5ca` (docs-only implementation commit; push pending)
+`26c1e91d26712f2cec344f0afdb6ab7ec9ae0b5e` (docs-only implementation snapshot)
 
 ## UPDATED_BY_ROLE
 
@@ -82,7 +82,9 @@ or release artifact was changed.
 - Full regression: `452 passed` using the approved `.tmp/pytest-gov`
   basetemp; no failures or collection errors.
 - Ruff: PASS; `git diff --check`: PASS.
-- Implementation commit: `e166859c21ec727e2791baf9ad84e63bba68f5ca`.
+- Implementation snapshot commit: `26c1e91d26712f2cec344f0afdb6ab7ec9ae0b5e`.
+- This handoff update is a subsequent documentation-only commit; verify its
+  exact tip with live Git before continuing.
 - The default Windows temp root is ACL-blocked locally, so the first pytest
   attempt failed during fixture setup; this is an environment warning, not a
   test failure.
