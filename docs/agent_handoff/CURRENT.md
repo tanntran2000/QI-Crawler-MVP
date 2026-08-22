@@ -1,5 +1,50 @@
 # QI-Crawler Agent Handoff
 
+## Current task — Real Golden Team Bid Acceptance (MI-1..MI-5)
+
+### Status
+
+REAL GOLDEN PHASE C PASS / HUMAN DECISIONS RECORDED / NO MERGE.
+
+### Source and Phase A evidence
+
+- Source workbook (read-only):
+  `C:\Users\Admin\Desktop\QI Technology\QI Crawler\business-data\KHMT_19_8_2026.xlsx`.
+- SHA-256 before and after: `B86AF73085B639E336CA6131D72A121268B48F7989B3A70E6417020A90AF58EC`;
+  unchanged.
+- Sheet: `Bản tin điện tử`; source rows/imported packages: `413`.
+- Import issues: `UNSUPPORTED_SELECTION_METHOD` on 12 rows and `INVALID_PRICE`
+  on row 36; no rows were dropped from the read-only Golden run.
+- Existing MI search preset: budget `0..500,000,000`, canonical province/city
+  code `HCM`, no include/exclude keywords, no selection-method restriction.
+  Search examined `413`, matched `9`, nonmatched `404`.
+
+### Human authority and Phase C evidence
+
+- Reviewer: `Team Bid`; exactly 9 events recorded in an isolated temporary
+  acceptance DB: 3 `CONFIRMED`, 6 `NEEDS_REVIEW`, 0 `REJECTED`.
+- Current confirmed identities: `PL2600263838-00` row 70,
+  `PL2600263840-00` row 74, and `PL2600265077-00` row 366.
+- Confirmed XLSX: `CÁC GÓI ĐÃ XÁC NHẬN.xlsx`; reopened with exactly 3 rows and
+  the three confirmed PL/revision/source-row identities.
+- Legal DOCX: `ThongTin_PL2600263838.docx`, `ThongTin_PL2600263840.docx`,
+  `ThongTin_PL2600265077.docx`; all reopened with the existing 15-field
+  contract and no cross-package contamination.
+- Review event count before and after both exports: `9` → `9`; exports did not
+  mutate review history or the acceptance DB. All six `NEEDS_REVIEW` packages
+  were absent from both outputs.
+- Generated artifacts and acceptance DB are outside the repository under the
+  temporary root `C:\Users\Admin\AppData\Local\Temp\qi-real-golden-mnd424y7`;
+  no business data/output was added to Git.
+
+### Verification
+
+- Targeted MI + GUI: `93 passed` (one non-blocking pytest cache permission warning).
+- Full regression: `448 passed` (one non-blocking pytest cache permission warning),
+  using a short external Windows basetemp.
+- Ruff and diff checks are run after this handoff update; no production/schema/
+  dependency changes are part of this acceptance.
+
 ## Current task — WP-MI-6 source-identity hardening
 
 ### Status
