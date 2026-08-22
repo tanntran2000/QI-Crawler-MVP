@@ -14,7 +14,7 @@ WP-GOV-02 — Human Collaboration Contract
 
 ## Status
 
-LOCAL PASS / NATURAL CI IN PROGRESS / NO MERGE
+LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED
 
 ## SNAPSHOT_HEAD
 
@@ -91,11 +91,16 @@ state is in scope.
 - Live GitHub verification at entry confirmed main exact base and PR #40
   merged; post-push CI must be read live, not inferred from this file.
 
+## Pending / unverified
+
+- Verify exact-head PR/CI/merge state live from GitHub.
+- Independent audit and human merge decision are live workflow concerns.
+- Tracked `CURRENT.md` does not own volatile PR/CI/merge truth.
+
 ## Risks / blockers
 
-- Commit: `5c3b90f` — Add Human Collaboration contract.
-- Push: DONE to `origin/wp/gov-human-collaboration-contract`.
-- Draft PR: #41 — natural CI is pending/live-only.
+- Live GitHub state can change after this snapshot; use it as the authority for
+  PR, CI, and merge status.
 - No production behavior is changed.
 
 ## Explicitly NOT done
@@ -106,8 +111,26 @@ artifact, AI, Legal, scoring, or future feature WP was started.
 
 ## Next objective
 
-Await independent audit and human merge approval for Draft PR #41. Read CI
-status live from GitHub; do not merge or manually rerun CI.
+### NEXT
+
+Verify live Git/GitHub and complete independent audit/human decision.
+
+### WHY
+
+Volatile PR/CI/merge state changes outside tracked repository; live Git/GitHub
+evidence is authoritative and must not be cached as project truth.
+
+### ENTRY CONDITION
+
+Exact WP branch/scope remains valid and live state is reconciled.
+
+### STOP CONDITION
+
+HOLD on scope/baseline/writer/material conflict.
+
+### EXPECTED OUTPUT
+
+A verified WP-GOV-02 governance contract ready for human merge decision.
 
 ## Stop conditions
 
