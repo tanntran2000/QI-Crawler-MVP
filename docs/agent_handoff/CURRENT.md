@@ -14,7 +14,7 @@ WP-GOV-03 — Release & Version Governance Contract
 
 ## Status
 
-LOCAL WORK IN PROGRESS / NO MERGE
+LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED
 
 ## SNAPSHOT_HEAD
 
@@ -100,12 +100,11 @@ runtime data, installer, tag, release, or `.codegraph/` state is in scope.
 
 ## Pending / unverified
 
-- Commit, push, one Draft PR, and natural CI are delivery steps; live GitHub
-  remains the authority for their volatile state.
-- Commit, push, one Draft PR, and natural CI are delivery steps; live GitHub
-  remains the authority for their volatile state.
+- Verify exact-head PR/CI/merge state live from GitHub.
+- Independent audit and Human merge decision are live workflow concerns.
+- CURRENT does not own volatile PR/CI/merge truth.
 - No version bump, tag, GitHub Release, build, publish, or Team Bid Reference
-  has been performed or authorized by this Work Package.
+  is authorized by WP-GOV-03.
 
 ## Risks / blockers
 
