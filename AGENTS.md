@@ -35,6 +35,8 @@
 7. **LAW 7 — SINGLE WRITER**: Only ONE agent writes production/test code in any micro-WP.
 8. **LAW 8 — ADAPTIVE VERIFICATION**: Before judging implementation correctness, the Reviewer must verify that the current CI/test contract matches the current Work Package's capability under change, risk profile, acceptance criteria, and maturity stage.
 
+9. **LAW 9 — HANDOFF READ-IN & CONTINUITY**: `READ → VERIFY → ENTRY REVIEW → ONE APPROVAL → EXECUTE MANY`. Approval leases a bounded Work Package, not individual commands. Re-approval is required only when scope, baseline, handoff authority, writer, or a material blocker changes.
+
 ### Adaptive verification rules
 
 The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this CI verify the right contracts for this WP?"*.
