@@ -43,6 +43,7 @@ Human approves Parent WP
 → STOP_FOR_INDEPENDENT_LOCAL_AUDIT
 → Reviewer PASS / HOLD / FAIL
 → on PASS: push feature branch as remote checkpoint, without PR
+→ refresh active checkpoint handoff
 → next micro-WP
 → Parent Integration Gate
 → final local audit
@@ -209,6 +210,41 @@ and do not open the Parent-WP PR merely to create a backup.
 Once a PR exists, later feature-branch pushes may trigger the PR workflow; use
 that integration event deliberately rather than as a routine micro-WP debugger.
 
+### 8.1 Checkpoint handoff rule
+
+A remote checkpoint is not complete as a cross-agent handoff until the active
+snapshot can tell a new agent where audited work stops and what is authorized
+next.
+
+After each audited micro-WP remote checkpoint, refresh
+`docs/agent_handoff/CURRENT.md` before handing prompt-writing or execution to a
+different agent/session. Record at minimum:
+
+```text
+ACTIVE_PARENT_WP
+ACTIVE_BRANCH
+MAIN_BASE
+LAST_AUDITED_MICRO_WP
+LAST_AUDITED_CODE_HEAD
+LAST_AUDIT
+REMOTE_CHECKPOINT
+PR_STATE
+HOSTED_CI_STATE
+NEXT_MICRO_WP
+NEXT_AUTHORITY
+STOP_STATE
+```
+
+`LAST_AUDITED_CODE_HEAD` and `REMOTE_CHECKPOINT` identify the code checkpoint
+that passed independent audit. A later documentation-only handoff commit may
+advance the feature branch beyond that SHA; it must not be misreported as a new
+audited code head. The next agent resolves the exact live branch `HEAD` from
+Git and verifies that the last audited code head remains an ancestor.
+
+If the active snapshot, live Git, and live GitHub disagree materially, return
+`ENTRY_HOLD` and reconcile the handoff before generating or executing the next
+technical Work Order.
+
 ## 9. Parent Integration Gate
 
 Before opening the Parent-WP PR, run the minimum complete cumulative
@@ -330,6 +366,7 @@ development model:
 micro-WP local verification
 → independent local audit
 → remote feature checkpoint
+→ checkpoint handoff refresh
 → Parent Integration Gate
 → Draft PR
 → hosted CI
