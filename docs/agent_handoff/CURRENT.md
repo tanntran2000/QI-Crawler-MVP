@@ -6,7 +6,7 @@ WP-MI-SRC-01 — SA Excel Source Routing + Human Override + Source-Type Ground T
 
 ## Status
 
-LOCAL IMPLEMENTATION / NATURAL CI REQUIRED / NO MERGE
+LOCAL VERIFICATION PASS / NATURAL CI REQUIRED / NO MERGE
 
 ## Mission
 
@@ -81,8 +81,9 @@ source-type corrections append-only; do not implement TBMT import.
 
 ## Next objective
 
-Run full verification, inspect changed-file scope, commit bounded changes,
-push this feature branch and create exactly one Draft PR for independent audit.
+Implementation commit `660a33a` is locally verified. Push this feature branch
+and create exactly one Draft PR for independent audit; live CI remains external
+authority and is not asserted by this tracked handoff.
 
 ## Plugin evidence
 
@@ -93,5 +94,6 @@ push this feature branch and create exactly one Draft PR for independent audit.
 
 ## Git / delivery state
 
-- Commit/push/PR: not yet performed.
+- Implementation commit: `660a33a`.
+- Push/PR: pending; live CI remains external authority.
 - No merge.

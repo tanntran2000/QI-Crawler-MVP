@@ -72,4 +72,4 @@ unless a later Work Package is merged and verified.
   unknown/conflicting sources, and records corrections append-only. TBMT is
   recognized but is not converted into KHMT PlanPackage records.
 - **Evidence:** WP-MI-SRC-01 implementation and focused regression suite.
-- **Implementation commit:** `<to be filled after bounded implementation commit>`.
+- **Implementation commit:** `660a33a` (`Add SA Excel source routing and human corrections`).
