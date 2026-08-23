@@ -2,172 +2,123 @@
 
 ## HANDOFF_ID
 
-WP-GOV-03
-
-## HANDOFF_REVISION
-
-1
-
-## WP
-
-WP-GOV-03 — Release & Version Governance Contract
+WP-REL-01 — Corrective Stage A
 
 ## Status
 
-LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED
-
-## SNAPSHOT_HEAD
-
-`6a5766fbdf2625b3470ed2abe5847ad976d931ba` (approved base)
-
-## UPDATED_BY_ROLE
-
-BUILDER_SINGLE_WRITER
+LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED — PR #43 audit amendment
+covered; no release/publish.
 
 ## Mission
 
-Create durable governance for QI-Crawler application versioning, release
-impact awareness, and Team Bid release identity.
-
-## RELEASE IMPACT
-
-NO — this Work Package changes governance/docs only and does not change
-user-visible application behavior.
-
-## VERSION IMPACT
-
-NONE — observed application version remains `0.7.1`; no version bump is
-authorized in this Work Package.
+Prepare a verifiable local v0.8.0 Team Bid release candidate without touching
+production data or publishing the official reference release.
 
 ## Current verified state
 
-- Canonical checkout: `egp-crawler-python`.
-- Branch: `wp/gov-release-version-contract`.
-- `HEAD == origin/main ==
-  6a5766fbdf2625b3470ed2abe5847ad976d931ba` at entry.
-- PR #41 (WP-GOV-02) is merged into this exact main commit; live GitHub is
-  authoritative for volatile PR/CI/merge state.
-- `pyproject.toml` and `src/qi_crawler/__init__.py` both report `0.7.1`.
-- `CHANGELOG.md` contains `0.7.1` and an `Unreleased` section.
-- Main contains the approved Memory v3 and Human Collaboration governance.
+- Branch: `wp/rel-team-bid-reference`.
+- Corrective implementation head: `4ce352362aadddb19a4f72efbcb73dda97708d57`.
+- Canonical version target: `0.8.0`; release impact: YES; version impact: MINOR.
+- Alembic has one head: `0013_add_candidate_review_events`.
+- Recovery PASS: production DB restored from the verified backup; contaminated
+  DB preserved at `C:\Users\Admin\AppData\Local\QI-Crawler-Recovery-WP-REL-01-20260823-002826064\egp.db`.
+- Restored production DB SHA-256:
+  `384FE99B58F9D26CD4649725D9359EC35F6261A6729B9080EB0CC0A147913BEB`.
+- No production WAL/SHM sidecars were present; the smoke-created
+  `data\reports\TBMT_Latest.xlsx` was removed under the approved recovery.
+- Fresh candidate build completed from the corrective head:
+  `release_staging\candidate` and
+  `dist\installer\QI-Crawler-Setup-v0.8.0.exe`.
+- Candidate metadata records version `0.8.0`, commit
+  `4ce352362aadddb19a4f72efbcb73dda97708d57`, and Alembic head
+  `0013_add_candidate_review_events`.
 
-## Completed in this Work Package
+## Incident and root cause
 
-- Added normative release-impact and one-release/one-version/one-SHA/build
-  identity rules to `AGENTS.md`.
-- Added release-aware prompt requirements to
-  `docs/agent/HUMAN_COLLABORATION.md`.
-- Added the implementation-to-release lifecycle to
-  `docs/agent/OPERATING_MODEL.md`.
-- Archived the completed WP-GOV-02 snapshot at
-  `docs/agent_handoff/history/CURRENT_pre_wp_gov_03.md`.
-- Replaced this file with the single active WP-GOV-03 snapshot.
+- Team-Bid copy smoke used `QI_CRAWLER_DATA_DIR`, but the copied
+  `config.yaml` retained absolute production `storage.*` paths.
+- `prepare_standalone_runtime()` only generated a config when absent; it did
+  not rebase persisted managed paths. DB and report consumers therefore trusted
+  production paths.
+- Corrective regression now rebases managed SQLite/database, document,
+  download, discovery, raw, rejects, and report paths inside an explicit data
+  override; non-SQLite configured databases fail closed.
 
-## Locked decisions
+## Plugin execution evidence
 
-- Semantic versioning: PATCH for stability without capability, MINOR for new
-  capability or significant GUI/workflow change, MAJOR for breaking contracts.
-- Docs-only, test-only, CI-only, and internal refactor commits without
-  user-visible effect do not automatically require a version bump.
-- Human approves the official Team Bid release/publish.
-- `CHANGELOG.md`, a Git commit, or `main` alone is not an official release.
-- Historical tags/releases are immutable identities.
-- Next release implementation/build work belongs to WP-REL-01.
+- CodeGraph: available; `status`, `sync`, and isolation path exploration
+  completed before edits. Impact radius was separated from edit/test radius.
+- Superpowers invoked: systematic-debugging (root-cause trace), TDD (RED →
+  GREEN regression), verification-before-completion required for final gates.
+- TDD RED: persisted foreign `storage.*` paths remained unchanged under an
+  isolated data root.
+- TDD GREEN: the same test now resolves every managed path inside the isolated
+  root; adjacent standalone/installer tests pass.
 
-## Scope / files
+## Files changed in corrective work
 
-Documentation/governance only:
-
+- `src/qi_crawler/standalone.py`
+- `tests/test_standalone.py`
 - `AGENTS.md`
 - `docs/agent/HUMAN_COLLABORATION.md`
 - `docs/agent/OPERATING_MODEL.md`
+- `docs/agent/FEEDBACK_LEDGER.md`
 - `docs/agent_handoff/CURRENT.md`
-- `docs/agent_handoff/history/CURRENT_pre_wp_gov_03.md`
 
-`MEMORY_INDEX.md` was not changed because discoverability already includes the
-Human Collaboration Contract. No production, tests, schema, migrations, CI
-workflow, dependencies, version files, build/publish scripts, business data,
-runtime data, installer, tag, release, or `.codegraph/` state is in scope.
+## Verification state
 
-## Verification
-
-- Collection baseline: `452` tests collected.
-- Targeted tests: NOT REQUIRED; governance/docs-only Work Package.
-- Full pytest: `452 passed` in `358.24s` (one known cache-permission warning).
-- Ruff: PASS (`ruff check .`).
-- `git diff --check`: PASS.
-- Changed-file check: limited to the five governance files listed above.
+- Targeted standalone/release tests: `17 passed` for the PR #43 amendment.
+- Full verification: `459 passed` (one existing Windows PytestCacheWarning).
+- Ruff: PASS; `git diff --check`: PASS.
+- Clean-data smoke executed by the fresh build: PASS.
+- Fresh Team-Bid-copy smoke: PASS at
+  `C:\Users\Admin\AppData\Local\QI-Crawler-Compat-WP-REL-01-20260823-080425030`.
+  `logs\standalone-smoke.json` reports browser, search, export and document
+  workspace checks PASS; copied DB integrity is `ok` with 28 tables and 32
+  notices.
+- Production DB before/after SHA, size and mtime are unchanged; production
+  `TBMT_Latest.xlsx` remains absent. `Crawler tool\Current` was not touched.
+- Packaged migration `0013_add_candidate_review_events.py` is present and
+  the release manifest hashes match BUILD_INFO.
+- Audit regression confirms non-SQLite database URLs fail closed under an
+  explicit isolated data root; no foreign runtime path is created.
+- `Crawler tool\Current`, official Team Bid Reference, tag, GitHub Release,
+  and production mutation remain forbidden.
 
 ## Pending / unverified
 
-- Verify exact-head PR/CI/merge state live from GitHub.
-- Independent audit and Human merge decision are live workflow concerns.
-- CURRENT does not own volatile PR/CI/merge truth.
-- No version bump, tag, GitHub Release, build, publish, or Team Bid Reference
-  is authorized by WP-GOV-03.
+- Verify exact-head PR/CI state live from GitHub after push; tracked CURRENT does
+  not own volatile PR/CI truth.
+- The amendment is committed locally; verify exact-head PR/CI state live from
+  GitHub. No merge, publish, tag, GitHub Release or Team Bid Reference is
+  authorized here.
 
 ## Risks / blockers
 
-- A later user-visible change must complete a release-impact assessment before
-  implementation and must not silently omit version/build compatibility work.
-- Version mismatch across app, runtime, GUI, installer, `BUILD_INFO`, and
-  manifest is a release-gate failure.
+- Any future path escaping the isolated root, production mutation,
+  migration/schema need, unexpected deletion, or candidate mismatch is
+  STOP_FOR_REVIEW.
+- Hosted PR/CI status is unverified until observed live from GitHub.
 
 ## Explicitly NOT done
 
-No application version bump, production code, tests, schema, migrations, GUI,
-crawler, extraction, CI workflow, dependency change, EXE/installer build,
-publish, Git tag, GitHub Release, Team Bid Reference, AI, Legal, scoring, or
-business-data change was made.
+- No official publish, Team Bid Reference creation, tag, GitHub Release, or
+  installer release publication.
+- No production migration, downgrade, stamp, SQL repair, config rewrite in the
+  live production root, or broad data rollback.
 
 ## Next objective
 
-### NEXT
+Verify the committed PR #43 amendment and let natural CI provide live evidence
+for independent audit and Human merge decision.
 
-WP-REL-01 — Team Bid Verified Reference Release.
+## Locked decisions
 
-### WHY
-
-WP-REL-01 owns canonical version implementation, GUI version display, release
-manifest, safe Windows build/recovery, compatibility smoke, and the human
-release decision.
-
-### ENTRY CONDITION
-
-WP-GOV-03 is merged and the release Work Order has a verified baseline and
-explicit Human authority for version/build actions.
-
-### STOP CONDITION
-
-HOLD on version mismatch, missing release evidence, scope/baseline/writer
-conflict, or any request to publish without explicit Human authority.
-
-### EXPECTED OUTPUT
-
-A verified governance contract ready for WP-REL-01; no release artifact is
-created by this Work Package.
-
-## Relevant files
-
-- `AGENTS.md`
-- `docs/agent/MEMORY_INDEX.md`
-- `docs/agent/OPERATING_MODEL.md`
-- `docs/agent/HUMAN_COLLABORATION.md`
-- `docs/agent_handoff/history/CURRENT_pre_wp_gov_02.md`
-- `docs/agent_handoff/history/CURRENT_pre_wp_gov_03.md`
-- `pyproject.toml`
-- `src/qi_crawler/__init__.py`
-- `CHANGELOG.md`
+- Keep version `0.8.0`.
+- Preserve the restored production DB and quarantine copy.
+- Do not run candidate against production paths.
 
 ## Tool state
 
-CodeGraph is not required for this docs-only Work Package and remains
-uninitialized/local-only. Superpowers process was followed through Entry
-Review and one Approval Lease. No external plugin state was added.
-
-## Handoff instructions
-
-Read `AGENTS.md`, then the Memory Index order including the Human Collaboration
-Contract, then this snapshot and live Git/GitHub state. Treat live evidence as
-newer than tracked prose. Do not bump version, build, tag, publish, or start
-WP-REL-01 without the next approved Work Order.
+- CodeGraph remains local-only and up to date.
+- Commit/push/PR/CI status is live GitHub state and is not asserted here.

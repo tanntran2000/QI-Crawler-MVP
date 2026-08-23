@@ -4,9 +4,16 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
-from qi_crawler.standalone import prepare_standalone_runtime, resource_path, resource_root
+from qi_crawler.config import load_config
+from qi_crawler.standalone import (
+    StandaloneResourceError,
+    prepare_standalone_runtime,
+    resource_path,
+    resource_root,
+)
 
 
 def test_required_packaging_resources_exist() -> None:
@@ -59,6 +66,79 @@ def test_standalone_user_data_is_separate_and_not_overwritten(tmp_path: Path) ->
         assert (
             paths.user_root / "keyword-groups.yaml"
         ).read_text(encoding="utf-8") == "custom: keep-me\n"
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_isolated_data_root_rebases_persisted_managed_paths(tmp_path: Path, monkeypatch) -> None:
+    original_cwd = Path.cwd()
+    isolated_root = tmp_path / "isolated"
+    foreign_root = tmp_path / "foreign-production"
+    isolated_root.mkdir()
+    config = isolated_root / "config.yaml"
+    config.write_text(
+        yaml.safe_dump(
+            {
+                "storage": {
+                    "database_url": f"sqlite:///{foreign_root / 'data' / 'database' / 'egp.db'}",
+                    "document_dir": str(foreign_root / "data" / "documents"),
+                    "download_dir": str(foreign_root / "data" / "downloads"),
+                    "discovery_dir": str(foreign_root / "data" / "discovery"),
+                    "raw_dir": str(foreign_root / "data" / "raw"),
+                    "rejects_dir": str(foreign_root / "data" / "rejects"),
+                    "report_dir": str(foreign_root / "data" / "reports"),
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(isolated_root))
+    try:
+        paths = prepare_standalone_runtime(require_browser=False)
+        loaded = yaml.safe_load(paths.config_path.read_text(encoding="utf-8"))
+        storage = loaded["storage"]
+        assert storage["database_url"] == f"sqlite:///{paths.database_path.as_posix()}"
+        assert storage["document_dir"] == str(paths.documents_dir)
+        assert storage["download_dir"] == str(paths.data_dir / "downloads")
+        assert storage["discovery_dir"] == str(paths.data_dir / "discovery")
+        assert storage["raw_dir"] == str(paths.data_dir / "raw")
+        assert storage["rejects_dir"] == str(paths.data_dir / "rejects")
+        assert storage["report_dir"] == str(paths.reports_dir)
+        resolved = load_config(paths.config_path).storage
+        assert resolved.database_url == f"sqlite:///{paths.database_path.as_posix()}"
+        assert resolved.report_dir == paths.reports_dir
+        assert not foreign_root.exists()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_isolated_data_root_rejects_non_sqlite_database(
+    tmp_path: Path, monkeypatch
+) -> None:
+    original_cwd = Path.cwd()
+    isolated_root = tmp_path / "isolated"
+    foreign_root = tmp_path / "foreign-production"
+    isolated_root.mkdir()
+    (isolated_root / "config.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "storage": {
+                    "database_url": "postgresql://example/db",
+                    "document_dir": str(foreign_root / "documents"),
+                }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(isolated_root))
+    try:
+        with pytest.raises(StandaloneResourceError):
+            prepare_standalone_runtime(require_browser=False)
+        stored = yaml.safe_load((isolated_root / "config.yaml").read_text(encoding="utf-8"))
+        assert stored["storage"]["database_url"] == "postgresql://example/db"
+        assert not foreign_root.exists()
     finally:
         os.chdir(original_cwd)
 

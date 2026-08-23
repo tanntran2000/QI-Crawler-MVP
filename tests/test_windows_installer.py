@@ -1,4 +1,5 @@
 import hashlib
+import json
 import shutil
 import subprocess
 import sys
@@ -6,17 +7,21 @@ from pathlib import Path
 
 import pytest
 
+from qi_crawler import __version__
+
 ROOT = Path(__file__).parent.parent
 INSTALLER = ROOT / "packaging" / "QI-Crawler.iss"
 BUILD_SCRIPT = ROOT / "build_installer.ps1"
 BUILD_WINDOWS = ROOT / "build_windows.ps1"
 PUBLISH_SCRIPT = ROOT / "scripts" / "publish_windows_release.ps1"
+VERSION = __version__
 
 
 def test_installer_is_per_user_and_preserves_bid_data() -> None:
     script = INSTALLER.read_text(encoding="utf-8")
 
-    assert '#define AppVersion "0.7.1"' in script
+    assert "#ifndef AppVersion" in script
+    assert "#error AppVersion" in script
     assert "OutputBaseFilename=QI-Crawler-Setup-v{#AppVersion}" in script
     assert "DefaultDirName={localappdata}\\Programs\\QI-Crawler" in script
     assert "PrivilegesRequired=lowest" in script
@@ -37,7 +42,7 @@ def test_installer_build_is_reproducible_from_safe_onedir_bundle() -> None:
     assert "QI_CRAWLER_ISCC" in script
     assert "Inno Setup 7" in script
     assert "$iscc = @($isccCandidates)[0]" in script
-    assert "QI-Crawler-Setup-v0.7.1.exe" in script
+    assert "QI-Crawler-Setup-v$version.exe" in script
     assert "dist\\QI-Crawler\\QI-Crawler.exe" in script
     assert "[switch]$Publish" in script
     assert "--smoke-test-documents" in script
@@ -62,6 +67,7 @@ def test_publish_is_explicit_and_has_safe_contract() -> None:
     assert "Current" in script
     assert "Previous" in script
     assert "BUILD_INFO.txt" in script
+    assert "release_manifest.json" in script
     assert "Get-FileHash" in script
     assert "branch --show-current" in script
     assert "status --porcelain" in script
@@ -80,7 +86,7 @@ def test_publish_script_does_not_touch_root_without_publish(tmp_path: Path) -> N
     candidate = tmp_path / "candidate"
     (candidate / "QI-Crawler").mkdir(parents=True)
     (candidate / "QI-Crawler" / "QI-Crawler.exe").write_bytes(b"exe")
-    (candidate / "QI-Crawler-Setup-v0.7.1.exe").write_bytes(b"installer")
+    (candidate / f"QI-Crawler-Setup-v{VERSION}.exe").write_bytes(b"installer")
 
     args = [
         shell,
@@ -93,6 +99,8 @@ def test_publish_script_does_not_touch_root_without_publish(tmp_path: Path) -> N
         str(publish_root),
         "-CandidateRoot",
         str(candidate),
+        "-Version",
+        VERSION,
     ]
     if sys.platform == "win32" and Path(shell).name.lower() == "powershell.exe":
         args[1:1] = ["-ExecutionPolicy", "Bypass"]
@@ -137,7 +145,45 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
         bundle = candidate / "QI-Crawler"
         bundle.mkdir(parents=True)
         (bundle / "QI-Crawler.exe").write_bytes(payload)
-        (candidate / "QI-Crawler-Setup-v0.7.1.exe").write_bytes(payload + b"-installer")
+        installer = candidate / f"QI-Crawler-Setup-v{VERSION}.exe"
+        installer.write_bytes(payload + b"-installer")
+        exe_hash = hashlib.sha256(payload).hexdigest().upper()
+        installer_hash = hashlib.sha256(installer.read_bytes()).hexdigest().upper()
+        (candidate / "BUILD_INFO.txt").write_text(
+            "\n".join(
+                [
+                    "product=QI-Crawler",
+                    f"version={VERSION}",
+                    "commit_sha="
+                    + subprocess.check_output(
+                        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                    ).strip(),
+                    "source_branch=main",
+                    "build_timestamp_utc=2026-08-23T00:00:00Z",
+                    "alembic_head=0013_add_candidate_review_events",
+                    f"portable_exe_sha256={exe_hash}",
+                    f"installer_sha256={installer_hash}",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (candidate / "release_manifest.json").write_text(
+            json.dumps(
+                {
+                    "product": "QI-Crawler",
+                    "version": VERSION,
+                    "commit_sha": subprocess.check_output(
+                        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                    ).strip(),
+                    "build_timestamp_utc": "2026-08-23T00:00:00Z",
+                    "alembic_head": "0013_add_candidate_review_events",
+                    "release_channel": "team_bid_verified",
+                    "portable_exe_sha256": exe_hash,
+                    "installer_sha256": installer_hash,
+                }
+            ),
+            encoding="utf-8",
+        )
         return candidate
 
     def run_publish(candidate: Path) -> subprocess.CompletedProcess[str]:
@@ -153,6 +199,8 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
             str(publish_root),
             "-CandidateRoot",
             str(candidate),
+            "-Version",
+            VERSION,
         ]
         if sys.platform == "win32" and Path(shell).name.lower() == "powershell.exe":
             args[1:1] = ["-ExecutionPolicy", "Bypass"]
@@ -171,7 +219,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     ).read_bytes() == b"one"
     info = (publish_root / "Current" / "BUILD_INFO.txt").read_text(encoding="utf-8")
     assert "product=QI-Crawler" in info
-    assert "version=0.7.1" in info
+    assert f"version={VERSION}" in info
     assert (
         "portable_exe_sha256="
         + hashlib.sha256(b"two").hexdigest().upper()
@@ -180,10 +228,17 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
         "installer_sha256="
         + hashlib.sha256(b"two-installer").hexdigest().upper()
     ) in info
+    manifest = json.loads(
+        (publish_root / "Current" / "release_manifest.json").read_text(encoding="utf-8")
+    )
+    assert manifest["product"] == "QI-Crawler"
+    assert manifest["version"] == VERSION
+    assert manifest["alembic_head"] == "0013_add_candidate_review_events"
+    assert manifest["release_channel"] == "team_bid_verified"
 
     incomplete = tmp_path / "candidate-incomplete"
     (incomplete / "QI-Crawler").mkdir(parents=True)
-    (incomplete / "QI-Crawler-Setup-v0.7.1.exe").write_bytes(b"bad")
+    (incomplete / f"QI-Crawler-Setup-v{VERSION}.exe").write_bytes(b"bad")
     failed = run_publish(incomplete)
     assert failed.returncode != 0
     assert current_exe.read_bytes() == b"two"
