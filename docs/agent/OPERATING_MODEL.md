@@ -60,6 +60,64 @@ Entry outcomes are:
 - `ENTRY_NOTE`: a non-blocking observation is recorded.
 - `ENTRY_HOLD`: baseline, authority, or scope is unresolved; do not write.
 
+## Local Staged Integration
+
+The default development procedure for Parent Work Packages is defined in
+`docs/agent/LOCAL_STAGED_INTEGRATION.md`.
+
+The operating sequence is:
+
+```text
+Human-approved Parent WP
+→ Planner decomposition
+→ one Single Writer micro-WP
+→ local Machine Verifier evidence
+→ local commit
+→ LOCAL_REVIEW_PACKET
+→ STOP_FOR_INDEPENDENT_LOCAL_AUDIT
+→ Reviewer PASS/HOLD/FAIL
+→ PASS: feature-branch remote checkpoint without PR
+→ next micro-WP
+→ Parent Integration Gate
+→ Draft PR
+→ hosted CI when available
+→ exact-head audit
+→ Human merge
+```
+
+A remote feature-branch checkpoint is backup/provenance, not CI evidence.
+Audited commits are preserved by default; later corrections use explicit
+forward-correction commits instead of silently rewriting accepted history.
+
+Target 4–6 independently auditable micro-WPs per Parent WP. If the work grows
+beyond six meaningful slices or crosses multiple major architectural/migration
+boundaries, trigger `SPLIT_REVIEW_REQUIRED` and decide `CONTINUE_PARENT` or
+`SPLIT_PARENT_WP` before expanding further.
+
+## Temporary hosted-CI unavailability
+
+When hosted CI cannot start because of a verified infrastructure/account
+condition, the local machine may temporarily supply `MACHINE_VERIFIER`
+execution evidence. `REVIEWER_AUDITOR` remains an independent authority and
+must not be described as the runtime CI runner.
+
+A Human-approved merge under this waiver records:
+
+```text
+HOSTED_CI = INFRASTRUCTURE_UNAVAILABLE
+CI_WAIVER = ACTIVE
+LOCAL_VERIFICATION = PASS
+INDEPENDENT_AUDIT = PASS
+PENDING_RETRO_CI = YES
+```
+
+The state must never be reported as hosted `CI PASS`. When hosted CI returns,
+a CI Recovery Work Package verifies the complete waiver range from the last
+known fully green head through current `main`.
+
+`PENDING_RETRO_CI > 0` blocks official Team Bid release/publish unless a later
+explicit Human decision establishes a separate bounded exception.
+
 ## Release lifecycle
 
 For a user-visible change, use this bounded sequence:
@@ -83,6 +141,10 @@ user-visible change
 `Implementation DONE` is not the same as `Team Bid RELEASED`. Historical
 tags/releases are immutable identities; only an approved, verified release may
 be presented as the latest Team Bid version.
+
+During a hosted-CI waiver, implementation and Human-approved merges may follow
+the Local Staged Integration exception, but the official release lifecycle does
+not complete while retro-CI debt remains open.
 
 ## Collaboration boundaries
 
