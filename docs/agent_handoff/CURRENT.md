@@ -6,136 +6,164 @@ WP-GOV-LSI-01 — Local Staged Integration + Remote Checkpoint Contract
 
 ## Status
 
-GOVERNANCE DOCS IMPLEMENTED / PARENT INTEGRATION REVIEW ACTIVE /
-HOSTED CI INFRASTRUCTURE UNAVAILABLE / NO OFFICIAL RELEASE
+MERGED / ACTIVE GOVERNANCE / HOSTED CI INFRASTRUCTURE UNAVAILABLE /
+PENDING RETRO-CI / NO OFFICIAL RELEASE
 
 ## Mission
 
-Make `Local Staged Integration + Remote Checkpoint + Parent-WP CI` the default
-development operating contract while preserving existing constitutional laws,
+Use `Local Staged Integration + Remote Checkpoint + Parent-WP CI` as the
+default development operating contract while preserving constitutional laws,
 role separation, Human merge/release authority, and the existing GitHub CI
 workflow.
 
-## Current verified state
+## Current main truth
 
-- Main baseline at entry: `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
-- Active branch: `wp/gov-lsi-01`.
-- PR #44 / WP-MI-SRC-01 is merged; `main` includes SA Excel source routing,
-  named Human source correction, append-only source-type Ground Truth, and the
-  TBMT→KHMT routing guard.
-- Full TBMT Bid Radar candidate/review/export support remains NOT implemented.
-- Package/runtime version remains `0.8.0`; this governance WP has no release or
-  version impact.
-- The approved Team Bid v0.8.0 release remains the immutable known-good release
-  identity. No release artifact is modified by this WP.
+- WP-GOV-LSI-01 merged through PR #45.
+- Governance merge commit:
+  `6e8206f469497c4c073ee6030455b1db946f3479`.
+- PR #44 / WP-MI-SRC-01 remains merged at
+  `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
+- `MEM-006` is ACTIVE merged source-routing truth.
+- `MEM-007` is ACTIVE Local Staged Integration governance truth.
+- Package/runtime version remains `0.8.0`; governance changes do not alter the
+  approved Team Bid v0.8.0 release identity.
+- Full TBMT Bid Radar candidate/review/export support is still NOT implemented.
+
+## Active operating contract
+
+Detailed procedure:
+
+`docs/agent/LOCAL_STAGED_INTEGRATION.md`
+
+Default flow:
+
+```text
+Human approves Parent WP
+→ Planner decomposes bounded micro-WPs
+→ one Single Writer implements one micro-WP
+→ local Machine Verifier evidence
+→ local commit
+→ LOCAL_REVIEW_PACKET
+→ STOP_FOR_INDEPENDENT_LOCAL_AUDIT
+→ independent Reviewer PASS/HOLD/FAIL
+→ PASS: remote feature-branch checkpoint without PR
+→ next micro-WP
+→ Parent Integration Gate
+→ Draft PR
+→ hosted CI when available
+→ exact-head independent audit
+→ Human merge
+```
+
+Key rules:
+
+- Reviewer/Auditor remains independent from runtime Machine Verifier authority.
+- Feature-branch push without an open PR is a remote backup/checkpoint, not CI
+  evidence.
+- Audited commits use commit freeze by default; later corrections use explicit
+  forward-correction commits.
+- Parent WP target size is 4–6 audited slices; growth beyond six meaningful
+  slices or multiple major architecture/migration boundaries triggers
+  `SPLIT_REVIEW_REQUIRED`.
+- `LOCAL_REVIEW_PACKET` requires base/head SHA, changed-file evidence, bounded
+  patch, CodeGraph radii where applicable, exact verification commands/results
+  with exit codes, collection state, migration/data-safety state, known risks,
+  and tree status.
+- Before PR, Parent Integration Gate performs the cumulative verification and
+  independent final local audit required by the active Work Order.
 
 ## Hosted CI state
 
-- Last GitHub Actions run that actually executed the full PR matrix for the
-  source-routing implementation: run `32620166882`; all 4 required jobs passed.
-- That run used source head
-  `958e52a79c77f1b38128662135f6acbe2588752d` and PR merge ref
+- Last GitHub Actions run that actually executed the full PR matrix before the
+  billing block: run `32620166882`; all 4 required jobs passed.
+- That run covered source head
+  `958e52a79c77f1b38128662135f6acbe2588752d` through PR merge ref
   `7bde89510b911cbb3d336b9c02a5574dd82cab01`.
-- Final PR #44 docs-only amendment head:
-  `5cd5e23138df4f71060f036aef8faa8d800c5e26`.
-- Subsequent Actions runs were prevented from starting by the GitHub account
-  billing/spending-limit condition; affected jobs had no execution steps.
-- Classification: `CI_INFRASTRUCTURE_DEFECT` /
-  `HOSTED_CI = INFRASTRUCTURE_UNAVAILABLE`, not a product-test failure.
-- PR #44 merge commit `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`
-  therefore remains `PENDING_RETRO_CI = YES` until CI Recovery passes.
+- Final PR #44 docs-only amendment and later PR/main runs were prevented from
+  starting by the GitHub account billing/spending-limit condition.
+- PR #45 run `32629725161` also failed before execution; all four jobs had
+  `steps = null`.
+- Classification remains `CI_INFRASTRUCTURE_DEFECT` /
+  `HOSTED_CI = INFRASTRUCTURE_UNAVAILABLE`, not product-test failure.
 
-## Implemented governance contract
-
-- Detailed procedure: `docs/agent/LOCAL_STAGED_INTEGRATION.md`.
-- Human approves a bounded Parent WP; Planner decomposes it into auditable
-  micro-WPs.
-- One `BUILDER_SINGLE_WRITER` implements one micro-WP at a time.
-- Local machine execution supplies Machine Verifier evidence.
-- Every micro-WP ends with `LOCAL_REVIEW_PACKET` and
-  `STOP_FOR_INDEPENDENT_LOCAL_AUDIT`.
-- Reviewer returns `LOCAL_AUDIT_PASS`, `LOCAL_AUDIT_HOLD`, or
-  `LOCAL_AUDIT_FAIL` and remains separate from runtime verification.
-- After `LOCAL_AUDIT_PASS`, an audited feature-branch commit may be pushed as a
-  remote checkpoint without opening a PR; that push is not CI evidence.
-- Audited commits are frozen by default; later corrections use explicit
-  forward-correction commits.
-- Parent WP target size is 4–6 audited slices; growth beyond six or multiple
-  major architecture/migration boundaries triggers `SPLIT_REVIEW_REQUIRED`.
-- Before PR, the Parent Integration Gate performs cumulative verification,
-  cumulative impact review, and final local audit.
-- Hosted-CI waiver may be used only for verified infrastructure/account
-  inability to start jobs. It never converts into `CI PASS`.
-- Every Human-approved merge under the waiver accrues
-  `PENDING_RETRO_CI = YES`.
-- `PENDING_RETRO_CI > 0` blocks official Team Bid release/publish unless Human
-  later approves a separate bounded release exception.
-
-## Files in WP-GOV-LSI-01
-
-- `AGENTS.md`
-- `docs/agent/LOCAL_STAGED_INTEGRATION.md`
-- `docs/agent/OPERATING_MODEL.md`
-- `docs/agent/HUMAN_COLLABORATION.md`
-- `docs/agent/PROJECT_MEMORY.md`
-- `docs/agent_handoff/CURRENT.md`
-- `docs/superpowers/specs/2026-08-23-local-staged-integration-design.md`
-- `docs/superpowers/plans/2026-08-23-local-staged-integration.md`
-
-## Parent Integration evidence
-
-- GitHub compare against entry baseline confirms the WP is Markdown/governance
-  only before this handoff update.
-- No `src/`, `tests/`, `alembic/`, packaging, release script, version, business
-  workbook, or `.github/workflows/ci.yml` change belongs to this WP.
-- Runtime pytest/Ruff are not claimed by this docs-only WP; no runtime code was
-  changed. Changed-file scope and governance invariants require independent
-  review before merge.
-- `MEM-006` is normalized from stale branch-only wording to ACTIVE merged truth
-  at PR #44 merge commit.
-- `MEM-007` records the Local Staged Integration contract in post-merge-valid
-  form.
-
-## Data safety
-
-- No production `%LOCALAPPDATA%\QI-Crawler` data was accessed or modified.
-- No business workbook was accessed or modified.
-- No database migration, downgrade, stamp, repair, or schema mutation occurs.
-- No release build, installer, tag, GitHub Release, `Crawler tool\Current`, or
-  Team Bid Reference action occurs.
-
-## CI waiver / retro-CI ledger
+## Temporary CI waiver
 
 ```text
 CI_WAIVER = ACTIVE
 WAIVER_REASON = GitHub Actions billing/spending-limit prevents jobs starting
-
-PENDING_RETRO_CI:
-- WP-MI-SRC-01 / main merge fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7
-- WP-GOV-LSI-01 / add after Human-approved merge
+LOCAL_VERIFICATION = mandatory for code changes
+INDEPENDENT_AUDIT = mandatory
+HUMAN_MERGE_APPROVAL = mandatory
+PENDING_RETRO_CI = YES
 ```
 
-When hosted CI returns, create a bounded CI Recovery WP covering the complete
-waiver range and do not release officially until `CI_RECOVERY_PASS` closes the
-ledger.
+Do not report hosted `CI PASS` while this condition exists.
 
-## Explicitly NOT done
+## Retro-CI ledger
 
-- No full TBMT/IB Bid Radar intake.
-- No product code or test behavior change.
-- No CI workflow modification.
-- No release/version change.
-- No official publish.
+Use a range instead of a self-referential list of every docs-only handoff
+commit:
 
-## Next objective
+```text
+RETRO_CI_RANGE_START = first main change not fully covered by executable hosted CI
+RETRO_CI_RANGE_END = current main at recovery time
+STATUS = PENDING_RETRO_CI
+```
 
-After WP-GOV-LSI-01 is independently audited and merged, use this contract to
-design and execute the next Market Intelligence Parent WP for full TBMT/IB Bid
-Radar intake. Decompose that work before implementation and apply
-`SPLIT_REVIEW_REQUIRED` if the architectural boundary becomes too broad.
+Known affected main history begins with the PR #44 final merge at
+`fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7` and includes WP-GOV-LSI-01.
+Any later Human-approved merge while the waiver is active automatically joins
+the same open recovery range.
 
-## Delivery rule
+When hosted CI returns, create a bounded CI Recovery WP that verifies the
+complete range through then-current `main`. Only `CI_RECOVERY_PASS` closes the
+retro-CI debt.
 
-This handoff is tracked evidence, not a substitute for live Git/GitHub state.
-Use the live branch/commit as exact-head authority. Do not claim hosted CI PASS
-while the billing/spending-limit infrastructure blocker remains active.
+## Release gate
+
+While retro-CI debt is open:
+
+```text
+OFFICIAL TEAM BID RELEASE = BLOCKED
+```
+
+Do not create an official version tag, GitHub Release, publish
+`Crawler tool\Current`, publish Team Bid Reference, or publish an official
+installer release unless the Human later approves a separate bounded release
+exception.
+
+Development, local verification, remote feature checkpoints, Draft PRs, and
+Human-approved merges may continue under the waiver.
+
+## Data safety
+
+- No production `%LOCALAPPDATA%\QI-Crawler` mutation is authorized by this
+  governance state.
+- Business workbooks remain read-only unless a future Work Order explicitly
+  authorizes a safe derived operation.
+- Unknown backup/release artifacts remain KEEP.
+- No production DB migration/downgrade/stamp/repair is authorized without an
+  explicit Work Order and Human authority.
+
+## Next product objective
+
+Design the next Market Intelligence Parent WP for full TBMT/IB Bid Radar
+intake. Do not fake TBMT as KHMT `PlanPackage` data. Preserve:
+
+```text
+PL != IB
+FILTER MATCH != HUMAN CONFIRMED
+SQLite/review history = source of record
+XLSX/DOCX = derived outputs
+```
+
+Before implementation, decompose the TBMT architecture into bounded audited
+slices and trigger `SPLIT_REVIEW_REQUIRED` if the Parent WP grows beyond a
+safe integration boundary.
+
+## Delivery authority
+
+This handoff describes durable operating state; live Git/GitHub remains the
+authority for the exact current main SHA. Future Work Orders must read this
+handoff plus `PROJECT_MEMORY.md`, `AGENTS.md`, and the Local Staged Integration
+contract before execution.
