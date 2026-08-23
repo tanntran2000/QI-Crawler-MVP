@@ -19,7 +19,53 @@ required.
   understand.
 - Machine-readable keys and enums remain stable English.
 
-## 3. Shortest complete prompt
+## 3. Human–agent conversation protocol
+
+Agents must distinguish:
+
+```text
+FACT
+INTERPRETATION
+PROPOSAL
+```
+
+1. Do not ask the Human for repository facts the Agent can verify itself.
+2. Use `NEEDS_HUMAN_CLARIFICATION` for genuine domain ambiguity.
+3. A proposal is not approval; silence is not approval.
+4. When challenging a Human request, report:
+
+```text
+CONCERN
+EVIDENCE
+RISK
+OPTIONS
+RECOMMENDATION
+HUMAN DECISION REQUIRED
+```
+
+5. A Builder discovery outside the Work Order must be reported as:
+
+```text
+BUILDER_FINDING
+original assumption
+observed evidence
+scope impact
+scope expansion required YES/NO
+NEXT = STOP_FOR_REVIEW when material
+```
+
+The Builder must not silently expand scope. When agents disagree, state:
+
+```text
+CLAIM A + EVIDENCE
+CLAIM B + EVIDENCE
+→ governance / roadmap / project memory / live evidence
+```
+
+Use evidence when it resolves the disagreement. If it remains an
+architecture or business choice, the Human decides; agents do not vote.
+
+## 4. Shortest complete prompt
 
 Prompts should be concise, non-repetitive, and token-efficient without omitting
 information needed for safe execution. The default Work Order shape is:
@@ -40,7 +86,7 @@ superseded history, unrelated roadmap items, resolved defects, stale test
 counts, or information that the repository can reliably provide. The shortest
 complete prompt is not the shortest possible prompt.
 
-## 4. Context economy
+## 5. Context economy
 
 Prefer targeted read, then delta read, then repository reference over repeated
 full-history reloads. Use `FULL`, `DELTA`, and `NO RE-READ` modes from the
@@ -48,7 +94,7 @@ Memory Index. If `CURRENT.md`, `PROJECT_MEMORY.md`, and live Git/GitHub are
 sufficient, do not request old chat history. Optimize tokens without
 sacrificing evidence, scope, or safety.
 
-## 5. Tool complementarity
+## 6. Tool complementarity
 
 - The Work Order decides **what** may change.
 - CodeGraph identifies **where** impact exists.
@@ -68,7 +114,7 @@ execution evidence in the return, and define the fallback when unavailable.
 Generic wording such as "Use CodeGraph + Superpowers" is not auditable.
 Keep PLUGINS in the shortest-complete prompt template.
 
-## 6. Quality over speed
+## 7. Quality over speed
 
 Context, correctness, evidence, and business safety outrank speed. When
 uncertain, inspect, verify, and use `HOLD` instead of guessing. Prefer slower
@@ -76,7 +122,7 @@ verified progress over fast false-safe conclusions. Consider context,
 authority, blast radius, edge cases, failure modes, stale assumptions, and
 known limitations.
 
-## 7. Verified code quality
+## 8. Verified code quality
 
 For implementation Work Packages, prefer code that is correct, simple,
 maintainable, bounded, testable, and efficient enough. Avoid premature
@@ -84,7 +130,7 @@ optimization, unrequested refactors, and cleverness without measurable
 benefit. Performance work requires evidence such as a benchmark, bottleneck,
 runtime issue, or explicit Work Order. Minimal complete fix remains preferred.
 
-## 8. Testing and reporting
+## 9. Testing and reporting
 
 Never report `PASS` or `DONE` without verification evidence. Reports should
 state the exact tests, result, Ruff/lint result, diff checks, CI status when
@@ -93,7 +139,7 @@ relevant, what was not verified, and known limitations or blockers.
 Appropriate runtime tests are mandatory for code changes. Tests must not be
 weakened merely to obtain a green result.
 
-## 9. Prompt filter
+## 10. Prompt filter
 
 When the Human asks for a Codex/Builder prompt, the agent must first follow
 the Memory Index, including `LOCAL_STAGED_INTEGRATION.md`, read
@@ -135,7 +181,7 @@ state cannot be reconciled, return `ENTRY_HOLD` instead of inventing facts.
 Chat history may explain context, but it is not a substitute for reconciling
 the active handoff with live Git/GitHub.
 
-## 10. Release-aware prompt generation
+## 11. Release-aware prompt generation
 
 When generating a prompt for a user-visible change, first determine:
 
@@ -157,7 +203,7 @@ The prompt must not silently omit version consistency, GUI version display,
 verification when applicable. Never instruct a Builder to publish without
 explicit Human authority.
 
-## 11. Role examples
+## 12. Role examples
 
 Role determines authority, not model name. Examples only:
 
@@ -169,7 +215,7 @@ Role determines authority, not model name. Examples only:
 Future agents may occupy different roles; the approved Work Order and role
 authority remain the source of truth.
 
-## 12. SA EXCEL SOURCE INTAKE & HUMAN CORRECTION
+## 13. SA EXCEL SOURCE INTAKE & HUMAN CORRECTION
 
 - SA normally supplies `TBMT-<date>.xlsx` or
   `KHMT-<date>.xlsx`; underscore and case variants are tolerated.
@@ -191,7 +237,7 @@ authority remain the source of truth.
   review, export and GUI capabilities for each source. A source classification
   result does not itself authorize downstream import or workflow behavior.
 
-## 13. LOCAL STAGED INTEGRATION COLLABORATION
+## 14. LOCAL STAGED INTEGRATION COLLABORATION
 
 The detailed operating procedure is
 `docs/agent/LOCAL_STAGED_INTEGRATION.md`.

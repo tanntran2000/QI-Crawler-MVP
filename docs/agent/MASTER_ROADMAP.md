@@ -3,6 +3,7 @@
 QI-Crawler → Internal Bid Assistant
 
 **Status:** MASTER BLUEPRINT / STRATEGIC ROADMAP
+**Blueprint revision:** 1.1 (conceptual roadmap revision; not application SemVer)
 **Execution model:** PARENT-WP / MICRO-WP ONLY
 
 **Core product boundary:** QI-Crawler reads, extracts, organizes, locates and
@@ -50,6 +51,56 @@ false-safe result, data-loss/security risk, architecture blocker, external
 dependency or explicit Human priority. It must name the trigger, risk,
 affected capability, bounded intervention, return point and Human approval.
 
+## THREE-POLE DEVELOPMENT MODEL
+
+```text
+Human Authority
+→ domain truth / intent / priorities / approvals /
+  Ground Truth authority / business decisions
+
+Planning & Audit Pole
+→ clarification / reasoning / architecture /
+  Blueprint alignment / Work Order / risk / audit
+
+Builder / Single Writer Pole
+→ implementation / testing / verification evidence /
+  bounded findings
+
+Machine Verifier
+→ CI / Golden / local machine verification as governed
+→ external evidence gate
+→ NOT a fourth business-authority pole
+```
+
+```text
+ROLE > MODEL NAME
+```
+
+No pole may silently assume another pole's authority. Planner, Reviewer and
+Auditor roles remain separated wherever `AGENTS.md` or the approved Work Order
+requires independence.
+
+### Triangle closure
+
+For material work, closure follows:
+
+```text
+HUMAN INTENT / AUTHORITY
+        ↓
+PLANNED / APPROVED CONTRACT
+        ↓
+BUILDER IMPLEMENTATION + EVIDENCE
+        ↓
+INDEPENDENT REVIEW
+        ↓
+MACHINE GATE RESOLVED
+```
+
+Builder `DONE`, passing tests, Human verbal agreement or Planner belief alone
+does not close a change. The machine gate is `PASS` or explicitly classified
+infrastructure-unavailable/waived under current governance; an authorized
+waiver does not require hosted CI before closure.
+
 ## PROGRAM COMPLETION and resource map
 
 The program is complete when QI-Crawler can safely:
@@ -62,6 +113,28 @@ COLLECT → PRESERVE → ORGANIZE → UNDERSTAND → EXTRACT → PROVE
 Team Bid remains the decision authority. Completion does not mean no future
 improvement, and Mini AI Agents are not a mandatory completion gate.
 
+Completion mapping:
+
+```text
+COLLECT
+  → Source Acquisition + Opportunity Intelligence
+PRESERVE / ORGANIZE
+  → Unified Tender Warehouse
+UNDERSTAND / EXTRACT / PROVE
+  → Tender Package & HSMT Intelligence
+CONTROL / CONFIRM
+  → SOP Bid Intelligence + Human review
+LEARN
+  → Ground Truth + Controlled Learning
+ASSIST
+  → Bid Assistant
+DELIVER
+  → Windows / outputs / approved delivery surfaces
+```
+
+GUI/API redesign completion is not mandatory unless required for agreed Team
+Bid usability. Mini AI Agents remain optional.
+
 Resource availability is explicit and must be verified at entry; roadmap prose
 never makes a tool or service available by implication:
 
@@ -73,7 +146,7 @@ never makes a tool or service available by implication:
 | Alembic | `AVAILABLE` / `REQUIRES_VERIFICATION` | Only for approved schema work. |
 | Git / GitHub | `AVAILABLE` / `REQUIRES_VERIFICATION` | Live repository/remote authority. |
 | SQLite / review history | `AVAILABLE` / `REQUIRES_VERIFICATION` | System of Record for source/review state. |
-| Managed document store | `PARTIAL` / `REQUIRES_VERIFICATION` | Use only its verified intake/storage contract. |
+| Managed file storage component | `PARTIAL` / `REQUIRES_VERIFICATION` | Internal component of Unified Tender Warehouse; use only its verified intake/storage contract. |
 | Windows packaging/release | `OPERATIONAL` / `REQUIRES_VERIFICATION` | Release plumbing; no implicit publish authority. |
 | Golden / real acceptance assets | `REQUIRES_VERIFICATION` | Evidence, never assumed available. |
 | Governance docs / lessons / feedback | `AVAILABLE` / `REQUIRES_VERIFICATION` | Handoff continuity and systemic learning. |
@@ -117,9 +190,11 @@ SOURCE ACQUISITION
         ↓
 OPPORTUNITY INTELLIGENCE
         ↓
-TRUSTED DOCUMENT WAREHOUSE
+UNIFIED TENDER WAREHOUSE
         ↓
-HSMT INTELLIGENCE
+TENDER PACKAGE & HSMT INTELLIGENCE
+        ↓
+SOP BID INTELLIGENCE
         ↓
 HUMAN GROUND TRUTH
         ↓
@@ -130,8 +205,19 @@ BID ASSISTANT / OUTPUT
 MINI AI AGENTS
 ```
 
-Windows / Team Bid delivery and Quality / CI / Release governance are
-cross-cutting lanes across this path.
+Cross-cutting lanes:
+
+```text
+WINDOWS / TEAM BID DELIVERY
+QUALITY / VERIFICATION / RELEASE GOVERNANCE
+```
+
+The following evolution tracks are deliberately `HOLD` and do not create
+Parent WPs in this reconciliation:
+
+```text
+GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
+```
 
 ## Capability matrix
 
@@ -142,18 +228,18 @@ cross-cutting lanes across this path.
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
 | TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance. | Downstream Bid Radar integration is not wired. | Parent 02B design and Human approval. |
 | TBMT Bid Radar | `PARTIAL` | Schema, parser, importer and revision semantics exist. | Filter/search, review persistence, confirmed export and GUI integration. | WP-MI-TBMT-02B design, then approval. |
-| Managed Document Store | `PARTIAL` | Managed copy, hashing, duplicate/version handling, identity and bundle guards. | Fully trusted Vault/Shelf/Recovery/Warehouse integrity. | Storage Reconciliation → SHA Vault. |
-| Trusted Document Warehouse | `PLANNED` | Architecture direction and safety boundaries are documented. | Canonical shelf, recovery, integrity, completeness and retention policy. | Storage Reconciliation and protected-data verification. |
-| HSMT native evidence | `PARTIAL` | Native PDF/DOCX/XLSX intake and evidence persistence foundations exist. | Complete bundle/integrity handling and broader evidence inspection. | Warehouse integrity and evidence-locator gates. |
-| HSMT semantic/structured extraction | `PARTIAL` | Bounded source-fact parsers and HSMT fact storage exist. | Completeness, item linkage, ambiguity handling and broader structured coverage. | Native Evidence + Extraction Integrity + Golden acceptance. |
+| Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | 02B where applicable, Storage Reconciliation and protected-data verification. |
+| Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
+| Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
 | Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
 | Evidence Locator | `PARTIAL` | Page/sheet/section/table provenance is retained where available. | Consistent locators and reviewable source context across all facts. | Structured extraction and integrity gates. |
+| SOP Bid Intelligence | `PLANNED` | Legacy/pilot bid analysis code and Human review foundations exist; no approved SOP evaluation engine is claimed. | Requirement Register → Cross-check → Gate readiness → Freeze/change-control workflow with Human authority. | Tender Package & HSMT Intelligence + Evidence + Human review contracts. |
 | Human Ground Truth | `PARTIAL` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
 | Controlled Learning | `PARKED` | Governance boundary is defined; no self-modifying production behavior. | Evaluation dataset, candidate rules/models and approval lifecycle. | Ground Truth + Golden regression + Human promotion. |
 | XLSX/DOCX outputs | `OPERATIONAL` | Confirmed package XLSX and Legal DOCX are derived from authoritative state. | Wider report bundles and HSMT evidence outputs. | Source-backed facts and explicit output contracts. |
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
 | Windows deployment | `OPERATIONAL` | Known-good v0.8.0 Windows delivery and persistent user-data boundary. | Future updates must preserve release/data governance. | Release impact assessment and verified candidate. |
-| Mini AI agents | `PARKED` | Future role boundary is documented only. | Trusted Warehouse, completeness, evidence and Ground Truth gates. | All unlock gates plus explicit Human approval. |
+| Mini AI agents | `PARKED` | Future role boundary is documented only. | Unified Tender Warehouse, completeness, evidence and Ground Truth gates. | All unlock gates plus explicit Human approval. |
 
 ## Lane 1 — Source Acquisition
 
@@ -189,50 +275,125 @@ IB...-00 Human Confirmed does NOT automatically imply IB...-01 Human Confirmed
 
 No automatic review inheritance is defined by this roadmap.
 
-## Lane 3 — Trusted Document Warehouse
+## Lane 3 — Unified Tender Warehouse
 
-**Mission:** make QI-Crawler a safe document warehouse for Team Bid.
-
-Development chain:
-
-```text
-Storage Reconciliation
-→ SHA Vault
-→ Package Shelf
-→ Recovery
-→ Warehouse Integrity
-→ Bundle Completeness
-→ retention / cleanup policy when storage pressure requires it
-```
-
-Target architecture:
+**Mission:** provide one safe, organized repository for the complete lifecycle
+of every tender package. This is one product capability, not one database or
+storage engine.
 
 ```text
-External File
-→ Intake/Staging
-→ crawler-managed copy
-→ SHA / identity / provenance
-→ immutable/raw Vault authority
-→ Package / Revision Shelf
-→ recovery/export
+PACKAGE
+  → exact REVISION
+     → source documents
+     → extracted evidence
+     → requirements
+     → Human review / Ground Truth
+     → SOP working records
+     → submission artifacts
+     → outcome/archive
 ```
 
-Deleting or moving an external file must not destroy the managed record.
-Historical revisions must not be silently destroyed. Unknown/recovery
-artifacts default to `KEEP`; destructive cleanup requires explicit safety
-authority. Internal storage naming is machine-oriented; Team Bid export naming
-is human/business-oriented.
+Physical shelf metaphor:
+
+- Tender Package = shelf;
+- Revision = revision compartment / version slot;
+- documents, evidence and results = correctly classified shelf contents;
+- the Crawler must know what belongs there and detect missing, conflicting or
+  misplaced sources;
+- a few stored files must never silently mean the shelf is complete.
+
+Expected source-status concepts are `EXPECTED`, `FOUND`, `MISSING`,
+`CONFLICT`, `UNKNOWN`, `SUPERSEDED` and `QUARANTINED`.
+
+```text
+FILE STORED != PACKAGE COMPLETE
+```
+
+Internal components may include SQLite, managed file storage, SHA identity,
+DuckDB/Parquet analytical datasets and future archive backends. DuckDB and
+Parquet are internal analytical components, not competing product warehouses.
+
+The Warehouse must preserve source bytes, SHA, provenance, revision lineage,
+old revisions and recovery ability. External deletion or movement must not
+destroy managed source authority, and archive operations remain
+non-destructive. Internal names may be machine-oriented while Team Bid output
+remains business-oriented:
 
 ```text
 INTERNAL STORAGE FORMAT != TEAM BID EXPORT FORMAT
 ```
 
-## Lane 4 — HSMT Intelligence
+### Warehouse shelf model — SOP alignment
+
+This is conceptual product organization; it does not claim every shelf exists
+today:
+
+```text
+01_SOURCE
+  E-TBMT | E-HSMT | appendices | amendments | clarifications
+  manually supplied authoritative sources
+
+02_REQUIREMENTS
+  Native Evidence | Requirement Register | structured source facts
+  Critical Issues
+
+03_EVIDENCE
+  Legal | Capability | Technical | Vendor / NPP
+
+04_SOP_WORKING
+  Master Bid Data | Cross-check records | Gate evidence
+  Change Control | Freeze records
+
+05_SUBMISSION
+  FINAL files | webform snapshots where applicable | submitted version
+  receipt/status evidence
+
+06_OUTCOME_ARCHIVE
+  clarification | reconciliation | result | Win/Loss | lessons/handoff evidence
+```
+
+## Lane 4 — Tender Package & HSMT Intelligence
 
 **Strategic priority: HIGHEST.**
 
-**Mission:** transform HSMT documents into source-backed information that Team
-Bid can review quickly.
+**Mission:** connect the tender opportunity identity known from KHMT/TBMT with
+the actual E-HSMT bundle and extract source-backed requirements from the
+correct package revision.
+
+Primary continuity:
+
+```text
+KHMT / PL
+→ Opportunity
+
+TBMT / IB
+→ exact Tender Package identity
+
+base_id + revision
+→ Warehouse Package Shelf
+→ HSMT Bundle
+→ Native Evidence
+→ Structured Requirements
+→ Requirement Register
+→ SOP Bid Intelligence
+```
+
+`PL != IB`; `base_id` is lineage and `(base_id, revision)` is the exact
+source/review package revision. `IB...-00` and `IB...-01` share lineage but
+remain distinct revisions. A new revision must not overwrite the old one,
+silently replace source evidence, inherit Human confirmation automatically or
+inherit Ground Truth where source context changed.
+
+When no safe IB identity is known, manual HSMT intake is
+`PROVISIONAL PACKAGE / HUMAN_LINK_REQUIRED`; do not invent an IB identity.
+
+Human Verified Ground Truth is not only a downstream phase. It may be captured
+during Tender Package & HSMT Intelligence as soon as the exact package and
+revision, source evidence and Human review authority are present. Extraction
+Ground Truth is a feedback loop used to harden HSMT before SOP Bid Intelligence
+is complete. SOP Bid Intelligence later contributes SOP-specific review and
+case records, but SOP Decision Records do not automatically become extraction
+Ground Truth.
 
 ```text
 HSMT Bundle
@@ -266,10 +427,92 @@ MUST NOT silently become COMPLETE
 Use Bundle Completeness, Extraction Integrity, Structured/Semantic Extraction,
 Evidence Locator and Golden HSMT acceptance as explicit capability gates.
 
-## Lane 5 — Human Ground Truth
+## Lane 5 — SOP Bid Intelligence
 
-**Mission:** turn Team Bid corrections into durable, verified project/domain
-truth.
+**State: PLANNED.**
+
+**Mission:** use structured source facts and evidence to support QI's
+controlled package evaluation and confirmation workflow under the internal
+SOP. This is not autonomous business decision authority.
+
+```text
+Tender Package & HSMT Intelligence
+→ Bid Summary
+→ Requirement Register
+→ Critical Issue List
+→ SOP evaluation
+→ PASS / PENDING / FAIL / CRITICAL
+→ Maker / Checker
+→ Cross-check
+→ Gate readiness
+→ Freeze / Change Control
+→ Human decision / confirmation
+```
+
+Required role and control concepts are `Maker`, `Checker`, `Approver / Bid
+Lead`, `Submitter`, `Evidence Provider`, `Requirement ID`, `Master Bid Data`,
+`Cross-check`, `Gate`, `Freeze`, `Change Control` and `Stop Rule`.
+
+The Crawler may determine evidence/readiness facts such as correct
+package/revision, source existence, evidence presence, locator presence,
+unresolved `PENDING`, `Critical`, Checker review, and source/version conflict.
+It may surface `READY_FOR_HUMAN_GATE_DECISION`,
+`NOT_READY_MISSING_EVIDENCE`, `REQUIRES_CHECKER` and `SOURCE_CONFLICT`.
+These are machine readiness statuses only:
+
+```text
+MACHINE READINESS STATUS != HUMAN GO/HOLD/NO-GO DECISION
+```
+
+SOP business roles retain GO/HOLD/NO-GO and Freeze authority. `SOURCE FACT !=
+HUMAN BUSINESS DECISION` and `MACHINE READINESS != HUMAN APPROVAL`.
+
+### Legacy bid-intelligence boundary
+
+`src/qi_crawler/bid_intelligence.py` is a `REFACTOR TARGET / LEGACY-PILOT
+ASSET`. Its heuristic scoring, estimated-win and GO/HOLD/NO-GO behavior is not
+approved product authority. Future direction is:
+
+```text
+legacy analysis primitives where useful
+→ evidence/readiness support
+→ SOP evaluation records
+→ Human-controlled Gate workflow
+```
+
+Do not delete or refactor it in this roadmap WP, and do not promise reuse until
+the relevant behavior is verified.
+
+## Lane 6 — Human Ground Truth
+
+**Mission:** turn Team Bid corrections into durable Human-verified truth used
+to measure Crawler accuracy, correct extraction errors, build regression
+corpora and improve the Crawler safely.
+
+Ground Truth is not every piece of business data, every Human business
+decision, a synonym for SOP Gate status or automatic production-rule
+promotion. Keep these four layers distinct:
+
+```text
+SOURCE TRUTH
+= immutable/source-backed evidence from the exact package/revision
+
+MACHINE OBSERVATION
+= what the Crawler extracted or classified
+
+HUMAN VERIFIED GROUND TRUTH
+= Human-confirmed/corrected interpretation of that observation
+
+SOP DECISION RECORD
+= operational/business decision such as Gate, Freeze, GO, HOLD or NO-GO
+```
+
+The target Ground Truth record conceptually retains package `base_id`, exact
+revision, document identity, source SHA, source locator, target/fact type,
+machine prediction/state, Human verdict and corrected value/locator,
+Maker/Checker/reviewer authority, review time/history, extractor/rule version,
+error type and severity. This roadmap does not claim every field is currently
+implemented.
 
 ```text
 Crawler Prediction
@@ -286,7 +529,32 @@ machine prediction, Human correction, review authority, error class and time/
 history. A critical error means `HOLD` the affected capability/package, capture
 Ground Truth, add regression, apply a minimal fix and re-verify.
 
-## Lane 6 — Controlled Learning
+### Ground Truth stability loop
+
+```text
+SOURCE
+→ MACHINE OBSERVATION
+→ HUMAN REVIEW
+→ CORRECTION / CONFIRMATION
+→ VERIFIED GROUND TRUTH
+→ ERROR CORPUS
+→ PATTERN CANDIDATE
+→ GOLDEN / REGRESSION EVALUATION
+→ HUMAN-APPROVED PROMOTION
+```
+
+```text
+SELF-LEARNING != SELF-MODIFYING PRODUCTION
+```
+
+One observation must never directly mutate a production parser or rule. Ground
+Truth serves three purposes: quality measurement of what the Crawler reads;
+system improvement through verified failures and bounded fixes; and
+organizational memory reusable across tender packages. Win/Loss or SOP
+business decisions may be linked to future Case Memory, but do not
+automatically become extraction Ground Truth.
+
+## Lane 7 — Controlled Learning
 
 **State: PARKED.**
 
@@ -304,7 +572,7 @@ Ground Truth
 `DISCOVERED`, `PENDING`, `APPROVED`, `ACTIVE` or `DEPRECATED`, but no automatic
 promotion is authorized by this roadmap.
 
-## Lane 7 — Bid Assistant / Output
+## Lane 8 — Bid Assistant / Output
 
 **Mission:** turn verified/source-backed information into useful Team Bid
 working artifacts: XLSX, DOCX, PDF, checklists, requirement registers,
@@ -323,7 +591,7 @@ verified data
 Autonomous final bid-document approval is not authorized. Source-derived facts
 remain separate from Team Bid derived/proposed data.
 
-## Lane 8 — Mini AI Agents
+## Lane 9 — Mini AI Agents
 
 **State: PARKED.**
 
@@ -331,9 +599,85 @@ Future agents may suggest, classify, route, rank, compare, explain and recall.
 They are not authorities and may not autonomously assign `HUMAN_CONFIRMED`,
 `VERIFIED`, `APPROVED`, `FINAL_COMPLIANCE`, `FINAL_BOM`, `GO` or `NO_GO`.
 
-Unlock gates are Trusted Warehouse, Completeness/Integrity, Structured Facts,
+Unlock gates are Unified Tender Warehouse, Completeness/Integrity, Structured Facts,
 Evidence, Human Ground Truth and Golden regression, followed by explicit Human
 authority.
+
+## Existing asset register
+
+This register tells future agents what already exists so they neither rebuild
+it blindly nor promote experimental code accidentally. Asset disposition is
+separate from roadmap capability state:
+
+```text
+ACTIVE | ACTIVE_FOUNDATION | ACTIVE_SUPPORT | HOLD_REUSE | PARKED
+REQUIRES_VERIFICATION
+EXPERIMENTAL | REFACTOR_TARGET
+```
+
+| Existing asset | Disposition | Roadmap role / boundary |
+| --- | --- | --- |
+| Authenticated source / e-GP session | `ACTIVE_SUPPORT` | Source Acquisition support. |
+| Monitoring | `HOLD_REUSE` | Future opportunity monitoring/deadline support. |
+| Notification / Reporting | `HOLD_REUSE` | Alerts and operational reporting. |
+| Inventory / Stock | `PARKED` | Future internal supply/support evidence; **not BOM authority**. |
+| Company Evidence | `REQUIRES_VERIFICATION` | Future SOP capability/evidence support if verified; external provider data is not automatic compliance truth. |
+| DuckDB / Parquet analytical assets | `ACTIVE_FOUNDATION` | Internal analytical component of Unified Tender Warehouse; not a second product warehouse. |
+| `smart_filter` | `PARKED` | Candidate asset, not current authority. |
+| `ai_classifier` | `EXPERIMENTAL` | No automatic production promotion. |
+| `competitor_analysis` | `EXPERIMENTAL` | No decision authority. |
+| `price_intelligence` | `EXPERIMENTAL` | No purchasing or bid decision authority. |
+| `bid_intelligence.py` | `REFACTOR_TARGET` | Legacy/pilot asset; not approved SOP authority. |
+| XLSX / DOCX exporters | `ACTIVE` | Derived outputs from authoritative state. |
+| Native extraction | `ACTIVE_FOUNDATION` | Source evidence foundation. |
+| HSMT facts/parsers | `ACTIVE_FOUNDATION` | Source-fact foundation, not legal/business decision authority. |
+| Ground Truth review service | `ACTIVE_FOUNDATION` | Append-only Human verification foundation. |
+| GUI / CLI / API | `ACTIVE_SUPPORT` | Delivery surfaces; classify individually without creating roadmap lanes. |
+
+```text
+EXISTING ASSET != APPROVED PRODUCT AUTHORITY
+PARKED / EXPERIMENTAL != AUTOMATIC PROMOTION
+```
+
+## GUI evolution — HOLD
+
+```text
+GUI_EVOLUTION = HOLD
+```
+
+The current GUI remains a usable delivery surface where already supported.
+Do not authorize redesign in this roadmap WP. The future direction is a
+package-centric UI rather than function-centric accumulation: Package/Revision
+dashboard, Warehouse shelf, source completeness, document/evidence viewer,
+Requirement Register, Critical/Pending view, SOP readiness, Maker/Checker,
+Ground Truth correction, revision comparison and package retrieval. Unlock
+requires stable Package/Revision, Warehouse, HSMT and SOP contracts. No GUI
+Parent is created here.
+
+## API evolution — HOLD
+
+```text
+API_EVOLUTION = HOLD
+```
+
+Do not expand API endpoints around legacy models merely to expose more data.
+Future conceptual resources follow stabilized packages, revisions, documents,
+evidence, requirements, reviews, Ground Truth, SOP readiness and exports. No
+endpoint implementation is authorized here.
+
+## CI evolution — HOLD, quality active
+
+```text
+CI_EVOLUTION_PROGRAM = HOLD
+QUALITY_VERIFICATION = ACTIVE
+```
+
+Testing is not paused. Future bounded CI targets may include risk-based
+matrices, collection protection, migration/schema gates, Golden HSMT and
+Ground Truth regression, Warehouse integrity, Package/Revision lineage,
+protected-data safety, Windows packaging smoke, release artifact integrity,
+retro-CI debt handling and adaptive runtime budgets. Operational CI state
+belongs to `CURRENT.md` and live GitHub.
 
 ## Cross-cutting — Windows / Team Bid delivery
 
@@ -368,28 +712,49 @@ verified CI/release state, applicable governance and Human authority.
    documents manually.
 2. Opportunity Intelligence should complete TBMT Bid Radar integration before
    broad opportunity-lifecycle expansion.
-3. Trusted Warehouse should become reliable before relying heavily on large
+3. Unified Tender Warehouse reliability should precede heavy reliance on large
    HSMT/AI historical corpora.
-4. HSMT Structured Extraction must precede serious Ground Truth learning.
+4. Tender Package & HSMT Intelligence must precede SOP Bid Intelligence.
 5. Evidence and Completeness/Integrity are prerequisites for trusting HSMT
-   semantic outputs.
-6. Ground Truth precedes Controlled Learning.
-7. Mini AI agent production integration remains parked until Trusted Core gates
-   are satisfied.
-8. Human may change business priority; dependency safety still applies.
+   semantic outputs and SOP readiness.
+6. Human Verified Ground Truth may be captured during HSMT when exact package,
+   evidence and review authority exist; SOP-specific records remain distinct.
+7. Ground Truth precedes Controlled Learning.
+8. Mini AI agent production integration remains parked until the trusted core
+   gates are satisfied.
+9. Human may change business priority; dependency safety still applies.
 
 Likely development path, not an approval sequence:
 
 ```text
 02B Bid Radar Integration
-→ Warehouse reliability
-→ HSMT completeness/evidence hardening
-→ Structured HSMT extraction
-→ Human Ground Truth
+→ Unified Tender Warehouse reliability
+→ Tender Package & HSMT Intelligence hardening
+→ Completeness / Evidence
+→ SOP Bid Intelligence
+→ Human Ground Truth expansion
 → Controlled Learning
 → Bid Assistant outputs
 → Mini AI Agents
 ```
+
+This path is NOT an approval sequence. Human may reorder business priority
+when dependency safety remains satisfied.
+
+## SOP business authority boundary
+
+QI SOP defines the internal workflow and role/gate control model. Per-package
+source authority remains the correct E-HSMT plus amendments, clarifications and
+live system fields/state. SOP organizes QI evaluation but does not replace the
+package source requirements.
+
+```text
+SOURCE FACT != HUMAN BUSINESS DECISION
+MACHINE READINESS != HUMAN APPROVAL
+GROUND TRUTH != SOP DECISION RECORD
+```
+
+No roadmap wording grants the Crawler final bid-decision authority.
 
 ## Prompt Writer algorithm
 
