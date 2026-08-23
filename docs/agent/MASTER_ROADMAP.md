@@ -146,9 +146,9 @@ cross-cutting lanes across this path.
 | Trusted Document Warehouse | `PLANNED` | Architecture direction and safety boundaries are documented. | Canonical shelf, recovery, integrity, completeness and retention policy. | Storage Reconciliation and protected-data verification. |
 | HSMT native evidence | `PARTIAL` | Native PDF/DOCX/XLSX intake and evidence persistence foundations exist. | Complete bundle/integrity handling and broader evidence inspection. | Warehouse integrity and evidence-locator gates. |
 | HSMT semantic/structured extraction | `PARTIAL` | Bounded source-fact parsers and HSMT fact storage exist. | Completeness, item linkage, ambiguity handling and broader structured coverage. | Native Evidence + Extraction Integrity + Golden acceptance. |
-| Completeness / Extraction Integrity | `PLANNED` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
+| Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
 | Evidence Locator | `PARTIAL` | Page/sheet/section/table provenance is retained where available. | Consistent locators and reviewable source context across all facts. | Structured extraction and integrity gates. |
-| Human Ground Truth | `PLANNED` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
+| Human Ground Truth | `PARTIAL` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
 | Controlled Learning | `PARKED` | Governance boundary is defined; no self-modifying production behavior. | Evaluation dataset, candidate rules/models and approval lifecycle. | Ground Truth + Golden regression + Human promotion. |
 | XLSX/DOCX outputs | `OPERATIONAL` | Confirmed package XLSX and Legal DOCX are derived from authoritative state. | Wider report bundles and HSMT evidence outputs. | Source-backed facts and explicit output contracts. |
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
@@ -356,10 +356,11 @@ migration/schema gates when relevant and protected-data safety. CI Fitness must
 evolve with capability risk; `CI GREEN` is evidence, not proof of absence of
 all bugs.
 
-Current governance records hosted CI as `INFRASTRUCTURE_UNAVAILABLE`,
-`CI_WAIVER = ACTIVE`, `PENDING_RETRO_CI = YES`. Official Team Bid release
-remains blocked while applicable retro-CI debt is open unless Human authority
-explicitly changes release authority.
+Operational CI availability, waiver state and retro-CI debt belong to
+`CURRENT.md` and live GitHub verification, not to this strategic roadmap. CI
+Fitness evolves with capability risk; `CI GREEN` is evidence for tested
+contracts, not proof of no bugs. Release eligibility depends on current
+verified CI/release state, applicable governance and Human authority.
 
 ## Dependency rules and likely path
 
