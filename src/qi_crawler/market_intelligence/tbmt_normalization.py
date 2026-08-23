@@ -14,7 +14,8 @@ _IDENTITY_TOKEN_RE = re.compile(
     r"(?:\s*-\s*(?P<revision>[0-9A-Za-z]+))?)\b",
     re.IGNORECASE,
 )
-_EXTENDED_IDENTITY_SUFFIX_RE = re.compile(r"^\s*-\s*[0-9A-Za-z]")
+_EXTENDED_IDENTITY_SUFFIX_RE = re.compile(r"^\s*-\s*")
+_TBMT_SOURCE_MARKER_RE = re.compile(r"\bMã\s+TBMT\s*:\s*$", re.IGNORECASE)
 _GROUPED_INTEGER_RE = re.compile(r"^\d{1,3}(?:([.,])\d{3})+$")
 _SPACE_GROUPED_INTEGER_RE = re.compile(r"^\d{1,3}(?: \d{3})+$")
 
@@ -81,8 +82,13 @@ def parse_tbmt_notice_identity(value: Any) -> OpportunityIdentity | None:
     if len(matches) != 1:
         return None
     match = matches[0]
-    if _EXTENDED_IDENTITY_SUFFIX_RE.match(text[match.end() :]):
-        return None
+    suffix = text[match.end() :]
+    suffix_match = _EXTENDED_IDENTITY_SUFFIX_RE.match(suffix)
+    if suffix_match:
+        title = suffix[suffix_match.end() :]
+        source_marker = _TBMT_SOURCE_MARKER_RE.search(text[: match.start()])
+        if not source_marker or not title or not title[0].isalpha():
+            return None
     if match.group("namespace").upper() != "IB":
         return None
     revision = match.group("revision")

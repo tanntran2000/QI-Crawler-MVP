@@ -55,6 +55,47 @@ def test_parse_tbmt_identity_rejects_extended_identity_token() -> None:
     value = "Gói mua sắm IB2600463290-00-01"
 
     assert parse_tbmt_notice_identity(value) is None
+    assert parse_tbmt_notice_identity("Gói mua sắm IB2600463290-00-Mua sắm") is None
+
+
+def test_parse_tbmt_identity_accepts_mã_tbmt_title_delimiter() -> None:
+    identity = parse_tbmt_notice_identity(
+        "Mã TBMT : IB2600462391-00-Mua sắm thiết bị mẫu"
+    )
+
+    assert identity is not None
+    assert identity.raw_id == "IB2600462391-00"
+    assert identity.base_id == "IB2600462391"
+    assert identity.revision == "00"
+
+
+def test_parse_tbmt_identity_accepts_mã_tbmt_revision_one_title_delimiter() -> None:
+    identity = parse_tbmt_notice_identity(
+        "Mã TBMT : IB2600462669-01-Bản quyền phần mềm mẫu"
+    )
+
+    assert identity is not None
+    assert identity.raw_id == "IB2600462669-01"
+    assert identity.revision == "01"
+
+
+def test_parse_tbmt_identity_delimiter_excludes_package_title() -> None:
+    identity = parse_tbmt_notice_identity("Mã TBMT : IB2600462391-00-Mua sắm mẫu")
+
+    assert identity is not None
+    assert identity.raw_id == "IB2600462391-00"
+
+
+def test_parse_tbmt_identity_rejects_extended_token_with_source_marker() -> None:
+    assert parse_tbmt_notice_identity("Mã TBMT : IB2600463290-00-01") is None
+
+
+def test_parse_tbmt_identity_rejects_empty_source_delimited_suffix() -> None:
+    assert parse_tbmt_notice_identity("Mã TBMT : IB2600463290-00-") is None
+
+
+def test_parse_tbmt_identity_rejects_pl_source_marker_with_title() -> None:
+    assert parse_tbmt_notice_identity("Mã TBMT : PL2600245672-02-Gói mẫu") is None
 
 
 def test_parse_tbmt_identity_rejects_multiple_ib_identities() -> None:
