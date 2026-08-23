@@ -70,7 +70,11 @@ def parse_tbmt_notice_identity(value: Any) -> OpportunityIdentity | None:
     """Parse exactly one revisioned PL/IB identity from a TBMT source cell.
 
     TBMT rows require an IB identity with a two-digit revision. Any PL,
-    missing/malformed revision, or ambiguous identity set is rejected.
+    missing/malformed revision, or ambiguous identity set is rejected. In a
+    value such as ``Mã TBMT : IB...-00-Mua sắm ...``, the ``IB...-00``
+    segment is the identity and the following hyphen only delimits the title;
+    ``-01`` in ``IB...-01`` remains part of the revisioned identity. An
+    extended token such as ``IB...-00-01`` remains invalid.
     """
 
     if value is None:

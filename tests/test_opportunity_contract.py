@@ -71,6 +71,18 @@ def test_valid_ib_identity_preserves_raw_base_revision_and_namespace() -> None:
     assert identity.namespace is OpportunityIdentityNamespace.IB
 
 
+def test_same_ib_lineage_different_revisions_remain_distinct_identities() -> None:
+    revision_00 = OpportunityIdentity.from_raw("IB2600462391-00")
+    revision_01 = OpportunityIdentity.from_raw("IB2600462391-01")
+
+    assert revision_00.base_id == revision_01.base_id == "IB2600462391"
+    assert revision_00.revision == "00"
+    assert revision_01.revision == "01"
+    assert revision_00.raw_id == "IB2600462391-00"
+    assert revision_01.raw_id == "IB2600462391-01"
+    assert revision_00 != revision_01
+
+
 def test_identity_rejects_raw_base_revision_mismatch() -> None:
     with pytest.raises(OpportunityContractError, match="identity"):
         OpportunityIdentity(

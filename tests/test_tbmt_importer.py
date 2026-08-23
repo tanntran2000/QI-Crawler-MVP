@@ -189,6 +189,27 @@ def test_duplicate_valid_identity_rows_remain_two_candidates(tmp_path: Path) -> 
     assert result.candidates[0].identity.base_id == result.candidates[1].identity.base_id
 
 
+def test_same_ib_lineage_different_revisions_remain_two_candidates(tmp_path: Path) -> None:
+    path = _write_workbook(
+        tmp_path,
+        rows=[
+            _row(package="Mã TBMT : IB2600462391-00-Gói mẫu lần đầu"),
+            _row(package="Mã TBMT : IB2600462391-01-Gói mẫu cập nhật"),
+        ],
+    )
+
+    result = import_tbmt_workbook(path)
+
+    assert len(result.candidates) == 2
+    first, second = result.candidates
+    assert first.identity.base_id == second.identity.base_id == "IB2600462391"
+    assert first.identity.revision == "00"
+    assert second.identity.revision == "01"
+    assert first.identity.raw_id != second.identity.raw_id
+    assert [first.source_row, second.source_row] == [11, 12]
+    assert first.provenance["source_row"] != second.provenance["source_row"]
+
+
 def test_missing_required_header_fails_closed(tmp_path: Path) -> None:
     headers = tuple(header for header in OBSERVED_TBMT_HEADERS if header != "DỰ ÁN")
     path = _write_workbook(tmp_path, headers=headers, rows=[])

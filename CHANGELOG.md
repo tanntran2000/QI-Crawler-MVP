@@ -6,9 +6,11 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 - Them nhan dang va routing Excel KHMT/TBMT theo filename + schema + PL/IB,
   co human override append-only; TBMT moi duoc nhan dang, chua import vao Bid Radar.
-- Them adapter intake TBMT XLSX source-neutral theo IB Opportunity; Real Golden
-  bao phu ca hai dang identity da quan sat, giu tach biet PL/IB va chua trien khai
-  TBMT Bid Radar review/export/GUI.
+- Them adapter intake TBMT XLSX source-neutral theo IB Opportunity; xac nhan
+  read-only tren workbook TBMT that bao phu cac dang identity da quan sat,
+  giu nguyen revision HSMT (`-00` lan phat hanh dau, `-01` lan cap nhat sau
+  chinh sua) va giu tach biet PL/IB; chua trien khai TBMT Bid Radar
+  review/export/GUI.
 - Hoan tat Business Fast-Track MI-0 -> MI-6 va xac nhan end-to-end bang workbook KHMT that `KHMT_19_8_2026.xlsx`.
 - Real Golden Team Bid: import 413 goi, preset HCM/0-500 trieu loc 9 ung vien, Human Authority ghi 3 `CONFIRMED`, 6 `NEEDS_REVIEW`, 0 `REJECTED`.
 - Xac minh `current_confirmed()` chi tra 3 goi da duoc con nguoi xac nhan; 6 goi `NEEDS_REVIEW` khong duoc xuat.

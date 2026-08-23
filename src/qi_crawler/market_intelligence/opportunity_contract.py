@@ -45,7 +45,14 @@ _EXPECTED_NAMESPACE = {
 
 @dataclass(frozen=True, slots=True)
 class OpportunityIdentity:
-    """A source identity with raw and parsed values kept separately."""
+    """A source identity with raw and parsed values kept separately.
+
+    ``base_id`` identifies the procurement-notice lineage, while ``revision``
+    is part of the exact source identity. Different revisions therefore remain
+    distinct ``OpportunityIdentity`` values even when they share a lineage.
+    ``raw_id`` preserves the exact source identity segment as supplied by the
+    source.
+    """
 
     raw_id: str
     base_id: str
