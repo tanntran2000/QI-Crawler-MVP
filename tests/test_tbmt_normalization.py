@@ -51,6 +51,12 @@ def test_parse_tbmt_identity_rejects_malformed_revision() -> None:
     assert parse_tbmt_notice_identity("Gói mua sắm IB2600463290-000") is None
 
 
+def test_parse_tbmt_identity_rejects_extended_identity_token() -> None:
+    value = "Gói mua sắm IB2600463290-00-01"
+
+    assert parse_tbmt_notice_identity(value) is None
+
+
 def test_parse_tbmt_identity_rejects_multiple_ib_identities() -> None:
     value = "IB2600463290-00 và IB2600463291-00"
 

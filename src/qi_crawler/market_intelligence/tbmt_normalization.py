@@ -12,6 +12,7 @@ _IDENTITY_TOKEN_RE = re.compile(
     r"(?:\s*-\s*(?P<revision>[0-9A-Za-z]+))?)\b",
     re.IGNORECASE,
 )
+_EXTENDED_IDENTITY_SUFFIX_RE = re.compile(r"^\s*-\s*[0-9A-Za-z]")
 
 
 def compact_source_text(value: Any) -> str | None:
@@ -45,6 +46,8 @@ def parse_tbmt_notice_identity(value: Any) -> OpportunityIdentity | None:
     if len(matches) != 1:
         return None
     match = matches[0]
+    if _EXTENDED_IDENTITY_SUFFIX_RE.match(text[match.end() :]):
+        return None
     if match.group("namespace").upper() != "IB":
         return None
     revision = match.group("revision")
