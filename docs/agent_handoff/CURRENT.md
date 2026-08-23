@@ -67,8 +67,8 @@ production data or publishing the official reference release.
 
 ## Verification state
 
-- Targeted standalone/installer tests: `12 passed` after corrective fix.
-- Full verification: `458 passed` (one existing Windows PytestCacheWarning).
+- Targeted standalone/release tests: `17 passed` for the PR #43 amendment.
+- Full verification: `459 passed` (one existing Windows PytestCacheWarning).
 - Ruff: PASS; `git diff --check`: PASS.
 - Clean-data smoke executed by the fresh build: PASS.
 - Fresh Team-Bid-copy smoke: PASS at
@@ -89,8 +89,9 @@ production data or publishing the official reference release.
 
 - Verify exact-head PR/CI state live from GitHub after push; tracked CURRENT does
   not own volatile PR/CI truth.
-- Push this bounded PR #43 amendment and let natural CI run; no merge, publish,
-  tag, GitHub Release or Team Bid Reference is authorized here.
+- The amendment is committed locally; verify exact-head PR/CI state live from
+  GitHub. No merge, publish, tag, GitHub Release or Team Bid Reference is
+  authorized here.
 
 ## Risks / blockers
 
@@ -108,9 +109,8 @@ production data or publishing the official reference release.
 
 ## Next objective
 
-Commit and push this bounded corrective branch, create one Draft PR, and let
-natural CI provide the live evidence for independent audit and Human merge
-decision.
+Verify the committed PR #43 amendment and let natural CI provide live evidence
+for independent audit and Human merge decision.
 
 ## Locked decisions
 

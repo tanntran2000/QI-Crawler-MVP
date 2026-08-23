@@ -122,7 +122,12 @@ def test_isolated_data_root_rejects_non_sqlite_database(
     isolated_root.mkdir()
     (isolated_root / "config.yaml").write_text(
         yaml.safe_dump(
-            {"storage": {"database_url": "postgresql://example/db"}},
+            {
+                "storage": {
+                    "database_url": "postgresql://example/db",
+                    "document_dir": str(foreign_root / "documents"),
+                }
+            },
             sort_keys=False,
         ),
         encoding="utf-8",
@@ -131,6 +136,8 @@ def test_isolated_data_root_rejects_non_sqlite_database(
     try:
         with pytest.raises(StandaloneResourceError):
             prepare_standalone_runtime(require_browser=False)
+        stored = yaml.safe_load((isolated_root / "config.yaml").read_text(encoding="utf-8"))
+        assert stored["storage"]["database_url"] == "postgresql://example/db"
         assert not foreign_root.exists()
     finally:
         os.chdir(original_cwd)
