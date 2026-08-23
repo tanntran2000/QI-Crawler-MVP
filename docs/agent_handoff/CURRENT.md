@@ -95,5 +95,6 @@ authority and is not asserted by this tracked handoff.
 ## Git / delivery state
 
 - Implementation commit: `660a33a`.
-- Push/PR: pending; live CI remains external authority.
+- Branch push completed; Draft PR `#44` created. Live CI remains external
+  authority and its final result is not asserted here.
 - No merge.
