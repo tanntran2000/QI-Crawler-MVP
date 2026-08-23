@@ -13,12 +13,13 @@ the merged codebase.
 4. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
    independent-audit, Parent Integration, and CI-waiver procedure.
 5. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
-6. `docs/agent_handoff/CURRENT.md` — the single active snapshot.
-7. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
-8. Live GitHub state when the Work Package involves a branch, PR, remote
+6. `docs/agent/MASTER_ROADMAP.md` — strategic capability map and dependencies.
+7. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
+8. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
+9. Live GitHub state when the Work Package involves a branch, PR, remote
    checkpoint, or CI.
-9. Relevant entries in `docs/agent/LESSONS.md`.
-10. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+10. Relevant entries in `docs/agent/LESSONS.md`.
+11. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
 ## Read-in modes
 
@@ -36,9 +37,10 @@ identify risk, but it cannot silently change scope or authority.
 
 ## Handoff rule
 
-`CURRENT.md` contains exactly one active Work Package. Historical snapshots
+`CURRENT.md` contains exactly one active handoff snapshot. Historical snapshots
 belong under `docs/agent_handoff/history/` and must not be appended back into
-the active snapshot.
+the active snapshot. A closed Parent WP may legitimately leave
+`ACTIVE_PARENT_WP = NONE` while the next Parent is only in design/planning.
 
 After an audited micro-WP is pushed as a remote checkpoint, the active handoff
 must be refreshed before a different agent is expected to continue safely.
@@ -60,15 +62,16 @@ OPERATING_MODEL          READ
 HUMAN_COLLABORATION      READ
 LOCAL_STAGED_INTEGRATION READ
 PROJECT_MEMORY           READ
+MASTER_ROADMAP           READ
 CURRENT                  READ
 
 LIVE_GIT                 VERIFIED
 LIVE_GITHUB              VERIFIED when a remote branch/PR/CI is relevant
 
-ACTIVE_PARENT_WP         RESOLVED
-LAST_AUDITED_MICRO_WP    RESOLVED
-LAST_AUDITED_CODE_HEAD   RESOLVED
-NEXT_MICRO_WP            RESOLVED
+ACTIVE_PARENT_WP         RESOLVED (may be NONE)
+LAST_AUDITED_MICRO_WP    RESOLVED / N/A
+LAST_AUDITED_CODE_HEAD   RESOLVED / N/A
+NEXT_PARENT_OR_MICRO_WP  RESOLVED
 NEXT_AUTHORITY           RESOLVED
 
 RESULT                    PROMPT_READY / ENTRY_HOLD
