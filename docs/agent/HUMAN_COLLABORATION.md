@@ -25,8 +25,15 @@ Prompts should be concise, non-repetitive, and token-efficient without omitting
 information needed for safe execution. The default Work Order shape is:
 
 ```text
-BASE → WORKSPACE → PLUGINS → OBJECTIVE → SCOPE → ACCEPTANCE → VERIFY → DELIVERY
+BLUEPRINT CONTEXT → BASE → WORKSPACE → PLUGINS → OBJECTIVE → SCOPE → ACCEPTANCE → VERIFY → DELIVERY
 ```
+
+For technical work, prepend a concise `BLUEPRINT CONTEXT` identifying the
+Product Frontier, Capability Lane, Roadmap Node, current maturity, target
+increment, dependencies and why this Work Package exists:
+
+Blueprint Context aligns the work with `MASTER_ROADMAP.md`; it does not copy
+the full roadmap or grant implementation authority.
 
 Prefer repository references over copying stable governance text. Do not dump
 superseded history, unrelated roadmap items, resolved defects, stale test
@@ -89,10 +96,13 @@ weakened merely to obtain a green result.
 ## 9. Prompt filter
 
 When the Human asks for a Codex/Builder prompt, the agent must first follow
-the Memory Index, including `LOCAL_STAGED_INTEGRATION.md`, verify `CURRENT.md`
-and live Git/GitHub, identify the active and next Work Package, confirm the
-exact baseline, and identify scope, risks, and stop conditions. Read only
-relevant lessons and feedback. Then produce the shortest complete prompt.
+the Memory Index, including `LOCAL_STAGED_INTEGRATION.md`, read
+`MASTER_ROADMAP.md`, verify `CURRENT.md` and live Git/GitHub, identify the
+active and next Work Package, confirm the exact baseline, and identify scope,
+risks, and stop conditions. Read only relevant lessons and feedback. Then
+reconcile the current frontier and roadmap node and produce the shortest
+complete prompt. Blueprint alignment is required before emitting an
+implementation Work Order.
 
 Before emitting an implementation Work Order, record or internally prove:
 
@@ -106,6 +116,7 @@ HUMAN_COLLABORATION      READ
 LOCAL_STAGED_INTEGRATION READ
 PROJECT_MEMORY           READ
 CURRENT                  READ
+MASTER_ROADMAP           READ
 
 LIVE_GIT                 VERIFIED
 LIVE_GITHUB              VERIFIED when relevant
@@ -174,9 +185,11 @@ authority remain the source of truth.
   identity or convert one source namespace into another.
 - Source-type corrections do not enable self-learning or automatic production
   rule promotion; any learning remains a separately approved Work Package.
-- TBMT recognition is not TBMT import: Bid Radar must not create KHMT
-  `PlanPackage` records from a TBMT workbook until a later approved Work
-  Package implements that importer.
+- **Source classification and downstream capability maturity are separate.**
+  Prompt Writers must consult `PROJECT_MEMORY.md` and `MASTER_ROADMAP.md` to
+  determine the currently supported recognition, intake, filter/search,
+  review, export and GUI capabilities for each source. A source classification
+  result does not itself authorize downstream import or workflow behavior.
 
 ## 13. LOCAL STAGED INTEGRATION COLLABORATION
 
