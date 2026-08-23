@@ -98,6 +98,7 @@ and is not asserted by this tracked handoff.
 ## Git / delivery state
 
 - Previous implementation commit: `660a33a`.
-- Audit amendment commit and branch push are recorded after verification;
-  Draft PR `#44` remains open. Live CI result is not asserted here.
+- Audit amendment commit: `9ade8e7` (`Harden source routing audit contract`).
+- Branch push completed; Draft PR `#44` remains open. Live CI result is not
+  asserted here.
 - No merge.
