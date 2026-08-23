@@ -53,7 +53,7 @@ branches must remain in their Work Package handoff.
 - **Contract:** `dist` is a generated build workspace. The user-visible
   `Crawler tool\Current` is the publish authority, updated only by an explicit
   clean-main publish after a verified candidate; failed candidates do not
-  replace Current. Version remains `0.7.1` until a separate approved change.
+  replace Current. The approved Team Bid release is `0.8.0`.
 - **Evidence:** merged Windows release mechanics and hosted CI success.
 - **Last verified:** `07ef548ee3747efd617e131880368cedc52f3bfc`.
 
@@ -62,3 +62,14 @@ branches must remain in their Work Package handoff.
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
+
+## MEM-006 — SA Excel source routing (pending merge)
+
+- **State:** PENDING MERGE
+- **Since branch:** `wp/mi-source-type-routing-ground-truth`.
+- **Contract:** Excel intake treats filename as a hint, validates KHMT/TBMT
+  schema and PL/IB namespace evidence, requires named Human correction for
+  unknown/conflicting sources, and records corrections append-only. TBMT is
+  recognized but is not converted into KHMT PlanPackage records.
+- **Evidence:** WP-MI-SRC-01 implementation and focused regression suite.
+- **Implementation commit:** `<to be filled after bounded implementation commit>`.

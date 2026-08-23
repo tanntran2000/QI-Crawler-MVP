@@ -130,3 +130,16 @@ Role determines authority, not model name. Examples only:
 
 Future agents may occupy different roles; the approved Work Order and role
 authority remain the source of truth.
+
+## 12. SA EXCEL SOURCE INTAKE & HUMAN CORRECTION
+
+- Filename is a source hint only; workbook schema and embedded PL/IB identity
+  are the evidence used for automatic classification.
+- A compatible KHMT or TBMT filename/schema pair may be classified
+  automatically. Conflicts and unknown filenames require an explicit Team Bid
+  source selection.
+- Human source corrections are append-only, require a named reviewer, and do
+  not rewrite PL/IB identity or convert one source namespace into another.
+- TBMT recognition is not TBMT import: Bid Radar must not create KHMT
+  `PlanPackage` records from a TBMT workbook until a later approved Work
+  Package implements that importer.

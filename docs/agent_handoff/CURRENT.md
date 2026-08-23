@@ -2,123 +2,96 @@
 
 ## HANDOFF_ID
 
-WP-REL-01 — Corrective Stage A
+WP-MI-SRC-01 — SA Excel Source Routing + Human Override + Source-Type Ground Truth
 
 ## Status
 
-LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED — PR #43 audit amendment
-covered; no release/publish.
+LOCAL IMPLEMENTATION / NATURAL CI REQUIRED / NO MERGE
 
 ## Mission
 
-Prepare a verifiable local v0.8.0 Team Bid release candidate without touching
-production data or publishing the official reference release.
+Route Excel sources safely for Bid Radar: detect KHMT/TBMT from filename,
+schema and PL/IB evidence; require named Human authority for ambiguity; keep
+source-type corrections append-only; do not implement TBMT import.
 
 ## Current verified state
 
-- Branch: `wp/rel-team-bid-reference`.
-- Corrective implementation head: `4ce352362aadddb19a4f72efbcb73dda97708d57`.
-- Canonical version target: `0.8.0`; release impact: YES; version impact: MINOR.
-- Alembic has one head: `0013_add_candidate_review_events`.
-- Recovery PASS: production DB restored from the verified backup; contaminated
-  DB preserved at `C:\Users\Admin\AppData\Local\QI-Crawler-Recovery-WP-REL-01-20260823-002826064\egp.db`.
-- Restored production DB SHA-256:
-  `384FE99B58F9D26CD4649725D9359EC35F6261A6729B9080EB0CC0A147913BEB`.
-- No production WAL/SHM sidecars were present; the smoke-created
-  `data\reports\TBMT_Latest.xlsx` was removed under the approved recovery.
-- Fresh candidate build completed from the corrective head:
-  `release_staging\candidate` and
-  `dist\installer\QI-Crawler-Setup-v0.8.0.exe`.
-- Candidate metadata records version `0.8.0`, commit
-  `4ce352362aadddb19a4f72efbcb73dda97708d57`, and Alembic head
-  `0013_add_candidate_review_events`.
+- Branch: `wp/mi-source-type-routing-ground-truth`.
+- Entry baseline: `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`.
+- Package/runtime version remains `0.8.0`; no tag, release, publish or
+  Team Bid Reference change is part of this Work Package.
+- Real business workbooks were inspected read-only; source files were not
+  modified or copied into the repository.
+- Read-only live workbook detection: `KHMT_19_8_2026.xlsx` → KHMT/PL/AUTO;
+  `TBMT_19_8_2026.xlsx` → TBMT/IB/AUTO with tolerant `IB...-00` identities.
+- CodeGraph shell exploration succeeded before edits; `.codegraph/` remains
+  local-only.
 
-## Incident and root cause
+## Implemented contract
 
-- Team-Bid copy smoke used `QI_CRAWLER_DATA_DIR`, but the copied
-  `config.yaml` retained absolute production `storage.*` paths.
-- `prepare_standalone_runtime()` only generated a config when absent; it did
-  not rebase persisted managed paths. DB and report consumers therefore trusted
-  production paths.
-- Corrective regression now rebases managed SQLite/database, document,
-  download, discovery, raw, rejects, and report paths inside an explicit data
-  override; non-SQLite configured databases fail closed.
+- KHMT/TBMT filename hints are case-insensitive and prefix-based.
+- Header signatures and embedded PL/IB identities provide content evidence;
+  raw identity text is retained alongside canonical identity values.
+- Compatible filename + content evidence auto-classifies; unknown filenames,
+  schema conflicts and mixed identity namespaces require Human selection.
+- TBMT recognition stops safely with `TBMT_SOURCE_RECOGNIZED`; the KHMT
+  importer is never called for TBMT.
+- Human source decisions require a named reviewer and append to
+  `source_type_review_events`; PL/IB identity is never rewritten.
+- Existing KHMT importer/search/review/export authority remains unchanged.
 
-## Plugin execution evidence
+## Files changed
 
-- CodeGraph: available; `status`, `sync`, and isolation path exploration
-  completed before edits. Impact radius was separated from edit/test radius.
-- Superpowers invoked: systematic-debugging (root-cause trace), TDD (RED →
-  GREEN regression), verification-before-completion required for final gates.
-- TDD RED: persisted foreign `storage.*` paths remained unchanged under an
-  isolated data root.
-- TDD GREEN: the same test now resolves every managed path inside the isolated
-  root; adjacent standalone/installer tests pass.
-
-## Files changed in corrective work
-
-- `src/qi_crawler/standalone.py`
-- `tests/test_standalone.py`
-- `AGENTS.md`
+- `src/qi_crawler/market_intelligence/source_detection.py`
+- `src/qi_crawler/market_intelligence/source_type_review.py`
+- `src/qi_crawler/models.py`
+- `src/qi_crawler/db.py`
+- `src/qi_crawler/gui.py`
+- `src/qi_crawler/gui_services.py`
+- `alembic/versions/0014_add_source_type_review_events.py`
+- focused source/routing/review/GUI tests and migration expectation updates
 - `docs/agent/HUMAN_COLLABORATION.md`
-- `docs/agent/OPERATING_MODEL.md`
+- `docs/agent/PROJECT_MEMORY.md`
 - `docs/agent/FEEDBACK_LEDGER.md`
-- `docs/agent_handoff/CURRENT.md`
+- `CHANGELOG.md`
 
-## Verification state
+## Verification evidence
 
-- Targeted standalone/release tests: `17 passed` for the PR #43 amendment.
-- Full verification: `459 passed` (one existing Windows PytestCacheWarning).
-- Ruff: PASS; `git diff --check`: PASS.
-- Clean-data smoke executed by the fresh build: PASS.
-- Fresh Team-Bid-copy smoke: PASS at
-  `C:\Users\Admin\AppData\Local\QI-Crawler-Compat-WP-REL-01-20260823-080425030`.
-  `logs\standalone-smoke.json` reports browser, search, export and document
-  workspace checks PASS; copied DB integrity is `ok` with 28 tables and 32
-  notices.
-- Production DB before/after SHA, size and mtime are unchanged; production
-  `TBMT_Latest.xlsx` remains absent. `Crawler tool\Current` was not touched.
-- Packaged migration `0013_add_candidate_review_events.py` is present and
-  the release manifest hashes match BUILD_INFO.
-- Audit regression confirms non-SQLite database URLs fail closed under an
-  explicit isolated data root; no foreign runtime path is created.
-- `Crawler tool\Current`, official Team Bid Reference, tag, GitHub Release,
-  and production mutation remain forbidden.
+- Entry collection baseline: `459 tests collected`.
+- Focused detector/routing/GUI/migration run: `93 passed`.
+- Full pytest: `475 passed` (one existing Windows PytestCacheWarning); Ruff:
+  PASS; `git diff --check`: PASS.
+- Migration is additive and non-destructive; current head is
+  `0014_add_source_type_review_events` with one head.
 
-## Pending / unverified
+## Data safety / risks
 
-- Verify exact-head PR/CI state live from GitHub after push; tracked CURRENT does
-  not own volatile PR/CI truth.
-- The amendment is committed locally; verify exact-head PR/CI state live from
-  GitHub. No merge, publish, tag, GitHub Release or Team Bid Reference is
-  authorized here.
-
-## Risks / blockers
-
-- Any future path escaping the isolated root, production mutation,
-  migration/schema need, unexpected deletion, or candidate mismatch is
-  STOP_FOR_REVIEW.
-- Hosted PR/CI status is unverified until observed live from GitHub.
+- Production `%LOCALAPPDATA%\QI-Crawler`, business workbooks, release
+  artifacts and user documents were not touched.
+- No TBMT importer, PlanPackage conversion, AI, learning, scoring, crawler or
+  HSMT behavior was added.
+- Any migration failure, source identity ambiguity, unexpected deletion or
+  need for release/publish is `STOP_FOR_REVIEW`.
 
 ## Explicitly NOT done
 
-- No official publish, Team Bid Reference creation, tag, GitHub Release, or
-  installer release publication.
-- No production migration, downgrade, stamp, SQL repair, config rewrite in the
-  live production root, or broad data rollback.
+- No TBMT Bid Radar import or TBMT PlanPackage model.
+- No automatic learning or promotion of source rules.
+- No tag, GitHub Release, installer build or user-visible publish.
 
 ## Next objective
 
-Verify the committed PR #43 amendment and let natural CI provide live evidence
-for independent audit and Human merge decision.
+Run full verification, inspect changed-file scope, commit bounded changes,
+push this feature branch and create exactly one Draft PR for independent audit.
 
-## Locked decisions
+## Plugin evidence
 
-- Keep version `0.8.0`.
-- Preserve the restored production DB and quarantine copy.
-- Do not run candidate against production paths.
+- CodeGraph: shell `codegraph explore` succeeded for Bid Radar import path,
+  `import_khmt_workbook`, source routing impact and related tests.
+- Superpowers: TDD RED→GREEN, systematic-debugging of TBMT→KHMT failure, and
+  verification-before-completion are required for final gates.
 
-## Tool state
+## Git / delivery state
 
-- CodeGraph remains local-only and up to date.
-- Commit/push/PR/CI status is live GitHub state and is not asserted here.
+- Commit/push/PR: not yet performed.
+- No merge.

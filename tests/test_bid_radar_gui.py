@@ -16,6 +16,7 @@ from qi_crawler.config import AppConfig
 from qi_crawler.gui import QICrawlerWindow
 from qi_crawler.market_intelligence.khmt_importer import KHMTImportError, KHMTIssueCode
 from qi_crawler.market_intelligence.search import TargetedSearchValidationError
+from qi_crawler.market_intelligence.source_detection import SourceType, SourceTypeDetection
 
 
 @pytest.fixture(scope="module")
@@ -55,6 +56,120 @@ def test_bid_radar_is_reachable_without_removing_existing_pages(
     assert "HSMT / PHÂN TÍCH" in labels
 
 
+def test_bid_radar_source_selector_defaults_to_automatic(window: QICrawlerWindow) -> None:
+    assert window.bid_radar_source_type.currentData() is None
+    assert window.bid_radar_source_type.currentText() == "TỰ ĐỘNG"
+
+
+def test_tbmt_source_is_recognized_without_calling_khmt_importer(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT_19_8_2026.xlsx"
+    source.write_bytes(b"tbmt")
+    window.bid_radar_path.setText(str(source))
+    monkeypatch.setattr(
+        gui,
+        "detect_source_type",
+        lambda path: SourceTypeDetection(
+            original_filename=source.name,
+            source_sha256="a" * 64,
+            filename_type=SourceType.TBMT,
+            content_type=SourceType.TBMT,
+            identity_namespace="IB",
+            identity_values=("IB2600463290-00",),
+            identity_raw_values=("IB2600463290-00",),
+            auto_type=SourceType.TBMT,
+            requires_human=False,
+            evidence=("TBMT headers",),
+            reasons=(),
+        ),
+    )
+    captured: list[object] = []
+    monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
+
+    window.start_bid_radar_import()
+
+    assert captured == []
+    assert "TBMT_SOURCE_RECOGNIZED" in window.bid_radar_status.text()
+    assert "Work Package tiếp theo" in window.bid_radar_status.text()
+
+
+def test_unknown_source_requires_explicit_human_selection(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "opportunity.xlsx"
+    source.write_bytes(b"unknown")
+    window.bid_radar_path.setText(str(source))
+    monkeypatch.setattr(
+        gui,
+        "detect_source_type",
+        lambda path: SourceTypeDetection(
+            original_filename=source.name,
+            source_sha256="b" * 64,
+            filename_type=SourceType.UNKNOWN,
+            content_type=SourceType.KHMT,
+            identity_namespace="PL",
+            identity_values=("PL2600265077-00",),
+            identity_raw_values=("PL2600265077-00",),
+            auto_type=SourceType.UNKNOWN,
+            requires_human=True,
+            evidence=("KHMT headers",),
+            reasons=("filename requires human selection",),
+        ),
+    )
+    captured: list[object] = []
+    monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
+
+    window.start_bid_radar_import()
+
+    assert captured == []
+    assert "chọn rõ nguồn" in window.bid_radar_status.text().lower()
+
+
+def test_manual_source_selection_routes_khmt_with_human_authority(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "opportunity.xlsx"
+    source.write_bytes(b"unknown")
+    window.bid_radar_path.setText(str(source))
+    window.bid_radar_source_type.setCurrentIndex(1)
+    window.bid_radar_reviewer.setText("Team Bid")
+    detection = SourceTypeDetection(
+        original_filename=source.name,
+        source_sha256="d" * 64,
+        filename_type=SourceType.UNKNOWN,
+        content_type=SourceType.KHMT,
+        identity_namespace="PL",
+        identity_values=("PL2600265077-00",),
+        identity_raw_values=("PL2600265077-00",),
+        auto_type=SourceType.UNKNOWN,
+        requires_human=True,
+        evidence=("KHMT headers",),
+        reasons=("filename requires human selection",),
+    )
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: detection)
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["function"] = function
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    window.start_bid_radar_import()
+
+    assert captured["function"] is gui.run_bid_radar_import_search
+    assert captured["kwargs"]["source_type"] is SourceType.KHMT
+    assert captured["kwargs"]["source_detection"] is detection
+    assert captured["kwargs"]["source_reviewer"] == "Team Bid"
+
+
 def test_import_delegates_to_existing_mi_import_and_search_service(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
@@ -71,6 +186,23 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
     source = tmp_path / "khmt.xlsx"
     source.write_bytes(b"placeholder")
     window.bid_radar_path.setText(str(source))
+    monkeypatch.setattr(
+        gui,
+        "detect_source_type",
+        lambda path: SourceTypeDetection(
+            original_filename=source.name,
+            source_sha256="c" * 64,
+            filename_type=SourceType.KHMT,
+            content_type=SourceType.KHMT,
+            identity_namespace="PL",
+            identity_values=("PL2600265077-00",),
+            identity_raw_values=("PL2600265077-00",),
+            auto_type=SourceType.KHMT,
+            requires_human=False,
+            evidence=("KHMT headers",),
+            reasons=(),
+        ),
+    )
 
     window.start_bid_radar_import()
 

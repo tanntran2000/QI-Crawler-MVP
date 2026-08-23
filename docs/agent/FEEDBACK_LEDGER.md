@@ -91,3 +91,28 @@ the Human Collaboration and Operating Model documents.
 Disposition: PROMOTED to durable governance.
 Promoted to: AGENTS.md Plugin execution contract; docs/agent/HUMAN_COLLABORATION.md; docs/agent/OPERATING_MODEL.md
 ```
+
+### FB-0003 — Keep SA Excel source identity explicit
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-SRC-01
+Type: BUSINESS
+Authority: A0 HUMAN_DECISION
+Observation: KHMT and TBMT workbooks share Excel as a transport format but
+belong to separate PL and IB namespaces; filename-only routing is unsafe.
+Evidence: approved SA Excel Source Routing Work Order and real KHMT/TBMT
+workbook header/identity inspection.
+Impact: Sending TBMT into the KHMT importer creates false missing-header
+errors; guessing a source can create invalid Bid Radar state.
+Suggestion: Detect filename/schema/identity evidence, require a named human
+override for conflicts or unknown filenames, and keep correction history
+append-only.
+Scope change required: NO
+Response: Added bounded source detection, controlled TBMT recognition,
+append-only source-type review events, and regression coverage.
+Disposition: ACCEPTED in WP-MI-SRC-01; TBMT import remains deferred.
+Promoted to: docs/agent/HUMAN_COLLABORATION.md and source-type routing contract
+```
