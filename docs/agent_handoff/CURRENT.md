@@ -6,7 +6,8 @@ WP-REL-01 — Corrective Stage A
 
 ## Status
 
-HOLD — isolation corrective work is being verified; no release/publish.
+LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED — corrective isolation
+fix and Stage A local gates pass; no release/publish.
 
 ## Mission
 
@@ -16,7 +17,7 @@ production data or publishing the official reference release.
 ## Current verified state
 
 - Branch: `wp/rel-team-bid-reference`.
-- Local implementation head before corrective changes: `897b4fc`.
+- Corrective implementation head: `4ce352362aadddb19a4f72efbcb73dda97708d57`.
 - Canonical version target: `0.8.0`; release impact: YES; version impact: MINOR.
 - Alembic has one head: `0013_add_candidate_review_events`.
 - Recovery PASS: production DB restored from the verified backup; contaminated
@@ -25,6 +26,12 @@ production data or publishing the official reference release.
   `384FE99B58F9D26CD4649725D9359EC35F6261A6729B9080EB0CC0A147913BEB`.
 - No production WAL/SHM sidecars were present; the smoke-created
   `data\reports\TBMT_Latest.xlsx` was removed under the approved recovery.
+- Fresh candidate build completed from the corrective head:
+  `release_staging\candidate` and
+  `dist\installer\QI-Crawler-Setup-v0.8.0.exe`.
+- Candidate metadata records version `0.8.0`, commit
+  `4ce352362aadddb19a4f72efbcb73dda97708d57`, and Alembic head
+  `0013_add_candidate_review_events`.
 
 ## Incident and root cause
 
@@ -61,25 +68,34 @@ production data or publishing the official reference release.
 ## Verification state
 
 - Targeted standalone/installer tests: `12 passed` after corrective fix.
-- Full verification, fresh build, and fresh isolated Team-Bid-copy smoke remain
-  required before any PASS claim.
+- Full verification: `458 passed` (one existing Windows PytestCacheWarning).
+- Ruff: PASS; `git diff --check`: PASS.
+- Clean-data smoke executed by the fresh build: PASS.
+- Fresh Team-Bid-copy smoke: PASS at
+  `C:\Users\Admin\AppData\Local\QI-Crawler-Compat-WP-REL-01-20260823-080425030`.
+  `logs\standalone-smoke.json` reports browser, search, export and document
+  workspace checks PASS; copied DB integrity is `ok` with 28 tables and 32
+  notices.
+- Production DB before/after SHA, size and mtime are unchanged; production
+  `TBMT_Latest.xlsx` remains absent. `Crawler tool\Current` was not touched.
+- Packaged migration `0013_add_candidate_review_events.py` is present and
+  the release manifest hashes match BUILD_INFO.
 - `Crawler tool\Current`, official Team Bid Reference, tag, GitHub Release,
   and production mutation remain forbidden.
 
 ## Pending / unverified
 
-- Run fresh targeted/full pytest, Ruff, diff-check, and changed-file review.
-- Rebuild a fresh v0.8.0 candidate and run clean-data plus fresh Team-Bid-copy
-  smoke only after proving effective paths are inside the copy.
-- Compare production DB/report state before and after retest.
-- Commit/push the bounded corrective branch and create one Draft PR only if all
-  release gates pass; volatile PR/CI truth must be verified live.
+- Verify exact-head PR/CI state live from GitHub after push; tracked CURRENT does
+  not own volatile PR/CI truth.
+- Commit/push the bounded corrective branch and create one Draft PR; no merge,
+  publish, tag, GitHub Release or Team Bid Reference is authorized here.
 
 ## Risks / blockers
 
-- Any path escaping the isolated root, production mutation, migration/schema
-  need, unexpected deletion, or candidate mismatch is STOP_FOR_REVIEW.
-- Stage A remains HOLD until fresh copy smoke proves the isolation contract.
+- Any future path escaping the isolated root, production mutation,
+  migration/schema need, unexpected deletion, or candidate mismatch is
+  STOP_FOR_REVIEW.
+- Hosted PR/CI status is unverified until observed live from GitHub.
 
 ## Explicitly NOT done
 
@@ -90,8 +106,9 @@ production data or publishing the official reference release.
 
 ## Next objective
 
-Complete corrective isolation verification; if PASS, finalize Stage A evidence
-for independent audit and Human merge decision.
+Commit and push this bounded corrective branch, create one Draft PR, and let
+natural CI provide the live evidence for independent audit and Human merge
+decision.
 
 ## Locked decisions
 
