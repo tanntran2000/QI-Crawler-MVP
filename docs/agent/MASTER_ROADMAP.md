@@ -12,6 +12,75 @@ surfaces information. Team Bid validates, calculates, evaluates and decides.
 > the product is going; a Human-approved Parent WP tells agents what may be
 > implemented next.
 
+## Blueprint use and adaptive navigation
+
+This document is a construction blueprint, not a status dashboard or an
+implementation lease. Agents are engineers working on the same structure and
+must consult it at the start of a Work Package/session, when a blocker or
+systemic defect appears, before proposing a new Work Package, architecture or
+refactor/tool/AI direction, and at major Parent closeout. The blueprint keeps
+the mission, product structure, dependencies and safety boundaries stable while
+allowing the Human-approved Parent decomposition, micro-WP count, sequence and
+implementation details to adapt.
+
+```text
+CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
+NEXT_CANDIDATE_PARENT     = WP-MI-TBMT-02B
+```
+
+The default route is one primary frontier at a time. **NO ROADMAP EXPLOSION:**
+do not create unrelated
+Warehouse, HSMT or AI/UI Parents merely because those future lanes exist.
+Prefer, in order: (1) continue the current Parent, (2) a bounded micro-WP,
+(3) a forward correction, (4) re-plan an existing roadmap node, and only then
+(5) propose a new Parent.
+
+Before accepting a new slice, perform a **STRUCTURAL COMPATIBILITY** check:
+
+- What capability does it serve and what verified gap explains why now?
+- What dependency does it consume, and does it fit the existing Parent or
+  micro-WP?
+- Does it change the structural architecture, and where does work return to
+  the roadmap?
+- What Human approval is required?
+
+Unsupported answers mean `PARK` or `ENTRY_HOLD`, not speculative expansion.
+An adaptive `ROADMAP_DEVIATION_PROPOSAL` is reserved for a critical defect,
+false-safe result, data-loss/security risk, architecture blocker, external
+dependency or explicit Human priority. It must name the trigger, risk,
+affected capability, bounded intervention, return point and Human approval.
+
+## PROGRAM COMPLETION and resource map
+
+The program is complete when QI-Crawler can safely:
+
+```text
+COLLECT → PRESERVE → ORGANIZE → UNDERSTAND → EXTRACT → PROVE
+→ LEARN → ASSIST → DELIVER
+```
+
+Team Bid remains the decision authority. Completion does not mean no future
+improvement, and Mini AI Agents are not a mandatory completion gate.
+
+Resource availability is explicit and must be verified at entry; roadmap prose
+never makes a tool or service available by implication:
+
+| Resource | State | Boundary |
+| --- | --- | --- |
+| CodeGraph | `AVAILABLE` / `REQUIRES_VERIFICATION` | Impact intelligence, not scope authority. |
+| Superpowers | `AVAILABLE` / `REQUIRES_VERIFICATION` | Execution discipline, not planning authority. |
+| pytest / Ruff | `AVAILABLE` / `REQUIRES_VERIFICATION` | Canonical local quality gates. |
+| Alembic | `AVAILABLE` / `REQUIRES_VERIFICATION` | Only for approved schema work. |
+| Git / GitHub | `AVAILABLE` / `REQUIRES_VERIFICATION` | Live repository/remote authority. |
+| SQLite / review history | `AVAILABLE` / `REQUIRES_VERIFICATION` | System of Record for source/review state. |
+| Managed document store | `PARTIAL` / `REQUIRES_VERIFICATION` | Use only its verified intake/storage contract. |
+| Windows packaging/release | `OPERATIONAL` / `REQUIRES_VERIFICATION` | Release plumbing; no implicit publish authority. |
+| Golden / real acceptance assets | `REQUIRES_VERIFICATION` | Evidence, never assumed available. |
+| Governance docs / lessons / feedback | `AVAILABLE` / `REQUIRES_VERIFICATION` | Handoff continuity and systemic learning. |
+
+CodeGraph and Superpowers, like all resources above, must be checked for actual
+availability before relying on them; do not infer availability from this map.
+
 ## Authority and state vocabulary
 
 The documents have distinct authority:
