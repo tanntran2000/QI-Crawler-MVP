@@ -51,6 +51,56 @@ false-safe result, data-loss/security risk, architecture blocker, external
 dependency or explicit Human priority. It must name the trigger, risk,
 affected capability, bounded intervention, return point and Human approval.
 
+## THREE-POLE DEVELOPMENT MODEL
+
+```text
+Human Authority
+→ domain truth / intent / priorities / approvals /
+  Ground Truth authority / business decisions
+
+Planning & Audit Pole
+→ clarification / reasoning / architecture /
+  Blueprint alignment / Work Order / risk / audit
+
+Builder / Single Writer Pole
+→ implementation / testing / verification evidence /
+  bounded findings
+
+Machine Verifier
+→ CI / Golden / local machine verification as governed
+→ external evidence gate
+→ NOT a fourth business-authority pole
+```
+
+```text
+ROLE > MODEL NAME
+```
+
+No pole may silently assume another pole's authority. Planner, Reviewer and
+Auditor roles remain separated wherever `AGENTS.md` or the approved Work Order
+requires independence.
+
+### Triangle closure
+
+For material work, closure follows:
+
+```text
+HUMAN INTENT / AUTHORITY
+        ↓
+PLANNED / APPROVED CONTRACT
+        ↓
+BUILDER IMPLEMENTATION + EVIDENCE
+        ↓
+INDEPENDENT REVIEW
+        ↓
+MACHINE GATE RESOLVED
+```
+
+Builder `DONE`, passing tests, Human verbal agreement or Planner belief alone
+does not close a change. The machine gate is `PASS` or explicitly classified
+infrastructure-unavailable/waived under current governance; an authorized
+waiver does not require hosted CI before closure.
+
 ## PROGRAM COMPLETION and resource map
 
 The program is complete when QI-Crawler can safely:
@@ -337,6 +387,14 @@ inherit Ground Truth where source context changed.
 When no safe IB identity is known, manual HSMT intake is
 `PROVISIONAL PACKAGE / HUMAN_LINK_REQUIRED`; do not invent an IB identity.
 
+Human Verified Ground Truth is not only a downstream phase. It may be captured
+during Tender Package & HSMT Intelligence as soon as the exact package and
+revision, source evidence and Human review authority are present. Extraction
+Ground Truth is a feedback loop used to harden HSMT before SOP Bid Intelligence
+is complete. SOP Bid Intelligence later contributes SOP-specific review and
+case records, but SOP Decision Records do not automatically become extraction
+Ground Truth.
+
 ```text
 HSMT Bundle
 → Native Evidence
@@ -399,7 +457,13 @@ The Crawler may determine evidence/readiness facts such as correct
 package/revision, source existence, evidence presence, locator presence,
 unresolved `PENDING`, `Critical`, Checker review, and source/version conflict.
 It may surface `READY_FOR_HUMAN_GATE_DECISION`,
-`HOLD_FOR_MISSING_EVIDENCE`, `REQUIRES_CHECKER` and `SOURCE_CONFLICT`.
+`NOT_READY_MISSING_EVIDENCE`, `REQUIRES_CHECKER` and `SOURCE_CONFLICT`.
+These are machine readiness statuses only:
+
+```text
+MACHINE READINESS STATUS != HUMAN GO/HOLD/NO-GO DECISION
+```
+
 SOP business roles retain GO/HOLD/NO-GO and Freeze authority. `SOURCE FACT !=
 HUMAN BUSINESS DECISION` and `MACHINE READINESS != HUMAN APPROVAL`.
 
@@ -547,6 +611,7 @@ separate from roadmap capability state:
 
 ```text
 ACTIVE | ACTIVE_FOUNDATION | ACTIVE_SUPPORT | HOLD_REUSE | PARKED
+REQUIRES_VERIFICATION
 EXPERIMENTAL | REFACTOR_TARGET
 ```
 
@@ -556,7 +621,7 @@ EXPERIMENTAL | REFACTOR_TARGET
 | Monitoring | `HOLD_REUSE` | Future opportunity monitoring/deadline support. |
 | Notification / Reporting | `HOLD_REUSE` | Alerts and operational reporting. |
 | Inventory / Stock | `PARKED` | Future internal supply/support evidence; **not BOM authority**. |
-| Company Evidence | `PARKED` / `ACTIVE_SUPPORT` | Future SOP evidence support only after current role is verified; external provider data is not automatic compliance truth. |
+| Company Evidence | `REQUIRES_VERIFICATION` | Future SOP capability/evidence support if verified; external provider data is not automatic compliance truth. |
 | DuckDB / Parquet analytical assets | `ACTIVE_FOUNDATION` | Internal analytical component of Unified Tender Warehouse; not a second product warehouse. |
 | `smart_filter` | `PARKED` | Candidate asset, not current authority. |
 | `ai_classifier` | `EXPERIMENTAL` | No automatic production promotion. |
@@ -652,7 +717,8 @@ verified CI/release state, applicable governance and Human authority.
 4. Tender Package & HSMT Intelligence must precede SOP Bid Intelligence.
 5. Evidence and Completeness/Integrity are prerequisites for trusting HSMT
    semantic outputs and SOP readiness.
-6. SOP Bid Intelligence and Human review precede Ground Truth expansion.
+6. Human Verified Ground Truth may be captured during HSMT when exact package,
+   evidence and review authority exist; SOP-specific records remain distinct.
 7. Ground Truth precedes Controlled Learning.
 8. Mini AI agent production integration remains parked until the trusted core
    gates are satisfied.
