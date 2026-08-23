@@ -6,8 +6,8 @@ WP-MI-TBMT-02A — TBMT Opportunity Contract + Workbook Adapter
 
 ## Status
 
-ACTIVE PARENT WP / MICRO-WP 02A-2 AUDITED + REMOTE-CHECKPOINTED /
-READY FOR 02A-3 / NO PR / NO FEATURE-BRANCH CI /
+ACTIVE PARENT WP / MICRO-WP 02A-3 AUDITED + REMOTE-CHECKPOINTED /
+READY FOR 02A-4 / NO PR / NO FEATURE-BRANCH CI /
 HOSTED CI INFRASTRUCTURE UNAVAILABLE / NO OFFICIAL RELEASE
 
 ## Active machine-readable checkpoint
@@ -17,16 +17,16 @@ ACTIVE_PARENT_WP = WP-MI-TBMT-02A
 ACTIVE_BRANCH = wp/mi-tbmt-02a
 MAIN_BASE = a4163e96816becbb2ce0c7009ecb9a2c9c832119
 
-LAST_AUDITED_MICRO_WP = 02A-2
-LAST_AUDITED_CODE_HEAD = 6cae3ed7bc0c7fff26edab0e92a6a4482567fe3a
+LAST_AUDITED_MICRO_WP = 02A-3
+LAST_AUDITED_CODE_HEAD = 513ebbd6437ee2afbb02d91f6fd0975de70c773e
 LAST_AUDIT = LOCAL_AUDIT_PASS
-REMOTE_CHECKPOINT = 6cae3ed7bc0c7fff26edab0e92a6a4482567fe3a
+REMOTE_CHECKPOINT = 513ebbd6437ee2afbb02d91f6fd0975de70c773e
 
 PR_STATE = NONE
 FEATURE_CHECKPOINT_CI = NOT_TRIGGERED
 HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
 
-NEXT_MICRO_WP = 02A-3
+NEXT_MICRO_WP = 02A-4
 NEXT_AUTHORITY = APPROVED_UNDER_PARENT_LEASE
 STOP_STATE = READY_FOR_NEXT_MICRO_WP
 ```
@@ -34,7 +34,7 @@ STOP_STATE = READY_FOR_NEXT_MICRO_WP
 A docs-only handoff/governance commit may make live branch `HEAD` newer than
 `LAST_AUDITED_CODE_HEAD`. That does **not** create a new audited code head. A
 new agent must verify live Git/GitHub and prove that
-`6cae3ed7bc0c7fff26edab0e92a6a4482567fe3a` remains an ancestor before writing
+`513ebbd6437ee2afbb02d91f6fd0975de70c773e` remains an ancestor before writing
 or executing the next Work Order.
 
 ## Main truth at Parent-WP entry
@@ -58,7 +58,7 @@ Planned 02A slices:
 02A-1 Source-neutral Opportunity identity/candidate contract
 02A-2 TBMT schema + IB parser/normalization
 02A-3 TBMT workbook importer → OpportunityCandidate
-02A-4 real-file/read-only + cumulative Parent Integration Gate
+02A-4 real-file/read-only acceptance + cumulative Parent Integration Gate
 ```
 
 Future Parent `02B` owns Bid Radar integration concerns such as generalized
@@ -96,37 +96,55 @@ The audited 02A-1 checkpoint is ancestor history and must not be rewritten.
 
 ### 02A-2 — TBMT Schema + IB Identity Parser / Normalization
 
-Final audited code head:
+Audited code head:
 
 `6cae3ed7bc0c7fff26edab0e92a6a4482567fe3a`
 
-Implemented only four new files for:
+Implemented the exact observed 18-column TBMT schema, conservative header/text
+normalization, and fail-closed embedded revisioned IB identity parsing.
+Important retained behavior includes preserving raw source identity text,
+keeping TBMT-specific fields distinct, retaining unexplained values such as
+`23`, and rejecting ambiguous/malformed identity-like tokens.
 
-- exact observed 18-column TBMT schema;
-- conservative canonical header handling;
-- conservative source text normalization;
-- embedded revisioned IB identity parsing;
-- fail-closed PL/mixed/multiple/malformed identity behavior.
+### 02A-3 — TBMT Workbook Importer → OpportunityCandidate
 
-Important retained behavior:
+Final audited code head and remote checkpoint:
 
-- source value `23` is preserved, not treated as garbage;
-- `PHƯƠNG THỨC LỰA CHỌN NHÀ THẦU` and
-  `HÌNH THỨC LỰA CHỌN NHÀ THẦU` remain distinct;
-- guarantee/schedule/issue-location/contract-duration source fields are not
-  collapsed into KHMT semantics;
-- malformed extended token such as `IB2600463290-00-01` is rejected rather
-  than accepting the valid-looking prefix.
+`513ebbd6437ee2afbb02d91f6fd0975de70c773e`
 
-Local Machine Verifier evidence reported for final 02A-2 correction:
+Implemented:
+
+- bounded read-only `.xlsx` TBMT importer with header scanning up to row 50;
+- `OpportunityImportBatch(source_type=TBMT)` with file SHA-256/sheet/time/schema
+  provenance;
+- source-backed `OpportunityCandidate` construction using IB identity only;
+- exact source-row provenance through `source_sha256`, `sheet`, and
+  `source_row`;
+- preservation of full TBMT `raw_fields`, including TBMT-only schedule,
+  guarantee, issue-location, bidder-address, and selection fields;
+- conservative TBMT package-price parsing with invalid non-empty prices
+  recorded as issues instead of coerced to zero;
+- fail-closed handling for empty package names, malformed/multiple/mixed IB/PL
+  identity evidence, missing/duplicate headers, unsupported workbooks, and
+  missing sheets;
+- no silent source-row deduplication;
+- no mapping of `ĐỊA CHỈ BÊN MỜI THẦU` or `ĐỊA ĐIỂM PHÁT HÀNH` to generic
+  execution location semantics.
+
+02A-3 explicitly did **not** add DB persistence, review, filtering, confirmed
+export, GUI wiring, source-routing changes, or `PlanPackage` reuse.
+
+Local Machine Verifier evidence reported for 02A-3:
 
 ```text
-focused parser correction: 11 passed
-adjacent regression: 53 passed
+focused importer + normalization: 31 passed
+adjacent regression: 73 passed
+full regression: 526 passed, 0 failed, 0 collection errors
 Ruff: PASS
 Diff check: PASS
-collection: 505 → 506, 0 errors
+collection: 526, 0 errors
 Tree: clean
+audited-code ancestry: PASS / exit 0
 ```
 
 Independent audit result:
@@ -138,31 +156,43 @@ LOCAL_AUDIT_PASS
 Remote checkpoint was verified at the same code SHA. No PR existed and no
 feature-checkpoint CI run was triggered.
 
-## Next authorized slice — 02A-3
+## Next authorized slice — 02A-4
 
-Objective:
+02A-4 is the final Parent-WP slice and owns two bounded responsibilities:
 
 ```text
-TBMT XLSX workbook importer
-→ exact source provenance
-→ OpportunityImportBatch(source_type=TBMT)
-→ OpportunityCandidate(identity_namespace=IB)
+1. Real TBMT workbook acceptance in strictly read-only mode.
+2. Cumulative Parent Integration Gate for WP-MI-TBMT-02A.
 ```
 
-The 02A-3 Work Order must be generated only after `HANDOFF_READINESS` reaches
-`PROMPT_READY` using `MEMORY_INDEX.md` and live Git/GitHub.
+The Work Order must require `HANDOFF_READINESS = PROMPT_READY` before execution
+and explicitly authorize only read-only access to the protected real TBMT
+workbook required for acceptance. No real workbook mutation, rewrite, rename,
+move, normalization, or derived overwrite is authorized.
 
-02A-3 must preserve these stop boundaries unless a new Human decision changes
-scope:
+Acceptance must verify, at minimum:
 
-- do not fake TBMT as KHMT `PlanPackage`;
-- do not generalize `CandidateReviewEvent` yet;
-- do not change confirmed export yet;
-- do not add DB migration yet;
-- do not wire Bid Radar GUI yet;
-- real business workbook access remains read-only and belongs only where the
-  Work Order explicitly authorizes it;
-- no production `%LOCALAPPDATA%\QI-Crawler` mutation.
+- the real TBMT workbook schema/header row is recognized through the audited
+  TBMT importer;
+- real IB identities remain source-backed and preserve raw identity text;
+- candidate/import-batch provenance refers to the exact real source SHA,
+  sheet, and row;
+- importer issues are reported as evidence rather than silently repaired;
+- source file hash/size remain unchanged before and after acceptance;
+- `PL != IB` and TBMT does not enter the KHMT `PlanPackage` path;
+- cumulative targeted regression plus full pytest, Ruff, diff-check, collection
+  integrity, cumulative CodeGraph impact review, and clean-tree evidence;
+- relevant docs/handoff/changelog consistency is reviewed before Parent-WP
+  delivery.
+
+02A-4 must not generalize `CandidateReviewEvent`, add persistence/migrations,
+change confirmed export, wire Bid Radar GUI, or publish a release. Those remain
+outside Parent 02A.
+
+After 02A-4 local verification, the Single Writer must return a Parent
+Integration review packet and stop for independent final local audit. Draft PR
+creation is not authorized until that audit passes and the Human/Work Order
+allows the Parent integration step.
 
 ## Active operating contract
 
@@ -202,7 +232,8 @@ time. Only `CI_RECOVERY_PASS` closes that debt.
 
 ## Data safety
 
-- Protected business workbooks remain read-only.
+- Protected business workbooks remain read-only unless a Work Order explicitly
+  authorizes bounded read-only acceptance.
 - No production DB migration/downgrade/stamp/repair is authorized by this
   handoff.
 - `%LOCALAPPDATA%\QI-Crawler` must not be deleted or mutated without an explicit
