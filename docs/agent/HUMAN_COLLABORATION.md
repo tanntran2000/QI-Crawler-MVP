@@ -150,3 +150,39 @@ authority remain the source of truth.
 - TBMT recognition is not TBMT import: Bid Radar must not create KHMT
   `PlanPackage` records from a TBMT workbook until a later approved Work
   Package implements that importer.
+
+## 13. LOCAL STAGED INTEGRATION COLLABORATION
+
+The detailed operating procedure is
+`docs/agent/LOCAL_STAGED_INTEGRATION.md`.
+
+For each implementation micro-WP, the Single Writer must stop after local
+verification and local commit with a `LOCAL_REVIEW_PACKET` and the explicit
+next state:
+
+```text
+STOP_FOR_INDEPENDENT_LOCAL_AUDIT
+```
+
+The packet must include the Parent WP and micro-WP identifiers, base/head SHA,
+changed-file list, bounded patch/diff, CodeGraph impact/edit/test radii when
+applicable, exact verification commands, concise results, exit codes,
+collection before/after, migration/data-safety result, known risks, and tree
+status.
+
+Do not paste large successful logs merely to prove activity. For a successful
+run, prefer exact command + concise summary + exit code. For a failure, include
+the relevant traceback/error excerpt needed for diagnosis.
+
+The independent Reviewer returns `LOCAL_AUDIT_PASS`, `LOCAL_AUDIT_HOLD`, or
+`LOCAL_AUDIT_FAIL`. The Single Writer must not proceed to the next micro-WP on
+HOLD/FAIL.
+
+After `LOCAL_AUDIT_PASS`, the audited feature-branch commit may be pushed as a
+remote checkpoint without opening a PR. That checkpoint is backup/provenance,
+not hosted-CI evidence.
+
+A merge performed while hosted CI is verified unavailable must be reported as
+`CI_WAIVER = ACTIVE` and `PENDING_RETRO_CI = YES`, never as hosted `CI PASS`.
+Official Team Bid release remains blocked while retro-CI debt is open unless
+the Human later approves a separate bounded release exception.

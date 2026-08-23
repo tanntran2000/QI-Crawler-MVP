@@ -63,20 +63,39 @@ branches must remain in their Work Package handoff.
   published v0.8.0 release artifacts.
 - **Last verified:** `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`.
 
+## MEM-006 — SA Excel source routing
+
+- **State:** ACTIVE
+- **Since main commit:** `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
+- **Contract:** Excel intake checks the `KHMT-<date>.xlsx` or
+  `TBMT-<date>.xlsx` filename hint first, then validates workbook schema and
+  PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
+  require named Human correction; corrections are append-only Ground Truth
+  for the source SHA. Human source correction does not rewrite PL/IB identity.
+  TBMT is recognized and blocked from the KHMT importer, but full TBMT Bid
+  Radar candidate/review/export support is not implemented yet.
+- **Evidence:** merged PR #44 / WP-MI-SRC-01 implementation and regression
+  suite.
+- **Last verified:** `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
+
+## MEM-007 — Local staged integration governance
+
+- **State:** ACTIVE
+- **Since Work Package:** `WP-GOV-LSI-01`.
+- **Contract:** Development uses Local Staged Integration: one Single Writer
+  implements a bounded micro-WP, local machine verification produces execution
+  evidence, an independent Reviewer audits a `LOCAL_REVIEW_PACKET`, and an
+  audited feature-branch commit may be pushed as a remote checkpoint without
+  opening a PR. Parent WPs use an integration gate before Draft PR/hosted CI.
+  Audited history uses forward correction by default. Hosted-CI infrastructure
+  waiver creates `PENDING_RETRO_CI = YES`; official Team Bid release is blocked
+  while retro-CI debt remains open unless the Human explicitly approves a
+  separate bounded exception.
+- **Evidence:** `docs/agent/LOCAL_STAGED_INTEGRATION.md`, `AGENTS.md`, and
+  `docs/agent/OPERATING_MODEL.md`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
-
-## MEM-006 — SA Excel source routing
-
-- **State:** PROPOSED — branch-only until PR #44 is merged; not main truth.
-- **Since branch:** `wp/mi-source-type-routing-ground-truth`.
-- **Contract:** Excel intake checks the `KHMT-<date>.xlsx` or
-  `TBMT-<date>.xlsx` filename hint first, then validates workbook schema and
-  PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
-  require named Human correction; corrections are append-only Ground Truth
-  for the source SHA. TBMT is recognized but is not converted into KHMT
-  `PlanPackage` records.
-- **Evidence:** WP-MI-SRC-01 branch implementation and regression suite.
