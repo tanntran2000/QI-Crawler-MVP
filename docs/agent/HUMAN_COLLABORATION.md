@@ -89,13 +89,40 @@ weakened merely to obtain a green result.
 ## 9. Prompt filter
 
 When the Human asks for a Codex/Builder prompt, the agent must first follow
-the Memory Index, verify `CURRENT.md` and live Git/GitHub, identify the active
-and next Work Package, confirm the exact baseline, and identify scope, risks,
-and stop conditions. Read only relevant lessons and feedback. Then produce
-the shortest complete prompt.
+the Memory Index, including `LOCAL_STAGED_INTEGRATION.md`, verify `CURRENT.md`
+and live Git/GitHub, identify the active and next Work Package, confirm the
+exact baseline, and identify scope, risks, and stop conditions. Read only
+relevant lessons and feedback. Then produce the shortest complete prompt.
+
+Before emitting an implementation Work Order, record or internally prove:
+
+```text
+HANDOFF_READINESS
+=================
+MEMORY_INDEX             READ
+AGENTS                   READ
+OPERATING_MODEL          READ
+HUMAN_COLLABORATION      READ
+LOCAL_STAGED_INTEGRATION READ
+PROJECT_MEMORY           READ
+CURRENT                  READ
+
+LIVE_GIT                 VERIFIED
+LIVE_GITHUB              VERIFIED when relevant
+
+ACTIVE_PARENT_WP         RESOLVED
+LAST_AUDITED_MICRO_WP    RESOLVED
+LAST_AUDITED_CODE_HEAD   RESOLVED
+NEXT_MICRO_WP            RESOLVED
+NEXT_AUTHORITY           RESOLVED
+
+RESULT                    PROMPT_READY / ENTRY_HOLD
+```
 
 Never generate an implementation prompt from this document alone. If current
 state cannot be reconciled, return `ENTRY_HOLD` instead of inventing facts.
+Chat history may explain context, but it is not a substitute for reconciling
+the active handoff with live Git/GitHub.
 
 ## 10. Release-aware prompt generation
 
@@ -181,6 +208,12 @@ HOLD/FAIL.
 After `LOCAL_AUDIT_PASS`, the audited feature-branch commit may be pushed as a
 remote checkpoint without opening a PR. That checkpoint is backup/provenance,
 not hosted-CI evidence.
+
+After the remote checkpoint, refresh `CURRENT.md` before cross-agent/session
+handoff. The snapshot must identify the last audited micro-WP/code SHA and the
+next authorized slice. If a docs-only handoff commit advances the branch, keep
+`LAST_AUDITED_CODE_HEAD` distinct from live branch `HEAD` and require the next
+agent to verify both.
 
 A merge performed while hosted CI is verified unavailable must be reported as
 `CI_WAIVER = ACTIVE` and `PENDING_RETRO_CI = YES`, never as hosted `CI PASS`.
