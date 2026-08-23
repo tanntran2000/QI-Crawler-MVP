@@ -72,8 +72,8 @@ branches must remain in their Work Package handoff.
   PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
   require named Human correction; corrections are append-only Ground Truth
   for the source SHA. Human source correction does not rewrite PL/IB identity.
-  TBMT is recognized and blocked from the KHMT importer, but full TBMT Bid
-  Radar candidate/review/export support is not implemented yet.
+  TBMT is recognized and has a source-neutral candidate intake boundary, but
+  full TBMT Bid Radar review/export/GUI support is not implemented yet.
 - **Evidence:** merged PR #44 / WP-MI-SRC-01 implementation and regression
   suite.
 - **Last verified:** `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
@@ -95,6 +95,31 @@ branches must remain in their Work Package handoff.
   `docs/agent/LOCAL_STAGED_INTEGRATION.md`, `AGENTS.md`, and
   `docs/agent/OPERATING_MODEL.md`.
 - **Last verified:** `6e8206f469497c4c073ee6030455b1db946f3479`.
+
+## MEM-008 — TBMT source-neutral Opportunity intake
+
+- **State:** ACTIVE
+- **Since main commit:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
+- **Contract:** The merged TBMT XLSX importer produces an
+  `OpportunityImportBatch(source_type=TBMT)` and source-backed
+  `OpportunityCandidate` values with `OpportunityIdentity` in the `IB`
+  namespace. TBMT is not represented as a KHMT `PlanPackage`; `PL != IB`.
+  Exact provenance retains source SHA-256, sheet, source row, and raw source
+  fields. The exact identity key is `(base_id, revision)` while `base_id` is
+  the lineage key: `-00` is the first HSMT publication and `-01` is a later
+  publication/revision after source HSMT changes. Different revisions remain
+  distinct and a newer revision must not silently erase an older one. Review
+  inheritance across revisions is not implemented or authorized.
+- **Evidence:** PR #47, final audited feature head
+  `c89ccdf1ef5a35e70b534354fca2a155ce83d9a6`, merge commit
+  `8e6184bc2baadb9e8b7f4056f7e104247201197c`, and the 02A Parent Integration
+  Gate. Read-only acceptance of the real TBMT workbook recorded 72 source rows,
+  72 candidates, and 0 issues. SHA-256 was
+  `E4B8FF62D8FF979BD646287EB7C894B9F03D089691B9122A6A96847457A1CDB4` with
+  size 120194 bytes; bytes and size were unchanged before/after acceptance.
+  Full TBMT Bid Radar filter/search, human-review persistence, confirmed
+  export, and GUI integration remain future WP-MI-TBMT-02B work.
+- **Last verified:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
 
 ## Explicitly not promoted
 
