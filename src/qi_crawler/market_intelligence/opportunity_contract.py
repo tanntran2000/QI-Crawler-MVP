@@ -154,5 +154,20 @@ class OpportunityCandidate:
         }
         if not trace_keys.intersection(self.provenance):
             raise OpportunityContractError("provenance must include a source locator")
+        required_coordinates = {"source_sha256", "sheet", "source_row"}
+        if not required_coordinates.issubset(self.provenance):
+            raise OpportunityContractError(
+                "provenance must include authoritative source_sha256, sheet, and source_row"
+            )
+        provenance_sha256 = self.provenance["source_sha256"]
+        if (
+            not isinstance(provenance_sha256, str)
+            or provenance_sha256.casefold() != self.import_batch.source_sha256.casefold()
+        ):
+            raise OpportunityContractError("provenance source_sha256 does not match import batch")
+        if self.provenance["sheet"] != self.import_batch.sheet:
+            raise OpportunityContractError("provenance sheet does not match import batch")
+        if self.provenance["source_row"] != self.source_row:
+            raise OpportunityContractError("provenance source_row does not match candidate")
         object.__setattr__(self, "raw_fields", MappingProxyType(dict(self.raw_fields)))
         object.__setattr__(self, "provenance", MappingProxyType(dict(self.provenance)))

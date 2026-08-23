@@ -30,6 +30,7 @@ def _candidate(
     *,
     identity: OpportunityIdentity | None = None,
     batch: OpportunityImportBatch | None = None,
+    provenance: dict[str, object] | None = None,
 ) -> OpportunityCandidate:
     return OpportunityCandidate(
         identity=identity or OpportunityIdentity.from_raw("PL2600245672-02"),
@@ -42,7 +43,13 @@ def _candidate(
         funding_source="Ngân sách mẫu",
         location_detail_raw="TP.HCM",
         raw_fields={"TÊN GÓI THẦU": "Gói mẫu"},
-        provenance={"source_filename": "sanitized.xlsx", "source_row": 7},
+        provenance=provenance
+        or {
+            "source_filename": "sanitized.xlsx",
+            "source_sha256": "a" * 64,
+            "sheet": "Sheet1",
+            "source_row": 7,
+        },
     )
 
 
@@ -132,6 +139,39 @@ def test_candidate_preserves_source_fields_and_provenance() -> None:
     assert candidate.provenance["source_row"] == 7
     assert candidate.identity.raw_id == "PL2600245672-02"
     assert candidate.import_batch.sheet == "Sheet1"
+
+
+def test_candidate_rejects_mismatched_source_row_provenance() -> None:
+    with pytest.raises(OpportunityContractError, match="provenance"):
+        _candidate(
+            provenance={
+                "source_sha256": "a" * 64,
+                "sheet": "Sheet1",
+                "source_row": 999,
+            }
+        )
+
+
+def test_candidate_rejects_mismatched_sheet_provenance() -> None:
+    with pytest.raises(OpportunityContractError, match="provenance"):
+        _candidate(
+            provenance={
+                "source_sha256": "a" * 64,
+                "sheet": "Other",
+                "source_row": 7,
+            }
+        )
+
+
+def test_candidate_rejects_mismatched_source_sha_provenance() -> None:
+    with pytest.raises(OpportunityContractError, match="provenance"):
+        _candidate(
+            provenance={
+                "source_sha256": "b" * 64,
+                "sheet": "Sheet1",
+                "source_row": 7,
+            }
+        )
 
 
 def test_tbmt_ib_candidate_is_source_neutral_without_pl_conversion() -> None:
