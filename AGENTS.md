@@ -88,6 +88,23 @@ The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this
    - A fast explicit failure is strictly preferred over an unbounded hang.
    - Never increase a budget merely to mask defects or instability.
 
+## Local staged integration governance
+
+Detailed micro-WP review, audited commit freeze, forward correction, remote
+feature-branch checkpoints, Parent-WP integration, hosted-CI waiver, retro-CI
+recovery, and release blocking are defined in
+`docs/agent/LOCAL_STAGED_INTEGRATION.md`.
+
+- A feature-branch push without an open PR is a remote checkpoint only; it is
+  not CI evidence and must never be reported as `CI PASS`.
+- Local machine execution may supply machine-verifier evidence when hosted CI
+  is unavailable; the Independent Reviewer/Auditor remains a separate role and
+  does not become a runtime runner.
+- A merge performed under a verified hosted-CI infrastructure waiver accrues
+  `PENDING_RETRO_CI = YES` until CI Recovery passes.
+- `PENDING_RETRO_CI > 0` blocks official Team Bid release/publish unless a later
+  explicit Human decision establishes a separate bounded exception.
+
 ## Work Order CI fitness contract requirement
 
 Every future Work Order must define its CI Fitness Contract before implementation:
