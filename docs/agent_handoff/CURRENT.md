@@ -61,7 +61,8 @@ source-type corrections append-only; do not implement TBMT import.
 ## Verification evidence
 
 - Entry collection baseline: `459 tests collected`.
-- Focused detector/routing/GUI/migration run: `94 passed`.
+- Audit targeted set: `41 passed`; the broader WP focused rollup is `94
+  passed` (different command scopes, not conflicting counts).
 - Full pytest: `476 passed` (one existing Windows PytestCacheWarning); Ruff:
   PASS; `git diff --check`: PASS.
 - Migration is additive and non-destructive; current head is

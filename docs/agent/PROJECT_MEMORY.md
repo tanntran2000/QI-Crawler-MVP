@@ -61,10 +61,22 @@ branches must remain in their Work Package handoff.
   Team Bid Reference are derived from this same verified identity.
 - **Evidence:** merged Windows release mechanics, hosted CI, and the
   published v0.8.0 release artifacts.
-- **Last verified:** `07ef548ee3747efd617e131880368cedc52f3bfc`.
+- **Last verified:** `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`.
 
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
+
+## MEM-006 — SA Excel source routing
+
+- **State:** PROPOSED — branch-only until PR #44 is merged; not main truth.
+- **Since branch:** `wp/mi-source-type-routing-ground-truth`.
+- **Contract:** Excel intake checks the `KHMT-<date>.xlsx` or
+  `TBMT-<date>.xlsx` filename hint first, then validates workbook schema and
+  PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
+  require named Human correction; corrections are append-only Ground Truth
+  for the source SHA. TBMT is recognized but is not converted into KHMT
+  `PlanPackage` records.
+- **Evidence:** WP-MI-SRC-01 branch implementation and regression suite.

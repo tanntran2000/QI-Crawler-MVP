@@ -133,7 +133,7 @@ authority remain the source of truth.
 
 ## 12. SA EXCEL SOURCE INTAKE & HUMAN CORRECTION
 
-- Team Bid's ordinary source naming convention is `TBMT-<date>.xlsx` or
+- SA normally supplies `TBMT-<date>.xlsx` or
   `KHMT-<date>.xlsx`; underscore and case variants are tolerated.
 - The filename prefix is checked first as a source hint, then confirmed or
   rejected against workbook schema and embedded PL/IB identity evidence.
