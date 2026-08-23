@@ -13,6 +13,29 @@
 
 Roles describe authority, not a particular model or tool.
 
+## Tool responsibilities
+
+- Work Order = WHAT may change.
+- CodeGraph = WHERE impact and dependencies exist.
+- Superpowers = HOW the approved work is executed.
+
+For applicable technical work, the auditable flow is:
+
+```text
+READ → VERIFY → ENTRY REVIEW → APPROVAL LEASE → CodeGraph impact discovery
+→ relevant Superpowers process → implementation → verification-before-completion
+→ audit
+```
+
+For incidents:
+
+```text
+systematic-debugging → root cause → CodeGraph-confirmed impact
+→ TDD RED → minimal GREEN → verification
+```
+
+Plugin execution evidence is part of the machine/human audit record.
+
 ## Human collaboration
 
 `docs/agent/HUMAN_COLLABORATION.md` records communication, language, context,

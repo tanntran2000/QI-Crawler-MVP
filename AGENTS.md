@@ -106,6 +106,19 @@ CI CHANGE REQUIRED BEFORE IMPLEMENTATION: YES / NO
 RATIONALE:
 ```
 
+## Plugin execution contract
+
+For technical Work Packages where applicable:
+
+- Invoke Superpowers skills before the action they govern.
+- Use CodeGraph for relevant impact discovery before edits.
+- Evidence plugin execution; naming CodeGraph/Superpowers alone is insufficient.
+- Incidents require systematic-debugging before a fix; behavior changes require
+  TDD RED → GREEN; PASS/DONE requires verification-before-completion.
+- Report CodeGraph impact radius separately from edit and test radius.
+- If a plugin is unavailable, report `TOOL_UNAVAILABLE` and use the documented
+  fallback; never disable or remove a plugin to bypass its workflow.
+
 ## Test collection integrity
 
 At the beginning of a coding task:

@@ -107,6 +107,36 @@ def _write_default_config(paths: StandalonePaths) -> None:
     )
 
 
+def _rebase_isolated_storage(paths: StandalonePaths) -> None:
+    """Keep persisted managed storage paths inside an explicit data override."""
+    raw = yaml.safe_load(paths.config_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(raw, dict):
+        raise StandaloneResourceError("Cau hinh QI-Crawler khong hop le cho che do co lap.")
+    storage = raw.setdefault("storage", {})
+    if not isinstance(storage, dict):
+        raise StandaloneResourceError("Cau hinh storage khong hop le cho che do co lap.")
+    configured_database = storage.get("database_url")
+    if configured_database and not str(configured_database).lower().startswith("sqlite:"):
+        raise StandaloneResourceError(
+            "Khong the co lap database khong phai SQLite vao QI_CRAWLER_DATA_DIR."
+        )
+    desired = {
+        "database_url": f"sqlite:///{paths.database_path.as_posix()}",
+        "document_dir": str(paths.documents_dir),
+        "download_dir": str(paths.data_dir / "downloads"),
+        "discovery_dir": str(paths.data_dir / "discovery"),
+        "raw_dir": str(paths.data_dir / "raw"),
+        "rejects_dir": str(paths.data_dir / "rejects"),
+        "report_dir": str(paths.reports_dir),
+    }
+    if any(storage.get(key) != value for key, value in desired.items()):
+        storage.update(desired)
+        paths.config_path.write_text(
+            yaml.safe_dump(raw, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+
 def _copy_mutable_default(name: str, destination: Path) -> None:
     if destination.exists():
         return
@@ -144,6 +174,8 @@ def prepare_standalone_runtime(
 
     if not paths.config_path.exists():
         _write_default_config(paths)
+    if os.getenv("QI_CRAWLER_DATA_DIR"):
+        _rebase_isolated_storage(paths)
     _copy_mutable_default("keyword-groups.yaml", paths.user_root / "keyword-groups.yaml")
 
     template = resource_path("templates", "TBMT_template_v1.xlsx")

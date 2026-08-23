@@ -52,6 +52,15 @@ approved scope or architecture. If a tool is unavailable, use the documented
 manual fallback and report `TOOL_UNAVAILABLE`; never disable or delete the
 tooling.
 
+### PROMPT PLUGIN-AWARENESS
+
+When generating a technical Builder/Codex prompt, determine whether CodeGraph
+and/or Superpowers apply. If applicable, name each required plugin and skill,
+state when it is invoked, describe the expected CodeGraph analysis, require
+execution evidence in the return, and define the fallback when unavailable.
+Generic wording such as "Use CodeGraph + Superpowers" is not auditable.
+Keep PLUGINS in the shortest-complete prompt template.
+
 ## 6. Quality over speed
 
 Context, correctness, evidence, and business safety outrank speed. When

@@ -68,3 +68,26 @@ the WP approval lease was used.
 Disposition: PROMOTED to the durable LAW 9 read-in and Memory Index workflow.
 Promoted to: AGENTS.md LAW 9; docs/agent/MEMORY_INDEX.md
 ```
+
+### FB-0002 — Make plugin execution auditable
+
+```text
+State: PROMOTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-REL-01 corrective Stage A
+Type: PLUGIN
+Authority: A0 HUMAN_DECISION
+Observation: Earlier technical prompts named CodeGraph and Superpowers but
+did not require auditable execution evidence.
+Evidence: Corrective Stage A Work Order, section 0–2.
+Impact: Plugin use could be asserted without proving impact analysis,
+systematic debugging, TDD, or verification workflow execution.
+Suggestion: Applicable prompts and handoffs must name required plugins/skills,
+invocation timing, expected analysis, fallback, and returned evidence.
+Scope change required: NO
+Response: Added a durable Plugin Execution Contract to AGENTS.md and aligned
+the Human Collaboration and Operating Model documents.
+Disposition: PROMOTED to durable governance.
+Promoted to: AGENTS.md Plugin execution contract; docs/agent/HUMAN_COLLABORATION.md; docs/agent/OPERATING_MODEL.md
+```
