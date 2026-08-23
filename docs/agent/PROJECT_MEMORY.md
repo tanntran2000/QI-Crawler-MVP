@@ -81,7 +81,7 @@ branches must remain in their Work Package handoff.
 ## MEM-007 — Local staged integration governance
 
 - **State:** ACTIVE
-- **Since Work Package:** `WP-GOV-LSI-01`.
+- **Since main commit:** `6e8206f469497c4c073ee6030455b1db946f3479`.
 - **Contract:** Development uses Local Staged Integration: one Single Writer
   implements a bounded micro-WP, local machine verification produces execution
   evidence, an independent Reviewer audits a `LOCAL_REVIEW_PACKET`, and an
@@ -91,8 +91,10 @@ branches must remain in their Work Package handoff.
   waiver creates `PENDING_RETRO_CI = YES`; official Team Bid release is blocked
   while retro-CI debt remains open unless the Human explicitly approves a
   separate bounded exception.
-- **Evidence:** `docs/agent/LOCAL_STAGED_INTEGRATION.md`, `AGENTS.md`, and
+- **Evidence:** merged PR #45 / WP-GOV-LSI-01,
+  `docs/agent/LOCAL_STAGED_INTEGRATION.md`, `AGENTS.md`, and
   `docs/agent/OPERATING_MODEL.md`.
+- **Last verified:** `6e8206f469497c4c073ee6030455b1db946f3479`.
 
 ## Explicitly not promoted
 
