@@ -7,7 +7,6 @@ POST-MERGE — WP-MI-TBMT-02A CLOSED / WP-MI-TBMT-02B DESIGN NEXT
 ## Status
 
 WP-MI-TBMT-02A MERGED / PR #47 MERGED /
-MAIN = `8e6184bc2baadb9e8b7f4056f7e104247201197c` /
 HOSTED CI INFRASTRUCTURE UNAVAILABLE / PENDING RETRO-CI /
 NO OFFICIAL RELEASE / WP-MI-TBMT-02B NOT YET IMPLEMENTATION-AUTHORIZED
 
@@ -15,13 +14,12 @@ NO OFFICIAL RELEASE / WP-MI-TBMT-02B NOT YET IMPLEMENTATION-AUTHORIZED
 
 ```text
 ACTIVE_PARENT_WP = NONE
-ACTIVE_BRANCH = wp/gov-post-tbmt-02a
-MAIN_HEAD = 8e6184bc2baadb9e8b7f4056f7e104247201197c
+ACTIVE_BRANCH = NONE
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
 LAST_MERGED_PR = 47
 LAST_AUDITED_FEATURE_HEAD = c89ccdf1ef5a35e70b534354fca2a155ce83d9a6
-MERGE_COMMIT = 8e6184bc2baadb9e8b7f4056f7e104247201197c
+LAST_PRODUCT_MERGE_COMMIT = 8e6184bc2baadb9e8b7f4056f7e104247201197c
 
 PR_STATE = MERGED
 HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
@@ -39,8 +37,10 @@ STOP_STATE = READY_FOR_02B_DESIGN
 
 ## Main truth after merge
 
-- `main` is `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
-- PR #47 merged the audited TBMT source-neutral opportunity intake.
+- WP-MI-TBMT-02A / PR #47 was merged at
+  `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
+- Live `main` HEAD must be verified from Git/GitHub at handoff entry; this
+  document does not attempt to predict its future docs-merge SHA.
 - Runtime/package version remains `0.8.0`.
 - Hosted CI remains unavailable because the recorded run failed before job
   execution; this is infrastructure evidence, not a product-test failure.
@@ -133,5 +133,10 @@ No automatic review inheritance is designed or authorized in this handoff.
 ## Delivery authority
 
 This file is the active handoff snapshot, not an alternative source of live Git
-or GitHub truth. Before any 02B Work Order, reconcile live Git/GitHub, define
-the design scope, and obtain explicit Human implementation approval.
+or GitHub truth. Before designing or executing 02B:
+
+- fetch live Git/GitHub;
+- resolve the live `main` HEAD;
+- reconcile it with the recorded historical merge ancestry;
+- do not treat `CURRENT.md` as live Git authority;
+- define the design scope and obtain explicit Human implementation approval.
