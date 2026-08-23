@@ -91,6 +91,7 @@ from .gui_services import (
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
     run_bid_radar_review,
+    run_bid_radar_source_review,
     run_create_manual_tender_workspace,
     run_document_classification_confirmation,
     run_document_extraction_inspection,
@@ -110,6 +111,12 @@ from .market_intelligence.candidate_review import CandidateReviewError
 from .market_intelligence.khmt_importer import KHMTImportError, _sha256
 from .market_intelligence.legal_docx import LegalDocxExportError
 from .market_intelligence.search import TargetedSearchValidationError
+from .market_intelligence.source_detection import (
+    SourceType,
+    SourceTypeDetection,
+    detect_source_type,
+    resolve_source_type,
+)
 from .migrations import upgrade_database
 from .standalone import (
     StandaloneResourceError,
@@ -633,12 +640,20 @@ class QICrawlerWindow(QMainWindow):
         source_row = QHBoxLayout()
         self.bid_radar_path = QLineEdit()
         self.bid_radar_path.setReadOnly(True)
-        self.bid_radar_path.setPlaceholderText("Chọn file KHMT .xlsx")
-        choose_button = QPushButton("CHỌN KHMT .XLSX")
+        self.bid_radar_path.setPlaceholderText("Chọn file Excel nguồn")
+        choose_button = QPushButton("CHỌN FILE EXCEL")
         choose_button.clicked.connect(self._choose_bid_radar_file)
         source_row.addWidget(self.bid_radar_path, 1)
         source_row.addWidget(choose_button)
         source_layout.addRow("File nguồn:", source_row)
+        self.bid_radar_source_type = QComboBox()
+        self.bid_radar_source_type.addItem("TỰ ĐỘNG", None)
+        self.bid_radar_source_type.addItem("KHMT", SourceType.KHMT)
+        self.bid_radar_source_type.addItem("TBMT", SourceType.TBMT)
+        source_layout.addRow("Loại nguồn:", self.bid_radar_source_type)
+        self.bid_radar_source_summary = QLabel("Chưa nhận dạng file nguồn.")
+        self.bid_radar_source_summary.setWordWrap(True)
+        source_layout.addRow("Nhận dạng:", self.bid_radar_source_summary)
         layout.addWidget(source_box)
 
         filter_box = QGroupBox("2. LỌC CƠ HỘI (KHÔNG TỰ XÁC NHẬN)")
@@ -673,7 +688,7 @@ class QICrawlerWindow(QMainWindow):
         actions.addWidget(self.bid_radar_progress)
         actions.addStretch()
         layout.addLayout(actions)
-        self.bid_radar_status = QLabel("Chọn file KHMT để bắt đầu.")
+        self.bid_radar_status = QLabel("Chọn file Excel nguồn để bắt đầu.")
         self.bid_radar_status.setWordWrap(True)
         layout.addWidget(self.bid_radar_status)
 
@@ -771,8 +786,29 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_table.clearSelection()
         self.bid_radar_reviewer.clear()
         self.bid_radar_note.clear()
-        self.bid_radar_status.setText("Đã đổi file KHMT. Hãy nhập lại để tải dữ liệu mới.")
+        self.bid_radar_source_summary.setText("Chưa nhận dạng file nguồn.")
+        self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
         self._on_bid_radar_selected()
+
+    def _render_bid_radar_source_detection(
+        self,
+        detection: SourceTypeDetection,
+        resolved_type: SourceType | None = None,
+    ) -> None:
+        identity_values = detection.identity_values
+        identity = ", ".join(identity_values[:5]) or "chưa thấy PL/IB"
+        if len(identity_values) > 5:
+            identity += f" (+{len(identity_values) - 5})"
+        conclusion = resolved_type.value if resolved_type else detection.auto_type.value
+        lines = [
+            f"Tên file: {detection.original_filename}",
+            f"Gợi ý tên: {detection.filename_type.value} | Schema: {detection.content_type.value}",
+            f"Identity: {identity}",
+            f"Kết luận: {conclusion}",
+        ]
+        if detection.requires_human and detection.reasons:
+            lines.append("Cần người xác nhận: " + "; ".join(detection.reasons))
+        self.bid_radar_source_summary.setText("\n".join(lines))
 
     def _bid_radar_export_ready(self, action: str) -> bool:
         current_text = self.bid_radar_path.text().strip()
@@ -835,7 +871,7 @@ class QICrawlerWindow(QMainWindow):
     def start_bid_radar_import(self) -> None:
         source = Path(self.bid_radar_path.text().strip())
         if not source.is_file() or source.suffix.lower() != ".xlsx":
-            self.bid_radar_status.setText("Vui lòng chọn một file KHMT .xlsx hợp lệ.")
+            self.bid_radar_status.setText("Vui lòng chọn một file Excel nguồn .xlsx hợp lệ.")
             return
         if (
             self._bid_radar_loaded_source is not None
@@ -847,12 +883,65 @@ class QICrawlerWindow(QMainWindow):
         except ValueError as exc:
             self.bid_radar_status.setText(str(exc))
             return
+        try:
+            detection = detect_source_type(source)
+        except (OSError, ValueError) as exc:
+            self.bid_radar_status.setText(
+                f"Không thể đọc/nhận dạng file nguồn: {type(exc).__name__}."
+            )
+            return
+        selected = self.bid_radar_source_type.currentData()
+        try:
+            resolved = resolve_source_type(detection, selected)
+        except ValueError as exc:
+            self._render_bid_radar_source_detection(detection)
+            self.bid_radar_status.setText(str(exc))
+            return
+        self._render_bid_radar_source_detection(detection, resolved.final_type)
+        if resolved.final_type is SourceType.TBMT:
+            self.bid_radar_status.setText(
+                "TBMT_SOURCE_RECOGNIZED\n"
+                "Đã nhận dạng file TBMT. Chức năng nhập TBMT vào Bid Radar sẽ được "
+                "triển khai ở Work Package tiếp theo."
+            )
+            if resolved.authority == "HUMAN":
+                reviewer = self.bid_radar_reviewer.text().strip()
+                if not reviewer:
+                    self.bid_radar_status.setText(
+                        "TBMT_SOURCE_RECOGNIZED\nCần tên người xác nhận trước khi lưu lựa chọn TBMT."
+                    )
+                    return
+                self._submit(
+                    run_bid_radar_source_review,
+                    self.config,
+                    detection,
+                    resolved.final_type,
+                    reviewer,
+                    self.bid_radar_note.text().strip(),
+                    on_success=lambda _value: None,
+                    button=self.bid_radar_import_button,
+                    progress=self.bid_radar_progress,
+                    status=self.bid_radar_status,
+                    task_name="bid_radar_source_review",
+                    long_operation=True,
+                )
+            return
+        if resolved.final_type is not SourceType.KHMT:
+            self.bid_radar_status.setText("Chưa có loại nguồn hợp lệ để nhập.")
+            return
+        reviewer = self.bid_radar_reviewer.text().strip() if resolved.authority == "HUMAN" else None
+        if resolved.authority == "HUMAN" and not reviewer:
+            self.bid_radar_status.setText("Cần tên người xác nhận trước khi nhập nguồn này.")
+            return
         self.bid_radar_status.setText("Đang nhập và lọc KHMT...")
         self._submit(
             run_bid_radar_import_search,
             self.config,
             source,
             request,
+            source_type=resolved.final_type,
+            source_detection=detection,
+            source_reviewer=reviewer,
             on_success=self._render_bid_radar_result,
             button=self.bid_radar_import_button,
             progress=self.bid_radar_progress,

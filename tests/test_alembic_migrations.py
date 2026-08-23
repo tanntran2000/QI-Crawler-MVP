@@ -78,7 +78,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0013_add_candidate_review_events"
+            "0014_add_source_type_review_events"
         )
 
 
@@ -103,7 +103,7 @@ def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
     assert "candidate_review_events" in inspect(upgraded).get_table_names()
     with upgraded.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0013_add_candidate_review_events"
+            "0014_add_source_type_review_events"
         )
     upgraded.dispose()
 
@@ -202,7 +202,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0013_add_candidate_review_events"
+                "0014_add_source_type_review_events"
         )
     upgraded.dispose()
 
@@ -248,7 +248,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0013_add_candidate_review_events"
+            "0014_add_source_type_review_events"
         )
     engine.dispose()
 
@@ -302,7 +302,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0013_add_candidate_review_events"
+    assert result.revision == "0014_add_source_type_review_events"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -316,7 +316,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0013_add_candidate_review_events"
+            "0014_add_source_type_review_events"
         )
     upgraded_engine.dispose()
 

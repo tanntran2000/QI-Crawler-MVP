@@ -305,6 +305,32 @@ class CandidateReviewEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class SourceTypeReviewEvent(Base):
+    """Append-only source-type detection and human correction history."""
+
+    __tablename__ = "source_type_review_events"
+    __table_args__ = (
+        Index("ix_source_type_review_events_source_sha256", "source_sha256"),
+        Index("ix_source_type_review_events_created_at", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    original_filename: Mapped[str] = mapped_column(Text, nullable=False)
+    filename_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    identity_namespace: Mapped[str | None] = mapped_column(String(16))
+    auto_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    final_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    authority: Mapped[str] = mapped_column(String(16), nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(255), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    identity_values_json: Mapped[str | None] = mapped_column(Text)
+    identity_raw_values_json: Mapped[str | None] = mapped_column(Text)
+    evidence_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class TenderItem(Base):
     """A requested product/line item with auditable quantity extraction."""
 

@@ -58,6 +58,11 @@ from .market_intelligence.search import (
     TargetedSearchResult,
     search_packages,
 )
+from .market_intelligence.source_detection import (
+    SourceType,
+    SourceTypeDetection,
+)
+from .market_intelligence.source_type_review import SourceTypeReviewService
 from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
     SUPPORTED_FORMATS,
@@ -171,12 +176,29 @@ def run_bid_radar_import_search(
     config: AppConfig,
     source_path: Path,
     request: TargetedSearchRequest,
+    *,
+    source_type: SourceType = SourceType.KHMT,
+    source_detection: SourceTypeDetection | None = None,
+    source_reviewer: str | None = None,
 ) -> BidRadarResult:
     """Import and evaluate KHMT through MI-1/MI-2 without human decisions."""
+    if source_type is not SourceType.KHMT:
+        raise ValueError(
+            "Chỉ nguồn KHMT hiện được nhập vào Bid Radar; TBMT đã được nhận dạng "
+            "nhưng chưa có luồng nhập trong Work Package này."
+        )
     imported = import_khmt_workbook(Path(source_path))
     searched: TargetedSearchResult = search_packages(imported.packages, request)
     database = Database(config.storage.database_url)
     database.require_current_schema()
+    if source_detection is not None and (
+        source_detection.requires_human or source_reviewer
+    ):
+        SourceTypeReviewService(database).record_decision(
+            source_detection,
+            final_type=source_type,
+            reviewer=source_reviewer,
+        )
     return BidRadarResult(
         source_path=Path(source_path),
         source_sha256=imported.batch.source_sha256,
@@ -186,6 +208,25 @@ def run_bid_radar_import_search(
         matched_count=searched.matched_count,
         total_examined=searched.total_examined,
     )
+
+
+def run_bid_radar_source_review(
+    config: AppConfig,
+    detection: SourceTypeDetection,
+    final_type: SourceType,
+    reviewer: str,
+    note: str = "",
+) -> str:
+    """Persist one explicit source-type correction without importing data."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    event = SourceTypeReviewService(database).record_decision(
+        detection,
+        final_type=final_type,
+        reviewer=reviewer,
+        note=note,
+    )
+    return event.final_type
 
 
 def run_bid_radar_review(

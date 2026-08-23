@@ -4,6 +4,8 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased - 2026-08-22
 
+- Them nhan dang va routing Excel KHMT/TBMT theo filename + schema + PL/IB,
+  co human override append-only; TBMT moi duoc nhan dang, chua import vao Bid Radar.
 - Hoan tat Business Fast-Track MI-0 -> MI-6 va xac nhan end-to-end bang workbook KHMT that `KHMT_19_8_2026.xlsx`.
 - Real Golden Team Bid: import 413 goi, preset HCM/0-500 trieu loc 9 ung vien, Human Authority ghi 3 `CONFIRMED`, 6 `NEEDS_REVIEW`, 0 `REJECTED`.
 - Xac minh `current_confirmed()` chi tra 3 goi da duoc con nguoi xac nhan; 6 goi `NEEDS_REVIEW` khong duoc xuat.

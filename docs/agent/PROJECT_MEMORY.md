@@ -53,12 +53,30 @@ branches must remain in their Work Package handoff.
 - **Contract:** `dist` is a generated build workspace. The user-visible
   `Crawler tool\Current` is the publish authority, updated only by an explicit
   clean-main publish after a verified candidate; failed candidates do not
-  replace Current. Version remains `0.7.1` until a separate approved change.
-- **Evidence:** merged Windows release mechanics and hosted CI success.
-- **Last verified:** `07ef548ee3747efd617e131880368cedc52f3bfc`.
+  replace Current. The approved Team Bid release is `0.8.0`.
+- **Release identity:** application/package `0.8.0`, source SHA
+  `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`, immutable annotated tag
+  `v0.8.0`, and GitHub Release `v0.8.0`. The release manifest, BUILD_INFO and
+  SHA256SUMS record the installer/EXE hashes. `Crawler tool\Current` and the
+  Team Bid Reference are derived from this same verified identity.
+- **Evidence:** merged Windows release mechanics, hosted CI, and the
+  published v0.8.0 release artifacts.
+- **Last verified:** `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`.
 
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
+
+## MEM-006 — SA Excel source routing
+
+- **State:** PROPOSED — branch-only until PR #44 is merged; not main truth.
+- **Since branch:** `wp/mi-source-type-routing-ground-truth`.
+- **Contract:** Excel intake checks the `KHMT-<date>.xlsx` or
+  `TBMT-<date>.xlsx` filename hint first, then validates workbook schema and
+  PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
+  require named Human correction; corrections are append-only Ground Truth
+  for the source SHA. TBMT is recognized but is not converted into KHMT
+  `PlanPackage` records.
+- **Evidence:** WP-MI-SRC-01 branch implementation and regression suite.
