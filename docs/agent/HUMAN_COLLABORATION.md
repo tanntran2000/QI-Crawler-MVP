@@ -106,10 +106,12 @@ RELEASE IMPACT: YES / NO / TBD
 VERSION IMPACT: NONE / PATCH / MINOR / MAJOR / HUMAN_DECISION_REQUIRED
 ```
 
-If `RELEASE IMPACT` is not `NO`, the shortest-complete prompt must include:
+If `RELEASE IMPACT` is not `NO`, release-awareness extends the base template;
+it does not replace the required `WORKSPACE` or `PLUGINS` sections. The
+shortest-complete prompt must include:
 
 ```text
-BASE → OBJECTIVE → SCOPE → RELEASE IMPACT → VERSION IMPACT → ACCEPTANCE → VERIFY → DELIVERY
+BASE → WORKSPACE → PLUGINS → OBJECTIVE → SCOPE → RELEASE IMPACT → VERSION IMPACT → ACCEPTANCE → VERIFY → DELIVERY
 ```
 
 The prompt must not silently omit version consistency, GUI version display,

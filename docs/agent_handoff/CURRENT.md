@@ -6,8 +6,8 @@ WP-REL-01 — Corrective Stage A
 
 ## Status
 
-LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED — corrective isolation
-fix and Stage A local gates pass; no release/publish.
+LOCAL VERIFICATION PASS / LIVE GITHUB STATE REQUIRED — PR #43 audit amendment
+covered; no release/publish.
 
 ## Mission
 
@@ -80,6 +80,8 @@ production data or publishing the official reference release.
   `TBMT_Latest.xlsx` remains absent. `Crawler tool\Current` was not touched.
 - Packaged migration `0013_add_candidate_review_events.py` is present and
   the release manifest hashes match BUILD_INFO.
+- Audit regression confirms non-SQLite database URLs fail closed under an
+  explicit isolated data root; no foreign runtime path is created.
 - `Crawler tool\Current`, official Team Bid Reference, tag, GitHub Release,
   and production mutation remain forbidden.
 
@@ -87,8 +89,8 @@ production data or publishing the official reference release.
 
 - Verify exact-head PR/CI state live from GitHub after push; tracked CURRENT does
   not own volatile PR/CI truth.
-- Commit/push the bounded corrective branch and create one Draft PR; no merge,
-  publish, tag, GitHub Release or Team Bid Reference is authorized here.
+- Push this bounded PR #43 amendment and let natural CI run; no merge, publish,
+  tag, GitHub Release or Team Bid Reference is authorized here.
 
 ## Risks / blockers
 

@@ -4,10 +4,16 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 from qi_crawler.config import load_config
-from qi_crawler.standalone import prepare_standalone_runtime, resource_path, resource_root
+from qi_crawler.standalone import (
+    StandaloneResourceError,
+    prepare_standalone_runtime,
+    resource_path,
+    resource_root,
+)
 
 
 def test_required_packaging_resources_exist() -> None:
@@ -102,6 +108,29 @@ def test_isolated_data_root_rebases_persisted_managed_paths(tmp_path: Path, monk
         resolved = load_config(paths.config_path).storage
         assert resolved.database_url == f"sqlite:///{paths.database_path.as_posix()}"
         assert resolved.report_dir == paths.reports_dir
+        assert not foreign_root.exists()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_isolated_data_root_rejects_non_sqlite_database(
+    tmp_path: Path, monkeypatch
+) -> None:
+    original_cwd = Path.cwd()
+    isolated_root = tmp_path / "isolated"
+    foreign_root = tmp_path / "foreign-production"
+    isolated_root.mkdir()
+    (isolated_root / "config.yaml").write_text(
+        yaml.safe_dump(
+            {"storage": {"database_url": "postgresql://example/db"}},
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(isolated_root))
+    try:
+        with pytest.raises(StandaloneResourceError):
+            prepare_standalone_runtime(require_browser=False)
         assert not foreign_root.exists()
     finally:
         os.chdir(original_cwd)
