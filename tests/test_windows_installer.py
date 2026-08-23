@@ -160,7 +160,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
                     ).strip(),
                     "source_branch=main",
                     "build_timestamp_utc=2026-08-23T00:00:00Z",
-                    "alembic_head=0014_add_source_type_review_events",
+                    "alembic_head=0013_add_candidate_review_events",
                     f"portable_exe_sha256={exe_hash}",
                     f"installer_sha256={installer_hash}",
                 ]
@@ -176,7 +176,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
                         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
                     ).strip(),
                     "build_timestamp_utc": "2026-08-23T00:00:00Z",
-                    "alembic_head": "0014_add_source_type_review_events",
+                    "alembic_head": "0013_add_candidate_review_events",
                     "release_channel": "team_bid_verified",
                     "portable_exe_sha256": exe_hash,
                     "installer_sha256": installer_hash,
@@ -233,7 +233,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     )
     assert manifest["product"] == "QI-Crawler"
     assert manifest["version"] == VERSION
-    assert manifest["alembic_head"] == "0014_add_source_type_review_events"
+    assert manifest["alembic_head"] == "0013_add_candidate_review_events"
     assert manifest["release_channel"] == "team_bid_verified"
 
     incomplete = tmp_path / "candidate-incomplete"

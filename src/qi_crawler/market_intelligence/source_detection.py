@@ -96,9 +96,13 @@ def _filename_type(path: Path) -> SourceType:
 
 
 def _content_type(headers: set[str]) -> SourceType:
-    if _KHMT_SIGNATURE.issubset(headers):
+    has_khmt = _KHMT_SIGNATURE.issubset(headers)
+    has_tbmt = _TBMT_SIGNATURE.issubset(headers)
+    if has_khmt and has_tbmt:
+        return SourceType.UNKNOWN
+    if has_khmt:
         return SourceType.KHMT
-    if _TBMT_SIGNATURE.issubset(headers):
+    if has_tbmt:
         return SourceType.TBMT
     return SourceType.UNKNOWN
 
@@ -152,6 +156,8 @@ def detect_source_type(path: Path) -> SourceTypeDetection:
             workbook.close()
 
     content_type = _content_type(headers)
+    if _KHMT_SIGNATURE.issubset(headers) and _TBMT_SIGNATURE.issubset(headers):
+        reasons.append("both KHMT and TBMT schema signatures present")
     if _KHMT_SIGNATURE.issubset(headers):
         evidence.append("KHMT headers: SỐ KẾ HOẠCH + TÊN GÓI THẦU + TÊN CHỦ ĐẦU TƯ")
     if _TBMT_SIGNATURE.issubset(headers):

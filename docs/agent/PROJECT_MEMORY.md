@@ -54,7 +54,13 @@ branches must remain in their Work Package handoff.
   `Crawler tool\Current` is the publish authority, updated only by an explicit
   clean-main publish after a verified candidate; failed candidates do not
   replace Current. The approved Team Bid release is `0.8.0`.
-- **Evidence:** merged Windows release mechanics and hosted CI success.
+- **Release identity:** application/package `0.8.0`, source SHA
+  `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`, immutable annotated tag
+  `v0.8.0`, and GitHub Release `v0.8.0`. The release manifest, BUILD_INFO and
+  SHA256SUMS record the installer/EXE hashes. `Crawler tool\Current` and the
+  Team Bid Reference are derived from this same verified identity.
+- **Evidence:** merged Windows release mechanics, hosted CI, and the
+  published v0.8.0 release artifacts.
 - **Last verified:** `07ef548ee3747efd617e131880368cedc52f3bfc`.
 
 ## Explicitly not promoted
@@ -62,14 +68,3 @@ branches must remain in their Work Package handoff.
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
-
-## MEM-006 — SA Excel source routing (pending merge)
-
-- **State:** PENDING MERGE
-- **Since branch:** `wp/mi-source-type-routing-ground-truth`.
-- **Contract:** Excel intake treats filename as a hint, validates KHMT/TBMT
-  schema and PL/IB namespace evidence, requires named Human correction for
-  unknown/conflicting sources, and records corrections append-only. TBMT is
-  recognized but is not converted into KHMT PlanPackage records.
-- **Evidence:** WP-MI-SRC-01 implementation and focused regression suite.
-- **Implementation commit:** `660a33a` (`Add SA Excel source routing and human corrections`).

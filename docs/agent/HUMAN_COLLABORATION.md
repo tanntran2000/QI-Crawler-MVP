@@ -133,13 +133,20 @@ authority remain the source of truth.
 
 ## 12. SA EXCEL SOURCE INTAKE & HUMAN CORRECTION
 
+- Team Bid's ordinary source naming convention is `TBMT-<date>.xlsx` or
+  `KHMT-<date>.xlsx`; underscore and case variants are tolerated.
+- The filename prefix is checked first as a source hint, then confirmed or
+  rejected against workbook schema and embedded PL/IB identity evidence.
 - Filename is a source hint only; workbook schema and embedded PL/IB identity
   are the evidence used for automatic classification.
 - A compatible KHMT or TBMT filename/schema pair may be classified
-  automatically. Conflicts and unknown filenames require an explicit Team Bid
-  source selection.
-- Human source corrections are append-only, require a named reviewer, and do
-  not rewrite PL/IB identity or convert one source namespace into another.
+  automatically. Dual-schema/mixed-namespace workbooks, conflicts and unknown
+  filenames require an explicit Team Bid source selection.
+- Human source corrections are append-only, require a named reviewer, become
+  the source-type Ground Truth for that source SHA, and do not rewrite PL/IB
+  identity or convert one source namespace into another.
+- Source-type corrections do not enable self-learning or automatic production
+  rule promotion; any learning remains a separately approved Work Package.
 - TBMT recognition is not TBMT import: Bid Radar must not create KHMT
   `PlanPackage` records from a TBMT workbook until a later approved Work
   Package implements that importer.

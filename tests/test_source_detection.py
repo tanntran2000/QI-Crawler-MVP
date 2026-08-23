@@ -154,3 +154,23 @@ def test_conflicting_identity_namespaces_require_human(tmp_path: Path) -> None:
     assert result.identity_namespace is None
     assert result.auto_type is SourceType.UNKNOWN
     assert result.requires_human is True
+
+
+def test_dual_schema_workbook_requires_human_source_selection(tmp_path: Path) -> None:
+    path = tmp_path / "KHMT_mixed_sheets.xlsx"
+    workbook = Workbook()
+    khmt = workbook.active
+    khmt.title = "KHMT"
+    khmt.append(KHMT_HEADERS)
+    khmt.append(["PL2600265077-00"] + [""] * (len(KHMT_HEADERS) - 1))
+    tbmt = workbook.create_sheet("TBMT")
+    tbmt.append(TBMT_HEADERS)
+    tbmt.append(["IB2600463290-00"] + [""] * (len(TBMT_HEADERS) - 1))
+    workbook.save(path)
+
+    result = detect_source_type(path)
+
+    assert result.content_type is SourceType.UNKNOWN
+    assert result.auto_type is SourceType.UNKNOWN
+    assert result.requires_human is True
+    assert "both" in " ".join(result.reasons).lower()

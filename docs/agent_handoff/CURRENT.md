@@ -6,7 +6,7 @@ WP-MI-SRC-01 — SA Excel Source Routing + Human Override + Source-Type Ground T
 
 ## Status
 
-LOCAL VERIFICATION PASS / NATURAL CI REQUIRED / NO MERGE
+LOCAL VERIFICATION PASS / EXACT-HEAD NATURAL CI REQUIRED / NO MERGE
 
 ## Mission
 
@@ -26,6 +26,9 @@ source-type corrections append-only; do not implement TBMT import.
   `TBMT_19_8_2026.xlsx` → TBMT/IB/AUTO with tolerant `IB...-00` identities.
 - CodeGraph shell exploration succeeded before edits; `.codegraph/` remains
   local-only.
+- Audit correction: workbooks carrying both KHMT and TBMT schema signatures are
+  now `UNKNOWN` and require Human source selection; release mechanics remain
+  outside this Work Package.
 
 ## Implemented contract
 
@@ -58,8 +61,8 @@ source-type corrections append-only; do not implement TBMT import.
 ## Verification evidence
 
 - Entry collection baseline: `459 tests collected`.
-- Focused detector/routing/GUI/migration run: `93 passed`.
-- Full pytest: `475 passed` (one existing Windows PytestCacheWarning); Ruff:
+- Focused detector/routing/GUI/migration run: `94 passed`.
+- Full pytest: `476 passed` (one existing Windows PytestCacheWarning); Ruff:
   PASS; `git diff --check`: PASS.
 - Migration is additive and non-destructive; current head is
   `0014_add_source_type_review_events` with one head.
@@ -81,9 +84,9 @@ source-type corrections append-only; do not implement TBMT import.
 
 ## Next objective
 
-Implementation commit `660a33a` is locally verified. Push this feature branch
-and create exactly one Draft PR for independent audit; live CI remains external
-authority and is not asserted by this tracked handoff.
+The bounded audit amendment is locally verified. Push this feature branch and
+keep Draft PR `#44` for independent audit; live CI remains external authority
+and is not asserted by this tracked handoff.
 
 ## Plugin evidence
 
@@ -94,7 +97,7 @@ authority and is not asserted by this tracked handoff.
 
 ## Git / delivery state
 
-- Implementation commit: `660a33a`.
-- Branch push completed; Draft PR `#44` created. Live CI remains external
-  authority and its final result is not asserted here.
+- Previous implementation commit: `660a33a`.
+- Audit amendment commit and branch push are recorded after verification;
+  Draft PR `#44` remains open. Live CI result is not asserted here.
 - No merge.
