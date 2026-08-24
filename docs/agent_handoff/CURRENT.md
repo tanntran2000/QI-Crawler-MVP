@@ -2,13 +2,12 @@
 
 ## HANDOFF_ID
 
-PRE — WP-MI-TBMT-02B-3
+IMPLEMENTATION — WP-MI-TBMT-02B-3
 
 ## Status
 
-02B-3 PRE / DISCOVERY ONLY /
-MAIN 5deaab4... /
-NO IMPLEMENTATION AUTHORIZATION /
+02B-3 IMPLEMENTED / PENDING INDEPENDENT AUDIT /
+IMPLEMENTATION HEAD 0d846187... /
 HOSTED CI UNAVAILABLE_QUOTA
 
 ## Active machine-readable checkpoint
@@ -17,9 +16,10 @@ HOSTED CI UNAVAILABLE_QUOTA
 ACTIVE_PARENT_WP = WP-MI-TBMT-02B
 ACTIVE_MICRO_WP = WP-MI-TBMT-02B-3
 ACTIVE_BRANCH = wp/mi-tbmt-02b
-MICRO_STATE = IMPLEMENTATION_AUTHORIZED_BACKEND_FIRST_OPTION_C
+MICRO_STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
 APPROVED_DESIGN = BACKEND_FIRST_OPTION_C
 IMPLEMENTATION_AUTHORITY = HUMAN_APPROVED
+LAST_IMPLEMENTATION_HEAD = 0d8461873eda483a28f6d2968c6a8be644a4cfd9
 
 ENTRY_MAIN_HEAD = 5deaab424ed691ffbc227830a230edfb54ff9d2f
 ENTRY_HEAD = 5deaab424ed691ffbc227830a230edfb54ff9d2f
@@ -28,14 +28,17 @@ ARCHITECTURE_LAYER_CONTRACT = APPLICATION_BACKEND -> DOMAIN_REPOSITORY_PORT -> P
 
 02B_1 = MERGED
 02B_2 = MERGED
-02B_3 = IMPLEMENTATION AUTHORIZED / BACKEND-FIRST OPTION C
+02B_3 = IMPLEMENTED_PENDING_AUDIT
 LAST_AUDITED_02B_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 HISTORICAL_02B_HEAD = 3e27c9c17d257cd91c544eaf6e5bb201087c0729
 SCOPE_BOUNDARIES = 02B-3 source-neutral Human Review backend and persistence only; no GUI; no CLI wiring; no API; no export wiring; no Tender Package creation; no scoring; no autonomous decision; legacy CandidateReviewService semantics unchanged
+SCHEMA_CANDIDATE = 0015_add_opportunity_review_events
+BACKEND_DEPENDENCY_DIRECTION = APPLICATION_BACKEND -> DOMAIN_REPOSITORY_PORT -> PERSISTENCE_ADAPTER
+LEGACY_CANDIDATE_REVIEW = UNCHANGED
 
-OPEN_BLOCKERS = NONE_FOR_BOUNDED_IMPLEMENTATION
-EXACTLY_ONE_NEXT_ACTION = BUILDER IMPLEMENT WP-MI-TBMT-02B-3 WITH TDD
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+OPEN_BLOCKERS = Independent 02B-3 integration audit required
+EXACTLY_ONE_NEXT_ACTION = INDEPENDENT REVIEWER AUDIT WP-MI-TBMT-02B-3
+NEXT_AUTHORITY = REVIEWER_AUDITOR
 
 HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
 HOSTED_CI_STATE = UNAVAILABLE_QUOTA
@@ -56,10 +59,10 @@ LAST_AUDITED_DOC_HEAD = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
 LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-2
 LAST_COMPLETED_MICRO_POST_HEAD = 000842c4475e2712a65555b542e0ab33162cc1b4
 LAST_COMPLETED_MICRO_REMOTE_STATE = CHECKPOINTED
-OBJECTIVE = discover the source-neutral Human Review persistence boundary without changing runtime behavior
+OBJECTIVE = source-neutral Human Review persistence with backend-first repository boundary
 
-PROVEN_COMPLETE = Operational/historical documentation classification and currentness repair; PR52 baseline reconciliation; KHMT and technical-status delta revalidation; active checkpoint key normalization; governance parent merged to main.
-LAST_AUDIT = LOCAL_AUDIT_PASS + FC2 LOCAL_DELTA_AUDIT_PASS + POST_MERGE_GOVERNANCE_SYNC
+PROVEN_COMPLETE = WP-MI-TBMT-02B-3 backend-first review service, repository port, SQLAlchemy persistence adapter, and Alembic 0015 migration implemented with legacy review preservation.
+LAST_AUDIT = LOCAL_IMPLEMENTATION_VERIFIED_PENDING_INDEPENDENT_AUDIT
 GOV_DOC_2_REMOTE_CHECKPOINT = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
 GOV_DOC_2_POST_REMOTE_HEAD = 000842c4475e2712a65555b542e0ab33162cc1b4
 LAST_MICRO_POST_REMOTE_HANDOFF = PASS
@@ -72,7 +75,7 @@ GOV_DOC_2_IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
 GOV_DOC_2_FINAL_AUDITED_DOC_HEAD = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
 PR52_STATE = MERGED
 PR52_MERGE_SHA = d2aa8a9bded931d54aaa50c398b701b1598024ec
-VERIFICATION_STATE = 02B-2: 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS; GOV-DOC-2 independent audit PASS / FC2 duplicate-key delta re-audit PASS / diff-check PASS / pytest NOT_REQUIRED_DOCS_ONLY
+VERIFICATION_STATE = 02B-3: 24 backend/migration targeted passed / 83 compatibility targeted passed / 600 full passed / 600 collected / Ruff PASS / diff-check PASS
 GOV_DOC_2_PRE_CORRECTION_REMOTE_HEAD = 6415fe8fe38e0bc5218976269d0995195ec9fd0e
 LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
 
@@ -159,13 +162,13 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Active Parent — WP-MI-TBMT-02B / 02B-2 checkpoint
+## Active Parent — WP-MI-TBMT-02B / 02B-3 implementation checkpoint
 
 02B-1 and 02B-2 are complete and remotely checkpointed. 02B-2 provides the
 source-neutral filter/search projection and preserves legacy KHMT exclude-keyword
-compatibility at its adapter boundary. Review persistence, migration, export,
-GUI, and API behavior are not implemented by 02B-2. 02B-3 is PRE / discovery
-only; implementation remains unauthorized pending the bounded discovery result.
+compatibility at its adapter boundary. 02B-3 adds only the source-neutral review
+backend, repository port, persistence adapter, and migration; export, GUI, and
+API behavior remain out of scope and unauthorized.
 
 Hard invariant:
 
