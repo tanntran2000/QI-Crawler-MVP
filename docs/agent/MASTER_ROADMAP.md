@@ -21,18 +21,20 @@ Order or source of proven merged facts.
 
 ### Architecture entry contract
 
-For a `NEW AGENT`, `NEW WORK PACKAGE`, `WRITER TAKEOVER`, `PLANNER TAKEOVER`,
-`INDEPENDENT REVIEW` or `MATERIAL ARCHITECTURE CHANGE`:
+For a `NEW AGENT`, `NEW PARENT WP`, `WRITER TAKEOVER`, `PLANNER TAKEOVER`,
+`INDEPENDENT REVIEW` or `MATERIAL ARCHITECTURE / GOVERNANCE CHANGE`:
 
 ```text
-→ MASTER_ROADMAP FULL READ REQUIRED
+→ governed FULL READ-IN
 → reconcile live Git/GitHub and CURRENT.md
 → only then READY / PROMPT_READY / implementation
 ```
 
-Same-Work-Package continuous execution may use governed `DELTA` or
-`NO-RE-READ` rules only while this blueprint has not materially changed and the
-same approved Work Package remains active.
+A `NEW MICRO-WP` under the same approved Parent and unchanged architecture
+baseline uses governed `DELTA READ-IN`; continuous work in the same Micro-WP
+and Approval Lease uses governed `NO-RE-READ`. The selector and escalation
+rules live in `docs/agent/MEMORY_INDEX.md`; this roadmap remains a strategic
+blueprint, not a status dashboard.
 
 ## START HERE — 30-second orientation
 
@@ -287,8 +289,8 @@ API EXISTS != PRODUCT AUTHORITY EXISTS
 This document is a construction blueprint, not a status dashboard or an
 implementation lease. Agents are engineers working on the same structure and
 must consult it at the start of a Work Package/session, when a blocker or
-systemic defect appears, before proposing a new Work Package, architecture or
-refactor/tool/AI direction, and at major Parent closeout. The blueprint keeps
+systemic defect appears, before proposing a new strategic Parent Work Package,
+architecture or refactor/tool/AI direction, and at major Parent closeout. The blueprint keeps
 the mission, product structure, dependencies and safety boundaries stable while
 allowing the Human-approved Parent decomposition, micro-WP count, sequence and
 implementation details to adapt.

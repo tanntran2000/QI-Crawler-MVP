@@ -141,14 +141,27 @@ weakened merely to obtain a green result.
 
 ## 10. Prompt filter
 
-When the Human asks for a Codex/Builder prompt, the agent must first follow
-the Memory Index, including `LOCAL_STAGED_INTEGRATION.md`, read
-`MASTER_ROADMAP.md`, verify `CURRENT.md` and live Git/GitHub, identify the
-active and next Work Package, confirm the exact baseline, and identify scope,
-risks, and stop conditions. Read only relevant lessons and feedback. Then
-reconcile the current frontier and roadmap node and produce the shortest
-complete prompt. Blueprint alignment is required before emitting an
-implementation Work Order.
+When the Human asks for a Codex/Builder prompt, the agent must read before
+prompting and run the repository `READ_MODE_SELECTOR` before expensive context
+loads:
+
+```text
+PROMPT REQUEST
+→ read MEMORY_INDEX / CURRENT
+→ verify live Git/GitHub when relevant
+→ run READ_MODE_SELECTOR
+→ select FULL / DELTA / NO_RE_READ
+→ read only required authority/context
+→ reconcile active WP, audited head, scope and blockers
+→ PROMPT_READY or ENTRY_HOLD
+```
+
+`READ-BEFORE-PROMPT = MANDATORY`; `FULL-READ-BEFORE-EVERY-PROMPT = NOT
+REQUIRED`; `CHAT MEMORY ALONE = NOT SUFFICIENT`. A same-Parent Micro prompt
+normally uses `DELTA` unless a full-read trigger exists. Read the complete
+`MASTER_ROADMAP.md` when the selector chooses FULL, not automatically for
+every prompt. Read only relevant lessons and feedback, then produce the
+shortest complete prompt.
 
 Before emitting an implementation Work Order, record or internally prove:
 
