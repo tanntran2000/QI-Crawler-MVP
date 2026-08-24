@@ -47,6 +47,21 @@ SCOPE_BOUNDARIES = six designated operational/historical docs only; no runtime/t
 EXACTLY_ONE_NEXT_ACTION = BUILDER RECONCILE MAIN PR52 INTO GOV-DOC-2
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 
+GOV_DOC_1 = PASS
+GOV_DOC_2_IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
+PR52_STATE = MERGED
+PR52_MERGE_SHA = d2aa8a9bded931d54aaa50c398b701b1598024ec
+02B_1 = MERGED
+02B_2 = MERGED
+02B_3 = NOT_IMPLEMENTED / HOLD
+LAST_AUDITED_02B_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
+VERIFICATION_STATE = 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS
+REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
+HOSTED_CI_STATE = UNAVAILABLE_QUOTA
+CI_PASS_CLAIMED = NO
+SCOPE_BOUNDARIES = GOV-DOC-2 six-document revalidation only; review persistence / migration / export / GUI / API remain outside 02B-2.
+LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
+
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
 LAST_MERGED_PR = 47
 LAST_AUDITED_FEATURE_HEAD = c89ccdf1ef5a35e70b534354fca2a155ce83d9a6
@@ -132,17 +147,13 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Historical 02A → 02B planning boundary
+## Active Parent — WP-MI-TBMT-02B / 02B-2 checkpoint
 
-WP-MI-TBMT-02B — Bid Radar Integration is **DESIGN NEXT**, not implementation-
-authorized. A future approved Work Order may address:
-
-1. source-neutral filter/search integration;
-2. revision-specific Human Review persistence;
-3. DB model/migration if separately approved;
-4. confirmed-export integration;
-5. Bid Radar GUI integration;
-6. revision supersession/history policy.
+02B-1 and 02B-2 are complete and remotely checkpointed. 02B-2 provides the
+source-neutral filter/search projection and preserves legacy KHMT exclude-keyword
+compatibility at its adapter boundary. Review persistence, migration, export,
+GUI, and API behavior are not implemented by 02B-2. 02B-3 remains held pending
+Documentation Lifecycle Sync.
 
 Hard invariant:
 
