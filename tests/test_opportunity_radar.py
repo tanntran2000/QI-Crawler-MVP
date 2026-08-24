@@ -31,6 +31,8 @@ def _radar_module():
 def _khmt_package(
     *,
     plan_id: str = "PL2600265077-00",
+    plan_base_id: str | None = None,
+    plan_revision: str | None = None,
     source_sha256: str = "a" * 64,
     sheet: str = "KHMT",
     source_row: int = 7,
@@ -45,8 +47,8 @@ def _khmt_package(
     identity = OpportunityIdentity.from_raw(plan_id)
     plan = ProcurementPlan(
         plan_id_raw=identity.raw_id,
-        plan_base_id=identity.base_id,
-        plan_revision=identity.revision,
+        plan_base_id=identity.base_id if plan_base_id is None else plan_base_id,
+        plan_revision=identity.revision if plan_revision is None else plan_revision,
         import_batch=batch,
     )
     return PlanPackage(
@@ -137,6 +139,22 @@ def test_plan_package_projects_to_radar_item_with_pl_identity_and_khmt_semantics
     assert item.province_city_code == "HCM"
 
 
+def test_plan_package_rejects_conflicting_base_identity() -> None:
+    module = _radar_module()
+
+    with pytest.raises(module.OpportunityRadarContractError):
+        module.radar_item_from_plan_package(
+            _khmt_package(plan_base_id="PL9999999999")
+        )
+
+
+def test_plan_package_rejects_conflicting_revision_identity() -> None:
+    module = _radar_module()
+
+    with pytest.raises(module.OpportunityRadarContractError):
+        module.radar_item_from_plan_package(_khmt_package(plan_revision="99"))
+
+
 def test_tbmt_candidate_projects_to_radar_item_with_ib_identity_and_semantics() -> None:
     module = _radar_module()
     item = module.radar_item_from_opportunity_candidate(_tbmt_candidate())
@@ -216,6 +234,38 @@ def test_source_and_raw_fields_are_preserved() -> None:
     assert item.source_fields["approval_content"] == package.approval_content_raw
     assert item.source_fields["selection_method_raw"] == package.selection_method_raw
     assert item.provenance == package.provenance
+
+
+@pytest.mark.parametrize("missing", ["source_sha256", "sheet", "source_row"])
+def test_radar_item_requires_authoritative_provenance_coordinates(missing: str) -> None:
+    module = _radar_module()
+    item = module.radar_item_from_plan_package(_khmt_package())
+    provenance = dict(item.provenance)
+    provenance.pop(missing)
+
+    with pytest.raises(module.OpportunityRadarContractError):
+        dataclasses.replace(item, provenance=provenance)
+
+
+@pytest.mark.parametrize(
+    ("coordinate", "value"),
+    [
+        ("source_sha256", "c" * 64),
+        ("sheet", "Other"),
+        ("source_row", 999),
+    ],
+)
+def test_radar_item_rejects_mismatched_provenance_coordinates(
+    coordinate: str,
+    value: object,
+) -> None:
+    module = _radar_module()
+    item = module.radar_item_from_plan_package(_khmt_package())
+    provenance = dict(item.provenance)
+    provenance[coordinate] = value
+
+    with pytest.raises(module.OpportunityRadarContractError):
+        dataclasses.replace(item, provenance=provenance)
 
 
 def test_radar_fields_are_immutable() -> None:

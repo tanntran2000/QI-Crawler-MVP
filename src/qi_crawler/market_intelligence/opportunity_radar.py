@@ -138,6 +138,28 @@ class OpportunityRadarItem:
             value = getattr(self, field_name)
             if not isinstance(value, Mapping):
                 raise OpportunityRadarContractError(f"{field_name} must be a mapping")
+            if field_name == "provenance":
+                required_coordinates = {"source_sha256", "sheet", "source_row"}
+                if not required_coordinates.issubset(value):
+                    raise OpportunityRadarContractError(
+                        "provenance must include authoritative source_sha256, sheet, and source_row"
+                    )
+                provenance_sha256 = value["source_sha256"]
+                if (
+                    not isinstance(provenance_sha256, str)
+                    or provenance_sha256.casefold() != self.source_sha256.casefold()
+                ):
+                    raise OpportunityRadarContractError(
+                        "provenance source_sha256 does not match radar item"
+                    )
+                if value["sheet"] != self.sheet:
+                    raise OpportunityRadarContractError(
+                        "provenance sheet does not match radar item"
+                    )
+                if value["source_row"] != self.source_row:
+                    raise OpportunityRadarContractError(
+                        "provenance source_row does not match radar item"
+                    )
             object.__setattr__(self, field_name, MappingProxyType(dict(value)))
         object.__setattr__(self, "source_type", source_type)
 
@@ -147,6 +169,13 @@ def radar_item_from_plan_package(package: PlanPackage) -> OpportunityRadarItem:
 
     batch = package.plan.import_batch
     identity = OpportunityIdentity.from_raw(package.plan.plan_id_raw)
+    if (
+        identity.base_id != package.plan.plan_base_id
+        or identity.revision != package.plan.plan_revision
+    ):
+        raise OpportunityRadarContractError(
+            "plan identity fields do not match plan_id_raw"
+        )
     source_fields = {
         "investor": package.investor,
         "approval_content": package.approval_content_raw,
