@@ -59,7 +59,7 @@ SOURCE ACQUISITION
 
 ```text
 CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
-NEXT_CANDIDATE_PARENT     = WP-MI-TBMT-02B
+ACTIVE EXECUTION STATE    → docs/agent_handoff/CURRENT.md → live Git/GitHub
 ```
 
 Each horizontal capability is built vertically through the Product House
@@ -295,7 +295,7 @@ implementation details to adapt.
 
 ```text
 CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
-NEXT_CANDIDATE_PARENT     = WP-MI-TBMT-02B
+ACTIVE EXECUTION STATE    → docs/agent_handoff/CURRENT.md → live Git/GitHub
 ```
 
 The default route is one primary frontier at a time. **NO ROADMAP EXPLOSION:**

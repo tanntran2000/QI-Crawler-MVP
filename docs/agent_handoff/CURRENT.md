@@ -18,6 +18,7 @@ ACTIVE_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-1
 ACTIVE_BRANCH = wp/gov-doc-lifecycle-sync
 
 ENTRY_MAIN_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
+ENTRY_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
 MICRO_STATE = READY_TO_EXECUTE
 PRODUCT_FRONTIER = Opportunity Intelligence
 ARCHITECTURE_LAYER_CONTRACT = GOVERNANCE_DOCUMENTATION_ONLY
@@ -27,6 +28,7 @@ PAUSED_FEATURE_BRANCH_HEAD = 3e27c9c17d257cd91c544eaf6e5bb201087c0729
 PAUSED_FEATURE_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 
 HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
+PRE_WP_DOC_SYNC = CURRENT_PRE_AND_HISTORY_COMMITTED
 OPEN_BLOCKERS = NONE
 SCOPE_BOUNDARIES = governance/documentation only; 02B-3/runtime/persistence/GUI/API/release work prohibited
 EXACTLY_ONE_NEXT_ACTION = BUILDER EXECUTE WP-GOV-DOC-LIFECYCLE-SYNC-1
@@ -117,7 +119,7 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Next Parent — WP-MI-TBMT-02B planning boundary
+## Historical 02A → 02B planning boundary
 
 WP-MI-TBMT-02B — Bid Radar Integration is **DESIGN NEXT**, not implementation-
 authorized. A future approved Work Order may address:

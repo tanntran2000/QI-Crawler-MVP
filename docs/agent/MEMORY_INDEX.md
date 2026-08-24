@@ -57,6 +57,26 @@ The handoff records the last audited **code** head separately from any later
 handoff/docs-only branch head. Live Git remains authority for the exact current
 branch `HEAD`.
 
+## Documentation lifecycle contract
+
+Every Parent and Micro Work Package has PRE and POST state. `ALWAYS CHECK !=
+ALWAYS MODIFY`: inspect the required documents at the governed transition, but
+update only the applicable tier and trigger.
+
+```text
+CURRENT AUTHORITY       = active execution/transition state
+HISTORICAL SNAPSHOT     = as-of evidence under docs/agent_handoff/history/
+DURABLE CONTRACT         = normative governance until approved change
+```
+
+`CURRENT.md` is not a diary, roadmap, review report or chat summary. Parent
+PRE/POST requires `CURRENT.md` plus history; Micro PRE/POST is lightweight and
+does not create history by default. Takeover, material interruption,
+architecture transition, major recovery, Parent closeout and material scope
+invalidation require full history. Roadmap, merged memory, feedback and
+lessons have separate promotion triggers. Active machine-readable keys must
+have one semantic meaning; historical values use explicit namespaced keys.
+
 ## Prompt-writer readiness gate
 
 An agent that is asked to generate the next technical Work Order must not rely

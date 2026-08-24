@@ -47,12 +47,28 @@ verified repository/GitHub evidence.
 
 1. Read the required memory and live repository state.
 2. Produce an Entry Review with the Work Package, baseline, risks, and scope.
-3. Wait for one human approval (the **Approval Lease**).
-4. Execute bounded work under that lease; do not ask for command-by-command
+3. Capture the bounded PRE state: `CURRENT.md` and, for a Parent or material
+   event, the required historical snapshot.
+4. Wait for one human approval (the **Approval Lease**).
+5. Execute bounded work under that lease; do not ask for command-by-command
    approval.
-5. Stop and request re-approval if scope, baseline, writer, authority, or a
+6. Stop and request re-approval if scope, baseline, writer, authority, or a
    material blocker changes.
-6. Verify before claiming completion and update `CURRENT.md`.
+7. Follow the governed sequence:
+
+   ```text
+   IMPLEMENT
+   → VERIFY
+   → COMMIT
+   → INDEPENDENT AUDIT
+   → AUDIT PASS
+   → REMOTE CHECKPOINT
+   → POST CURRENT
+   → HANDOFF READY
+   ```
+
+   A PRE/POST checkpoint is required for every Work Package, but ordinary
+   checks do not require rewriting every document or creating a history file.
 
 Entry outcomes are:
 

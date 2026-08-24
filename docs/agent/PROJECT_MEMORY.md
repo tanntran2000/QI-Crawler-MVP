@@ -121,6 +121,20 @@ branches must remain in their Work Package handoff.
   export, and GUI integration remain future WP-MI-TBMT-02B work.
 - **Last verified:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
 
+## MEM-009 — Product House and builder handoff discipline
+
+- **State:** ACTIVE
+- **Since main commit:** `a44d365b48ad291aaa6e86c50adc72ed7318b883`.
+- **Contract:** The merged Product House / Architecture README keeps the
+  product layers and dependency direction durable, while builder handoffs are
+  short, factual and evidence-backed. `LAST_AUDITED_CODE_HEAD` remains
+  separate from later documentation heads; the approved flow is
+  `IMPLEMENT → VERIFY → COMMIT → AUDIT → REMOTE CHECKPOINT → HANDOFF`.
+- **Evidence:** merged PR #51, exact merge commit
+  `a44d365b48ad291aaa6e86c50adc72ed7318b883`, `AGENTS.md`, and the Product
+  House README.
+- **Last verified:** `a44d365b48ad291aaa6e86c50adc72ed7318b883`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

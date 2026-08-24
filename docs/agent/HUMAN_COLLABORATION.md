@@ -274,6 +274,14 @@ next authorized slice. If a docs-only handoff commit advances the branch, keep
 `LAST_AUDITED_CODE_HEAD` distinct from live branch `HEAD` and require the next
 agent to verify both.
 
+Each Work Package carries context continuity across its PRE and POST state.
+Use tiered updates: a Parent or material event may require a history snapshot;
+a Micro-WP normally needs only lightweight `CURRENT.md` state. Do not rewrite
+every governance document for each edit, test run, unaudited progress update,
+or chat narration. Before a new session or agent takeover, reconcile the
+required read-in, live Git/GitHub and the active handoff; after the governed
+transition, leave one concise, factual, actionable POST handoff.
+
 A merge performed while hosted CI is verified unavailable must be reported as
 `CI_WAIVER = ACTIVE` and `PENDING_RETRO_CI = YES`, never as hosted `CI PASS`.
 Official Team Bid release remains blocked while retro-CI debt is open unless

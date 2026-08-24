@@ -293,6 +293,72 @@ HANDOFF != REVIEW REPORT
 HANDOFF != CHAT SUMMARY
 ```
 
+## 8.3 Documentation lifecycle and tiered PRE/POST state
+
+Every Parent WP and Micro-WP has a bounded PRE and POST state. The lifecycle
+checks the required documents at each governed transition, but `ALWAYS CHECK
+!= ALWAYS MODIFY`.
+
+```text
+PRE_CURRENT
+→ IMPLEMENT / VERIFY / COMMIT
+→ INDEPENDENT AUDIT
+→ REMOTE CHECKPOINT when applicable
+→ POST_CURRENT
+→ HANDOFF READY
+```
+
+The document classes are:
+
+- **CURRENT AUTHORITY** — active execution and transition state;
+  `docs/agent_handoff/CURRENT.md` is the primary example.
+- **HISTORICAL SNAPSHOT** — an as-of record preserved under
+  `docs/agent_handoff/history/`; it is non-normative after capture.
+- **DURABLE CONTRACT** — normative rules that remain in force until approved
+  governance changes them, including `AGENTS.md`, `OPERATING_MODEL.md`, this
+  contract, and `MASTER_ROADMAP.md`.
+
+Strategic blueprints, merged durable memory, material feedback and systemic
+lessons are distinct evidence/authority classes; none silently replaces
+`CURRENT.md` or live Git/GitHub.
+
+Parent PRE/POST requires `CURRENT.md` and a history snapshot. A Micro-WP
+requires lightweight PRE/POST `CURRENT.md` state; history is not default.
+Full history is required for takeover, material interruption, architecture
+transition, major recovery, Parent closeout or material scope invalidation.
+Roadmap and project memory are checked every Parent but changed only on their
+defined lifecycle triggers. Feedback changes only for material decisions; a
+systemic lesson changes `LESSONS.md` only when the lesson is durable.
+
+Minimum state schemas are bounded, not diary formats. Micro PRE supports
+`ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`, `ACTIVE_BRANCH`, `MICRO_STATE`,
+`ENTRY_HEAD`, `OBJECTIVE`, `SCOPE_BOUNDARIES`,
+`ARCHITECTURE_LAYER_CONTRACT`, `OPEN_BLOCKERS`, `PRE_WP_DOC_SYNC`,
+`EXACTLY_ONE_NEXT_ACTION` and `NEXT_AUTHORITY`. Micro POST supports
+`ACTIVE_PARENT_WP`, `LAST_COMPLETED_MICRO_WP`, `MICRO_STATE`, `FINAL_HEAD`,
+`LAST_AUDITED_CODE_HEAD`, `VERIFICATION_STATE`, `PROVEN_COMPLETE`,
+`OPEN_BLOCKERS`, `REMOTE_STATE`, `HOSTED_CI_STATE`, `POST_WP_DOC_SYNC`,
+`EXACTLY_ONE_NEXT_ACTION` and `NEXT_AUTHORITY`. Parent PRE/POST extends these
+with `PRODUCT_FRONTIER`, `PARENT_OBJECTIVE`, `DEPENDENCIES`, `MICRO_WP_PLAN`,
+`CAPABILITY_MATURITY_CHANGE`, `ROADMAP_IMPACT`,
+`MEMORY_PROMOTION_REQUIRED`, `LESSON_PROMOTION_REQUIRED`, `RELEASE_IMPACT`
+and `NEXT_FRONTIER`.
+
+There is one semantic meaning per active machine-readable key in `CURRENT.md`.
+Historical values use explicit namespaced keys and must not override the active
+checkpoint for a simple parser. `LAST_AUDITED_CODE_HEAD` remains distinct from
+later documentation or handoff commits.
+
+Concrete source findings must be reconciled against Git objects when available;
+an audit report is evidence, not source-object authority. When a generic
+abstraction wraps a legacy path, review the compatibility seam:
+
+```text
+OLD CONTRACT → ADAPTER / COMPATIBILITY BOUNDARY → NEW GENERIC CONTRACT
+```
+
+Passing tests alone does not prove legacy compatibility.
+
 ## 9. Parent Integration Gate
 
 Before opening the Parent-WP PR, run the minimum complete cumulative
@@ -330,6 +396,11 @@ PENDING_RETRO_CI = YES
 ```
 
 Never transform this state into `CI = PASS`.
+
+The default hosted-CI gate returns only when GitHub Actions quota is restored
+and the required workflow can execute normally. Until both conditions hold,
+the mode is `TEMPORARY_LOCAL_STAGED_INTEGRATION`; no standing future waiver is
+created. Any later exception requires explicit Human Authority.
 
 Under the waiver:
 

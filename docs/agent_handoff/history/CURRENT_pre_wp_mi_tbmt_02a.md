@@ -1,3 +1,8 @@
+HISTORICAL / NON-NORMATIVE / MAY CONTAIN SUPERSEDED RULES.
+
+Preserved as a historical snapshot; consult CURRENT.md and live Git/GitHub for
+active authority.
+
 # QI-Crawler Agent Handoff
 
 ## HANDOFF_ID
