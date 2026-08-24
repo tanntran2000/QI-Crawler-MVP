@@ -69,6 +69,14 @@ in addition to the CI Fitness Contract. The roadmap classifies the Product
 House and its layers; the Work Order authorizes construction scope. A Builder
 must not infer edit authorization from the roadmap alone.
 
+Builder handoff discipline is governed by
+`docs/agent/LOCAL_STAGED_INTEGRATION.md`: refresh `CURRENT.md` only at an
+audited remote checkpoint, a material blocker or scope-invalidating finding,
+an inter-agent/session handoff, or Parent merge/closeout. Normal edits, test
+runs, unaudited progress, speculative ideas, and chat narration do not justify
+a refresh. Handoffs are short, factual, evidence-backed, actionable snapshots
+and are not diaries, roadmaps, review reports, or chat summaries.
+
 ### Adaptive verification rules
 
 The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this CI verify the right contracts for this WP?"*.

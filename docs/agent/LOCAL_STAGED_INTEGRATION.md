@@ -245,6 +245,54 @@ If the active snapshot, live Git, and live GitHub disagree materially, return
 `ENTRY_HOLD` and reconcile the handoff before generating or executing the next
 technical Work Order.
 
+### 8.2 Builder handoff discipline
+
+The Builder refreshes `CURRENT.md` only at these governed state transitions:
+
+- an audited micro-WP has received independent `PASS` and a remote checkpoint;
+- a material blocker or scope-invalidating finding is discovered;
+- work crosses an agent or session boundary;
+- Parent merge or closeout occurs.
+
+Do not refresh it for each file edit, test run, unaudited progress update,
+speculative idea, or chat narration. A handoff must be short, factual,
+evidence-backed and actionable, identifying at minimum:
+
+```text
+ACTIVE_PARENT_OR_MICRO_WP
+PROVEN_COMPLETE
+LAST_AUDITED_CODE_HEAD
+VERIFICATION_STATE
+OPEN_BLOCKERS
+SCOPE_BOUNDARIES
+EXACTLY_ONE_NEXT_ACTION
+NEXT_AUTHORITY
+```
+
+Keep `LAST_AUDITED_CODE_HEAD` distinct from any later documentation or handoff
+commit `HEAD`. The governed flow is:
+
+```text
+IMPLEMENT
+→ VERIFY
+→ COMMIT
+→ INDEPENDENT AUDIT
+→ AUDIT PASS
+→ REMOTE CHECKPOINT
+→ REFRESH CURRENT
+→ HANDOFF READY
+```
+
+While the same Approval Lease remains active and work is ordinary editing or
+testing, do not refresh `CURRENT.md`. These invariants apply:
+
+```text
+HANDOFF != DIARY
+HANDOFF != ROADMAP
+HANDOFF != REVIEW REPORT
+HANDOFF != CHAT SUMMARY
+```
+
 ## 9. Parent Integration Gate
 
 Before opening the Parent-WP PR, run the minimum complete cumulative
