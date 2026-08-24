@@ -61,6 +61,14 @@ Historical tags and releases must never be silently moved.
 
 9. **LAW 9 — HANDOFF READ-IN & CONTINUITY**: `READ → VERIFY → ENTRY REVIEW → ONE APPROVAL → EXECUTE MANY`. Approval leases a bounded Work Package, not individual commands. Re-approval is required only when scope, baseline, handoff authority, writer, or a material blocker changes.
 
+For a **NEW AGENT**, **NEW PARENT WP**, **WRITER TAKEOVER**,
+**PLANNER/REVIEWER TAKEOVER**, or **MATERIAL ARCHITECTURE CHANGE**, the agent
+must fully read `docs/agent/MASTER_ROADMAP.md` before declaring READY. Future
+material Work Orders must include the roadmap's `ARCHITECTURE_LAYER_CONTRACT`
+in addition to the CI Fitness Contract. The roadmap classifies the Product
+House and its layers; the Work Order authorizes construction scope. A Builder
+must not infer edit authorization from the roadmap alone.
+
 ### Adaptive verification rules
 
 The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this CI verify the right contracts for this WP?"*.

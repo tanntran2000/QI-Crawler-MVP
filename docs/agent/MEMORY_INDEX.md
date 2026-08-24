@@ -4,6 +4,10 @@ This is the universal entry point for a new Work Package or agent handoff.
 Memory records are guidance and evidence, not a replacement for live Git or
 the merged codebase.
 
+`docs/agent/MASTER_ROADMAP.md` is the mandatory Product House / Architecture
+README. It defines the durable product layers, dependency direction, and
+frontier; it does not authorize implementation scope by itself.
+
 ## Read order
 
 1. `AGENTS.md` — durable laws and workspace safety.
@@ -13,7 +17,8 @@ the merged codebase.
 4. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
    independent-audit, Parent Integration, and CI-waiver procedure.
 5. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
-6. `docs/agent/MASTER_ROADMAP.md` — strategic capability map and dependencies.
+6. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
+   README, strategic capability map, and dependencies.
 7. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
 8. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
 9. Live GitHub state when the Work Package involves a branch, PR, remote
@@ -23,11 +28,15 @@ the merged codebase.
 
 ## Read-in modes
 
-- **FULL READ-IN**: a new Work Package, a new agent, or a writer takeover.
+- **FULL READ-IN**: a new Work Package, a new agent, or a writer takeover;
+  fully read `MASTER_ROADMAP.md` before architecture/layer readiness.
 - **DELTA READ-IN**: the same Work Package resumes after an interruption; read
   the changed handoff and live Git state, then only the referenced deltas.
 - **NO RE-READ**: continuous execution under an active Approval Lease with no
-  material scope, baseline, writer, or blocker change.
+  material scope, baseline, writer, blocker, or material roadmap change.
+
+DELTA/NO-RE-READ is valid only while the Product House / Architecture README
+has not materially changed and the same approved Work Package remains active.
 
 ## Authority order
 
@@ -64,6 +73,9 @@ LOCAL_STAGED_INTEGRATION READ
 PROJECT_MEMORY           READ
 MASTER_ROADMAP           READ
 CURRENT                  READ
+
+ARCHITECTURE_LAYERS      RESOLVED for material technical work
+PRODUCT_FRONTIER         RESOLVED for material technical work
 
 LIVE_GIT                 VERIFIED
 LIVE_GITHUB              VERIFIED when a remote branch/PR/CI is relevant

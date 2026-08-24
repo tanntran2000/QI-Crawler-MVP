@@ -1,8 +1,9 @@
-# QI-Crawler Master Development Roadmap
+# QI-CRAWLER MASTER ROADMAP
+# PRODUCT HOUSE & ARCHITECTURE README
 
 QI-Crawler → Internal Bid Assistant
 
-**Status:** MASTER BLUEPRINT / STRATEGIC ROADMAP
+**Status:** MASTER BLUEPRINT / STRATEGIC ROADMAP / MANDATORY ARCHITECTURE README
 **Blueprint revision:** 1.1 (conceptual roadmap revision; not application SemVer)
 **Execution model:** PARENT-WP / MICRO-WP ONLY
 
@@ -12,6 +13,274 @@ surfaces information. Team Bid validates, calculates, evaluates and decides.
 > Roadmap node != implementation authorization. The roadmap tells agents where
 > the product is going; a Human-approved Parent WP tells agents what may be
 > implemented next.
+
+This document is the canonical Product House and Architecture README. It is a
+strategic blueprint, product capability roadmap and technical construction map
+for every future agent. It is not an active handoff, live Git authority, Work
+Order or source of proven merged facts.
+
+### Architecture entry contract
+
+For a `NEW AGENT`, `NEW WORK PACKAGE`, `WRITER TAKEOVER`, `PLANNER TAKEOVER`,
+`INDEPENDENT REVIEW` or `MATERIAL ARCHITECTURE CHANGE`:
+
+```text
+→ MASTER_ROADMAP FULL READ REQUIRED
+→ reconcile live Git/GitHub and CURRENT.md
+→ only then READY / PROMPT_READY / implementation
+```
+
+Same-Work-Package continuous execution may use governed `DELTA` or
+`NO-RE-READ` rules only while this blueprint has not materially changed and the
+same approved Work Package remains active.
+
+## START HERE — 30-second orientation
+
+QI-Crawler is being built as:
+
+```text
+QI-Crawler
+→ Internal Bid Assistant
+```
+
+Current primary route:
+
+```text
+SOURCE ACQUISITION
+→ OPPORTUNITY INTELLIGENCE
+→ UNIFIED TENDER WAREHOUSE
+→ TENDER PACKAGE & HSMT INTELLIGENCE
+→ SOP BID INTELLIGENCE
+→ HUMAN GROUND TRUTH
+→ CONTROLLED LEARNING
+→ BID ASSISTANT / OUTPUT
+→ optional MINI AI AGENTS
+```
+
+```text
+CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
+NEXT_CANDIDATE_PARENT     = WP-MI-TBMT-02B
+```
+
+Each horizontal capability is built vertically through the Product House
+technical layers defined below. A layer can be mature while another remains
+unwired; neither alone proves the complete Team Bid capability.
+
+## Product House model
+
+```text
+                    HUMAN / MACHINE CONSUMERS
+                              │
+                              ▼
+                      DELIVERY SURFACES
+             GUI / CLI / API / Agent Adapter
+                              │
+                              ▼
+                    APPLICATION BACKEND
+                              │
+                              ▼
+                        DOMAIN CORE
+                              │
+                ┌─────────────┴─────────────┐
+                ▼                           ▼
+          SOURCE ADAPTERS          INFRASTRUCTURE /
+                                   PERSISTENCE
+                │                           │
+                └─────────────┬─────────────┘
+                              ▼
+                             DATA
+```
+
+The Engineering Toolbox / Plugins exists outside the Product House. This is
+the target architecture model and classification doctrine; it does not claim a
+one-to-one mapping to current Python packages.
+
+### Consumers
+
+```text
+CONSUMER = who or what needs a product capability
+```
+
+Human consumers include Team Bid, SA, Maker, Checker, Bid Lead/Approver and
+IT/operator. Machine consumers include CLI automation, API clients, reporting
+processes, future Mini AI Agents and approved scheduled services.
+
+```text
+CONSUMER != FRONTEND
+```
+
+Team Bid is a Consumer and the Desktop GUI is a Delivery Surface. A future AI
+Agent is a Consumer and an Agent Adapter is its controlled Delivery Surface.
+Consumer status never grants authority; Human/business authority remains
+governed by role.
+
+### Delivery surfaces / frontend
+
+Delivery surfaces are separate from the backend:
+
+- **Desktop Frontend:** current PySide6 display, input, navigation, feedback
+  and interaction surface.
+- **CLI:** command delivery surface.
+- **API:** transport/interface delivery surface; product API evolution is HOLD.
+- **Agent Adapter:** future controlled surface for Mini AI consumers.
+
+```text
+FRONTEND != BACKEND
+API != BACKEND CORE
+CLI != BACKEND CORE
+AGENT ADAPTER != AI AUTHORITY
+```
+
+No material business rule may exist only in a frontend event handler. Frontend
+may collect a Human command, but Application Backend validates and executes it.
+`BACKEND FIRST != FRONTEND NEVER`.
+
+### Application Backend
+
+Application Backend is executable product use cases and orchestration
+independent of GUI. Examples include opportunity import/search/review/export,
+Tender Package creation and revision linking, Warehouse completeness
+inspection, HSMT evidence/requirements, Ground Truth and SOP readiness.
+
+It coordinates Domain Core, Source Adapters, Persistence and controlled output
+adapters, and must not depend on PySide6 behavior.
+
+```text
+BACKEND != SERVER
+BACKEND != REST API
+BACKEND != DATABASE
+```
+
+Application Backend development remains ACTIVE according to the current
+frontier even while API evolution is HOLD.
+
+### Domain Core
+
+Domain Core is the load-bearing foundation for durable product meaning and
+invariants: Opportunity and Tender Package identity, source type/namespace,
+`base_id`, revision, provenance, review states, completeness states, Ground
+Truth contracts and SOP readiness/domain states.
+
+```text
+PL != IB
+base_id = lineage
+(base_id, revision) = exact revision identity
+IB...-00 Human Confirmed does NOT imply IB...-01 Human Confirmed
+FILE STORED != PACKAGE COMPLETE
+MACHINE READINESS != HUMAN BUSINESS DECISION
+```
+
+Domain Core must be understandable without GUI, database implementation,
+network, Excel implementation, REST, GitHub or AI prompt logic.
+
+### Source Adapters
+
+Source Adapters are external material intake gates for KHMT XLSX, TBMT XLSX,
+e-GP/web, manual HSMT, PDF, DOCX, XLSX tender documents and future approved
+internal sources:
+
+```text
+EXTERNAL SOURCE
+→ parse
+→ validate
+→ preserve raw/provenance
+→ source/domain contract
+```
+
+```text
+SOURCE FORMAT != DOMAIN MODEL
+```
+
+An adapter may observe source facts but may not create business authority. Do
+not force TBMT into `PlanPackage` or infer Human confirmation from import.
+
+### Infrastructure / Persistence
+
+Infrastructure describes how bytes and data are stored and retrieved:
+SQLite, Alembic-managed schema, managed filesystem, Source Vault, Package
+Shelf, DuckDB, Parquet, archive and backup/recovery.
+
+```text
+DATABASE != DOMAIN
+DATABASE COLUMN != DOMAIN CONTRACT
+ONE PRODUCT WAREHOUSE != ONE DATABASE FILE
+```
+
+Unified Tender Warehouse is the product capability; SQLite/files/DuckDB/Parquet
+are internal implementation components.
+
+### Engineering Toolbox / Plugins
+
+The toolbox is outside the Product House:
+
+| Tool | Construction metaphor | Technical role | Boundary |
+| --- | --- | --- | --- |
+| CodeGraph | Structure scanner / dependency map | Impact, caller and dependency intelligence | Not scope or edit authority. |
+| Superpowers | Construction procedure / handbook | Planning, TDD, debugging and verification discipline | Does not override `AGENTS.md`, Blueprint or Human Work Order. |
+| pytest | Load/test equipment | Behavior and regression verification | Does not determine business truth. |
+| Ruff | Quality measuring tool | Static/code quality checks | No product authority. |
+| Alembic | Controlled plumbing renovation | Database migration mechanism | Does not authorize migration. |
+| Git | Construction ledger | Exact version/change history | No merge authority by itself. |
+| GitHub | Site control room | Remote history, PRs, collaboration and CI metadata | Human merge/release authority remains. |
+| CI | Machine inspection gate | Automated verification | Not a business-authority pole. |
+| Golden / regression corpus | Reference specimen | Deterministic evidence | Not automatically Human Ground Truth. |
+| Build/Installer tools | Handover/build crew | Windows artifacts | Not release authority. |
+| Diagnostics/logging | Sensors/meters | Failure evidence | Not automatic root-cause authority. |
+| AI coding agents | Engineers/workers | Assigned Planner/Builder/Reviewer roles | `ROLE > MODEL NAME`. |
+
+```text
+TOOL != PRODUCT CAPABILITY
+TOOL != AUTHORITY
+PLUGIN RECOMMENDATION != APPROVED WORK ORDER
+TOOL AVAILABILITY != TOOL AUTHORITY
+CODEGRAPH IMPACT RADIUS != EDIT RADIUS
+SUPERPOWERS PROCEDURE != PRODUCT SCOPE
+```
+
+Plugin states are `AVAILABLE`, `UNAVAILABLE`, `REQUIRES_VERIFICATION` and
+`PARKED`. If a required tool is unavailable, report `TOOL_UNAVAILABLE` and use
+the governed fallback. Never disable or remove a plugin merely to bypass its
+workflow.
+
+### Dependency direction
+
+```text
+CONSUMER
+   ↓
+DELIVERY SURFACE / INTERFACE ADAPTER
+   ↓
+APPLICATION BACKEND
+   ↓
+DOMAIN CORE
+```
+
+Source Adapters and Persistence implement/serve contracts consumed by backend
+and domain boundaries. Forbidden authority dependencies include Domain Core →
+PySide6, a domain rule that exists only in a GUI handler, TBMT parser → Human
+`CONFIRMED`, AI Agent → uncontrolled SQLite writes, API endpoint → duplicated
+business rules, and GUI → independently reimplemented filter/review semantics.
+
+### Horizontal and vertical blueprint
+
+The roadmap has two axes:
+
+```text
+HORIZONTAL: Source → Opportunity → Warehouse → HSMT → SOP → Ground Truth
+            → Learning → Bid Assistant
+
+VERTICAL:   Consumer → Delivery → Application Backend → Domain Core
+            → Source Adapter → Infrastructure / Persistence
+```
+
+A capability may have `CORE_BACKEND = OPERATIONAL` while
+`DESKTOP_GUI = NOT_WIRED`, or `FRONTEND = PRESENT` while
+`DOMAIN_CAPABILITY = NOT_PROVEN`. Neither is simply `DONE`:
+
+```text
+BACKEND IMPLEMENTED != TEAM BID FEATURE DELIVERED
+FRONTEND WIRED != DOMAIN CAPABILITY PROVEN
+API EXISTS != PRODUCT AUTHORITY EXISTS
+```
 
 ## Blueprint use and adaptive navigation
 
@@ -240,6 +509,151 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
 | Windows deployment | `OPERATIONAL` | Known-good v0.8.0 Windows delivery and persistent user-data boundary. | Future updates must preserve release/data governance. | Release impact assessment and verified candidate. |
 | Mini AI agents | `PARKED` | Future role boundary is documented only. | Unified Tender Warehouse, completeness, evidence and Ground Truth gates. | All unlock gates plus explicit Human approval. |
+
+### Capability layer maturity example — TBMT Bid Radar
+
+```text
+PRODUCT LANE:
+  Opportunity Intelligence
+
+DOMAIN CORE:
+  PARTIAL — source-neutral Opportunity contract exists;
+  downstream contract needs completion.
+
+SOURCE ADAPTER:
+  DONE for bounded TBMT XLSX intake.
+
+APPLICATION BACKEND:
+  PARTIAL — TBMT does not yet flow through filter/search/review/export.
+
+PERSISTENCE:
+  PARTIAL — candidate review persistence still carries PL-specific semantics.
+
+DESKTOP FRONTEND:
+  SOURCE RECOGNITION ONLY — TBMT downstream flow is not wired.
+
+CLI:
+  not a required 02B delivery target unless separately approved.
+
+API:
+  HOLD.
+
+TEAM BID DELIVERY:
+  NOT YET OPERATIONAL for TBMT Bid Radar.
+```
+
+This is descriptive architecture status, not implementation authorization. Do
+not change 02B from `DESIGN NEXT`.
+
+### Work Package architecture layer contract
+
+Future material Work Orders must include:
+
+```text
+ARCHITECTURE_LAYER_CONTRACT
+===========================
+
+PRODUCT_LANE:
+
+HUMAN_CONSUMER:
+MACHINE_CONSUMER:
+
+DOMAIN_CORE:
+IN_SCOPE / OUT_OF_SCOPE
+
+APPLICATION_BACKEND:
+IN_SCOPE / OUT_OF_SCOPE
+
+SOURCE_ADAPTERS:
+IN_SCOPE / OUT_OF_SCOPE
+
+PERSISTENCE_INFRA:
+IN_SCOPE / OUT_OF_SCOPE
+
+DELIVERY_ADAPTERS:
+IN_SCOPE / OUT_OF_SCOPE
+
+DESKTOP_FRONTEND:
+IN_SCOPE / OUT_OF_SCOPE
+
+CLI:
+IN_SCOPE / OUT_OF_SCOPE
+
+API:
+IN_SCOPE / OUT_OF_SCOPE
+
+AI_CONSUMER:
+IN_SCOPE / OUT_OF_SCOPE
+
+ENGINEERING_TOOLS:
+required / optional / not applicable
+
+DEPENDENCY_DIRECTION_CHECK:
+PASS / HOLD
+
+RATIONALE:
+```
+
+No Builder may silently cross an `OUT_OF_SCOPE` layer. A material new-layer
+finding requires `BUILDER_FINDING + SCOPE_EXPANSION_REQUIRED +
+STOP_FOR_REVIEW`.
+
+### Engineer lookup table
+
+| Change wanted | Start inspection at |
+| --- | --- |
+| IB revision semantics | Domain Core |
+| Review inheritance | Domain Core |
+| TBMT filtering | Application Backend |
+| Human review workflow | Backend |
+| Review DB schema | Persistence |
+| TBMT Excel parser | Source Adapter |
+| Package SHA/provenance | Domain Core + Source Adapter |
+| Confirm button | Frontend |
+| Button-to-service wiring | Delivery Adapter |
+| REST endpoint | API Adapter |
+| HSMT extraction | Backend + Source Adapter |
+| Vault/file storage | Infrastructure |
+| Warehouse completeness | Domain + Backend |
+| Ground Truth rules | Domain + Backend |
+| AI capability | Consumer / Agent Adapter |
+| Impact discovery | CodeGraph tool |
+| TDD/debug workflow | Superpowers tool |
+| Migration execution | Alembic tool |
+| Regression verification | pytest |
+| Merge | Git/GitHub + Human authority |
+| Release | Release governance + Human authority |
+
+### Architecture invariants
+
+```text
+CONSUMER != FRONTEND
+FRONTEND != BACKEND
+API != BACKEND CORE
+DATABASE != DOMAIN
+SOURCE FORMAT != DOMAIN MODEL
+PLUGIN != PRODUCT CAPABILITY
+TOOL != AUTHORITY
+MODEL NAME != AGENT ROLE
+
+BACKEND IMPLEMENTED != TEAM BID FEATURE DELIVERED
+FRONTEND WIRED != DOMAIN CAPABILITY PROVEN
+FILE EXISTS != APPROVED PRODUCT AUTHORITY
+```
+
+No layer may silently assume another layer's authority.
+
+### GUI / API hold clarification
+
+```text
+GUI_ARCHITECTURE_EVOLUTION = HOLD
+API_PRODUCT_EVOLUTION = HOLD
+```
+
+This means no broad redesign or new interface architecture now. It does not
+hold Application Backend development. Thin delivery wiring may be separately
+approved after a backend capability is proven. `BACKEND FIRST != FRONTEND
+NEVER`. No GUI/API work is activated by this roadmap WP.
 
 ## Lane 1 — Source Acquisition
 
