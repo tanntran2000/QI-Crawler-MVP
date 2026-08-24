@@ -1,5 +1,10 @@
 # Build QI-Crawler standalone va installer tren Windows
 
+```text
+DOCUMENT_CLASS = CURRENT_OPERATIONAL_MANUAL
+VERSION_AUTHORITY = qi_crawler.__version__ via build_installer.ps1
+```
+
 Ban WP8-C dung PyInstaller `onedir`. Nguoi dung cuoi nhan **toan bo** thu muc
 `dist\QI-Crawler`; khong copy rieng file EXE.
 
@@ -55,6 +60,11 @@ Cai [Inno Setup 7](https://jrsoftware.org/isdl.php) tren may build, sau do chay:
 powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
 ```
 
+`build_installer.ps1` reads the canonical version from
+`qi_crawler.__version__`, passes it to Inno Setup and names the installer from
+that value. Keep examples version-neutral so this manual does not become a
+second release-version authority.
+
 Lenh tren chi tao build local trong `dist`; khong thay doi thu muc user-visible
 `Crawler tool`. Chi publish sau khi da merge vao `main`, working tree sach va
 da smoke-test:
@@ -70,7 +80,7 @@ an toan:
 ..\Crawler tool\
 |-- Current\
 |   |-- QI-Crawler\QI-Crawler.exe
-|   |-- QI-Crawler-Setup-v0.7.1.exe
+|   |-- QI-Crawler-Setup-v<canonical-version>.exe
 |   `-- BUILD_INFO.txt
 `-- Previous\
 ```
@@ -90,7 +100,7 @@ powershell -ExecutionPolicy Bypass -File .\build_installer.ps1
 Ket qua la mot file duy nhat:
 
 ```text
-dist\installer\QI-Crawler-Setup-v0.7.1.exe
+dist\installer\QI-Crawler-Setup-v<canonical-version>.exe
 ```
 
 Nguoi dung cuoi chi can chay Setup. Setup tao shortcut Start Menu va Desktop,

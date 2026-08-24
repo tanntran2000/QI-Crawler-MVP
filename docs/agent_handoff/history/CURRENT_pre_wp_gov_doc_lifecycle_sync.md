@@ -1,76 +1,25 @@
+HISTORICAL SNAPSHOT
+NON-NORMATIVE
+Captured before WP-GOV-DOC-LIFECYCLE-SYNC began.
+Live execution authority is CURRENT.md + live Git/GitHub.
+
 # QI-Crawler Agent Handoff
 
 ## HANDOFF_ID
 
-FINAL — WP-GOV-DOC-LIFECYCLE-SYNC
+POST-MERGE — WP-MI-TBMT-02A CLOSED / WP-MI-TBMT-02B DESIGN NEXT
 
 ## Status
 
-WP-GOV-DOC-LIFECYCLE-SYNC PASS /
-FINAL INTEGRATION AUDIT PASS /
-AWAITING HUMAN MERGE DECISION /
-HOSTED CI UNAVAILABLE_QUOTA /
-NO MERGE YET
+WP-MI-TBMT-02A MERGED / PR #47 MERGED /
+HOSTED CI INFRASTRUCTURE UNAVAILABLE / PENDING RETRO-CI /
+NO OFFICIAL RELEASE / WP-MI-TBMT-02B NOT YET IMPLEMENTATION-AUTHORIZED
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = WP-GOV-DOC-LIFECYCLE-SYNC
-ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = wp/gov-doc-lifecycle-sync
-
-ENTRY_MAIN_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
-ENTRY_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
-MICRO_STATE = PASS
-LAST_AUDITED_DOC_HEAD = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
-LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-2
-LAST_COMPLETED_MICRO_POST_HEAD = 000842c4475e2712a65555b542e0ab33162cc1b4
-LAST_COMPLETED_MICRO_REMOTE_STATE = CHECKPOINTED
-PARENT_STATE = PASS_AWAITING_HUMAN_MERGE_DECISION
-PARENT_FINAL_AUDIT = LOCAL_PARENT_INTEGRATION_AUDIT_PASS
-PARENT_AUDITED_HEAD = 17ec744cd594fd8cefec52dfde8fa39406b8f652
-PARENT_AUDIT_FINDINGS = NONE
-OBJECTIVE = classify and repair stale operational/historical documentation without changing runtime behavior
-PRODUCT_FRONTIER = Opportunity Intelligence
-ARCHITECTURE_LAYER_CONTRACT = GOVERNANCE_DOCUMENTATION_ONLY
-
-PAUSED_FEATURE_BRANCH = wp/mi-tbmt-02b
-PAUSED_FEATURE_BRANCH_HEAD = 3e27c9c17d257cd91c544eaf6e5bb201087c0729
-PAUSED_FEATURE_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
-
-HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
-IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
-RECONCILED_MAIN_HEAD = d2aa8a9bded931d54aaa50c398b701b1598024ec
-OPEN_BLOCKERS = Human merge decision required; hosted CI remains unavailable and no CI PASS is claimed
-PRE_WP_DOC_SYNC = CURRENT_PRE_COMMITTED_LOCAL
-SCOPE_BOUNDARIES = GOV-DOC-2 six-document documentation classification/revalidation only; no runtime/test/migration/CI/release/product implementation; 02B-3 review persistence / migration / export / GUI / API remain outside this governance micro and remain HOLD
-PROVEN_COMPLETE = Operational/historical documentation classification and currentness repair; PR52 baseline reconciliation; KHMT and technical-status delta revalidation; active checkpoint key normalization.
-LAST_AUDIT = LOCAL_AUDIT_PASS + FC2 LOCAL_DELTA_AUDIT_PASS
-GOV_DOC_2_REMOTE_CHECKPOINT = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
-GOV_DOC_2_POST_REMOTE_HEAD = 000842c4475e2712a65555b542e0ab33162cc1b4
-LAST_MICRO_POST_REMOTE_HANDOFF = PASS
-PARENT_POST_AUDIT = PASS
-PARENT_FINAL_STATE_DOC_SYNC = LOCAL_FINAL_STATE_COMMITTED_PENDING_REMOTE_HANDOFF
-EXACTLY_ONE_NEXT_ACTION = HUMAN DECIDE MERGE WP-GOV-DOC-LIFECYCLE-SYNC
-NEXT_AUTHORITY = HUMAN_AUTHORITY
-
-GOV_DOC_1 = PASS
-GOV_DOC_1_AUDITED_DOC_HEAD = 88feb4f86e0a4372aaa26f3ba094cd69c2db7ff6
-GOV_DOC_2 = PASS
-GOV_DOC_2_IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
-GOV_DOC_2_FINAL_AUDITED_DOC_HEAD = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
-PR52_STATE = MERGED
-PR52_MERGE_SHA = d2aa8a9bded931d54aaa50c398b701b1598024ec
-02B_1 = MERGED
-02B_2 = MERGED
-02B_3 = NOT_IMPLEMENTED / HOLD
-LAST_AUDITED_02B_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
-VERIFICATION_STATE = 02B-2: 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS; GOV-DOC-2 independent audit PASS / FC2 duplicate-key delta re-audit PASS / diff-check PASS / pytest NOT_REQUIRED_DOCS_ONLY
-PAUSED_FEATURE_REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
-HOSTED_CI_STATE = UNAVAILABLE_QUOTA
-CI_PASS_CLAIMED = NO
-GOV_DOC_2_PRE_CORRECTION_REMOTE_HEAD = 6415fe8fe38e0bc5218976269d0995195ec9fd0e
-LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
+ACTIVE_PARENT_WP = NONE
+ACTIVE_BRANCH = NONE
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
 LAST_MERGED_PR = 47
@@ -78,7 +27,7 @@ LAST_AUDITED_FEATURE_HEAD = c89ccdf1ef5a35e70b534354fca2a155ce83d9a6
 LAST_PRODUCT_MERGE_COMMIT = 8e6184bc2baadb9e8b7f4056f7e104247201197c
 
 PR_STATE = MERGED
-LAST_MERGED_PR_HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
+HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
 PR_CI_RUN = 32643886740
 PR_CI_EXECUTION = PRE_EXECUTION_FAILURE
 PR_CI_JOB_STEPS = NULL_FOR_ALL_4_JOBS
@@ -86,6 +35,9 @@ CI_WAIVER = ACTIVE
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED
 
+NEXT_PARENT_WP = WP-MI-TBMT-02B
+NEXT_AUTHORITY = PLANNER_DESIGN_THEN_HUMAN_APPROVAL
+STOP_STATE = READY_FOR_02B_DESIGN
 PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md
 ROADMAP_CONTEXT_REQUIRED = YES
 ```
@@ -157,13 +109,17 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Active Parent — WP-MI-TBMT-02B / 02B-2 checkpoint
+## Next Parent — WP-MI-TBMT-02B planning boundary
 
-02B-1 and 02B-2 are complete and remotely checkpointed. 02B-2 provides the
-source-neutral filter/search projection and preserves legacy KHMT exclude-keyword
-compatibility at its adapter boundary. Review persistence, migration, export,
-GUI, and API behavior are not implemented by 02B-2. 02B-3 remains held pending
-Documentation Lifecycle Sync.
+WP-MI-TBMT-02B — Bid Radar Integration is **DESIGN NEXT**, not implementation-
+authorized. A future approved Work Order may address:
+
+1. source-neutral filter/search integration;
+2. revision-specific Human Review persistence;
+3. DB model/migration if separately approved;
+4. confirmed-export integration;
+5. Bid Radar GUI integration;
+6. revision supersession/history policy.
 
 Hard invariant:
 

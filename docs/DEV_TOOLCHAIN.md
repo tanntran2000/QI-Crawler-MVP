@@ -1,5 +1,9 @@
 # Development toolchain
 
+```text
+DOCUMENT_CLASS = CURRENT DEVELOPMENT / TOOLCHAIN CONTRACT
+```
+
 The production application and Windows installer use only `[project].dependencies`.
 Development checks are installed separately with:
 
@@ -9,10 +13,15 @@ python -m pytest
 ruff check .
 ```
 
-`python -m pytest` is the only canonical release gate. `pytest-xdist` is an
-experimental local convenience tool; use `python -m pytest -n 4` only after a
-team member has confirmed the affected tests are safe to run in parallel.
-No speed-up is assumed or promised.
+`python -m pytest` is the canonical full Python test command. Targeted tests
+may precede the full suite for implementation Work Packages. Ruff, diff checks,
+CI, smoke and release checks are separate gates when applicable; the active
+Work Order and CI Fitness Contract define which gates are required. Hosted CI
+unavailable is not CI PASS.
+
+`pytest-xdist` is an experimental local convenience tool; use
+`python -m pytest -n 4` only after a team member has confirmed the affected
+tests are safe to run in parallel. No speed-up is assumed or promised.
 
 ## Reserved future capability groups
 

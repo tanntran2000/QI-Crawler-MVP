@@ -61,6 +61,12 @@ Historical tags and releases must never be silently moved.
 
 9. **LAW 9 — HANDOFF READ-IN & CONTINUITY**: `READ → VERIFY → ENTRY REVIEW → ONE APPROVAL → EXECUTE MANY`. Approval leases a bounded Work Package, not individual commands. Re-approval is required only when scope, baseline, handoff authority, writer, or a material blocker changes.
 
+10. **LAW 10 — DOCUMENTATION LIFECYCLE**: Every Parent and Micro Work Package has a bounded PRE and POST state. `ALWAYS CHECK != ALWAYS MODIFY`: inspect the required documents at every governed transition, but update only the tier and trigger that applies. `CURRENT.md` is active handoff authority, not a diary, roadmap, review report, or chat summary; historical snapshots are non-normative after capture; durable contracts change only through approved governance.
+
+11. **LAW 11 — AUDIT OBJECT AUTHORITY**: A review report or copied audit statement is evidence, not Git object authority. When source objects are available, reconcile concrete findings against `git show <SHA>:<path>` or an exact commit diff. Reviewer independence remains required.
+
+12. **LAW 12 — COMPATIBILITY SEAMS**: Passing tests do not by themselves prove legacy compatibility. When a generic abstraction wraps a legacy path, review `OLD CONTRACT → ADAPTER / COMPATIBILITY BOUNDARY → NEW GENERIC CONTRACT` and preserve legacy behavior at the narrowest boundary.
+
 For a **NEW AGENT**, **NEW PARENT WP**, **WRITER TAKEOVER**,
 **PLANNER/REVIEWER TAKEOVER**, or **MATERIAL ARCHITECTURE CHANGE**, the agent
 must fully read `docs/agent/MASTER_ROADMAP.md` before declaring READY. Future

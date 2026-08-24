@@ -1,5 +1,16 @@
 # WP8-E0 — e-GP Authentication Evidence Mapping
 
+```text
+DOCUMENT_CLASS = DATED_EVIDENCE_SNAPSHOT
+EVIDENCE_AS_OF = 2026-08-13
+LIVE_STATUS_AUTHORITY = REQUIRES_REVERIFICATION
+```
+
+`VERIFIED` means verified by the recorded evidence as of the date above;
+`TO_VERIFY_LIVE` means not safe to treat as current; `HOLD` means the evidence
+is insufficient for implementation. Material auth selectors, origins and
+flows must be reverified before any future automation Work Package.
+
 Ngày khảo sát: **13/08/2026**  
 Phạm vi: cổng Hệ thống mạng đấu thầu quốc gia và luồng xác thực trước đăng nhập.  
 Trạng thái E0: **HOLD — chưa đủ bằng chứng sau đăng nhập để triển khai WP8-E1 mà không đoán flow/selector.**

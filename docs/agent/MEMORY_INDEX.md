@@ -1,6 +1,7 @@
 # QI-Crawler Memory Index
 
-This is the universal entry point for a new Work Package or agent handoff.
+This is the universal entry point for a new Parent/Micro Work Package or agent
+handoff.
 Memory records are guidance and evidence, not a replacement for live Git or
 the merged codebase.
 
@@ -26,17 +27,46 @@ frontier; it does not authorize implementation scope by itself.
 10. Relevant entries in `docs/agent/LESSONS.md`.
 11. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
-## Read-in modes
+## Read-in mode selection
 
-- **FULL READ-IN**: a new Work Package, a new agent, or a writer takeover;
-  fully read `MASTER_ROADMAP.md` before architecture/layer readiness.
-- **DELTA READ-IN**: the same Work Package resumes after an interruption; read
-  the changed handoff and live Git state, then only the referenced deltas.
-- **NO RE-READ**: continuous execution under an active Approval Lease with no
-  material scope, baseline, writer, blocker, or material roadmap change.
+Select read depth before loading expensive context. `READ BEFORE WORK` is
+mandatory, but a full read before every Micro-WP or prompt is not.
 
-DELTA/NO-RE-READ is valid only while the Product House / Architecture README
-has not materially changed and the same approved Work Package remains active.
+```text
+READ_MODE_SELECTOR
+==================
+1. Identify whether the agent/session, Parent, takeover, Micro-WP or
+   continuous execution state changed.
+2. Read the small state authorities first: MEMORY_INDEX, CURRENT and live Git;
+   read live GitHub when the branch, PR, checkpoint or CI is relevant.
+3. Determine whether the roadmap, governance, baseline, scope or authority
+   changed materially.
+4. Select exactly one: FULL / DELTA / NO_RE_READ.
+5. Read only the authority/context required by that mode.
+6. Return READY, PROMPT_READY or ENTRY_HOLD.
+```
+
+**FULL READ-IN** is required for a new agent, new Parent WP, Planner/Reviewer/
+Writer takeover, material architecture or governance/blueprint change, or an
+unresolved authority conflict requiring full reconciliation. Full mode reads
+the complete `MASTER_ROADMAP.md` and required governance spine.
+
+**DELTA READ-IN** is the default for a new Micro-WP within the same approved
+Parent, with the same Product House/architecture baseline, no material
+governance change and no unresolved conflict. Read `CURRENT.md`, live state,
+changed deltas, relevant contracts and relevant lessons/feedback only. Do not
+reread unchanged large documents merely because the Micro-WP number changed.
+
+**NO RE-READ** is allowed for continuous work in the same Micro-WP, Approval
+Lease, writer and authority with no material scope, baseline, blocker or file
+change. Live state is still checked for destructive, write or integration
+actions.
+
+If state cannot be reconciled, escalate `DELTA → FULL` as necessary and use
+`ENTRY_HOLD` when reconciliation still fails. A previously validated file SHA
+or diff may support a delta decision after an eligible full read, but SHA
+equality never replaces the initial full read required for a new agent or
+Parent.
 
 ## Authority order
 
@@ -56,6 +86,26 @@ must be refreshed before a different agent is expected to continue safely.
 The handoff records the last audited **code** head separately from any later
 handoff/docs-only branch head. Live Git remains authority for the exact current
 branch `HEAD`.
+
+## Documentation lifecycle contract
+
+Every Parent and Micro Work Package has PRE and POST state. `ALWAYS CHECK !=
+ALWAYS MODIFY`: inspect the required documents at the governed transition, but
+update only the applicable tier and trigger.
+
+```text
+CURRENT AUTHORITY       = active execution/transition state
+HISTORICAL SNAPSHOT     = as-of evidence under docs/agent_handoff/history/
+DURABLE CONTRACT         = normative governance until approved change
+```
+
+`CURRENT.md` is not a diary, roadmap, review report or chat summary. Parent
+PRE/POST requires `CURRENT.md` plus history; Micro PRE/POST is lightweight and
+does not create history by default. Takeover, material interruption,
+architecture transition, major recovery, Parent closeout and material scope
+invalidation require full history. Roadmap, merged memory, feedback and
+lessons have separate promotion triggers. Active machine-readable keys must
+have one semantic meaning; historical values use explicit namespaced keys.
 
 ## Prompt-writer readiness gate
 

@@ -1,5 +1,10 @@
 # KHMT Data Contract — MI-0
 
+```text
+DOCUMENT_CLASS = DURABLE DATA / DOMAIN CONTRACT
+HISTORICAL_NOTES = MI-0 / MI-2 chronology below
+```
+
 This contract defines source facts for future procurement-plan (KHMT) intake.
 It does not implement workbook import, filtering, scoring, or decisions.
 
@@ -27,10 +32,18 @@ dedicated location column, so MI-0 only preserves location evidence from an
 actual source field (for example `NỘI DUNG PHÊ DUYỆT`). Resolution is not part
 of MI-0; unresolved locations remain `NEEDS_REVIEW` and are never guessed.
 
-SQLite will be the future system of record. Excel remains a source or derived
-artifact. No MI persistence schema is introduced by MI-0.
+The existing application uses SQLite for persisted runtime records; Excel
+remains a source or derived artifact. This MI-0 contract introduces no MI
+persistence schema. Any dedicated MI persistence boundary requires a separate,
+migration-backed Work Package and is `REQUIRES_VERIFICATION` here.
 
-## MI-2 discovery and targeted search
+## Historical MI-0 / MI-2 chronology
+
+The sections below record the implementation phase in which these contracts
+were introduced; they do not replace the durable rules above or the active
+handoff.
+
+### MI-2 discovery and targeted search
 
 Discovery summarizes every normalized `PlanPackage` row without applying a
 business preference. Province/city results retain `CONFIRMED`, `INFERRED`, and
@@ -43,6 +56,12 @@ Targeted search converts its request into the MI-1 `FilterProfile` and delegates
 every package evaluation to `evaluate_plan_package`. It preserves stable input
 order, provenance, the full `FilterEvaluation`, and the distinction between
 matched and nonmatched rows. It does not score, rank, confirm, or reject a bid.
+
+The merged 02B source-neutral Radar projection uses `OpportunityRadarItem`,
+`evaluate_opportunity`, and `search_packages` for KHMT and TBMT observations.
+The legacy KHMT path remains an explicit `PlanPackage` adapter with its
+compatibility behavior; this projection does not create review persistence or
+derive an IB from a PL.
 
 ## Golden fixture
 

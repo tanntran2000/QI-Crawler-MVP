@@ -116,3 +116,71 @@ append-only source-type review events, and regression coverage.
 Disposition: ACCEPTED in WP-MI-SRC-01; TBMT import remains deferred.
 Promoted to: docs/agent/HUMAN_COLLABORATION.md and source-type routing contract
 ```
+
+### FB-0004 — Require tiered PRE/POST documentation checkpoints
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-DOC-LIFECYCLE-SYNC
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Every Parent and Micro Work Package must have PRE and POST
+documentation checkpoints, using a tiered model so ordinary editing/testing
+does not create unnecessary document, commit or history churn.
+Evidence: approved WP-GOV-DOC-LIFECYCLE-SYNC Work Order.
+Impact: Handoffs remain current and actionable without becoming a diary.
+Suggestion: Require lightweight Micro PRE/POST state and full history only for
+Parent or material-event transitions.
+Scope change required: NO
+Response: Added to the documentation lifecycle contract and operating rules.
+Disposition: ACCEPTED; durable governance update in this WP.
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+docs/agent/LOCAL_STAGED_INTEGRATION.md; docs/agent/MEMORY_INDEX.md
+```
+
+### FB-0005 — Restore hosted-CI gating after quota recovery
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-DOC-LIFECYCLE-SYNC
+Type: CI / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: Hosted-CI-gated GitHub integration must return when GitHub
+Actions quota is restored and the required workflow executes normally, but it
+must not be activated before quota restoration.
+Evidence: approved WP-GOV-DOC-LIFECYCLE-SYNC Work Order.
+Impact: Temporary local staged integration remains distinct from the future
+default hosted-CI mode; unavailable quota is never CI PASS.
+Suggestion: Keep the activation condition explicit and require Human authority
+for any later exception.
+Scope change required: NO
+Response: Added the activation condition without changing the current waiver.
+Disposition: ACCEPTED; durable governance update in this WP.
+Promoted to: AGENTS.md; docs/agent/LOCAL_STAGED_INTEGRATION.md
+```
+
+### FB-0006 — Read-before-work with context-economical read modes
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-DOC-LIFECYCLE-SYNC
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Agents must read authoritative files before work and before
+prompt generation, including the blueprint when required, while selecting
+FULL, DELTA or NO-RE-READ so unchanged context is not repeatedly loaded.
+Impact: Prevents stale-context execution without wasting time, tokens or
+hosted-CI quota on unnecessary repeated reads.
+Scope change required: NO
+Response: Added an explicit read-mode selector, Parent/Micro distinction and
+Prompt Writer selector contract.
+Disposition: ACCEPTED; durable governance update in this correction.
+Promoted to: docs/agent/MEMORY_INDEX.md; docs/agent/MASTER_ROADMAP.md;
+docs/agent/HUMAN_COLLABORATION.md
+```
