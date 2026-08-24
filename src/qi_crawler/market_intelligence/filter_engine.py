@@ -394,13 +394,29 @@ def _legacy_plan_package_observation(package: PlanPackage) -> SimpleNamespace:
 
 def evaluate_plan_package(package: PlanPackage, profile: FilterProfile) -> FilterEvaluation:
     generic = evaluate_opportunity(_legacy_plan_package_observation(package), profile)
+    legacy_exclude_unknown = any(
+        criterion.reason_code is FilterReasonCode.EXCLUDE_KEYWORD_INDETERMINATE
+        for criterion in generic.criteria
+    )
+    other_unknown = any(
+        criterion.outcome is CriterionOutcome.UNKNOWN
+        and criterion.reason_code is not FilterReasonCode.EXCLUDE_KEYWORD_INDETERMINATE
+        for criterion in generic.criteria
+    )
     reasons = [
         reason
         for criterion in generic.criteria
         if (reason := _legacy_reason(criterion)) is not None
     ]
     return FilterEvaluation(
-        matched=generic.disposition is OpportunityFilterDisposition.MATCH,
+        matched=(
+            generic.disposition is OpportunityFilterDisposition.MATCH
+            or (
+                generic.disposition is OpportunityFilterDisposition.INDETERMINATE
+                and legacy_exclude_unknown
+                and not other_unknown
+            )
+        ),
         reasons=tuple(reasons),
         matched_fields=generic.matched_fields,
         plan_base_id=package.plan.plan_base_id,
