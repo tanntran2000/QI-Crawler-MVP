@@ -1,5 +1,14 @@
 # Core Hardening v0.6.1
 
+```text
+DOCUMENT_CLASS = HISTORICAL IMPLEMENTATION RECORD / NON-NORMATIVE
+EVIDENCE_AS_OF = v0.6.1-era snapshot
+CURRENT_AUTHORITY = MEMORY_INDEX / MASTER_ROADMAP / CURRENT / live Git
+```
+
+This file preserves the v0.6.1 implementation chronology. It is not the
+current roadmap or execution handoff.
+
 Muc tieu cua sprint nay la lam crawler co the kiem chung, chay lai an toan va phuc hoi
 sau loi truoc khi them AI hoac Bid Control.
 
@@ -20,7 +29,10 @@ Gia tri trong fixture la snapshot nghiep vu, khong phai ket qua tim kiem moi. Kh
 thuc te moi, nguoi phu trach phai xac nhan quyen su dung du lieu va cap nhat fixture bang pull
 request co review.
 
-## Work package tiep theo
+## Work package tiep theo (historical v0.6.1 planning point)
+
+The future-tense items below describe the planning point of the v0.6.1
+snapshot. They do not define the current next Work Package.
 
 1. WP2: adapter nguon, parser va idempotency; them sau raw JSON/HTML fixture de kiem tra
    toan bo luong nguon -> `ParsedNotice` -> database ma khong goi website that trong CI.
