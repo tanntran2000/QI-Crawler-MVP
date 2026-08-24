@@ -2,19 +2,29 @@
 
 ## HANDOFF_ID
 
-POST-MERGE — WP-MI-TBMT-02A CLOSED / WP-MI-TBMT-02B DESIGN NEXT
+REMOTE CHECKPOINT — WP-MI-TBMT-02B-1 AUDITED
 
 ## Status
 
-WP-MI-TBMT-02A MERGED / PR #47 MERGED /
+WP-MI-TBMT-02B-1 REMOTE CODE CHECKPOINT /
 HOSTED CI INFRASTRUCTURE UNAVAILABLE / PENDING RETRO-CI /
-NO OFFICIAL RELEASE / WP-MI-TBMT-02B NOT YET IMPLEMENTATION-AUTHORIZED
+NO OFFICIAL RELEASE / 02B-2 NOT YET AUTHORIZED
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = NONE
-ACTIVE_BRANCH = NONE
+ACTIVE_PARENT_WP = WP-MI-TBMT-02B
+ACTIVE_MICRO_WP = WP-MI-TBMT-02B-1
+ACTIVE_BRANCH = wp/mi-tbmt-02b
+
+PROVEN_COMPLETE = 02B-1 Source-Neutral Bid Radar Application Contract
+LAST_AUDITED_CODE_HEAD = 3032557f6eb127b2793e3dc3a61df6b4b1fd4143
+VERIFICATION_STATE = 23 targeted passed / 557 full passed / Ruff PASS / diff-check PASS
+OPEN_BLOCKERS = NONE
+SCOPE_BOUNDARIES = 02B-2 filter/search not yet implemented; review/persistence/export/GUI/API not authorized by 02B-1.
+EXACTLY_ONE_NEXT_ACTION = PLANNER ISSUE WP-MI-TBMT-02B-2 WORK ORDER
+NEXT_AUTHORITY = PLANNER / INDEPENDENT REVIEWER
+LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
 LAST_MERGED_PR = 47
@@ -30,9 +40,6 @@ CI_WAIVER = ACTIVE
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED
 
-NEXT_PARENT_WP = WP-MI-TBMT-02B
-NEXT_AUTHORITY = PLANNER_DESIGN_THEN_HUMAN_APPROVAL
-STOP_STATE = READY_FOR_02B_DESIGN
 PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md
 ROADMAP_CONTEXT_REQUIRED = YES
 ```
@@ -104,17 +111,12 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Next Parent — WP-MI-TBMT-02B planning boundary
+## Active Parent — WP-MI-TBMT-02B / 02B-1 checkpoint
 
-WP-MI-TBMT-02B — Bid Radar Integration is **DESIGN NEXT**, not implementation-
-authorized. A future approved Work Order may address:
-
-1. source-neutral filter/search integration;
-2. revision-specific Human Review persistence;
-3. DB model/migration if separately approved;
-4. confirmed-export integration;
-5. Bid Radar GUI integration;
-6. revision supersession/history policy.
+02B-1 is complete and remotely checkpointed. Its immutable source-neutral
+projection does not implement filter/search, review, persistence, export, GUI,
+or API behavior. 02B-2 requires a separate Planner Work Order and independent
+review before implementation.
 
 Hard invariant:
 
