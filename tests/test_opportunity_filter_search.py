@@ -1,0 +1,359 @@
+from __future__ import annotations
+
+from decimal import Decimal
+
+import pytest
+
+from qi_crawler.market_intelligence import filter_engine, search
+from qi_crawler.market_intelligence.khmt_contract import ProvinceCityStatus
+from qi_crawler.market_intelligence.opportunity_contract import (
+    OpportunityIdentity,
+    OpportunitySourceType,
+)
+from qi_crawler.market_intelligence.opportunity_radar import (
+    OpportunityRadarItem,
+    build_observation_key,
+)
+
+
+def _item(
+    *,
+    source_type: OpportunitySourceType = OpportunitySourceType.KHMT,
+    raw_id: str = "PL2600265077-00",
+    source_row: int = 7,
+    price: Decimal | str | None = Decimal(400000000),
+    province_code: str | None = "HCM",
+    province_status: ProvinceCityStatus | None = ProvinceCityStatus.CONFIRMED,
+    selection_method: str | None = "CHAO_HANG_CANH_TRANH",
+    procurement_method: str | None = "MOT_GIAI_DOAN",
+    package_name: str = "Mua sắm máy chủ",
+    project: str | None = "Dự án mạng",
+    investor: str | None = "Nhà đầu tư hạ tầng",
+    approval_content: str | None = "Phê duyệt thiết bị mạng",
+    procuring_entity: str | None = "Bên mời thầu hạ tầng",
+    package_main_content: str | None = "Cung cấp firewall và switch",
+) -> OpportunityRadarItem:
+    if source_type is OpportunitySourceType.TBMT and raw_id.startswith("PL"):
+        raw_id = raw_id.replace("PL", "IB", 1)
+    identity = OpportunityIdentity.from_raw(raw_id)
+    sha256 = "a" * 64 if source_type is OpportunitySourceType.KHMT else "b" * 64
+    sheet = source_type.value
+    source_fields = {
+        "investor": investor,
+        "approval_content": approval_content,
+        "procuring_entity": procuring_entity,
+        "package_main_content": package_main_content,
+        "procuring_entity_address": "TP.HCM",
+    }
+    return OpportunityRadarItem(
+        source_type=source_type,
+        identity=identity,
+        observation_key=build_observation_key(
+            source_type=source_type,
+            identity=identity,
+            source_sha256=sha256,
+            sheet=sheet,
+            source_row=source_row,
+        ),
+        source_filename=f"{source_type.value}_synthetic.xlsx",
+        source_sha256=sha256,
+        sheet=sheet,
+        source_row=source_row,
+        schema_version="02b-2-test",
+        package_name=package_name,
+        project=project,
+        package_price_raw=str(price) if price is not None else None,
+        package_price=price,
+        funding_source="Ngân sách tổng hợp",
+        investor=investor if source_type is OpportunitySourceType.KHMT else None,
+        procuring_entity=(
+            procuring_entity if source_type is OpportunitySourceType.TBMT else None
+        ),
+        approval_content=(
+            approval_content if source_type is OpportunitySourceType.KHMT else None
+        ),
+        package_main_content=(
+            package_main_content if source_type is OpportunitySourceType.TBMT else None
+        ),
+        selection_method=selection_method,
+        procurement_method=procurement_method,
+        location_detail_raw=None,
+        province_city_code=province_code,
+        province_city_name="TP.HCM" if province_code else None,
+        province_city_status=province_status,
+        province_city_evidence="synthetic source field",
+        source_fields=source_fields,
+        raw_fields={"synthetic": True},
+        provenance={
+            "source_filename": f"{source_type.value}_synthetic.xlsx",
+            "source_sha256": sha256,
+            "sheet": sheet,
+            "source_row": source_row,
+        },
+    )
+
+
+def _profile(**kwargs):
+    return filter_engine.FilterProfile(**kwargs)
+
+
+def test_khmt_radar_item_matches_all_active_criteria() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(),
+        _profile(
+            min_budget=Decimal(300000000),
+            max_budget=Decimal(500000000),
+            province_city_codes=frozenset({"HCM"}),
+            include_keywords=("nhà đầu tư",),
+            selection_methods=frozenset({"CHAO_HANG_CANH_TRANH"}),
+        ),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert all(
+        criterion.outcome is filter_engine.CriterionOutcome.PASS
+        for criterion in evaluation.criteria
+    )
+
+
+def test_tbmt_radar_item_uses_the_same_generic_filter_api() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(
+            source_type=OpportunitySourceType.TBMT,
+            raw_id="IB2600463290-00",
+        ),
+        _profile(include_keywords=("firewall",)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert evaluation.identity.namespace.value == "IB"
+
+
+def test_missing_budget_is_indeterminate_not_zero() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=None),
+        _profile(max_budget=Decimal(500000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert evaluation.criteria[0].reason_code == filter_engine.FilterReasonCode.BUDGET_UNKNOWN
+
+
+def test_unparseable_budget_is_indeterminate_not_zero() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price="not-a-price"),
+        _profile(max_budget=Decimal(500000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert evaluation.criteria[0].reason_code == filter_engine.FilterReasonCode.BUDGET_UNKNOWN
+
+
+def test_budget_outside_range_is_no_match() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=Decimal(600000000)),
+        _profile(max_budget=Decimal(500000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+    assert evaluation.criteria[0].reason_code == filter_engine.FilterReasonCode.BUDGET_ABOVE_MAX
+
+
+def test_budget_fail_dominates_unknown_province() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=Decimal(600000000), province_code=None, province_status=ProvinceCityStatus.NEEDS_REVIEW),
+        _profile(max_budget=Decimal(500000000), province_city_codes=frozenset({"HCM"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+
+
+@pytest.mark.parametrize(
+    ("province_code", "province_status", "disposition"),
+    [
+        ("HCM", ProvinceCityStatus.CONFIRMED, "MATCH"),
+        ("HN", ProvinceCityStatus.CONFIRMED, "NO_MATCH"),
+        (None, ProvinceCityStatus.NEEDS_REVIEW, "INDETERMINATE"),
+    ],
+)
+def test_province_criterion_is_tri_state(
+    province_code: str | None,
+    province_status: ProvinceCityStatus,
+    disposition: str,
+) -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(province_code=province_code, province_status=province_status),
+        _profile(province_city_codes=frozenset({"HCM"})),
+    )
+
+    assert evaluation.criteria[0].outcome.value == (
+        "PASS" if disposition == "MATCH" else "FAIL" if disposition == "NO_MATCH" else "UNKNOWN"
+    )
+    assert evaluation.disposition.value == disposition
+
+
+def test_tbmt_procuring_address_does_not_create_province_match() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(
+            source_type=OpportunitySourceType.TBMT,
+            raw_id="IB2600463290-00",
+            province_code=None,
+            province_status=None,
+        ),
+        _profile(province_city_codes=frozenset({"HCM"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+
+
+def test_selection_method_allowed_is_pass() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method="CHAO_HANG_CANH_TRANH"),
+        _profile(selection_methods=frozenset({"CHAO_HANG_CANH_TRANH"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+
+
+def test_selection_method_disallowed_is_no_match() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method="DAU_THAU_RONG_RAI"),
+        _profile(selection_methods=frozenset({"CHAO_HANG_CANH_TRANH"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+
+
+def test_missing_selection_method_is_indeterminate() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method=None, procurement_method="CHAO_HANG_CANH_TRANH"),
+        _profile(selection_methods=frozenset({"CHAO_HANG_CANH_TRANH"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+
+
+def test_procurement_method_never_satisfies_selection_filter() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method=None, procurement_method="CHAO_HANG_CANH_TRANH"),
+        _profile(selection_methods=frozenset({"CHAO_HANG_CANH_TRANH"})),
+    )
+
+    assert evaluation.criteria[0].outcome is filter_engine.CriterionOutcome.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    ("source_type", "keyword"),
+    [
+        (OpportunitySourceType.KHMT, "nhà đầu tư"),
+        (OpportunitySourceType.KHMT, "phê duyệt"),
+        (OpportunitySourceType.TBMT, "bên mời thầu"),
+        (OpportunitySourceType.TBMT, "firewall"),
+    ],
+)
+def test_include_keyword_uses_source_specific_semantic_fields(
+    source_type: OpportunitySourceType,
+    keyword: str,
+) -> None:
+    raw_id = "PL2600265077-00" if source_type is OpportunitySourceType.KHMT else "IB2600463290-00"
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(source_type=source_type, raw_id=raw_id),
+        _profile(include_keywords=(keyword,)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+
+
+def test_investor_and_procuring_entity_are_not_collapsed() -> None:
+    khmt = filter_engine.evaluate_opportunity(
+        _item(approval_content=None, procuring_entity=None),
+        _profile(include_keywords=("bên mời thầu",)),
+    )
+    tbmt = filter_engine.evaluate_opportunity(
+        _item(
+            source_type=OpportunitySourceType.TBMT,
+            raw_id="IB2600463290-00",
+            investor=None,
+            approval_content=None,
+        ),
+        _profile(include_keywords=("bên mời thầu",)),
+    )
+
+    assert khmt.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert tbmt.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+
+
+def test_exclude_keyword_is_no_match_when_found() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(package_name="Mua sắm restricted thiết bị"),
+        _profile(exclude_keywords=("restricted",)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+
+
+def test_empty_profile_matches() -> None:
+    evaluation = filter_engine.evaluate_opportunity(_item(), _profile())
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert evaluation.criteria == ()
+
+
+def test_generic_search_returns_three_disposition_buckets_in_stable_order() -> None:
+    items = (
+        _item(source_row=1),
+        _item(source_row=2, price=None),
+        _item(source_row=3, price=Decimal(900000000)),
+    )
+    result = search.search_opportunities(
+        items,
+        search.TargetedSearchRequest(max_budget=Decimal(500000000)),
+    )
+
+    assert result.total_examined == 3
+    assert result.matched_count == 1
+    assert result.indeterminate_count == 1
+    assert result.nonmatched_count == 1
+    assert [item.item.source_row for item in result.matches] == [1]
+    assert [item.item.source_row for item in result.indeterminate] == [2]
+    assert [item.item.source_row for item in result.nonmatches] == [3]
+    assert [item.item.source_row for item in result.evaluated] == [1, 2, 3]
+
+
+def test_generic_search_delegates_every_decision_to_filter_authority(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[int] = []
+    original = search.evaluate_opportunity
+
+    def tracked(item, profile):
+        calls.append(item.source_row)
+        return original(item, profile)
+
+    monkeypatch.setattr(search, "evaluate_opportunity", tracked)
+    items = (_item(source_row=4), _item(source_row=2))
+
+    result = search.search_opportunities(items, search.TargetedSearchRequest())
+
+    assert calls == [4, 2]
+    assert result.matched_count == 2
+
+
+def test_revisions_remain_distinct_generic_evaluations() -> None:
+    items = (
+        _item(raw_id="IB2600463290-00", source_type=OpportunitySourceType.TBMT, source_row=1),
+        _item(raw_id="IB2600463290-01", source_type=OpportunitySourceType.TBMT, source_row=2),
+    )
+    result = search.search_opportunities(items, search.TargetedSearchRequest())
+
+    assert result.matched_count == 2
+    assert [item.item.identity.raw_id for item in result.matches] == [
+        "IB2600463290-00",
+        "IB2600463290-01",
+    ]
+    assert result.matches[0].item.identity != result.matches[1].item.identity
+
+
+def test_legacy_filter_and_search_facades_remain_available() -> None:
+    assert callable(filter_engine.evaluate_plan_package)
+    assert callable(search.search_packages)

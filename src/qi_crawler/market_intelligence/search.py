@@ -6,9 +6,17 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
 
-from .filter_engine import FilterEvaluation, FilterProfile, evaluate_plan_package
+from .filter_engine import (
+    FilterEvaluation,
+    FilterProfile,
+    OpportunityFilterDisposition,
+    OpportunityFilterEvaluation,
+    evaluate_opportunity,
+    evaluate_plan_package,
+)
 from .khmt_contract import PlanPackage
 from .khmt_normalization import normalize_search_value
+from .opportunity_radar import OpportunityRadarItem
 
 
 class TargetedSearchValidationError(ValueError):
@@ -91,6 +99,63 @@ class TargetedSearchResult:
     nonmatched_count: int
     hits: tuple[SearchEvaluation, ...]
     evaluated: tuple[SearchEvaluation, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class OpportunitySearchEvaluation:
+    item: OpportunityRadarItem
+    evaluation: OpportunityFilterEvaluation
+
+
+@dataclass(frozen=True, slots=True)
+class TargetedOpportunitySearchResult:
+    request: TargetedSearchRequest
+    total_examined: int
+    matched_count: int
+    indeterminate_count: int
+    nonmatched_count: int
+    matches: tuple[OpportunitySearchEvaluation, ...]
+    indeterminate: tuple[OpportunitySearchEvaluation, ...]
+    nonmatches: tuple[OpportunitySearchEvaluation, ...]
+    evaluated: tuple[OpportunitySearchEvaluation, ...]
+
+
+def search_opportunities(
+    items: Iterable[OpportunityRadarItem], request: TargetedSearchRequest
+) -> TargetedOpportunitySearchResult:
+    """Evaluate source-neutral radar items in stable order and bucket outcomes."""
+
+    profile = request.to_filter_profile()
+    evaluated = tuple(
+        OpportunitySearchEvaluation(item=item, evaluation=evaluate_opportunity(item, profile))
+        for item in tuple(items)
+    )
+    matches = tuple(
+        result
+        for result in evaluated
+        if result.evaluation.disposition is OpportunityFilterDisposition.MATCH
+    )
+    indeterminate = tuple(
+        result
+        for result in evaluated
+        if result.evaluation.disposition is OpportunityFilterDisposition.INDETERMINATE
+    )
+    nonmatches = tuple(
+        result
+        for result in evaluated
+        if result.evaluation.disposition is OpportunityFilterDisposition.NO_MATCH
+    )
+    return TargetedOpportunitySearchResult(
+        request=request,
+        total_examined=len(evaluated),
+        matched_count=len(matches),
+        indeterminate_count=len(indeterminate),
+        nonmatched_count=len(nonmatches),
+        matches=matches,
+        indeterminate=indeterminate,
+        nonmatches=nonmatches,
+        evaluated=evaluated,
+    )
 
 
 def search_packages(

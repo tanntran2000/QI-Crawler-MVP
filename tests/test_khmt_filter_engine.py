@@ -111,6 +111,21 @@ def test_include_keyword_miss_and_exclude_hit_are_explainable() -> None:
     assert FilterReasonCode.EXCLUDE_KEYWORD_FOUND in excluded.reasons
 
 
+def test_legacy_exclude_keyword_ignores_absent_optional_fields() -> None:
+    package = replace(
+        _package(),
+        investor=None,
+        approval_content_raw=None,
+    )
+
+    evaluation = evaluate_plan_package(
+        package,
+        FilterProfile(exclude_keywords=("term-definitely-absent",)),
+    )
+
+    assert evaluation.matched is True
+
+
 def test_selection_method_matches_normalized_value_not_raw_spelling() -> None:
     package = replace(
         _package(),
