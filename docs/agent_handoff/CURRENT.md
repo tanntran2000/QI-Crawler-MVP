@@ -1,19 +1,12 @@
 # QI-Crawler Agent Handoff
 
-## RECONCILIATION HOLD
-
-GOV-DOC-2 was implemented from `c9cb0d833...` before merged PR #52 advanced
-`main` to `d2aa8a9bded931d54aaa50c398b701b1598024ec`. The six-document
-implementation is preserved, but current-source/as-of claims require delta
-revalidation after the main merge.
-
 ## HANDOFF_ID
 
-HOLD — WP-GOV-DOC-LIFECYCLE-SYNC-2 / PR52 BASELINE RECONCILIATION
+POST — WP-GOV-DOC-LIFECYCLE-SYNC-2
 
 ## Status
 
-WP-GOV-DOC-LIFECYCLE-SYNC-2 RECONCILED / PENDING INDEPENDENT AUDIT /
+WP-GOV-DOC-LIFECYCLE-SYNC-2 PASS /
 GOVERNANCE DOCUMENTATION ONLY /
 HOSTED CI UNAVAILABLE_QUOTA / NO RUNTIME OR RELEASE CHANGE
 
@@ -21,14 +14,14 @@ HOSTED CI UNAVAILABLE_QUOTA / NO RUNTIME OR RELEASE CHANGE
 
 ```text
 ACTIVE_PARENT_WP = WP-GOV-DOC-LIFECYCLE-SYNC
-ACTIVE_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-2
+ACTIVE_MICRO_WP = NONE
 ACTIVE_BRANCH = wp/gov-doc-lifecycle-sync
 
 ENTRY_MAIN_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
 ENTRY_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
-MICRO_STATE = CORRECTED_PENDING_DELTA_REAUDIT
-LAST_AUDITED_DOC_HEAD = 88feb4f86e0a4372aaa26f3ba094cd69c2db7ff6
-LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-1
+MICRO_STATE = PASS
+LAST_AUDITED_DOC_HEAD = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
+LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-2
 LAST_COMPLETED_MICRO_POST_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
 LAST_COMPLETED_MICRO_REMOTE_STATE = CHECKPOINTED
 OBJECTIVE = classify and repair stale operational/historical documentation without changing runtime behavior
@@ -42,12 +35,15 @@ PAUSED_FEATURE_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
 IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
 RECONCILED_MAIN_HEAD = d2aa8a9bded931d54aaa50c398b701b1598024ec
-OPEN_BLOCKERS = Independent delta re-audit of active checkpoint key normalization required
+OPEN_BLOCKERS = NONE for GOV-DOC-2; Parent closeout still required
 PRE_WP_DOC_SYNC = CURRENT_PRE_COMMITTED_LOCAL
 SCOPE_BOUNDARIES = GOV-DOC-2 six-document documentation classification/revalidation only; no runtime/test/migration/CI/release/product implementation; 02B-3 review persistence / migration / export / GUI / API remain outside this governance micro and remain HOLD
-PROVEN_COMPLETE = GOV-DOC-2 six-document implementation preserved and delta-revalidated against main PR #52 baseline
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT REVIEWER DELTA RE-AUDIT GOV-DOC-2-FC2
-NEXT_AUTHORITY = REVIEWER_AUDITOR
+PROVEN_COMPLETE = Operational/historical documentation classification and currentness repair; PR52 baseline reconciliation; KHMT and technical-status delta revalidation; active checkpoint key normalization.
+LAST_AUDIT = LOCAL_AUDIT_PASS + FC2 LOCAL_DELTA_AUDIT_PASS
+GOV_DOC_2_REMOTE_CHECKPOINT = 5b5fe9163096a9c9c8c0eb5f4ab615d6cfae4882
+POST_WP_DOC_SYNC = LOCAL_POST_COMMITTED_PENDING_REMOTE_HANDOFF
+EXACTLY_ONE_NEXT_ACTION = PLANNER START WP-GOV-DOC-LIFECYCLE-SYNC PARENT POST
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 
 GOV_DOC_1 = PASS
 GOV_DOC_2_IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
@@ -57,7 +53,7 @@ PR52_MERGE_SHA = d2aa8a9bded931d54aaa50c398b701b1598024ec
 02B_2 = MERGED
 02B_3 = NOT_IMPLEMENTED / HOLD
 LAST_AUDITED_02B_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
-VERIFICATION_STATE = 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS
+VERIFICATION_STATE = 02B-2: 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS; GOV-DOC-2 independent audit PASS / FC2 duplicate-key delta re-audit PASS / diff-check PASS / pytest NOT_REQUIRED_DOCS_ONLY
 PAUSED_FEATURE_REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 HOSTED_CI_STATE = UNAVAILABLE_QUOTA
 CI_PASS_CLAIMED = NO
