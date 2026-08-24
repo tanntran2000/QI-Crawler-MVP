@@ -171,4 +171,3 @@ or GitHub truth. Before designing or executing 02B:
 - reconcile it with the recorded historical merge ancestry;
 - do not treat `CURRENT.md` as live Git authority;
 - define the design scope and obtain explicit Human implementation approval.
-
