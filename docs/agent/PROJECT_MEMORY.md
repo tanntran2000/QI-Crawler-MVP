@@ -117,8 +117,9 @@ branches must remain in their Work Package handoff.
   72 candidates, and 0 issues. SHA-256 was
   `E4B8FF62D8FF979BD646287EB7C894B9F03D089691B9122A6A96847457A1CDB4` with
   size 120194 bytes; bytes and size were unchanged before/after acceptance.
-  Full TBMT Bid Radar filter/search, human-review persistence, confirmed
-  export, and GUI integration remain future WP-MI-TBMT-02B work.
+  Human-review persistence, confirmed export, and GUI integration remain
+  future WP-MI-TBMT-02B work; source-neutral Bid Radar filter/search is now
+  covered by MEM-010 below.
 - **Last verified:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
 
 ## MEM-009 — Product House and builder handoff discipline
@@ -134,6 +135,22 @@ branches must remain in their Work Package handoff.
   `a44d365b48ad291aaa6e86c50adc72ed7318b883`, `AGENTS.md`, and the Product
   House README.
 - **Last verified:** `a44d365b48ad291aaa6e86c50adc72ed7318b883`.
+
+## MEM-010 — Source-neutral Bid Radar filter/search
+
+- **State:** ACTIVE
+- **Since main commit:** `d2aa8a9bded931d54aaa50c398b701b1598024ec`.
+- **Contract:** Merged 02B-1 projects KHMT and TBMT observations through the
+  source-neutral `OpportunityRadarItem` contract; merged 02B-2 provides
+  bounded budget, province/city, keyword and selection-method filtering/search.
+  The legacy KHMT `PlanPackage` adapter and its audited exclude-keyword
+  compatibility remain intact. FILTER MATCH is not Human CONFIRMED; review
+  persistence, export, GUI and API are not included, and 02B-3 remains held.
+  `IB...-00` Human Review does not imply `IB...-01` review.
+- **Evidence:** PR #52, merge commit
+  `d2aa8a9bded931d54aaa50c398b701b1598024ec`, branch head
+  `3e27c9c17d257cd91c544eaf6e5bb201087c0729`.
+- **Last verified:** `d2aa8a9bded931d54aaa50c398b701b1598024ec`.
 
 ## Explicitly not promoted
 

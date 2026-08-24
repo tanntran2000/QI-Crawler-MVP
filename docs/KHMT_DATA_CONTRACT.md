@@ -57,6 +57,12 @@ every package evaluation to `evaluate_plan_package`. It preserves stable input
 order, provenance, the full `FilterEvaluation`, and the distinction between
 matched and nonmatched rows. It does not score, rank, confirm, or reject a bid.
 
+The merged 02B source-neutral Radar projection uses `OpportunityRadarItem`,
+`evaluate_opportunity`, and `search_packages` for KHMT and TBMT observations.
+The legacy KHMT path remains an explicit `PlanPackage` adapter with its
+compatibility behavior; this projection does not create review persistence or
+derive an IB from a PL.
+
 ## Golden fixture
 
 `tests/fixtures/khmt/khmt_sanitized_golden.json` is synthetic and safe for CI.
