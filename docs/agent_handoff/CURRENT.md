@@ -2,28 +2,31 @@
 
 ## HANDOFF_ID
 
-REMOTE CHECKPOINT — WP-MI-TBMT-02B-1 AUDITED
+REMOTE CHECKPOINT — WP-MI-TBMT-02B-2 AUDITED
 
 ## Status
 
-WP-MI-TBMT-02B-1 REMOTE CODE CHECKPOINT /
-HOSTED CI INFRASTRUCTURE UNAVAILABLE / PENDING RETRO-CI /
-NO OFFICIAL RELEASE / 02B-2 NOT YET AUTHORIZED
+WP-MI-TBMT-02B-2 REMOTE CODE CHECKPOINT /
+HOSTED CI QUOTA UNAVAILABLE / NO CI PASS CLAIM /
+NO OFFICIAL RELEASE / 02B-3 HELD PENDING DOCUMENTATION LIFECYCLE SYNC
 
 ## Active machine-readable checkpoint
 
 ```text
 ACTIVE_PARENT_WP = WP-MI-TBMT-02B
-ACTIVE_MICRO_WP = WP-MI-TBMT-02B-1
+ACTIVE_MICRO_WP = WP-MI-TBMT-02B-2
 ACTIVE_BRANCH = wp/mi-tbmt-02b
 
-PROVEN_COMPLETE = 02B-1 Source-Neutral Bid Radar Application Contract
-LAST_AUDITED_CODE_HEAD = 3032557f6eb127b2793e3dc3a61df6b4b1fd4143
-VERIFICATION_STATE = 23 targeted passed / 557 full passed / Ruff PASS / diff-check PASS
-OPEN_BLOCKERS = NONE
-SCOPE_BOUNDARIES = 02B-2 filter/search not yet implemented; review/persistence/export/GUI/API not authorized by 02B-1.
-EXACTLY_ONE_NEXT_ACTION = PLANNER ISSUE WP-MI-TBMT-02B-2 WORK ORDER
-NEXT_AUTHORITY = PLANNER / INDEPENDENT REVIEWER
+PROVEN_COMPLETE = 02B-2 Source-Neutral Bid Radar Filter/Search including audited legacy KHMT exclude-keyword compatibility correction
+LAST_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
+VERIFICATION_STATE = 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS
+REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
+HOSTED_CI_STATE = UNAVAILABLE_QUOTA
+CI_PASS_CLAIMED = NO
+OPEN_BLOCKERS = NONE for 02B-2 local/remote checkpoint; hosted CI quota remains unavailable; 02B-3 intentionally held pending Documentation Lifecycle Sync.
+SCOPE_BOUNDARIES = Review persistence / migration / export / GUI / API are not implemented by 02B-2.
+EXACTLY_ONE_NEXT_ACTION = PLANNER START WP-GOV-DOC-LIFECYCLE-SYNC
+NEXT_AUTHORITY = PLANNER_ARCHITECT / HUMAN_AUTHORITY
 LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
@@ -111,12 +114,13 @@ source-neutral contract boundary: TBMT importer/normalization produces IB
 opportunity identities with source provenance; it is distinct from KHMT
 `PlanPackage` and does not authorize review/export/GUI behavior.
 
-## Active Parent — WP-MI-TBMT-02B / 02B-1 checkpoint
+## Active Parent — WP-MI-TBMT-02B / 02B-2 checkpoint
 
-02B-1 is complete and remotely checkpointed. Its immutable source-neutral
-projection does not implement filter/search, review, persistence, export, GUI,
-or API behavior. 02B-2 requires a separate Planner Work Order and independent
-review before implementation.
+02B-1 and 02B-2 are complete and remotely checkpointed. 02B-2 provides the
+source-neutral filter/search projection and preserves legacy KHMT exclude-keyword
+compatibility at its adapter boundary. Review persistence, migration, export,
+GUI, and API behavior are not implemented by 02B-2. 02B-3 remains held pending
+Documentation Lifecycle Sync.
 
 Hard invariant:
 
