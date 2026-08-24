@@ -1,19 +1,21 @@
+# HISTORICAL SNAPSHOT
+
+HISTORICAL SNAPSHOT / NON-NORMATIVE / MAY CONTAIN SUPERSEDED STATE
+
+Captured from exact local HEAD `1e59cd4991f8992629dfa54924f185bca46d05dd`.
+Reason: GOV-DOC-2 was implemented from `c9cb0d833...` while upstream `main`
+advanced through merged PR #52 before the GOV-DOC-2 audit.
+Live authority: `CURRENT.md` plus live Git/GitHub state.
+
 # QI-Crawler Agent Handoff
-
-## RECONCILIATION HOLD
-
-GOV-DOC-2 was implemented from `c9cb0d833...` before merged PR #52 advanced
-`main` to `d2aa8a9bded931d54aaa50c398b701b1598024ec`. The six-document
-implementation is preserved, but current-source/as-of claims require delta
-revalidation after the main merge.
 
 ## HANDOFF_ID
 
-HOLD — WP-GOV-DOC-LIFECYCLE-SYNC-2 / PR52 BASELINE RECONCILIATION
+PRE — WP-GOV-DOC-LIFECYCLE-SYNC-2
 
 ## Status
 
-WP-GOV-DOC-LIFECYCLE-SYNC-2 HOLD / BASELINE RECONCILIATION REQUIRED /
+WP-GOV-DOC-LIFECYCLE-SYNC-2 READY TO EXECUTE /
 GOVERNANCE DOCUMENTATION ONLY /
 HOSTED CI UNAVAILABLE_QUOTA / NO RUNTIME OR RELEASE CHANGE
 
@@ -26,7 +28,7 @@ ACTIVE_BRANCH = wp/gov-doc-lifecycle-sync
 
 ENTRY_MAIN_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
 ENTRY_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
-MICRO_STATE = HOLD_BASELINE_RECONCILIATION_REQUIRED
+MICRO_STATE = READY_TO_EXECUTE
 LAST_AUDITED_DOC_HEAD = 88feb4f86e0a4372aaa26f3ba094cd69c2db7ff6
 LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-1
 LAST_COMPLETED_MICRO_POST_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
@@ -40,11 +42,10 @@ PAUSED_FEATURE_BRANCH_HEAD = 3e27c9c17d257cd91c544eaf6e5bb201087c0729
 PAUSED_FEATURE_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 
 HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
-IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
-OPEN_BLOCKERS = GOV-DOC-2 was implemented before merged PR #52 was reconciled into this branch; current-source/as-of claims require delta revalidation
+OPEN_BLOCKERS = NONE
 PRE_WP_DOC_SYNC = CURRENT_PRE_COMMITTED_LOCAL
 SCOPE_BOUNDARIES = six designated operational/historical docs only; no runtime/test/migration/CI/release/product implementation; 02B-3 remains HOLD
-EXACTLY_ONE_NEXT_ACTION = BUILDER RECONCILE MAIN PR52 INTO GOV-DOC-2
+EXACTLY_ONE_NEXT_ACTION = BUILDER EXECUTE WP-GOV-DOC-LIFECYCLE-SYNC-2
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
@@ -170,3 +171,4 @@ or GitHub truth. Before designing or executing 02B:
 - reconcile it with the recorded historical merge ancestry;
 - do not treat `CURRENT.md` as live Git authority;
 - define the design scope and obtain explicit Human implementation approval.
+
