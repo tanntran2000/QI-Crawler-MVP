@@ -26,7 +26,7 @@ ACTIVE_BRANCH = wp/gov-doc-lifecycle-sync
 
 ENTRY_MAIN_HEAD = a44d365b48ad291aaa6e86c50adc72ed7318b883
 ENTRY_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
-MICRO_STATE = RECONCILED_AND_REVERIFIED_PENDING_INDEPENDENT_AUDIT
+MICRO_STATE = CORRECTED_PENDING_DELTA_REAUDIT
 LAST_AUDITED_DOC_HEAD = 88feb4f86e0a4372aaa26f3ba094cd69c2db7ff6
 LAST_COMPLETED_MICRO_WP = WP-GOV-DOC-LIFECYCLE-SYNC-1
 LAST_COMPLETED_MICRO_POST_HEAD = c9cb0d833a3432773d7940cc0252e8e3ac07f3c4
@@ -42,11 +42,11 @@ PAUSED_FEATURE_AUDITED_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 HOSTED_CI_MODE = TEMPORARY_UNAVAILABLE_QUOTA
 IMPLEMENTATION_HEAD = 1e59cd4991f8992629dfa54924f185bca46d05dd
 RECONCILED_MAIN_HEAD = d2aa8a9bded931d54aaa50c398b701b1598024ec
-OPEN_BLOCKERS = Independent GOV-DOC-2 audit required
+OPEN_BLOCKERS = Independent delta re-audit of active checkpoint key normalization required
 PRE_WP_DOC_SYNC = CURRENT_PRE_COMMITTED_LOCAL
-SCOPE_BOUNDARIES = six designated operational/historical docs only; no runtime/test/migration/CI/release/product implementation; 02B-3 remains HOLD
+SCOPE_BOUNDARIES = GOV-DOC-2 six-document documentation classification/revalidation only; no runtime/test/migration/CI/release/product implementation; 02B-3 review persistence / migration / export / GUI / API remain outside this governance micro and remain HOLD
 PROVEN_COMPLETE = GOV-DOC-2 six-document implementation preserved and delta-revalidated against main PR #52 baseline
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT REVIEWER AUDIT GOV-DOC-2
+EXACTLY_ONE_NEXT_ACTION = INDEPENDENT REVIEWER DELTA RE-AUDIT GOV-DOC-2-FC2
 NEXT_AUTHORITY = REVIEWER_AUDITOR
 
 GOV_DOC_1 = PASS
@@ -58,10 +58,10 @@ PR52_MERGE_SHA = d2aa8a9bded931d54aaa50c398b701b1598024ec
 02B_3 = NOT_IMPLEMENTED / HOLD
 LAST_AUDITED_02B_CODE_HEAD = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 VERIFICATION_STATE = 25 source-neutral targeted passed / 24 legacy KHMT passed / 583 full passed / 583 collected / Ruff PASS / diff-check PASS
-REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
+PAUSED_FEATURE_REMOTE_CHECKPOINT = 9db2ea8ee0876eae90ac0fbf9c8b495422d99611
 HOSTED_CI_STATE = UNAVAILABLE_QUOTA
 CI_PASS_CLAIMED = NO
-SCOPE_BOUNDARIES = GOV-DOC-2 six-document revalidation only; review persistence / migration / export / GUI / API remain outside 02B-2.
+GOV_DOC_2_PRE_CORRECTION_REMOTE_HEAD = 6415fe8fe38e0bc5218976269d0995195ec9fd0e
 LAST_AUDITED_CODE_HEAD != later handoff/docs HEAD
 
 LAST_MERGED_PARENT_WP = WP-MI-TBMT-02A
