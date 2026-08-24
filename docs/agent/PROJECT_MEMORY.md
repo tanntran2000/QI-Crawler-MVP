@@ -152,6 +152,26 @@ branches must remain in their Work Package handoff.
   `3e27c9c17d257cd91c544eaf6e5bb201087c0729`.
 - **Last verified:** `d2aa8a9bded931d54aaa50c398b701b1598024ec`.
 
+## MEM-011 — Documentation lifecycle and context governance
+
+- **State:** ACTIVE
+- **Since main commit:** `9d76ca0f7ce0aba60e49a134e9a2a2d9825ac9e2`.
+- **Contract:** Work Packages use tiered Parent/Micro PRE and POST lifecycle.
+  `CURRENT.md` is transition authority, not diary, roadmap or history;
+  history snapshots are HISTORICAL / NON-NORMATIVE; and PROJECT_MEMORY stores
+  merged-main durable facts only. Read-mode selection supports FULL, DELTA and
+  NO_RE_READ. Prompt construction reads authoritative state and live
+  Git/GitHub when relevant; chat memory alone is insufficient. Exact Git
+  objects outrank copied audit prose for concrete findings. Generic
+  abstractions preserve legacy behavior at narrow compatibility seams, and one
+  active machine-readable key has one semantic meaning. Unavailable hosted CI
+  is not CI PASS; hosted-CI mandatory gates resume only after quota recovery
+  and actual required workflow execution.
+- **Evidence:** PR #53, merged governance branch head
+  `514d8c3537dbda15c3b306d72e86306c3d1d0033`, final independently audited
+  Parent head `17ec744cd594fd8cefec52dfde8fa39406b8f652`.
+- **Last verified:** `9d76ca0f7ce0aba60e49a134e9a2a2d9825ac9e2`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
