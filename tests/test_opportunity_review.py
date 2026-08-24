@@ -18,9 +18,9 @@ from qi_crawler.market_intelligence.opportunity_radar import (
 )
 from qi_crawler.market_intelligence.opportunity_review import (
     OpportunityReviewDecision,
-    OpportunityReviewIdentity,
     OpportunityReviewRecord,
     OpportunityReviewService,
+    opportunity_review_identity,
 )
 from qi_crawler.migrations import upgrade_database
 from qi_crawler.opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
@@ -206,6 +206,21 @@ def test_domain_contract_has_no_persistence_or_delivery_imports() -> None:
     )
 
 
+def test_domain_contract_has_no_application_projection_imports() -> None:
+    import qi_crawler.market_intelligence.opportunity_review as backend
+
+    contract_path = Path(backend.__file__).with_name("opportunity_review_contract.py")
+    tree = ast.parse(contract_path.read_text(encoding="utf-8"))
+    imported = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level
+            imported.append(prefix + (node.module or ""))
+    assert ".opportunity_radar" not in imported
+
+
 def test_application_backend_does_not_define_domain_value_types() -> None:
     import qi_crawler.market_intelligence.opportunity_review as backend
 
@@ -363,7 +378,7 @@ def test_sqlalchemy_repository_round_trips_source_neutral_identity(tmp_path: Pat
     item = _item(revision="01", source_row=11)
     record = service.record_decision(item, decision="NEEDS_REVIEW", reviewer="Team Bid")
 
-    assert record.identity == OpportunityReviewIdentity.from_item(item)
+    assert record.identity == opportunity_review_identity(item)
 
 
 def test_sqlalchemy_repository_history_is_append_only(tmp_path: Path) -> None:

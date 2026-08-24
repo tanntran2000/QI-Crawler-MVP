@@ -27,6 +27,24 @@ from .opportunity_review_contract import (
 SNAPSHOT_SCHEMA_VERSION = "mi-opportunity-review-v1"
 
 
+def opportunity_review_identity(item: OpportunityRadarItem) -> OpportunityReviewIdentity:
+    """Map an application projection into the domain review identity."""
+
+    if not isinstance(item, OpportunityRadarItem):
+        raise OpportunityReviewError("Review identity requires an OpportunityRadarItem.")
+    return OpportunityReviewIdentity(
+        observation_key=item.observation_key,
+        source_type=item.source_type,
+        identity_namespace=item.identity.namespace,
+        identity_raw=item.identity.raw_id,
+        identity_base_id=item.identity.base_id,
+        identity_revision=item.identity.revision,
+        source_sha256=item.source_sha256,
+        source_sheet=item.sheet,
+        source_row=item.source_row,
+    )
+
+
 class OpportunityReviewRepository(Protocol):
     def latest(self, observation_key: str) -> OpportunityReviewRecord | None: ...
 
@@ -53,7 +71,7 @@ class OpportunityReviewService:
         reviewer: str,
         note: str | None = None,
     ) -> OpportunityReviewRecord:
-        identity = OpportunityReviewIdentity.from_item(item)
+        identity = opportunity_review_identity(item)
         normalized_decision = _decision(decision)
         normalized_reviewer = _required_text("reviewer", reviewer)
         normalized_note = note.strip() if note and note.strip() else None
@@ -81,18 +99,18 @@ class OpportunityReviewService:
         )
 
     def current_event(self, item: OpportunityRadarItem) -> OpportunityReviewRecord | None:
-        identity = OpportunityReviewIdentity.from_item(item)
+        identity = opportunity_review_identity(item)
         return self.repository.latest(identity.observation_key)
 
     def list_history(self, item: OpportunityRadarItem) -> tuple[OpportunityReviewRecord, ...]:
-        identity = OpportunityReviewIdentity.from_item(item)
+        identity = opportunity_review_identity(item)
         return self.repository.history(identity.observation_key)
 
     def current_confirmed(
         self, items: Iterable[OpportunityRadarItem]
     ) -> tuple[OpportunityReviewRecord, ...]:
         universe = tuple(items)
-        identities = tuple(OpportunityReviewIdentity.from_item(item) for item in universe)
+        identities = tuple(opportunity_review_identity(item) for item in universe)
         keys = tuple(dict.fromkeys(identity.observation_key for identity in identities))
         if not keys:
             return ()
@@ -112,7 +130,7 @@ class OpportunityReviewService:
 def serialize_opportunity_snapshot(item: OpportunityRadarItem) -> str:
     """Serialize one source observation without losing raw/provenance values."""
 
-    identity = OpportunityReviewIdentity.from_item(item)
+    identity = opportunity_review_identity(item)
     payload = {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "source": {
@@ -203,5 +221,6 @@ __all__ = [
     "OpportunityReviewRepository",
     "OpportunityReviewService",
     "OpportunityReviewWrite",
+    "opportunity_review_identity",
     "serialize_opportunity_snapshot",
 ]

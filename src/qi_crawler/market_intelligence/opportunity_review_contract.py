@@ -10,7 +10,6 @@ from .opportunity_contract import (
     OpportunityIdentityNamespace,
     OpportunitySourceType,
 )
-from .opportunity_radar import OpportunityRadarItem
 
 
 class OpportunityReviewError(ValueError):
@@ -34,23 +33,6 @@ class OpportunityReviewIdentity:
     source_sha256: str
     source_sheet: str
     source_row: int
-
-    @classmethod
-    def from_item(cls, item: OpportunityRadarItem) -> OpportunityReviewIdentity:
-        if not isinstance(item, OpportunityRadarItem):
-            raise OpportunityReviewError("Review identity requires an OpportunityRadarItem.")
-        return cls(
-            observation_key=item.observation_key,
-            source_type=item.source_type,
-            identity_namespace=item.identity.namespace,
-            identity_raw=item.identity.raw_id,
-            identity_base_id=item.identity.base_id,
-            identity_revision=item.identity.revision,
-            source_sha256=item.source_sha256,
-            source_sheet=item.sheet,
-            source_row=item.source_row,
-        )
-
 
 @dataclass(frozen=True, slots=True)
 class OpportunityReviewRecord:
