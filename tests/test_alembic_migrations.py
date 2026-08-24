@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -18,8 +19,9 @@ from sqlalchemy import (
 )
 
 from alembic import command
+from qi_crawler import migrations
 from qi_crawler.db import Database, SchemaNotReady
-from qi_crawler.migrations import upgrade_database
+from qi_crawler.migrations import _backup_sqlite_database, upgrade_database
 from qi_crawler.models import Base, Document, GroundTruthReview
 
 ROOT = Path(__file__).parent.parent
@@ -48,6 +50,76 @@ CORE_TABLES = {
     "contractors",
     "investor_profiles",
 }
+
+
+def test_sqlite_backup_preserves_committed_wal_rows(tmp_path: Path) -> None:
+    database = tmp_path / "wal-source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('committed WAL row')")
+    connection.commit()
+
+    assert database.with_name(database.name + "-wal").exists()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+    backup_connection = sqlite3.connect(backup)
+    try:
+        assert backup_connection.execute("SELECT value FROM entries").fetchone() == (
+            "committed WAL row",
+        )
+    finally:
+        backup_connection.close()
+        connection.close()
+
+
+def test_sqlite_backup_preserves_normal_database(tmp_path: Path) -> None:
+    database = tmp_path / "normal-source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('normal row')")
+    connection.commit()
+    connection.close()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+    with sqlite3.connect(backup) as backup_connection:
+        assert backup_connection.execute("SELECT value FROM entries").fetchone() == (
+            "normal row",
+        )
+
+
+def test_sqlite_backup_is_independently_readable_and_source_unchanged(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('source row')")
+    connection.commit()
+    connection.close()
+    source_bytes = database.read_bytes()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+
+    assert database.read_bytes() == source_bytes
+    with sqlite3.connect(backup) as backup_connection:
+        assert backup_connection.execute("SELECT COUNT(*) FROM entries").fetchone() == (1,)
+
+
+def test_sqlite_backup_failure_propagates_without_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "source.db"
+    database.write_bytes(b"source")
+
+    def fail_connect(*args, **kwargs):
+        raise sqlite3.OperationalError("backup connection failed")
+
+    monkeypatch.setattr(migrations, "sqlite3", sqlite3, raising=False)
+    monkeypatch.setattr(migrations.sqlite3, "connect", fail_connect)
+
+    with pytest.raises(sqlite3.OperationalError, match="backup connection failed"):
+        _backup_sqlite_database(database, tmp_path / "backups")
 
 
 def _alembic_config(database: Path) -> Config:
