@@ -1,3 +1,11 @@
+# HISTORICAL SNAPSHOT
+
+HISTORICAL SNAPSHOT / NON-NORMATIVE
+
+Captured at WP-GOV-DOC-LIFECYCLE-SYNC Parent POST closeout candidate
+before final independent integration audit.
+LIVE AUTHORITY = docs/agent_handoff/CURRENT.md + live Git/GitHub
+
 # QI-Crawler Agent Handoff
 
 ## HANDOFF_ID
@@ -187,3 +195,4 @@ or GitHub truth. Before designing or executing 02B:
 - reconcile it with the recorded historical merge ancestry;
 - do not treat `CURRENT.md` as live Git authority;
 - define the design scope and obtain explicit Human implementation approval.
+
