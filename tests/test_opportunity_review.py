@@ -158,6 +158,74 @@ def test_backend_module_has_no_persistence_or_delivery_imports() -> None:
     )
 
 
+def test_domain_contract_is_separate_from_application_backend() -> None:
+    import qi_crawler.market_intelligence.opportunity_review as backend
+
+    contract_path = Path(backend.__file__).with_name("opportunity_review_contract.py")
+    assert contract_path.exists()
+    tree = ast.parse(contract_path.read_text(encoding="utf-8"))
+    defined = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert {
+        "OpportunityReviewError",
+        "OpportunityReviewDecision",
+        "OpportunityReviewIdentity",
+        "OpportunityReviewRecord",
+        "OpportunityReviewWrite",
+    }.issubset(defined)
+
+
+def test_domain_contract_has_no_persistence_or_delivery_imports() -> None:
+    import qi_crawler.market_intelligence.opportunity_review as backend
+
+    contract_path = Path(backend.__file__).with_name("opportunity_review_contract.py")
+    assert contract_path.exists()
+    tree = ast.parse(contract_path.read_text(encoding="utf-8"))
+    forbidden = (
+        "sqlalchemy",
+        "qi_crawler.db",
+        "qi_crawler.models",
+        "qi_crawler.opportunity_review_persistence",
+        "PySide",
+        "PyQt",
+        "qi_crawler.cli",
+    )
+    imported = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.append(node.module)
+    assert not any(
+        module == blocked or module.startswith(blocked + ".")
+        for module in imported
+        for blocked in forbidden
+    )
+
+
+def test_application_backend_does_not_define_domain_value_types() -> None:
+    import qi_crawler.market_intelligence.opportunity_review as backend
+
+    tree = ast.parse(Path(backend.__file__).read_text(encoding="utf-8"))
+    defined = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert not defined.intersection(
+        {
+            "OpportunityReviewError",
+            "OpportunityReviewDecision",
+            "OpportunityReviewIdentity",
+            "OpportunityReviewRecord",
+            "OpportunityReviewWrite",
+        }
+    )
+
+
 def test_tbmt_review_preserves_ib_namespace_and_exact_revision() -> None:
     _, service = _service()
     record = service.record_decision(_item(), decision="CONFIRMED", reviewer="Team Bid")

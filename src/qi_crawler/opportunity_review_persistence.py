@@ -12,10 +12,12 @@ from .market_intelligence.opportunity_contract import (
     OpportunitySourceType,
 )
 from .market_intelligence.opportunity_review import (
+    OpportunityReviewRepository,
+)
+from .market_intelligence.opportunity_review_contract import (
     OpportunityReviewDecision,
     OpportunityReviewIdentity,
     OpportunityReviewRecord,
-    OpportunityReviewRepository,
     OpportunityReviewWrite,
 )
 from .models import OpportunityReviewEvent
