@@ -72,11 +72,12 @@ branches must remain in their Work Package handoff.
   PL/IB identity evidence. Unknown, conflicting or dual-schema workbooks
   require named Human correction; corrections are append-only Ground Truth
   for the source SHA. Human source correction does not rewrite PL/IB identity.
-  TBMT is recognized and has a source-neutral candidate intake boundary, but
-  full TBMT Bid Radar review/export/GUI support is not implemented yet.
-- **Evidence:** merged PR #44 / WP-MI-SRC-01 implementation and regression
-  suite.
-- **Last verified:** `fc4d68cbeb9e5f27a91039e264e3906d1ee8f1c7`.
+  TBMT is recognized with source-neutral candidate intake; source-neutral
+  filter/search and Human Review persistence are merged, while confirmed
+  output and GUI integration remain incomplete.
+- **Evidence:** merged PR #44 / WP-MI-SRC-01 plus later Opportunity
+  Intelligence merges recorded in MEM-010 and MEM-012.
+- **Last verified:** `bba21071d3a6b42ea87c845e44413a08d863644a`.
 
 ## MEM-007 — Local staged integration governance
 
@@ -197,6 +198,28 @@ branches must remain in their Work Package handoff.
   `514d8c3537dbda15c3b306d72e86306c3d1d0033`, final independently audited
   Parent head `17ec744cd594fd8cefec52dfde8fa39406b8f652`.
 - **Last verified:** `9d76ca0f7ce0aba60e49a134e9a2a2d9825ac9e2`.
+
+## MEM-013 — QI-KVS blueprint and strict handoff continuity
+
+- **State:** ACTIVE
+- **Since main commit:** `bba21071d3a6b42ea87c845e44413a08d863644a`.
+- **Contract:** Blueprint revision 1.2 defines QI Knowledge & Verification
+  System (QI-KVS) as a cross-cutting target architecture, not a new product
+  lane and not an active Knowledge DB/API/MCP/AI runtime. `RULE CONTRACT = DATA`
+  while evaluator implementation remains code; Knowledge Rule, Source Truth,
+  Human Ground Truth, SOP Decision Record and Engineering Failure Memory remain
+  distinct authorities. Durable governance now requires the Roadmap Entry Gate,
+  FULL/DELTA/NO_RE_READ selection, strict cross-agent handoff fields and a
+  mandatory post-merge reconciliation. A merged PR with stale `CURRENT.md`
+  produces `HANDOFF_STALE / ENTRY_HOLD` before the next technical Work Package.
+- **Evidence:** merged PR #58, merge commit
+  `bba21071d3a6b42ea87c845e44413a08d863644a`, Blueprint revision 1.2,
+  `AGENTS.md`, `MASTER_ROADMAP.md`, `MEMORY_INDEX.md`, operating/handoff
+  governance and independent documentation audit.
+- **Boundary:** QI-KVS runtime implementation remains NOT_ACTIVE. Product
+  Frontier remains Opportunity Intelligence; the next candidate Parent is
+  `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`.
+- **Last verified:** `bba21071d3a6b42ea87c845e44413a08d863644a`.
 
 ## Explicitly not promoted
 
