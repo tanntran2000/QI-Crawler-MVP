@@ -2,182 +2,104 @@
 
 ## HANDOFF_ID
 
-POST — WP-GOV-BLUEPRINT-KVS-HANDOFF-01 / QI-KVS BLUEPRINT + HANDOFF GOVERNANCE
+POST-MERGE — WP-GOV-BLUEPRINT-KVS-HANDOFF-01 / MAIN-TRUTH RECONCILIATION
 
 ## Status
 
-WP-GOV-BLUEPRINT-KVS-HANDOFF-01 LOCAL DOC AUDIT PASS /
-PARENT POST / GOVERNANCE DOCS ONLY / NOT MERGED
+WP-GOV-BLUEPRINT-KVS-HANDOFF-01 MERGED / POST-MERGE RECONCILED /
+QI-KVS TARGET BLUEPRINT MERGED / HANDOFF GOVERNANCE ACTIVE /
+NO PRODUCT BEHAVIOR CHANGE / NEXT PRODUCT PARENT READY FOR DESIGN
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = WP-GOV-BLUEPRINT-KVS-HANDOFF-01
+ACTIVE_PARENT_WP = NONE
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = gov/blueprint-kvs-handoff-01
-PARENT_STATE = LOCAL_AUDIT_PASS_PENDING_REMOTE_INTEGRATION
-MAIN_BASE = c2439e545d56ec4d65c166e5df6e9430cd824311
-ROADMAP_BASELINE_SHA = c2439e545d56ec4d65c166e5df6e9430cd824311
-LIVE_MAIN_HEAD = c2439e545d56ec4d65c166e5df6e9430cd824311
-ACTIVE_BRANCH_HEAD = 38d481f95ea9d2c9aa871d12def63b07d27e5aee
-PRE_HEAD = 341aa917081f20864096e67f3c6c1d8cfb736906
-IMPLEMENTATION_HEAD = 44f0a12ac150764d36f33f6f76dac17ed53bf33e
+ACTIVE_BRANCH = main
+PARENT_STATE = MERGED_MAIN_TRUTH
+PRODUCT_FRONTIER = Opportunity Intelligence
+
+ROADMAP_REVISION = 1.2
+ROADMAP_BASELINE_SHA = bba21071d3a6b42ea87c845e44413a08d863644a
+LIVE_MAIN_HEAD = bba21071d3a6b42ea87c845e44413a08d863644a
+ACTIVE_BRANCH_HEAD = bba21071d3a6b42ea87c845e44413a08d863644a
+
 LAST_AUDITED_CODE_HEAD = N/A
 LAST_AUDITED_DOC_HEAD = 38d481f95ea9d2c9aa871d12def63b07d27e5aee
+PARENT_POST_HEAD = fdf23030bbbcba1cde408039d0e1c138d77f5cf1
+REMOTE_CHECKPOINT = fdf23030bbbcba1cde408039d0e1c138d77f5cf1
 INDEPENDENT_DOC_AUDIT = PASS
-REMOTE_CHECKPOINT = NONE
-PR_STATE = NONE
-MERGE_STATE = NOT_MERGED
 VERIFICATION_STATE = LOCAL_DOC_AUDIT_PASS
-HANDOFF_READY = YES_FOR_REMOTE_INTEGRATION
-LAST_MERGED_PARENT_WP = WP-GOV-FAILURE-MEMORY-01
-LAST_MERGED_PR = 57
-LAST_MERGE_COMMIT = c2439e545d56ec4d65c166e5df6e9430cd824311
-PRODUCT_FRONTIER = Opportunity Intelligence
-PARENT_OBJECTIVE = align QI-KVS blueprint, roadmap-read governance, documentation freshness and handoff integrity
-ROADMAP_REVISION = 1.2
-QI_KVS_BLUEPRINT = TARGET_ARCHITECTURE_ADDED
+
+LAST_MERGED_PARENT_WP = WP-GOV-BLUEPRINT-KVS-HANDOFF-01
+LAST_MERGED_PR = 58
+LAST_MERGE_COMMIT = bba21071d3a6b42ea87c845e44413a08d863644a
+PR_STATE = MERGED
+MERGE_STATE = MERGED
+
+QI_KVS_BLUEPRINT = MERGED_TARGET_ARCHITECTURE
 QI_KVS_IMPLEMENTATION = NOT_ACTIVE
-ROADMAP_ENTRY_GATE = PASS
-POST_MERGE_HANDOFF_GATE = PASS
-HANDOFF_FRESHNESS = PASS
+ROADMAP_ENTRY_GATE = ACTIVE
+POST_MERGE_HANDOFF_GATE = ACTIVE
+HANDOFF_FRESHNESS = ACTIVE
 OPPORTUNITY_ROADMAP_RECONCILIATION = 02B_MERGED_CAPABILITIES_RECORDED
-ROADMAP_IMPACT = MATERIAL_BLUEPRINT_UPDATE
-PRODUCTION_CODE_CHANGE = NO
-CI_WORKFLOW_CHANGE = NO
-RELEASE_IMPACT = NO
-DOC_SYNC_STATE = IMPLEMENTATION_DOCS_UPDATED
-PROVEN_COMPLETE = QI_KVS_BLUEPRINT_AND_HANDOFF_GOVERNANCE_DOCS
-OPEN_BLOCKERS = NONE_WITHIN_SCOPE
-SCOPE_BOUNDARIES = NO_KNOWLEDGE_RUNTIME_OR_PRODUCT_CODE
-FULL_REPO_AUDIT = HOLD
-PENDING_RETRO_CI = YES
+
 HOSTED_CI_STATE = UNAVAILABLE_QUOTA
+HOSTED_CI_RUN = 32818993709
+CI_EXECUTION = PRE_EXECUTION_FAILURE
 CI_PASS_CLAIMED = NO
+PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED
+FULL_REPO_AUDIT = HOLD
+
+DOC_SYNC_STATE = POST_MERGE_RECONCILED
+PROVEN_COMPLETE = QI_KVS_BLUEPRINT_AND_HANDOFF_GOVERNANCE_MERGED
+OPEN_BLOCKERS = PENDING_RETRO_CI; FM-002_RELEASE_BLOCKER; FULL_REPO_AUDIT_HOLD
+RELEVANT_NEXT_WP_DEBT = FM-007_BACKEND_INTEGRITY_DEBT
+SCOPE_BOUNDARIES = WP-MI-TBMT-02C_BACKEND_FIRST; API_HOLD; GUI_REDESIGN_HOLD; QI_KVS_RUNTIME_NOT_ACTIVE
+
 NEXT_PARENT_OR_MICRO_WP = WP-MI-TBMT-02C
-NEXT_STATE = REMOTE_INTEGRATION_PENDING
-NEXT_PARENT_STATE = NOT_STARTED
-NEXT_AUTHORITY = HUMAN_AUTHORITY
-PUSH = NO
-PR = NO
-MERGE = NO
+NEXT_STATE = DESIGN
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+EXACTLY_ONE_NEXT_ACTION = PLANNER DESIGN WP-MI-TBMT-02C OPPORTUNITY INTELLIGENCE DELIVERY CLOSURE
+HANDOFF_READY = YES
 ACTIVE_DUPLICATE_KEYS = NONE
 PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md
 ROADMAP_CONTEXT_REQUIRED = YES
-EXACTLY_ONE_NEXT_ACTION = REMOTE INTEGRATION OF AUDITED GOVERNANCE PARENT
 ```
 
-## Main truth after merge
+## Verified merged truth
 
-- WP-MI-TBMT-02B / PR #55 was merged at
-  `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`.
-- The merged feature head was
-  `6513acfe7397467d1588fb3d404938ac04c8c00c`; the audited code head was
-  `b5043e8396b43306d09c1c0b0ca9cad8b58cfd3a`.
-- Live `main` HEAD must be verified from Git/GitHub at handoff entry; this
-  document records the verified merge ancestry but does not replace live Git
-  authority.
-- Runtime/package version remains `0.8.0`.
-- Hosted CI remains unavailable because the recorded run failed before job
-  execution; this is infrastructure evidence, not a product-test failure.
-- `PENDING_RETRO_CI = YES`; no official Team Bid release is authorized while
-  this debt remains open.
+- PR #58 merged exact Parent POST head
+  `fdf23030bbbcba1cde408039d0e1c138d77f5cf1` into `main` at
+  `bba21071d3a6b42ea87c845e44413a08d863644a`.
+- The independently audited documentation head was
+  `38d481f95ea9d2c9aa871d12def63b07d27e5aee`.
+- `MASTER_ROADMAP.md` is Blueprint revision 1.2. QI-KVS is a cross-cutting
+  target architecture only; Knowledge DB/API/MCP/AI runtime implementation is
+  not active.
+- Opportunity Intelligence records source-neutral TBMT intake, filter/search
+  and Human Review persistence as merged. The next candidate is
+  `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`.
+- GitHub Actions run `32818993709` completed as infrastructure/quota
+  pre-execution failure: all four jobs returned failure with no executed step
+  list. This is not product-test evidence and is not CI PASS. No rerun is
+  authorized while the quota condition remains.
+- `PENDING_RETRO_CI = YES`; official Team Bid release remains blocked.
 
-## Completed Parent WP — WP-MI-TBMT-02A
+## Next-Parent boundary
 
-### 02A-1 — Source-neutral Opportunity identity/candidate contract
+`WP-MI-TBMT-02C` must start with the governed Roadmap Entry Gate and a fresh
+live-Git/GitHub reconciliation. Its design target remains backend-first
+Opportunity Intelligence delivery closure: source-neutral confirmed output,
+backend source-integrity enforcement, thin existing-GUI wiring and vertical
+KHMT/TBMT acceptance. FM-007 directly intersects that backend integrity
+boundary. API evolution, broad GUI redesign and QI-KVS runtime implementation
+remain out of scope unless separately approved.
 
-Introduced `OpportunitySourceType` (`KHMT`/`TBMT`), separate `PL`/`IB`
-identity namespaces, source-backed identity/import-batch/candidate contracts,
-raw/base/revision consistency, positive source-row and SHA checks, and
-authoritative provenance consistency. `PL != IB`; no PL↔IB conversion.
+## Authority
 
-### 02A-2 — TBMT schema + conservative IB parser/normalization
-
-Implemented the observed TBMT schema and fail-closed revisioned IB parsing,
-including the distinction between an identity revision delimiter and a title
-delimiter. Ambiguous or extended identity-like tokens remain rejected.
-
-### 02A-3 — TBMT workbook importer → OpportunityCandidate
-
-Added bounded read-only `.xlsx` import with header scanning, SHA-256/sheet/time/
-schema provenance, IB-only identity construction, complete raw-field retention,
-conservative price parsing, issue reporting, and no silent source-row
-deduplication. TBMT does not enter the KHMT `PlanPackage` path.
-
-### 02A-4 — Real-file/read-only acceptance + Parent Integration Gate
-
-The protected real workbook was read only. Acceptance recorded:
-
-```text
-source rows = 72
-candidates = 72
-issues = 0
-SHA-256 = E4B8FF62D8FF979BD646287EB7C894B9F03D089691B9122A6A96847457A1CDB4
-size = 120194 bytes
-source bytes/size unchanged = YES
-```
-
-The final local regression evidence was 532 passed; latest collection after
-the revision-domain contract was 534; Ruff and diff-check passed. This is
-real-file/read-only acceptance, not a `Golden` label.
-
-## CodeGraph evidence
-
-Queries executed in the merged checkout:
-
-```text
-codegraph explore "Merged TBMT facts for OpportunityIdentity, OpportunityCandidate, import_tbmt_workbook, and parse_tbmt_notice_identity; confirm source-neutral TBMT importer, IB namespace, PL != IB, and provenance fields"
-codegraph explore "import_tbmt_workbook"
-codegraph explore "parse_tbmt_notice_identity"
-codegraph explore "OpportunityIdentity"
-```
-
-The graph returned the relevant source/caller graph and confirmed the merged
-source-neutral contract boundary: TBMT importer/normalization produces IB
-opportunity identities with source provenance; it is distinct from KHMT
-`PlanPackage` and does not authorize review/export/GUI behavior.
-
-## Merged Parent — WP-MI-TBMT-02B
-
-02B-1, 02B-2, and 02B-3 are merged. 02B-2 provides the source-neutral
-filter/search projection and preserves legacy KHMT exclude-keyword compatibility
-at its adapter boundary. 02B-3 provides the source-neutral review backend,
-repository port, persistence adapter, and migration; export, GUI, and API
-integration remain future work.
-
-Hard invariant:
-
-```text
-IB...-00 Human Review does NOT automatically confirm IB...-01.
-same base_id = same lineage, not same exact reviewed identity.
-```
-
-No automatic review inheritance is designed or authorized in this handoff.
-
-## Data / release safety
-
-- Do not access or mutate protected business data or `%LOCALAPPDATA%\QI-Crawler`.
-- No production DB migration/downgrade/stamp/repair is authorized here.
-- Version remains `0.8.0`; known-good release artifacts remain immutable.
-- Retro-CI debt remains open.
-
-## Delivery authority
-
-This file is the active handoff snapshot, not an alternative source of live Git
-or GitHub truth. Before designing or executing the next Work Package:
-
-- fetch live Git/GitHub;
-- resolve the live `main` HEAD;
-- reconcile it with the recorded historical merge ancestry;
-- do not treat `CURRENT.md` as live Git authority;
-- reconcile the live state with this historical merge evidence;
-- define the design scope and obtain explicit Human implementation approval.
-
-## Next governed action
-
-The only next candidate is `WP-MI-TBMT-02C — Opportunity Intelligence Delivery
-Closure`, not started and awaiting Planner/Architect design. This governance
-WP remains pending independent document audit; no implementation authorization
-is implied.
+This file is the current organizational handoff, not a substitute for live
+Git/GitHub. A new agent must be able to continue from repository + handoff
+without old chat history, and must return `ENTRY_HOLD` if live state materially
+disagrees with this snapshot.
