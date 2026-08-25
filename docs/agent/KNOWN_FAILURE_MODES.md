@@ -203,21 +203,21 @@ PERMANENT_PREVENTION = keep transport code thin and forbid direct ORM access in 
 ```text
 ID = FM-007
 TITLE = Bid Radar source-integrity SHA enforcement exists only at delivery/GUI boundary
-STATE = OPEN
+STATE = RESOLVED_LOCAL
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = BACKEND_INTEGRITY_DEBT
+DISPOSITION = BACKEND_INTEGRITY_FIXED_PENDING_AUDIT
 DETECTED_BY = FULL_REPO_AUDIT
 AFFECTED_BASELINE = source-sensitive Bid Radar import/export flow at detection; exact main SHA was not recorded in the original finding
 PRODUCT_HOUSE_LAYER = APPLICATION BACKEND / DESKTOP DELIVERY
-SYMPTOM = GUI stores loaded source SHA and blocks export after same-path content changes
-ROOT_CAUSE = REQUIRES_VERIFICATION; targeted source search proves the check at gui.py:813-839, but does not prove a backend-wide invariant
+SYMPTOM = derived output could be invoked outside the GUI without rechecking the imported source SHA
+ROOT_CAUSE = source integrity was enforced only by GUI state; application export paths lacked a shared backend precondition
 WHY_EXISTING_TESTS_MISSED_IT = GUI regression coverage can pass while non-GUI callers remain unguarded
 CI_IMPLICATION = derived export must remain blocked until source identity is enforced at the authoritative backend boundary
-FIX = verify and, if required, add bounded backend source-SHA enforcement without duplicating identity logic
-FIX_HEAD = NOT_FIXED
-REGRESSION_GUARD = source A/source B same-path export regression at backend and GUI boundaries
-INDEPENDENT_AUDIT = FULL_REPO_AUDIT finding; no backend repair claimed
-CURRENT_EVIDENCE = gui.py:776-790 clears loaded state; gui.py:813-839 compares current SHA before export; gui.py:962-969 records imported SHA
+FIX = added source_integrity.verify_source_integrity() and required it before source-neutral and GUI delivery exports; GUI passes the loaded path and SHA through the worker boundary
+FIX_HEAD = 30d9b977000cbc4c4abcc20125fe501344d7e935
+REGRESSION_GUARD = source A/source B same-path export regression at application backend, GUI adapter and GUI boundaries; missing source fails closed
+INDEPENDENT_AUDIT = PENDING
+CURRENT_EVIDENCE = source_integrity.py; confirmed_opportunity_export.py; opportunity_intelligence.py; gui_services.py; gui.py; tests/test_confirmed_opportunity_export.py; tests/test_bid_radar_gui.py
 PERMANENT_PREVENTION = make source identity a backend precondition for every derived export path
 ```
 
