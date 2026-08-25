@@ -299,3 +299,42 @@ A merge performed while hosted CI is verified unavailable must be reported as
 `CI_WAIVER = ACTIVE` and `PENDING_RETRO_CI = YES`, never as hosted `CI PASS`.
 Official Team Bid release remains blocked while retro-CI debt is open unless
 the Human later approves a separate bounded release exception.
+
+## 15. Blueprint and organizational-memory readiness
+
+Before a Builder or Prompt Writer is `READY`, reconcile the roadmap baseline,
+frontier, roadmap node, architecture layers and selected read mode. A new
+agent/Parent, takeover or material architecture/governance change requires a
+FULL roadmap read; a same-Parent Micro-WP uses DELTA; unchanged same-lease work
+may use NO-RE-READ. A changed roadmap SHA or blueprint revision invalidates
+NO-RE-READ.
+
+Governed documentation freshness transitions are:
+
+```text
+PARENT PRE → MICRO PRE → AUDITED REMOTE CHECKPOINT → MICRO POST
+→ AGENT/SESSION HANDOFF → PARENT POST → PR/MERGE TRANSITION
+→ POST-MERGE RECONCILIATION → NEXT PARENT ENTRY
+```
+
+After `PR MERGED`, verify live `main`, reconcile `CURRENT`, close the merged
+Parent state, check roadmap maturity and project-memory promotion, then set
+one next action. If `CURRENT` still says not merged, the handoff is stale and
+the next technical entry is held. Check applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers while preserving
+`ALWAYS CHECK != ALWAYS MODIFY`.
+
+Minimum cross-agent/session handoff fields are:
+`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `LIVE_MAIN_HEAD`,
+`ACTIVE_BRANCH_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`,
+`LAST_AUDITED_CODE_HEAD`, `LAST_AUDITED_DOC_HEAD`, `REMOTE_CHECKPOINT`,
+`PR_STATE`, `MERGE_STATE`, `VERIFICATION_STATE`, `HOSTED_CI_STATE`,
+`DOC_SYNC_STATE`, `PROVEN_COMPLETE`, `OPEN_BLOCKERS`, `SCOPE_BOUNDARIES`,
+`EXACTLY_ONE_NEXT_ACTION`, `NEXT_AUTHORITY`. Missing answers mean
+`HANDOFF_READY = NO`; handoffs are not transcripts.
+
+```text
+CHAT = collaboration medium
+FILES = organizational memory
+GIT/GITHUB = repository truth
+```

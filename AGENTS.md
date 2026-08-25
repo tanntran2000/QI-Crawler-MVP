@@ -83,6 +83,66 @@ runs, unaudited progress, speculative ideas, and chat narration do not justify
 a refresh. Handoffs are short, factual, evidence-backed, actionable snapshots
 and are not diaries, roadmaps, review reports, or chat summaries.
 
+### Roadmap entry gate and read modes
+
+No agent may declare `READY`, `PROMPT_READY` or `START_IMPLEMENTATION` until
+the following are resolved and evidenced:
+
+```text
+ROADMAP_BASELINE = VERIFIED
+PRODUCT_FRONTIER = RESOLVED
+ROADMAP_NODE = RESOLVED
+ARCHITECTURE_LAYERS = RESOLVED
+READ_MODE = RESOLVED
+```
+
+Use `FULL` read-in for a new agent, new Parent, Planner/Reviewer/Writer
+takeover, or material architecture/governance change; `DELTA` for a new
+Micro-WP under the same unchanged Parent/architecture; and `NO_RE_READ` only
+for the same Micro-WP, session, lease and authority with no material change.
+A changed roadmap SHA or blueprint revision invalidates `NO_RE_READ` and
+requires at least a delta reconciliation. Do not reread the full roadmap for
+every ordinary command.
+
+### Post-merge handoff gate
+
+After a PR merge, the governed transition is:
+
+```text
+PR MERGED → verify live main → reconcile CURRENT → close merged Parent state
+→ check roadmap maturity → check PROJECT_MEMORY promotion → resolve next action
+→ HANDOFF READY
+```
+
+At that transition, check applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers; `ALWAYS CHECK != ALWAYS MODIFY`.
+
+If `PR MERGED + CURRENT STILL CLAIMS NOT MERGED`, the state is
+`HANDOFF_STALE` and the next technical entry is `ENTRY_HOLD` until reconciled.
+Live Git/GitHub remains authority for volatile state, but stale organizational
+memory must be corrected before execution authority is handed off.
+
+Cross-agent/session handoffs must carry, when applicable:
+`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `LIVE_MAIN_HEAD`,
+`ACTIVE_BRANCH_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`,
+`LAST_AUDITED_CODE_HEAD`, `LAST_AUDITED_DOC_HEAD`, `REMOTE_CHECKPOINT`,
+`PR_STATE`, `MERGE_STATE`, `VERIFICATION_STATE`, `HOSTED_CI_STATE`,
+`DOC_SYNC_STATE`, `PROVEN_COMPLETE`, `OPEN_BLOCKERS`, `SCOPE_BOUNDARIES`,
+`EXACTLY_ONE_NEXT_ACTION` and `NEXT_AUTHORITY`. Missing answers mean
+`HANDOFF_READY = NO`; a handoff is not a transcript.
+
+Organizational memory follows:
+
+```text
+CHAT = collaboration medium
+FILES = organizational memory
+GIT/GITHUB = repository truth
+```
+
+Material decisions, architecture and accepted systemic process rules must be
+routed to the appropriate durable file rather than remaining chat-only. Do
+not copy every chat message into memory.
+
 ### Adaptive verification rules
 
 The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this CI verify the right contracts for this WP?"*.
