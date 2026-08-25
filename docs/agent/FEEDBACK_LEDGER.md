@@ -304,3 +304,28 @@ governance contract is changed by this Micro-WP.
 Disposition: ACCEPTED / PARKED_FOR_POST_PARENT_PROMOTION
 Promoted to: N/A — post-Parent governance review
 ```
+
+### FB-0012 — Temporary CI waiver after exact-head runner failures
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C
+Type: CI / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: Hosted CI was held after three exact-head pre-execution
+failures on PR #60 because GitHub Actions did not allocate a runner.
+Evidence: CI run 32865755230; attempts 1/2/3 failed before any job step ran.
+Impact: The existing temporary local-staged-integration / CI-waiver flow may
+resume for this Parent without treating the hosted result as product failure.
+Decision: This is a temporary exception, not CI PASS; PENDING_RETRO_CI remains
+YES, official Team Bid release remains blocked, and the normal hosted-CI gate
+returns when runner execution is healthy.
+Scope change required: NO
+Response: Recorded the waiver in CURRENT.md and kept durable governance law
+unchanged; future Parent-centric governance FB-0011 remains separate and
+inactive.
+Disposition: ACCEPTED
+Promoted to: N/A — temporary operational waiver
+```
