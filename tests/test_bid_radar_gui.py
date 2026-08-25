@@ -298,10 +298,10 @@ def test_exports_delegate_to_mi4_and_mi5_services(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    calls: list[object] = []
+    calls: list[tuple[object, dict[str, object]]] = []
 
     def fake_submit(function, *args, **kwargs) -> None:
-        calls.append(function)
+        calls.append((function, kwargs))
 
     monkeypatch.setattr(window, "_submit", fake_submit)
     source = tmp_path / "khmt.xlsx"
@@ -314,7 +314,13 @@ def test_exports_delegate_to_mi4_and_mi5_services(
     window.start_bid_radar_export()
     window.start_bid_radar_legal_docx()
 
-    assert calls == [gui.run_bid_radar_export, gui.run_bid_radar_legal_docx]
+    assert [call[0] for call in calls] == [
+        gui.run_bid_radar_export,
+        gui.run_bid_radar_legal_docx,
+    ]
+    for _function, kwargs in calls:
+        assert kwargs["source_path"] == source
+        assert kwargs["expected_source_sha256"] == window._bid_radar_loaded_sha256
 
 
 def test_switching_khmt_source_clears_stale_rows_and_blocks_export(

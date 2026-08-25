@@ -12,6 +12,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from .confirmed_opportunity_export import (
+    ConfirmedOpportunityExportResult,
+    export_confirmed_opportunity,
+)
 from .khmt_importer import import_khmt_workbook
 from .opportunity_contract import OpportunitySourceType
 from .opportunity_radar import (
@@ -208,6 +212,23 @@ class OpportunityIntelligenceService:
         """Return only the latest explicitly CONFIRMED observations."""
 
         return self.review_service.current_confirmed(items)
+
+    def export_confirmed(
+        self,
+        load_result: OpportunityLoadResult,
+        *,
+        output: str | Path,
+    ) -> ConfirmedOpportunityExportResult:
+        """Export current confirmations after rechecking the imported source."""
+
+        return export_confirmed_opportunity(
+            self.review_service,
+            load_result.items,
+            source_type=load_result.source_type,
+            source_path=load_result.source_path,
+            expected_source_sha256=load_result.source_sha256,
+            output=output,
+        )
 
 
 def _source_type(value: OpportunitySourceType | str) -> OpportunitySourceType:

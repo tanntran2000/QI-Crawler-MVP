@@ -62,6 +62,7 @@ from .market_intelligence.source_detection import (
     SourceType,
     SourceTypeDetection,
 )
+from .market_intelligence.source_integrity import verify_source_integrity
 from .market_intelligence.source_type_review import SourceTypeReviewService
 from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
@@ -251,8 +252,12 @@ def run_bid_radar_review(
 def run_bid_radar_export(
     config: AppConfig,
     packages: tuple[PlanPackage, ...],
+    *,
+    source_path: Path,
+    expected_source_sha256: str,
 ) -> ConfirmedPackageExportResult:
     """Export only MI-3 latest-state confirmations through MI-4."""
+    verify_source_integrity(source_path, expected_source_sha256)
     database = Database(config.storage.database_url)
     database.require_current_schema()
     return export_confirmed_packages(
@@ -265,8 +270,12 @@ def run_bid_radar_export(
 def run_bid_radar_legal_docx(
     config: AppConfig,
     packages: tuple[PlanPackage, ...],
+    *,
+    source_path: Path,
+    expected_source_sha256: str,
 ) -> tuple[LegalDocxExportResult, ...]:
     """Generate read-only Legal DOCX files through MI-5."""
+    verify_source_integrity(source_path, expected_source_sha256)
     database = Database(config.storage.database_url)
     database.require_current_schema()
     return export_confirmed_legal_docx(

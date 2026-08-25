@@ -1064,6 +1064,8 @@ class QICrawlerWindow(QMainWindow):
             run_bid_radar_export,
             self.config,
             self._bid_radar_packages,
+            source_path=self._bid_radar_loaded_source,
+            expected_source_sha256=self._bid_radar_loaded_sha256,
             on_success=self._render_bid_radar_export,
             button=self.bid_radar_export_button,
             progress=self.bid_radar_progress,
@@ -1085,6 +1087,8 @@ class QICrawlerWindow(QMainWindow):
             run_bid_radar_legal_docx,
             self.config,
             self._bid_radar_packages,
+            source_path=self._bid_radar_loaded_source,
+            expected_source_sha256=self._bid_radar_loaded_sha256,
             on_success=self._render_bid_radar_legal_docx,
             button=self.bid_radar_legal_button,
             progress=self.bid_radar_progress,
@@ -1964,6 +1968,7 @@ class QICrawlerWindow(QMainWindow):
         status: QLabel | None = None,
         task_name: str = "operation",
         long_operation: bool = False,
+        **function_kwargs: Any,
     ) -> bool:
         if long_operation and self._active_long_operation is not None:
             message = "QI-Crawler đang xử lý một tác vụ. Vui lòng chờ hoàn tất."
@@ -1991,7 +1996,7 @@ class QICrawlerWindow(QMainWindow):
             on_success=on_success,
             long_operation=long_operation,
         )
-        worker = FunctionWorker(function, *args, task_name=task_name)
+        worker = FunctionWorker(function, *args, task_name=task_name, **function_kwargs)
         bridge.retain_worker(worker)
         self._active_jobs.append(bridge)
         worker.signals.finished.connect(
