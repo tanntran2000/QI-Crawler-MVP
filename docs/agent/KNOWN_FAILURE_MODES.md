@@ -205,7 +205,7 @@ ID = FM-007
 TITLE = Bid Radar source-integrity SHA enforcement exists only at delivery/GUI boundary
 STATE = RESOLVED_LOCAL
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = BACKEND_INTEGRITY_FIXED_PENDING_AUDIT
+DISPOSITION = RESOLVED_LOCAL_AUDITED_REMOTE_CHECKPOINTED_PENDING_MERGE
 DETECTED_BY = FULL_REPO_AUDIT
 AFFECTED_BASELINE = source-sensitive Bid Radar import/export flow at detection; exact main SHA was not recorded in the original finding
 PRODUCT_HOUSE_LAYER = APPLICATION BACKEND / DESKTOP DELIVERY
@@ -216,8 +216,8 @@ CI_IMPLICATION = derived export must remain blocked until source identity is enf
 FIX = added source_integrity.verify_source_integrity() and required it before source-neutral and GUI delivery exports; GUI passes the loaded path and SHA through the worker boundary
 FIX_HEAD = 30d9b977000cbc4c4abcc20125fe501344d7e935
 REGRESSION_GUARD = source A/source B same-path export regression at application backend, GUI adapter and GUI boundaries; missing source fails closed
-INDEPENDENT_AUDIT = PENDING
-CURRENT_EVIDENCE = source_integrity.py; confirmed_opportunity_export.py; opportunity_intelligence.py; gui_services.py; gui.py; tests/test_confirmed_opportunity_export.py; tests/test_bid_radar_gui.py
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = source_integrity.py; confirmed_opportunity_export.py; opportunity_intelligence.py; gui_services.py; gui.py; tests/test_confirmed_opportunity_export.py; tests/test_bid_radar_gui.py; audited remote handoff 4bd2c91463571494b4750f8a99dbd1fe522c3101
 PERMANENT_PREVENTION = make source identity a backend precondition for every derived export path
 ```
 
