@@ -117,9 +117,10 @@ branches must remain in their Work Package handoff.
   72 candidates, and 0 issues. SHA-256 was
   `E4B8FF62D8FF979BD646287EB7C894B9F03D089691B9122A6A96847457A1CDB4` with
   size 120194 bytes; bytes and size were unchanged before/after acceptance.
-  Human-review persistence, confirmed export, and GUI integration remain
-  future WP-MI-TBMT-02B work; source-neutral Bid Radar filter/search is now
-  covered by MEM-010 below.
+  Source-neutral Human-review persistence is now merged in WP-MI-TBMT-02B;
+  confirmed export, GUI and API integration remain future work. Source-neutral
+  Bid Radar filter/search is covered by MEM-010 below and review persistence by
+  MEM-012.
 - **Last verified:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
 
 ## MEM-009 — Product House and builder handoff discipline
@@ -144,13 +145,38 @@ branches must remain in their Work Package handoff.
   source-neutral `OpportunityRadarItem` contract; merged 02B-2 provides
   bounded budget, province/city, keyword and selection-method filtering/search.
   The legacy KHMT `PlanPackage` adapter and its audited exclude-keyword
-  compatibility remain intact. FILTER MATCH is not Human CONFIRMED; review
-  persistence, export, GUI and API are not included, and 02B-3 remains held.
+  compatibility remain intact. FILTER MATCH is not Human CONFIRMED; export,
+  GUI and API integration remain future work. Human-review persistence is
+  covered by MEM-012.
   `IB...-00` Human Review does not imply `IB...-01` review.
 - **Evidence:** PR #52, merge commit
   `d2aa8a9bded931d54aaa50c398b701b1598024ec`, branch head
   `3e27c9c17d257cd91c544eaf6e5bb201087c0729`.
 - **Last verified:** `d2aa8a9bded931d54aaa50c398b701b1598024ec`.
+
+## MEM-012 — Source-neutral Opportunity Human Review persistence
+
+- **State:** ACTIVE
+- **Since main commit:** `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`.
+- **Contract:** Merged WP-MI-TBMT-02B-3 provides source-neutral KHMT/TBMT
+  Human Review through a separated Domain Core, Application Backend,
+  Repository Port and Persistence layer. PL and IB namespaces remain distinct;
+  the exact review identity is `(base_id, revision)` with no review inheritance
+  across revisions. SHA/source-row provenance isolates candidates, review
+  events are append-only, latest-event state is authoritative, and exact
+  duplicate decisions are idempotent. Alembic head is
+  `0015_add_opportunity_review_events`. The pre-migration backup is WAL-safe
+  through `sqlite3.Connection.backup()`.
+- **Compatibility:** Legacy KHMT `CandidateReviewService` behavior remains
+  compatible. FILTER/SEARCH/RADAR matches are not Human CONFIRMED, and no
+  implicit review is created.
+- **Evidence:** PR #55 merge commit
+  `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`, merged feature head
+  `6513acfe7397467d1588fb3d404938ac04c8c00c`, audited code head
+  `b5043e8396b43306d09c1c0b0ca9cad8b58cfd3a`.
+- **Scope gap:** Confirmed XLSX/Legal DOCX export, GUI and API integration are
+  not complete in this memory entry.
+- **Last verified:** `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`.
 
 ## MEM-011 — Documentation lifecycle and context governance
 
