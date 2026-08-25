@@ -280,3 +280,27 @@ Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
 docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
 docs/agent/MEMORY_INDEX.md
 ```
+
+### FB-0011 — Park Parent-centric governance reform until TBMT closeout
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C-4
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: WP-MI-TBMT-02C completes under existing governance; do not
+rewrite AGENTS, MASTER_ROADMAP or integration law mid-Parent.
+Evidence: approved 02C-4 acceptance Work Order.
+Impact: Keeps the active Parent's acceptance and audit flow bounded while
+preserving a dedicated post-Parent governance reform decision.
+Suggestion: After TBMT Parent closeout, evaluate a Parent-centric flow where
+Micro-WPs are locally verified/audited and Parent-WPs own PR/CI/merge gates;
+Planner and Reviewer remain separate authorities.
+Scope change required: NO
+Response: Accepted and parked for post-Parent promotion; no durable
+governance contract is changed by this Micro-WP.
+Disposition: ACCEPTED / PARKED_FOR_POST_PARENT_PROMOTION
+Promoted to: N/A — post-Parent governance review
+```
