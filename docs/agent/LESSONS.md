@@ -20,3 +20,12 @@ fixes.
    changed production files by Product House layer and audit dependency
    direction explicitly; green functional tests alone do not prove layer
    separation.
+8. **Review exact objects first.** Independent review should inspect the exact
+   Git range directly when available; copied patches are transport evidence,
+   not object authority.
+9. **Handoffs cannot predict their own future SHA.** Keep capture-base,
+   audit-target and live-Git identities separate; reconcile known docs-only
+   ancestry instead of creating sync-of-sync claims.
+10. **Material knowledge must leave chat at acceptance.** Route accepted or
+    verified durable knowledge to its correct Context Spine authority at the
+    same governed transition; do not copy it indiscriminately to every file.

@@ -51,7 +51,11 @@ Historical tags and releases must never be silently moved.
 ## Engineering governance laws
 
 1. **LAW 1 — PLAN-FIRST**: Planner creates the design/work-order; Planner does not code.
-2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: Planner -> Independent Reviewer/Auditor -> Single Writer -> Machine Verifier -> Human Merge Approver.
+2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: `PLANNER_ARCHITECT` →
+   `BUILDER_SINGLE_WRITER` → `MACHINE_VERIFIER` evidence →
+   `INDEPENDENT REVIEWER_AUDITOR` → `HUMAN MERGE APPROVER`. These are
+   authority roles, not model names. The Reviewer audits independently and
+   never edits the implementation under review.
 3. **LAW 3 — SYSTEMIC LESSONS ONLY**: Record durable architectural lessons; do not pollute lessons with minor typos.
 4. **LAW 4 — PROOF-GATED DEFINITION OF DONE**: Verify against the explicit Work Order contract; never claim unqualified perfection.
 5. **LAW 5 — MINIMAL COMPLETE FIX**: Fix at root cause with the smallest complete change; no masking or speculative refactoring.
@@ -63,9 +67,61 @@ Historical tags and releases must never be silently moved.
 
 10. **LAW 10 — DOCUMENTATION LIFECYCLE**: Every Parent and Micro Work Package has a bounded PRE and POST state. `ALWAYS CHECK != ALWAYS MODIFY`: inspect the required documents at every governed transition, but update only the tier and trigger that applies. `CURRENT.md` is active handoff authority, not a diary, roadmap, review report, or chat summary; historical snapshots are non-normative after capture; durable contracts change only through approved governance.
 
-11. **LAW 11 — AUDIT OBJECT AUTHORITY**: A review report or copied audit statement is evidence, not Git object authority. When source objects are available, reconcile concrete findings against `git show <SHA>:<path>` or an exact commit diff. Reviewer independence remains required.
+11. **LAW 11 — AUDIT OBJECT AUTHORITY**: A review report or copied audit
+    statement is evidence, not Git object authority. By default, the Reviewer
+    directly inspects the exact Git range `BASE_SHA..HEAD_SHA` in the canonical
+    checkout using `git diff`, `git show`, source inspection and test
+    inspection. A patch is transport/fallback evidence only when exact Git
+    objects are unavailable. Reviewer independence remains required.
 
 12. **LAW 12 — COMPATIBILITY SEAMS**: Passing tests do not by themselves prove legacy compatibility. When a generic abstraction wraps a legacy path, review `OLD CONTRACT → ADAPTER / COMPATIBILITY BOUNDARY → NEW GENERIC CONTRACT` and preserve legacy behavior at the narrowest boundary.
+
+13. **LAW 13 — SPINE IMMEDIATE PROMOTION**: A material beneficial improvement,
+    newly verified project fact, approved governance/process change,
+    architecture decision, systemic lesson, capability maturity change, or
+    material engineering failure/prevention finding must be routed to its
+    canonical Context Spine authority at the same governed transition in
+    which it becomes accepted or verified. Material organizational knowledge
+    must not remain chat-only.
+
+    Before Reviewer handoff, the next Micro-WP, Parent closeout, PR/merge
+    transition, or post-merge handoff, resolve:
+
+    ```text
+    SPINE_IMPACT = NONE | CURRENT | ROADMAP | PROJECT_MEMORY |
+                   FAILURE_MEMORY | LESSONS | FEEDBACK | GOVERNANCE | MULTIPLE
+    SPINE_TARGET_FILES = <canonical Context Spine files>
+    SPINE_SYNC_STATE = PASS | HOLD
+    ```
+
+    `MATERIAL_NEW_DURABLE_INFORMATION + NOT_ROUTED` is a governance hold.
+    `SPINE_SYNC_STATE != PASS` means `HANDOFF_READY = NO`. `ALWAYS CHECK !=
+    ALWAYS MODIFY`: inspect the applicable authorities at every transition,
+    but material new durable information must update the correct authority.
+
+### Canonical Context Spine routing
+
+Route accepted or verified material knowledge to the narrowest authority:
+
+```text
+CURRENT execution/handoff/transition state
+  → docs/agent_handoff/CURRENT.md
+Strategic architecture/frontier/capability maturity
+  → docs/agent/MASTER_ROADMAP.md
+Durable fact already merged to main
+  → docs/agent/PROJECT_MEMORY.md
+Material engineering failure/root cause/prevention
+  → docs/agent/KNOWN_FAILURE_MODES.md
+Durable systemic engineering lesson
+  → docs/agent/LESSONS.md
+Human A0 decision/material feedback
+  → docs/agent/FEEDBACK_LEDGER.md
+Durable agent/process/governance law
+  → AGENTS.md and applicable supporting governance contract(s)
+```
+
+Do not route unmerged implementation facts into `PROJECT_MEMORY.md`, and do
+not turn `CURRENT.md` into a roadmap, history, diary, or review report.
 
 For a **NEW AGENT**, **NEW PARENT WP**, **WRITER TAKEOVER**,
 **PLANNER/REVIEWER TAKEOVER**, or **MATERIAL ARCHITECTURE CHANGE**, the agent
@@ -123,13 +179,18 @@ Live Git/GitHub remains authority for volatile state, but stale organizational
 memory must be corrected before execution authority is handed off.
 
 Cross-agent/session handoffs must carry, when applicable:
-`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `LIVE_MAIN_HEAD`,
-`ACTIVE_BRANCH_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`,
-`LAST_AUDITED_CODE_HEAD`, `LAST_AUDITED_DOC_HEAD`, `REMOTE_CHECKPOINT`,
+`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `HANDOFF_CAPTURE_BASE`,
+`AUDIT_TARGET_CODE_HEAD`, `LAST_AUDITED_CODE_HEAD`, `LAST_AUDITED_DOC_HEAD`,
+`LIVE_GIT_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`, `REMOTE_CHECKPOINT`,
 `PR_STATE`, `MERGE_STATE`, `VERIFICATION_STATE`, `HOSTED_CI_STATE`,
 `DOC_SYNC_STATE`, `PROVEN_COMPLETE`, `OPEN_BLOCKERS`, `SCOPE_BOUNDARIES`,
-`EXACTLY_ONE_NEXT_ACTION` and `NEXT_AUTHORITY`. Missing answers mean
-`HANDOFF_READY = NO`; a handoff is not a transcript.
+`EXACTLY_ONE_NEXT_ACTION` and `NEXT_AUTHORITY`. `HANDOFF_CAPTURE_BASE` is the
+Git head verified immediately before a handoff write; `AUDIT_TARGET_CODE_HEAD`
+is the exact code/test commit under review; `LAST_AUDITED_CODE_HEAD` is the
+already-audited code head; `LIVE_GIT_HEAD` is always re-resolved from Git at
+read-in. A later docs-only handoff commit must not be treated as a new code
+audit target. Missing answers mean `HANDOFF_READY = NO`; a handoff is not a
+transcript.
 
 Organizational memory follows:
 

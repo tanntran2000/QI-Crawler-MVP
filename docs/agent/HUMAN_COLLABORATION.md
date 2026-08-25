@@ -256,18 +256,19 @@ The detailed operating procedure is
 `docs/agent/LOCAL_STAGED_INTEGRATION.md`.
 
 For each implementation micro-WP, the Single Writer must stop after local
-verification and local commit with a `LOCAL_REVIEW_PACKET` and the explicit
-next state:
+verification and local commit with a `REVIEWER_HANDOFF_CHECKPOINT` and the
+explicit next state:
 
 ```text
 STOP_FOR_INDEPENDENT_LOCAL_AUDIT
 ```
 
-The packet must include the Parent WP and micro-WP identifiers, base/head SHA,
-changed-file list, bounded patch/diff, CodeGraph impact/edit/test radii when
-applicable, exact verification commands, concise results, exit codes,
+The handoff must include the Parent WP and micro-WP identifiers, base/head SHA,
+changed-file list, exact verification commands, concise results, exit codes,
 collection before/after, migration/data-safety result, known risks, and tree
-status.
+status. The Reviewer directly inspects the exact Git objects when available.
+Use `AUDIT_OBJECT: BASE_SHA..HEAD_SHA`; a `PATCH` is an optional fallback only
+when direct object access is unavailable.
 
 Do not paste large successful logs merely to prove activity. For a successful
 run, prefer exact command + concise summary + exit code. For a failure, include
@@ -276,6 +277,19 @@ the relevant traceback/error excerpt needed for diagnosis.
 The independent Reviewer returns `LOCAL_AUDIT_PASS`, `LOCAL_AUDIT_HOLD`, or
 `LOCAL_AUDIT_FAIL`. The Single Writer must not proceed to the next micro-WP on
 HOLD/FAIL.
+
+Every Reviewer handoff also reports:
+
+```text
+SPINE_IMPACT:
+SPINE_TARGET_FILES:
+SPINE_SYNC_STATE: PASS / HOLD
+```
+
+A Builder finding that creates durable organizational knowledge must not remain
+only in chat or a local review packet. If required Spine routing is missing,
+the Reviewer returns `SPINE_AUDIT = HOLD`; this does not require copying chat
+transcripts into the Context Spine.
 
 After `LOCAL_AUDIT_PASS`, the audited feature-branch commit may be pushed as a
 remote checkpoint without opening a PR. That checkpoint is backup/provenance,
@@ -325,8 +339,8 @@ the next technical entry is held. Check applicable `KNOWN_FAILURE_MODES`,
 `ALWAYS CHECK != ALWAYS MODIFY`.
 
 Minimum cross-agent/session handoff fields are:
-`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `LIVE_MAIN_HEAD`,
-`ACTIVE_BRANCH_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`,
+`ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `HANDOFF_CAPTURE_BASE`,
+`AUDIT_TARGET_CODE_HEAD`, `LIVE_GIT_HEAD`, `ACTIVE_PARENT_WP`, `ACTIVE_MICRO_WP`,
 `LAST_AUDITED_CODE_HEAD`, `LAST_AUDITED_DOC_HEAD`, `REMOTE_CHECKPOINT`,
 `PR_STATE`, `MERGE_STATE`, `VERIFICATION_STATE`, `HOSTED_CI_STATE`,
 `DOC_SYNC_STATE`, `PROVEN_COMPLETE`, `OPEN_BLOCKERS`, `SCOPE_BOUNDARIES`,

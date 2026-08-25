@@ -232,3 +232,100 @@ Promoted to: AGENTS.md; docs/agent/MEMORY_INDEX.md;
 docs/agent/OPERATING_MODEL.md; docs/agent/HUMAN_COLLABORATION.md;
 docs/agent/LOCAL_STAGED_INTEGRATION.md
 ```
+
+### FB-0009 — Direct-object independent review is the default
+
+```text
+State: PROMOTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C-1 governance correction
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: When exact Git objects are available, the Reviewer must perform
+the independent local audit directly and return an INDEPENDENT_REVIEW_PACKET.
+Evidence: approved material governance correction before 02C-1 review.
+Impact: Requiring a manually exported patch by default weakens object
+authority and adds unnecessary handoff friction.
+Suggestion: Audit BASE_SHA..HEAD_SHA directly; use a patch only as fallback.
+Scope change required: NO
+Response: Added direct-object review, Reviewer authority ordering and the
+standard independent packet to the durable governance spine.
+Disposition: ACCEPTED; PROMOTED to durable governance.
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+docs/agent/MEMORY_INDEX.md
+```
+
+### FB-0010 — Require immediate routing of material knowledge into Context Spine
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C / governance correction
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Material beneficial changes, newly verified facts, accepted
+governance/process rules, systemic lessons and other durable project knowledge
+must be routed to the correct Spine authority immediately at the governed
+transition instead of remaining only in chat.
+Impact: Prevents continuity from depending on chat history and keeps roadmap,
+memory, failure knowledge, lessons, feedback and handoff aligned.
+Scope change required: NO
+Response: Added the SPINE IMMEDIATE PROMOTION gate and required Spine audit
+fields to the governance flow.
+Disposition: ACCEPTED / PROMOTED
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+docs/agent/MEMORY_INDEX.md
+```
+
+### FB-0011 — Park Parent-centric governance reform until TBMT closeout
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C-4
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: WP-MI-TBMT-02C completes under existing governance; do not
+rewrite AGENTS, MASTER_ROADMAP or integration law mid-Parent.
+Evidence: approved 02C-4 acceptance Work Order.
+Impact: Keeps the active Parent's acceptance and audit flow bounded while
+preserving a dedicated post-Parent governance reform decision.
+Suggestion: After TBMT Parent closeout, evaluate a Parent-centric flow where
+Micro-WPs are locally verified/audited and Parent-WPs own PR/CI/merge gates;
+Planner and Reviewer remain separate authorities.
+Scope change required: NO
+Response: Accepted and parked for post-Parent promotion; no durable
+governance contract is changed by this Micro-WP.
+Disposition: ACCEPTED / PARKED_FOR_POST_PARENT_PROMOTION
+Promoted to: N/A — post-Parent governance review
+```
+
+### FB-0012 — Temporary CI waiver after exact-head runner failures
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C
+Type: CI / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: Hosted CI was held after three exact-head pre-execution
+failures on PR #60 because GitHub Actions did not allocate a runner.
+Evidence: CI run 32865755230; attempts 1/2/3 failed before any job step ran.
+Impact: The existing temporary local-staged-integration / CI-waiver flow may
+resume for this Parent without treating the hosted result as product failure.
+Decision: This is a temporary exception, not CI PASS; PENDING_RETRO_CI remains
+YES, official Team Bid release remains blocked, and the normal hosted-CI gate
+returns when runner execution is healthy.
+Scope change required: NO
+Response: Recorded the waiver in CURRENT.md and kept durable governance law
+unchanged; future Parent-centric governance FB-0011 remains separate and
+inactive.
+Disposition: ACCEPTED
+Promoted to: N/A — temporary operational waiver
+```
