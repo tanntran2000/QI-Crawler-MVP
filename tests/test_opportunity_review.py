@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -133,6 +134,24 @@ def _sqlalchemy_service(
     return database, OpportunityReviewService(repository)
 
 
+def _imported_modules(source: str) -> tuple[str, ...]:
+    tree = ast.parse(source)
+    imported: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level
+            module = prefix + (node.module or "")
+            if node.level:
+                module = importlib.util.resolve_name(
+                    module,
+                    "qi_crawler.market_intelligence",
+                )
+            imported.append(module)
+    return tuple(imported)
+
+
 def test_backend_module_has_no_persistence_or_delivery_imports() -> None:
     import qi_crawler.market_intelligence.opportunity_review as backend
 
@@ -210,15 +229,21 @@ def test_domain_contract_has_no_application_projection_imports() -> None:
     import qi_crawler.market_intelligence.opportunity_review as backend
 
     contract_path = Path(backend.__file__).with_name("opportunity_review_contract.py")
-    tree = ast.parse(contract_path.read_text(encoding="utf-8"))
-    imported = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            prefix = "." * node.level
-            imported.append(prefix + (node.module or ""))
-    assert ".opportunity_radar" not in imported
+    imported = _imported_modules(contract_path.read_text(encoding="utf-8"))
+    assert "qi_crawler.market_intelligence.opportunity_radar" not in imported
+
+
+def test_import_inspection_normalizes_relative_and_absolute_projection_imports() -> None:
+    relative = _imported_modules(
+        "from .opportunity_radar import OpportunityRadarItem"
+    )
+    absolute = _imported_modules(
+        "from qi_crawler.market_intelligence.opportunity_radar "
+        "import OpportunityRadarItem"
+    )
+
+    expected = ("qi_crawler.market_intelligence.opportunity_radar",)
+    assert relative == absolute == expected
 
 
 def test_application_backend_does_not_define_domain_value_types() -> None:
