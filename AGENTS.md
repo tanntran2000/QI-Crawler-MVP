@@ -76,6 +76,53 @@ Historical tags and releases must never be silently moved.
 
 12. **LAW 12 — COMPATIBILITY SEAMS**: Passing tests do not by themselves prove legacy compatibility. When a generic abstraction wraps a legacy path, review `OLD CONTRACT → ADAPTER / COMPATIBILITY BOUNDARY → NEW GENERIC CONTRACT` and preserve legacy behavior at the narrowest boundary.
 
+13. **LAW 13 — SPINE IMMEDIATE PROMOTION**: A material beneficial improvement,
+    newly verified project fact, approved governance/process change,
+    architecture decision, systemic lesson, capability maturity change, or
+    material engineering failure/prevention finding must be routed to its
+    canonical Context Spine authority at the same governed transition in
+    which it becomes accepted or verified. Material organizational knowledge
+    must not remain chat-only.
+
+    Before Reviewer handoff, the next Micro-WP, Parent closeout, PR/merge
+    transition, or post-merge handoff, resolve:
+
+    ```text
+    SPINE_IMPACT = NONE | CURRENT | ROADMAP | PROJECT_MEMORY |
+                   FAILURE_MEMORY | LESSONS | FEEDBACK | GOVERNANCE | MULTIPLE
+    SPINE_TARGET_FILES = <canonical Context Spine files>
+    SPINE_SYNC_STATE = PASS | HOLD
+    ```
+
+    `MATERIAL_NEW_DURABLE_INFORMATION + NOT_ROUTED` is a governance hold.
+    `SPINE_SYNC_STATE != PASS` means `HANDOFF_READY = NO`. `ALWAYS CHECK !=
+    ALWAYS MODIFY`: inspect the applicable authorities at every transition,
+    but material new durable information must update the correct authority.
+
+### Canonical Context Spine routing
+
+Route accepted or verified material knowledge to the narrowest authority:
+
+```text
+CURRENT execution/handoff/transition state
+  → docs/agent_handoff/CURRENT.md
+Strategic architecture/frontier/capability maturity
+  → docs/agent/MASTER_ROADMAP.md
+Durable fact already merged to main
+  → docs/agent/PROJECT_MEMORY.md
+Material engineering failure/root cause/prevention
+  → docs/agent/KNOWN_FAILURE_MODES.md
+Durable systemic engineering lesson
+  → docs/agent/LESSONS.md
+Human A0 decision/material feedback
+  → docs/agent/FEEDBACK_LEDGER.md
+Durable agent/process/governance law
+  → AGENTS.md and applicable supporting governance contract(s)
+```
+
+Do not route unmerged implementation facts into `PROJECT_MEMORY.md`, and do
+not turn `CURRENT.md` into a roadmap, history, diary, or review report.
+
 For a **NEW AGENT**, **NEW PARENT WP**, **WRITER TAKEOVER**,
 **PLANNER/REVIEWER TAKEOVER**, or **MATERIAL ARCHITECTURE CHANGE**, the agent
 must fully read `docs/agent/MASTER_ROADMAP.md` before declaring READY. Future

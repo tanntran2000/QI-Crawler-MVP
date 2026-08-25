@@ -256,3 +256,27 @@ Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
 docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
 docs/agent/MEMORY_INDEX.md
 ```
+
+### FB-0010 — Require immediate routing of material knowledge into Context Spine
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C / governance correction
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Material beneficial changes, newly verified facts, accepted
+governance/process rules, systemic lessons and other durable project knowledge
+must be routed to the correct Spine authority immediately at the governed
+transition instead of remaining only in chat.
+Impact: Prevents continuity from depending on chat history and keeps roadmap,
+memory, failure knowledge, lessons, feedback and handoff aligned.
+Scope change required: NO
+Response: Added the SPINE IMMEDIATE PROMOTION gate and required Spine audit
+fields to the governance flow.
+Disposition: ACCEPTED / PROMOTED
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+docs/agent/MEMORY_INDEX.md
+```

@@ -43,6 +43,8 @@ Human approves Parent WP
 → REVIEWER HANDOFF CHECKPOINT
 → INDEPENDENT REVIEW
 → PASS / HOLD / FAIL
+→ SPINE PROMOTION CHECK
+→ SPINE SYNC PASS
 → on PASS: push feature branch as remote checkpoint, without PR
 → MICRO POST
 → next micro-WP
@@ -215,6 +217,22 @@ AUDIT_VERDICT = PASS | HOLD | FAIL
 EXACTLY_ONE_NEXT_ACTION
 NEXT_AUTHORITY
 ```
+
+### 7.1 Spine promotion gate
+
+After independent review and before advancing the handoff, the packet must
+contain:
+
+```text
+SPINE_AUDIT: PASS / HOLD
+SPINE_IMPACT:
+SPINE_TARGET_FILES:
+SPINE_SYNC_STATE: PASS / HOLD
+```
+
+If `SPINE_AUDIT = HOLD` or `SPINE_SYNC_STATE != PASS`, do not advance to the
+next Micro-WP and do not declare `HANDOFF_READY`. Corrections remain
+forward-only; not every transition requires every Spine document to change.
 
 ## 7. Independent local audit outcomes
 

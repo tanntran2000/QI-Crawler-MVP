@@ -74,6 +74,8 @@ verified repository/GitHub evidence.
    → COMMIT
    → INDEPENDENT AUDIT
    → AUDIT PASS
+   → SPINE PROMOTION CHECK
+   → SPINE SYNC PASS
    → REMOTE CHECKPOINT
    → POST CURRENT
    → HANDOFF READY
@@ -81,6 +83,13 @@ verified repository/GitHub evidence.
 
    A PRE/POST checkpoint is required for every Work Package, but ordinary
    checks do not require rewriting every document or creating a history file.
+
+Before advancing a handoff, the Builder reports material findings and
+`SPINE_IMPACT` but does not silently change an out-of-scope authority. The
+Reviewer independently checks that accepted durable knowledge is routed to
+the correct Context Spine authority. The Planner resolves promotion and
+`SPINE_SYNC_STATE`; Human authority decides material business, governance and
+scope questions. `SPINE_SYNC_STATE = PASS` is required for `HANDOFF_READY`.
 
 For implementation review, the Builder/Machine-Verifier supplies broad
 execution evidence. The Reviewer performs independent, risk-focused

@@ -278,6 +278,19 @@ The independent Reviewer returns `LOCAL_AUDIT_PASS`, `LOCAL_AUDIT_HOLD`, or
 `LOCAL_AUDIT_FAIL`. The Single Writer must not proceed to the next micro-WP on
 HOLD/FAIL.
 
+Every Reviewer handoff also reports:
+
+```text
+SPINE_IMPACT:
+SPINE_TARGET_FILES:
+SPINE_SYNC_STATE: PASS / HOLD
+```
+
+A Builder finding that creates durable organizational knowledge must not remain
+only in chat or a local review packet. If required Spine routing is missing,
+the Reviewer returns `SPINE_AUDIT = HOLD`; this does not require copying chat
+transcripts into the Context Spine.
+
 After `LOCAL_AUDIT_PASS`, the audited feature-branch commit may be pushed as a
 remote checkpoint without opening a PR. That checkpoint is backup/provenance,
 not hosted-CI evidence.

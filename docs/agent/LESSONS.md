@@ -26,3 +26,6 @@ fixes.
 9. **Handoffs cannot predict their own future SHA.** Keep capture-base,
    audit-target and live-Git identities separate; reconcile known docs-only
    ancestry instead of creating sync-of-sync claims.
+10. **Material knowledge must leave chat at acceptance.** Route accepted or
+    verified durable knowledge to its correct Context Spine authority at the
+    same governed transition; do not copy it indiscriminately to every file.

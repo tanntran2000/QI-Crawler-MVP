@@ -138,6 +138,11 @@ path; an unrelated Micro-WP may record `N/A` without reading the whole file.
 
 ## Prompt-writer readiness gate
 
+Before `PROMPT_READY` or `HANDOFF_READY`, resolve `SPINE_SYNC_STATE = PASS`.
+Read-mode selection does not exempt an agent from routing newly accepted
+durable knowledge. `NO_RE_READ` means unchanged authority may be reused; it
+does not permit newly learned material information to remain unrecorded.
+
 An agent that is asked to generate the next technical Work Order must not rely
 on prose memory alone. Before writing the prompt it must establish:
 
