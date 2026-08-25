@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0014_add_source_type_review_events"
+CURRENT_SCHEMA_REVISION = "0015_add_opportunity_review_events"
 
 
 class SchemaNotReady(click.ClickException):

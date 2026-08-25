@@ -16,3 +16,7 @@ fixes.
    edit minimally, and verify the contracts actually affected.
 6. **P0 or false-safe behavior means HOLD.** Preserve evidence, add a focused
    regression, and do not weaken a guard to make a test pass.
+7. **Cross-layer Work Orders require explicit direction checks.** Classify
+   changed production files by Product House layer and audit dependency
+   direction explicitly; green functional tests alone do not prove layer
+   separation.

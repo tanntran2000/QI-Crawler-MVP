@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -18,8 +19,9 @@ from sqlalchemy import (
 )
 
 from alembic import command
+from qi_crawler import migrations
 from qi_crawler.db import Database, SchemaNotReady
-from qi_crawler.migrations import upgrade_database
+from qi_crawler.migrations import _backup_sqlite_database, upgrade_database
 from qi_crawler.models import Base, Document, GroundTruthReview
 
 ROOT = Path(__file__).parent.parent
@@ -34,6 +36,7 @@ CORE_TABLES = {
     "document_evidence",
     "ground_truth_reviews",
     "candidate_review_events",
+    "opportunity_review_events",
     "hsmt_facts",
     "tender_items",
     "inventory_items",
@@ -47,6 +50,76 @@ CORE_TABLES = {
     "contractors",
     "investor_profiles",
 }
+
+
+def test_sqlite_backup_preserves_committed_wal_rows(tmp_path: Path) -> None:
+    database = tmp_path / "wal-source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('committed WAL row')")
+    connection.commit()
+
+    assert database.with_name(database.name + "-wal").exists()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+    backup_connection = sqlite3.connect(backup)
+    try:
+        assert backup_connection.execute("SELECT value FROM entries").fetchone() == (
+            "committed WAL row",
+        )
+    finally:
+        backup_connection.close()
+        connection.close()
+
+
+def test_sqlite_backup_preserves_normal_database(tmp_path: Path) -> None:
+    database = tmp_path / "normal-source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('normal row')")
+    connection.commit()
+    connection.close()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+    with sqlite3.connect(backup) as backup_connection:
+        assert backup_connection.execute("SELECT value FROM entries").fetchone() == (
+            "normal row",
+        )
+
+
+def test_sqlite_backup_is_independently_readable_and_source_unchanged(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "source.db"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE entries (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO entries (value) VALUES ('source row')")
+    connection.commit()
+    connection.close()
+    source_bytes = database.read_bytes()
+
+    backup = _backup_sqlite_database(database, tmp_path / "backups")
+
+    assert database.read_bytes() == source_bytes
+    with sqlite3.connect(backup) as backup_connection:
+        assert backup_connection.execute("SELECT COUNT(*) FROM entries").fetchone() == (1,)
+
+
+def test_sqlite_backup_failure_propagates_without_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "source.db"
+    database.write_bytes(b"source")
+
+    def fail_connect(*args, **kwargs):
+        raise sqlite3.OperationalError("backup connection failed")
+
+    monkeypatch.setattr(migrations, "sqlite3", sqlite3, raising=False)
+    monkeypatch.setattr(migrations.sqlite3, "connect", fail_connect)
+
+    with pytest.raises(sqlite3.OperationalError, match="backup connection failed"):
+        _backup_sqlite_database(database, tmp_path / "backups")
 
 
 def _alembic_config(database: Path) -> Config:
@@ -78,7 +151,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0014_add_source_type_review_events"
+            "0015_add_opportunity_review_events"
         )
 
 
@@ -103,9 +176,81 @@ def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
     assert "candidate_review_events" in inspect(upgraded).get_table_names()
     with upgraded.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0014_add_source_type_review_events"
+            "0015_add_opportunity_review_events"
         )
     upgraded.dispose()
+
+
+def test_opportunity_review_migration_preserves_legacy_candidate_reviews(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "opportunity-review-migration.db"
+    config = _alembic_config(database)
+    command.upgrade(config, "0014_add_source_type_review_events")
+    engine = create_engine(f"sqlite:///{database}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO candidate_review_events (
+                    candidate_key, source_sha256, source_sheet, source_row,
+                    plan_id_raw, plan_base_id, plan_revision, decision, reviewer,
+                    note, package_snapshot_json, snapshot_schema_version, created_at
+                ) VALUES (
+                    'legacy-key', :sha256, 'Sheet1', 7,
+                    'PL2600000001-00', 'PL2600000001', '00', 'CONFIRMED',
+                    'Reviewer', 'legacy note', '{}', 'mi-3-v1', :created_at
+                )
+                """
+            ),
+            {"sha256": "a" * 64, "created_at": "2026-08-24 00:00:00"},
+        )
+    command.upgrade(config, "head")
+
+    upgraded = create_engine(f"sqlite:///{database}")
+    inspector = inspect(upgraded)
+    assert "opportunity_review_events" in inspector.get_table_names()
+    with upgraded.connect() as connection:
+        legacy = connection.execute(
+            text(
+                """
+                SELECT candidate_key, source_sha256, source_sheet, source_row,
+                       plan_id_raw, plan_base_id, plan_revision, decision, reviewer,
+                       note, package_snapshot_json, snapshot_schema_version
+                FROM candidate_review_events
+                """
+            )
+        ).one()
+        assert tuple(legacy) == (
+            "legacy-key",
+            "a" * 64,
+            "Sheet1",
+            7,
+            "PL2600000001-00",
+            "PL2600000001",
+            "00",
+            "CONFIRMED",
+            "Reviewer",
+            "legacy note",
+            "{}",
+            "mi-3-v1",
+        )
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0015_add_opportunity_review_events"
+        )
+    upgraded.dispose()
+
+    command.downgrade(config, "0014_add_source_type_review_events")
+    downgraded = create_engine(f"sqlite:///{database}")
+    assert "opportunity_review_events" not in inspect(downgraded).get_table_names()
+    with downgraded.connect() as connection:
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM candidate_review_events")
+        ) == 1
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0014_add_source_type_review_events"
+        )
+    downgraded.dispose()
 
 
 def test_upgrade_preserves_legacy_notice_data(tmp_path: Path) -> None:
@@ -202,7 +347,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0014_add_source_type_review_events"
+                "0015_add_opportunity_review_events"
         )
     upgraded.dispose()
 
@@ -248,7 +393,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0014_add_source_type_review_events"
+            "0015_add_opportunity_review_events"
         )
     engine.dispose()
 
@@ -302,7 +447,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0014_add_source_type_review_events"
+    assert result.revision == "0015_add_opportunity_review_events"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -316,7 +461,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0014_add_source_type_review_events"
+            "0015_add_opportunity_review_events"
         )
     upgraded_engine.dispose()
 

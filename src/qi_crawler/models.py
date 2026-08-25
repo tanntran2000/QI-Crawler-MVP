@@ -331,6 +331,37 @@ class SourceTypeReviewEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class OpportunityReviewEvent(Base):
+    """Append-only source-neutral human review event."""
+
+    __tablename__ = "opportunity_review_events"
+    __table_args__ = (
+        Index("ix_opportunity_review_events_observation_key_id", "observation_key", "id"),
+        Index("ix_opportunity_review_events_source_sha256", "source_sha256"),
+        Index("ix_opportunity_review_events_source_type", "source_type"),
+        Index("ix_opportunity_review_events_identity_base_id", "identity_base_id"),
+        Index("ix_opportunity_review_events_identity_revision", "identity_revision"),
+        Index("ix_opportunity_review_events_decision", "decision"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    observation_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    identity_namespace: Mapped[str] = mapped_column(String(16), nullable=False)
+    identity_raw: Mapped[str] = mapped_column(String(255), nullable=False)
+    identity_base_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    identity_revision: Mapped[str | None] = mapped_column(String(64))
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_sheet: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_row: Mapped[int] = mapped_column(Integer, nullable=False)
+    decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(255), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    opportunity_snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
+    snapshot_schema_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class TenderItem(Base):
     """A requested product/line item with auditable quantity extraction."""
 

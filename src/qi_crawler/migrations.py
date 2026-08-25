@@ -6,7 +6,7 @@ Production runtime verifies schema readiness and directs operators to
 
 from __future__ import annotations
 
-import shutil
+import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,7 +52,21 @@ def _backup_sqlite_database(path: Path, backup_dir: Path) -> Path:
     destination = backup_dir / (
         f"{path.stem}_before_alembic_{timestamp}_{uuid4().hex[:8]}{path.suffix}"
     )
-    shutil.copy2(path, destination)
+    source_connection: sqlite3.Connection | None = None
+    destination_connection: sqlite3.Connection | None = None
+    try:
+        source_connection = sqlite3.connect(path)
+        destination_connection = sqlite3.connect(destination)
+        with destination_connection:
+            source_connection.backup(destination_connection)
+    except Exception:
+        destination.unlink(missing_ok=True)
+        raise
+    finally:
+        if destination_connection is not None:
+            destination_connection.close()
+        if source_connection is not None:
+            source_connection.close()
     return destination
 
 

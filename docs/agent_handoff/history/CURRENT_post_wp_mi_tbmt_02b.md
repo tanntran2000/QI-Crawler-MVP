@@ -1,0 +1,26 @@
+HISTORICAL / NON-NORMATIVE / MAY CONTAIN SUPERSEDED RULES.
+
+Captured as the Parent POST local audited closeout snapshot for
+WP-MI-TBMT-02B. After capture, consult CURRENT.md and live Git/GitHub for
+active authority.
+
+# QI-Crawler Agent Handoff — WP-MI-TBMT-02B Parent POST
+
+PARENT_WP = WP-MI-TBMT-02B
+PARENT_RESULT = LOCAL_AUDIT_PASS
+MAIN_BASE = 5deaab424ed691ffbc227830a230edfb54ff9d2f
+LOCAL_PARENT_POST_ENTRY = 4acd2f1b69d3ad5a700d4a287ee5588e6337c4c5
+02B_1 = MERGED
+02B_2 = MERGED
+02B_3 = PASS_REMOTE_CHECKPOINTED
+02B3_AUDITED_CODE_HEAD = 047ddf076b9d48ca996b374b59bdeab356c3ca91
+02B3_REMOTE_CHECKPOINT = 4feb3654b1f1ae3a88706e2b1ae3cf9c0d2b529e
+PARENT_INTEGRATION_VERIFICATION = PASS
+PARENT_INDEPENDENT_AUDIT = PASS
+SCHEMA = 0015_add_opportunity_review_events
+CI_PASS_CLAIMED = NO
+PENDING_RETRO_CI = YES
+OFFICIAL_TEAM_BID_RELEASE = BLOCKED
+NEXT = PARENT POST final-state check → final remote push → Draft PR
+
+This snapshot is immutable evidence and is not live CURRENT authority.
