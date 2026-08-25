@@ -539,16 +539,16 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | Source/web crawl | `STABLE` / `MAINTENANCE_ONLY` | Supported web adapters, discovery, retry/resume, dedup and compliance controls. | New-source coverage and bounded operational fixes only. | Human-prioritized source work; do not rework mature crawling for HSMT. |
 | KHMT/PL intake | `OPERATIONAL` | Source-routed KHMT workbook intake preserves PL identity, raw fields and provenance. | Broader source variants may need bounded corrections. | Source evidence and regression fixture. |
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
-| TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance. | Downstream Bid Radar integration is not wired. | Parent 02B design and Human approval. |
+| TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search and Human Review persistence are merged. | Confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Candidate `WP-MI-TBMT-02C` after current governance reconciliation. |
 | TBMT Bid Radar | `PARTIAL` | Source-neutral schema, parser, importer, filter/search and Human Review persistence are merged. | Source-neutral confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Candidate `WP-MI-TBMT-02C` after current governance reconciliation. |
-| Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | 02B where applicable, Storage Reconciliation and protected-data verification. |
+| Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | Storage Reconciliation and protected-data verification. |
 | Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
 | Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
 | Evidence Locator | `PARTIAL` | Page/sheet/section/table provenance is retained where available. | Consistent locators and reviewable source context across all facts. | Structured extraction and integrity gates. |
 | SOP Bid Intelligence | `PLANNED` | Legacy/pilot bid analysis code and Human review foundations exist; no approved SOP evaluation engine is claimed. | Requirement Register → Cross-check → Gate readiness → Freeze/change-control workflow with Human authority. | Tender Package & HSMT Intelligence + Evidence + Human review contracts. |
 | Human Ground Truth | `PARTIAL` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
-| Knowledge / Rule / Verification Corpus | `PARTIAL` | Versioned-rule, evidence and Human-approval boundaries are defined by the QI-KVS blueprint. | Canonical corpus, evaluator implementation, validation and production activation. | Ground Truth, Golden regression and explicit Human approval. |
+| Knowledge / Rule / Verification Corpus | `PLANNED` | Versioned-rule, evidence and Human-approval boundaries are defined by the QI-KVS blueprint. | Canonical corpus, evaluator implementation, validation and production activation. | Ground Truth, Golden regression and explicit Human approval. |
 | Controlled Learning | `PARKED` | Governance boundary is defined; no self-modifying production behavior. | Evaluation dataset, candidate rules/models and approval lifecycle. | Ground Truth + Golden regression + Human promotion. |
 | XLSX/DOCX outputs | `OPERATIONAL` | Confirmed package XLSX and Legal DOCX are derived from authoritative state. | Wider report bundles and HSMT evidence outputs. | Source-backed facts and explicit output contracts. |
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
@@ -573,7 +573,8 @@ APPLICATION BACKEND:
   confirmed output and source-integrity closure remain.
 
 PERSISTENCE:
-  PARTIAL — candidate review persistence still carries PL-specific semantics.
+  PARTIAL — source-neutral Opportunity Human Review persistence is merged;
+  broader confirmed-output integration remains.
 
 DESKTOP FRONTEND:
   THIN EXISTING-GUI WIRING PENDING — TBMT delivery is not fully wired.
@@ -1207,7 +1208,7 @@ verified CI/release state, applicable governance and Human authority.
 Likely development path, not an approval sequence:
 
 ```text
-02B Bid Radar Integration
+WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure
 → Unified Tender Warehouse reliability
 → Tender Package & HSMT Intelligence hardening
 → Completeness / Evidence

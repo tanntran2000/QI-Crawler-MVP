@@ -369,6 +369,10 @@ PARENT PRE → MICRO PRE → AUDITED REMOTE CHECKPOINT → MICRO POST
 → POST-MERGE RECONCILIATION → NEXT PARENT ENTRY
 ```
 
+During post-merge reconciliation, check applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers. Preserve
+`ALWAYS CHECK != ALWAYS MODIFY`.
+
 After `PR MERGED`, verify live `main`, reconcile `CURRENT.md`, close the
 merged Parent state, check roadmap maturity and project-memory promotion,
 resolve exactly one next action, and leave the handoff ready. If

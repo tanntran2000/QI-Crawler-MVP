@@ -114,6 +114,9 @@ PR MERGED → verify live main → reconcile CURRENT → close merged Parent sta
 → HANDOFF READY
 ```
 
+At that transition, check applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers; `ALWAYS CHECK != ALWAYS MODIFY`.
+
 If `PR MERGED + CURRENT STILL CLAIMS NOT MERGED`, the state is
 `HANDOFF_STALE` and the next technical entry is `ENTRY_HOLD` until reconciled.
 Live Git/GitHub remains authority for volatile state, but stale organizational

@@ -101,6 +101,10 @@ PR MERGED → verify live main → reconcile CURRENT → close merged Parent sta
 → HANDOFF READY
 ```
 
+The reconciliation also checks applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers without implying a document update;
+`ALWAYS CHECK != ALWAYS MODIFY`.
+
 `PR MERGED + CURRENT STILL CLAIMS NOT MERGED` is `HANDOFF_STALE` and requires
 `ENTRY_HOLD`. A cross-agent/session handoff is ready only when it records
 roadmap/baseline, live and active heads, parent/micro-WP, audited heads,

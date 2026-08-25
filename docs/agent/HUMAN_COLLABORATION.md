@@ -320,7 +320,9 @@ PARENT PRE → MICRO PRE → AUDITED REMOTE CHECKPOINT → MICRO POST
 After `PR MERGED`, verify live `main`, reconcile `CURRENT`, close the merged
 Parent state, check roadmap maturity and project-memory promotion, then set
 one next action. If `CURRENT` still says not merged, the handoff is stale and
-the next technical entry is held.
+the next technical entry is held. Check applicable `KNOWN_FAILURE_MODES`,
+`FEEDBACK_LEDGER` and `LESSONS` triggers while preserving
+`ALWAYS CHECK != ALWAYS MODIFY`.
 
 Minimum cross-agent/session handoff fields are:
 `ROADMAP_REVISION`, `ROADMAP_BASELINE_SHA`, `LIVE_MAIN_HEAD`,

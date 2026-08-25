@@ -174,4 +174,6 @@ If merged live state conflicts with `CURRENT.md`, mark `HANDOFF_STALE` and use
 handoffs must answer the bounded identity, head, audit, verification, document
 sync, blocker, scope, next-action and authority fields defined by `AGENTS.md`;
 missing answers mean `HANDOFF_READY = NO`. Chat is collaboration medium,
-files are organizational memory, and Git/GitHub are repository truth.
+files are organizational memory, and Git/GitHub are repository truth. Check
+applicable `KNOWN_FAILURE_MODES`, `FEEDBACK_LEDGER` and `LESSONS` triggers;
+`ALWAYS CHECK != ALWAYS MODIFY`.
