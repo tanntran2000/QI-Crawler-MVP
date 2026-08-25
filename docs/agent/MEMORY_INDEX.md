@@ -24,8 +24,9 @@ frontier; it does not authorize implementation scope by itself.
 8. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
 9. Live GitHub state when the Work Package involves a branch, PR, remote
    checkpoint, or CI.
-10. Relevant entries in `docs/agent/LESSONS.md`.
-11. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+10. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
+11. Relevant entries in `docs/agent/LESSONS.md`.
+12. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
 ## Read-in mode selection
 
@@ -106,6 +107,11 @@ architecture transition, major recovery, Parent closeout and material scope
 invalidation require full history. Roadmap, merged memory, feedback and
 lessons have separate promotion triggers. Active machine-readable keys must
 have one semantic meaning; historical values use explicit namespaced keys.
+
+Engineering Failure Memory is routed organizational evidence, not current
+execution state, merged product memory, Human Ground Truth, roadmap, feedback
+or lessons. Read only entries relevant to the active capability or failure
+path; an unrelated Micro-WP may record `N/A` without reading the whole file.
 
 ## Prompt-writer readiness gate
 
