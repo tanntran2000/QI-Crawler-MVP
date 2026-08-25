@@ -184,3 +184,51 @@ Disposition: ACCEPTED; durable governance update in this correction.
 Promoted to: docs/agent/MEMORY_INDEX.md; docs/agent/MASTER_ROADMAP.md;
 docs/agent/HUMAN_COLLABORATION.md
 ```
+
+### FB-0007 — Adopt the QI Knowledge and Verification System blueprint
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-BLUEPRINT-KVS-HANDOFF-01
+Type: ARCHITECTURE
+Authority: A0 HUMAN_DECISION
+Observation: QI-KVS is a cross-cutting, versioned knowledge and verification
+corpus boundary; it is not a new roadmap lane or an active implementation.
+Evidence: approved Blueprint KVS Work Order.
+Impact: Future rules must remain distinct from source truth, Ground Truth,
+SOP decisions and evaluator code.
+Suggestion: Record the QI-KVS principles, Product House placement and staged
+promotion lifecycle in the master roadmap.
+Scope change required: NO
+Response: Blueprint revision 1.2 records the target boundary and gates without
+activating Knowledge DB/API/MCP or AI implementation.
+Disposition: ACCEPTED; PROMOTED to durable roadmap governance.
+Promoted to: docs/agent/MASTER_ROADMAP.md
+```
+
+### FB-0008 — Strengthen roadmap read and handoff freshness gates
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-BLUEPRINT-KVS-HANDOFF-01
+Type: HANDOFF / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: A stale roadmap or post-merge handoff can give an agent false
+execution context even when Git/GitHub is the live repository authority.
+Evidence: approved Blueprint KVS Work Order and prior handoff lifecycle audits.
+Impact: Agents may start from an unresolved frontier, stale Parent state or
+missing audited-head/provenance fields.
+Suggestion: Require a roadmap entry gate, bounded FULL/DELTA/NO-RE-READ modes,
+and a post-merge reconciliation before the next technical handoff.
+Scope change required: NO
+Response: Added the entry, freshness and strict handoff contracts to the
+durable governance documents; CURRENT remains the active snapshot authority.
+Disposition: ACCEPTED; PROMOTED to durable governance.
+Promoted to: AGENTS.md; docs/agent/MEMORY_INDEX.md;
+docs/agent/OPERATING_MODEL.md; docs/agent/HUMAN_COLLABORATION.md;
+docs/agent/LOCAL_STAGED_INTEGRATION.md
+```

@@ -4,7 +4,7 @@
 QI-Crawler → Internal Bid Assistant
 
 **Status:** MASTER BLUEPRINT / STRATEGIC ROADMAP / MANDATORY ARCHITECTURE README
-**Blueprint revision:** 1.1 (conceptual roadmap revision; not application SemVer)
+**Blueprint revision:** 1.2 (conceptual roadmap revision; not application SemVer)
 **Execution model:** PARENT-WP / MICRO-WP ONLY
 
 **Core product boundary:** QI-Crawler reads, extracts, organizes, locates and
@@ -483,6 +483,48 @@ WINDOWS / TEAM BID DELIVERY
 QUALITY / VERIFICATION / RELEASE GOVERNANCE
 ```
 
+Cross-cutting capability (not a third roadmap axis or Lane 10):
+
+```text
+KNOWLEDGE / RULE / VERIFICATION CORPUS
+```
+
+QI-KVS is a governed target architecture for versioned, evidence-backed
+knowledge and verification rules. It does not change the Product Frontier,
+interrupt Opportunity Intelligence, or activate a Knowledge DB/API/MCP.
+
+```text
+RULE CONTRACT != EVALUATOR IMPLEMENTATION
+RULE CONTRACT = DATA
+EVALUATOR = CODE
+KNOWLEDGE RULE != SOURCE TRUTH
+KNOWLEDGE RULE != HUMAN GROUND TRUTH
+KNOWLEDGE RULE != SOP DECISION RECORD
+ENGINEERING FAILURE MEMORY != PRODUCT KNOWLEDGE RULE
+RULE BASIS EVIDENCE != RUNTIME EVALUATION EVIDENCE
+ABSENCE_OF_DETECTION != PROOF_OF_ABSENCE
+UNKNOWN != FALSE
+UNKNOWN != COMPLETE
+rule_id = knowledge lineage
+(rule_id, version) = exact knowledge identity
+ACTIVE KNOWLEDGE = HUMAN-APPROVED VERSIONED KNOWLEDGE BUNDLE
+AI CONSUMER != KNOWLEDGE AUTHORITY
+```
+
+Target Product House placement:
+
+```text
+CONSUMER / FUTURE AI
+→ DELIVERY SURFACE
+→ APPLICATION BACKEND
+  (KnowledgeRegistry / VerificationService / RuleSelection /
+   ExplainEvaluation)
+→ DOMAIN CORE
+  (RuleId / RuleVersion / Applicability / VerificationMode /
+   EvaluationOutcome / EvidenceContract)
+→ EVALUATOR ADAPTERS + CANONICAL CORPUS / PERSISTENCE
+```
+
 The following evolution tracks are deliberately `HOLD` and do not create
 Parent WPs in this reconciliation:
 
@@ -498,7 +540,7 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | KHMT/PL intake | `OPERATIONAL` | Source-routed KHMT workbook intake preserves PL identity, raw fields and provenance. | Broader source variants may need bounded corrections. | Source evidence and regression fixture. |
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
 | TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance. | Downstream Bid Radar integration is not wired. | Parent 02B design and Human approval. |
-| TBMT Bid Radar | `PARTIAL` | Schema, parser, importer and revision semantics exist. | Filter/search, review persistence, confirmed export and GUI integration. | WP-MI-TBMT-02B design, then approval. |
+| TBMT Bid Radar | `PARTIAL` | Source-neutral schema, parser, importer, filter/search and Human Review persistence are merged. | Source-neutral confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Candidate `WP-MI-TBMT-02C` after current governance reconciliation. |
 | Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | 02B where applicable, Storage Reconciliation and protected-data verification. |
 | Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
@@ -506,6 +548,7 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | Evidence Locator | `PARTIAL` | Page/sheet/section/table provenance is retained where available. | Consistent locators and reviewable source context across all facts. | Structured extraction and integrity gates. |
 | SOP Bid Intelligence | `PLANNED` | Legacy/pilot bid analysis code and Human review foundations exist; no approved SOP evaluation engine is claimed. | Requirement Register → Cross-check → Gate readiness → Freeze/change-control workflow with Human authority. | Tender Package & HSMT Intelligence + Evidence + Human review contracts. |
 | Human Ground Truth | `PARTIAL` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
+| Knowledge / Rule / Verification Corpus | `PARTIAL` | Versioned-rule, evidence and Human-approval boundaries are defined by the QI-KVS blueprint. | Canonical corpus, evaluator implementation, validation and production activation. | Ground Truth, Golden regression and explicit Human approval. |
 | Controlled Learning | `PARKED` | Governance boundary is defined; no self-modifying production behavior. | Evaluation dataset, candidate rules/models and approval lifecycle. | Ground Truth + Golden regression + Human promotion. |
 | XLSX/DOCX outputs | `OPERATIONAL` | Confirmed package XLSX and Legal DOCX are derived from authoritative state. | Wider report bundles and HSMT evidence outputs. | Source-backed facts and explicit output contracts. |
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
@@ -526,13 +569,14 @@ SOURCE ADAPTER:
   DONE for bounded TBMT XLSX intake.
 
 APPLICATION BACKEND:
-  PARTIAL — TBMT does not yet flow through filter/search/review/export.
+  PARTIAL — source-neutral filter/search/review persistence is merged;
+  confirmed output and source-integrity closure remain.
 
 PERSISTENCE:
   PARTIAL — candidate review persistence still carries PL-specific semantics.
 
 DESKTOP FRONTEND:
-  SOURCE RECOGNITION ONLY — TBMT downstream flow is not wired.
+  THIN EXISTING-GUI WIRING PENDING — TBMT delivery is not fully wired.
 
 CLI:
   not a required 02B delivery target unless separately approved.
@@ -545,7 +589,7 @@ TEAM BID DELIVERY:
 ```
 
 This is descriptive architecture status, not implementation authorization. Do
-not change 02B from `DESIGN NEXT`.
+not activate 02C from this roadmap update.
 
 ### Work Package architecture layer contract
 
@@ -673,12 +717,12 @@ an unnecessary crawler rewrite.
 **Mission:** turn KHMT/TBMT sources into understandable, source-backed
 opportunities for Team Bid.
 
-Current direction is KHMT/PL operational, TBMT recognition and source-neutral
-intake done, and TBMT downstream integration partial. The next candidate Parent
-is `WP-MI-TBMT-02B — Bid Radar Integration`, subject to design and Human
-approval. Concerns include source-neutral filter/search, revision-specific
-Human Review persistence, approved migration if needed, confirmed export, GUI
-integration and revision history/supersession behavior.
+Current direction is KHMT/PL operational. TBMT source-neutral intake,
+filter/search and Human Review persistence are merged. Remaining gaps are
+source-neutral confirmed output, backend source-integrity closure, thin
+existing-GUI wiring and vertical KHMT/TBMT acceptance. The next candidate is
+`WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`, subject to
+design and Human approval. Do not activate it from this roadmap update.
 
 Hard invariant:
 
@@ -816,10 +860,17 @@ HSMT Bundle
 → Native Evidence
 → Document Structure
 → Structured Requirement Extraction
+→ Verification Profile
+→ Rule Evaluation
 → Completeness / Extraction Integrity
 → Evidence Locator
-→ Human Review
+→ Human Review / Ground Truth
 ```
+
+Verification Profile and Rule Evaluation are target capabilities only. They
+must not replace source evidence or Human authority. Rule outcomes are:
+`SATISFIED`, `VIOLATED`, `INDETERMINATE`, `NOT_APPLICABLE` and
+`NEEDS_HUMAN_REVIEW`.
 
 The target source domains include package identity/value, owner, deadlines,
 selection and contract terms, eligibility, legal/financial requirements,
@@ -945,18 +996,27 @@ machine prediction, Human correction, review authority, error class and time/
 history. A critical error means `HOLD` the affected capability/package, capture
 Ground Truth, add regression, apply a minimal fix and re-verify.
 
+```text
+RULE BASIS EVIDENCE != RUNTIME EVALUATION EVIDENCE
+```
+
 ### Ground Truth stability loop
 
 ```text
-SOURCE
-→ MACHINE OBSERVATION
+SOURCE / MACHINE OBSERVATION
 → HUMAN REVIEW
-→ CORRECTION / CONFIRMATION
-→ VERIFIED GROUND TRUTH
-→ ERROR CORPUS
-→ PATTERN CANDIDATE
-→ GOLDEN / REGRESSION EVALUATION
-→ HUMAN-APPROVED PROMOTION
+→ GROUND TRUTH
+→ ERROR / PATTERN CORPUS
+→ DISCOVERED RULE CANDIDATE
+→ PENDING
+→ RULE CONTRACT VALIDATION
+→ EVALUATOR + GOLDEN
+→ INDEPENDENT EVALUATION
+→ HUMAN APPROVAL
+→ APPROVED
+→ ACTIVE RULE VERSION
+→ VERSIONED KNOWLEDGE BUNDLE
+→ PRODUCTION
 ```
 
 ```text
@@ -977,16 +1037,20 @@ automatically become extraction Ground Truth.
 ```text
 Ground Truth
 → recurring-pattern/error analysis
-→ rule/model/pattern candidate
-→ evaluation dataset
-→ Golden regression
+→ discovered rule candidate
+→ pending rule-contract validation
+→ evaluator + Golden regression
+→ independent evaluation
 → Human approval
-→ promoted extractor/rule/model version
+→ active rule version
+→ versioned knowledge bundle
+→ production
 ```
 
 `SELF-LEARNING != SELF-MODIFYING PRODUCTION`. Future candidates may be
 `DISCOVERED`, `PENDING`, `APPROVED`, `ACTIVE` or `DEPRECATED`, but no automatic
-promotion is authorized by this roadmap.
+promotion is authorized by this roadmap. The future Agent Adapter is read-only
+with respect to knowledge authority.
 
 ## Lane 8 — Bid Assistant / Output
 

@@ -76,6 +76,38 @@ Entry outcomes are:
 - `ENTRY_NOTE`: a non-blocking observation is recorded.
 - `ENTRY_HOLD`: baseline, authority, or scope is unresolved; do not write.
 
+## Roadmap entry and handoff readiness
+
+Before `READY`, `PROMPT_READY` or `START_IMPLEMENTATION`, reconcile:
+
+```text
+ROADMAP_BASELINE = VERIFIED
+PRODUCT_FRONTIER = RESOLVED
+ROADMAP_NODE = RESOLVED
+ARCHITECTURE_LAYERS = RESOLVED
+READ_MODE = RESOLVED
+```
+
+Use FULL roadmap read for a new agent/Parent, takeover or material
+architecture/governance change; DELTA for a new Micro-WP under unchanged
+architecture; and NO-RE-READ only for unchanged same-session work. A changed
+roadmap SHA or blueprint revision requires at least DELTA.
+
+After a merge, reconcile live state before handoff:
+
+```text
+PR MERGED → verify live main → reconcile CURRENT → close merged Parent state
+→ check roadmap maturity → check PROJECT_MEMORY promotion → resolve next action
+→ HANDOFF READY
+```
+
+`PR MERGED + CURRENT STILL CLAIMS NOT MERGED` is `HANDOFF_STALE` and requires
+`ENTRY_HOLD`. A cross-agent/session handoff is ready only when it records
+roadmap/baseline, live and active heads, parent/micro-WP, audited heads,
+checkpoint/PR/merge state, verification/CI/doc-sync state, completion,
+blockers, boundaries, exactly one next action and authority. Chat is the
+collaboration medium; files are organizational memory; Git/GitHub is truth.
+
 ## Local Staged Integration
 
 The default development procedure for Parent Work Packages is defined in

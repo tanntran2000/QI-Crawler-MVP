@@ -359,6 +359,50 @@ OLD CONTRACT → ADAPTER / COMPATIBILITY BOUNDARY → NEW GENERIC CONTRACT
 
 Passing tests alone does not prove legacy compatibility.
 
+### 8.4 Post-merge freshness and strict handoff gate
+
+The governed freshness transitions are:
+
+```text
+PARENT PRE → MICRO PRE → AUDITED REMOTE CHECKPOINT → MICRO POST
+→ AGENT/SESSION HANDOFF → PARENT POST → PR/MERGE TRANSITION
+→ POST-MERGE RECONCILIATION → NEXT PARENT ENTRY
+```
+
+After `PR MERGED`, verify live `main`, reconcile `CURRENT.md`, close the
+merged Parent state, check roadmap maturity and project-memory promotion,
+resolve exactly one next action, and leave the handoff ready. If
+`CURRENT.md` still claims not merged after live merge, mark
+`HANDOFF_STALE` and return `ENTRY_HOLD` before technical work.
+
+Cross-agent/session handoffs must include:
+
+```text
+ROADMAP_REVISION
+ROADMAP_BASELINE_SHA
+LIVE_MAIN_HEAD
+ACTIVE_BRANCH_HEAD
+ACTIVE_PARENT_WP
+ACTIVE_MICRO_WP
+LAST_AUDITED_CODE_HEAD
+LAST_AUDITED_DOC_HEAD
+REMOTE_CHECKPOINT
+PR_STATE
+MERGE_STATE
+VERIFICATION_STATE
+HOSTED_CI_STATE
+DOC_SYNC_STATE
+PROVEN_COMPLETE
+OPEN_BLOCKERS
+SCOPE_BOUNDARIES
+EXACTLY_ONE_NEXT_ACTION
+NEXT_AUTHORITY
+```
+
+If any required answer is missing, `HANDOFF_READY = NO`. Chat is the
+collaboration medium, files are organizational memory, and Git/GitHub is
+repository truth. The handoff is not a transcript.
+
 ## 9. Parent Integration Gate
 
 Before opening the Parent-WP PR, run the minimum complete cumulative

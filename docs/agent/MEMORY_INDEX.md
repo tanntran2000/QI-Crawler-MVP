@@ -69,6 +69,16 @@ or diff may support a delta decision after an eligible full read, but SHA
 equality never replaces the initial full read required for a new agent or
 Parent.
 
+## Roadmap entry gate
+
+No `READY`, `PROMPT_READY` or `START_IMPLEMENTATION` is valid until
+`ROADMAP_BASELINE = VERIFIED`, `PRODUCT_FRONTIER = RESOLVED`,
+`ROADMAP_NODE = RESOLVED`, `ARCHITECTURE_LAYERS = RESOLVED` and
+`READ_MODE = RESOLVED`. A changed roadmap SHA or blueprint revision invalidates
+`NO_RE_READ` and requires a delta reconciliation. Full roadmap read remains
+mandatory for new agents, new Parents, takeovers and material architecture or
+governance changes; it is not repeated for every command.
+
 ## Authority order
 
 Live repository/GitHub state and merged code/tests outrank stale handoffs.
@@ -148,3 +158,20 @@ RESULT                    PROMPT_READY / ENTRY_HOLD
 `PROMPT_READY` is allowed only when `CURRENT.md`, live Git, and live GitHub can
 be reconciled. A stale snapshot is evidence to refresh or hold, not permission
 to infer missing state from chat history or model memory.
+
+## Post-merge freshness gate
+
+The governed post-merge sequence is:
+
+```text
+PR MERGED → verify live main → reconcile CURRENT → close merged Parent state
+→ check roadmap maturity → check PROJECT_MEMORY promotion → resolve next action
+→ HANDOFF READY
+```
+
+If merged live state conflicts with `CURRENT.md`, mark `HANDOFF_STALE` and use
+`ENTRY_HOLD` before the next technical implementation. Cross-agent/session
+handoffs must answer the bounded identity, head, audit, verification, document
+sync, blocker, scope, next-action and authority fields defined by `AGENTS.md`;
+missing answers mean `HANDOFF_READY = NO`. Chat is collaboration medium,
+files are organizational memory, and Git/GitHub are repository truth.
