@@ -35,29 +35,25 @@ from .export import TBMTExportResult, export_tbmt
 from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
-from .market_intelligence.candidate_review import (
-    CandidateReviewService,
-    HumanReviewDecision,
-)
-from .market_intelligence.confirmed_package_export import (
-    ConfirmedPackageExportResult,
-    export_confirmed_packages,
-)
-from .market_intelligence.khmt_contract import PlanPackage
-from .market_intelligence.khmt_importer import (
-    KHMTImportIssue,
-    import_khmt_workbook,
-)
+from .market_intelligence.confirmed_opportunity_export import ConfirmedOpportunityExportResult
+from .market_intelligence.filter_engine import OpportunityFilterDisposition
+from .market_intelligence.khmt_importer import import_khmt_workbook
 from .market_intelligence.legal_docx import (
     LegalDocxExportResult,
-    export_confirmed_legal_docx,
+    export_confirmed_legal_docx_records,
 )
-from .market_intelligence.search import (
-    SearchEvaluation,
-    TargetedSearchRequest,
-    TargetedSearchResult,
-    search_packages,
+from .market_intelligence.opportunity_contract import OpportunitySourceType
+from .market_intelligence.opportunity_intelligence import (
+    OpportunityImportIssue,
+    OpportunityIntelligenceService,
+    OpportunityLoadResult,
 )
+from .market_intelligence.opportunity_radar import (
+    OpportunityRadarItem,
+    radar_item_from_plan_package,
+)
+from .market_intelligence.opportunity_review import OpportunityReviewService
+from .market_intelligence.search import TargetedSearchRequest
 from .market_intelligence.source_detection import (
     SourceType,
     SourceTypeDetection,
@@ -71,6 +67,7 @@ from .native_extraction import (
     NativeHSMTExtractionService,
 )
 from .notice_search import search_notices
+from .opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
 from .source_filter import active_source_domains, active_source_names
 from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
 
@@ -137,37 +134,44 @@ class WorkspaceDocumentIntakeResult:
 class BidRadarRow:
     """One filter evaluation plus the latest explicit human review state."""
 
-    package: PlanPackage
-    matched: bool
+    item: OpportunityRadarItem
+    disposition: OpportunityFilterDisposition
     reasons: tuple[str, ...]
     review_state: str
 
 
 @dataclass(frozen=True)
 class BidRadarResult:
+    """Source-neutral Bid Radar delivery result."""
+
+    source_type: OpportunitySourceType
+    load_result: OpportunityLoadResult
     source_path: Path
     source_sha256: str
-    packages: tuple[PlanPackage, ...]
-    issues: tuple[KHMTImportIssue, ...]
+    items: tuple[OpportunityRadarItem, ...]
+    issues: tuple[OpportunityImportIssue, ...]
     rows: tuple[BidRadarRow, ...]
     matched_count: int
+    indeterminate_count: int
+    nonmatched_count: int
     total_examined: int
 
 
 def _bid_radar_rows(
-    database: Database,
-    evaluations: tuple[SearchEvaluation, ...],
+    service: OpportunityIntelligenceService,
+    evaluations: tuple[object, ...],
 ) -> tuple[BidRadarRow, ...]:
-    review_service = CandidateReviewService(database)
     rows: list[BidRadarRow] = []
-    for item in evaluations:
-        event = review_service.current_event(item.package)
+    for evaluated in evaluations:
+        item = evaluated.item
+        evaluation = evaluated.evaluation
+        event = service.current_event(item)
         rows.append(
             BidRadarRow(
-                package=item.package,
-                matched=item.evaluation.matched,
-                reasons=tuple(reason.value for reason in item.evaluation.reasons),
-                review_state=event.decision if event is not None else "UNREVIEWED",
+                item=item,
+                disposition=evaluation.disposition,
+                reasons=tuple(criterion.reason_code.value for criterion in evaluation.criteria),
+                review_state=event.decision.value if event is not None else "UNREVIEWED",
             )
         )
     return tuple(rows)
@@ -182,16 +186,22 @@ def run_bid_radar_import_search(
     source_detection: SourceTypeDetection | None = None,
     source_reviewer: str | None = None,
 ) -> BidRadarResult:
-    """Import and evaluate KHMT through MI-1/MI-2 without human decisions."""
-    if source_type is not SourceType.KHMT:
-        raise ValueError(
-            "Chỉ nguồn KHMT hiện được nhập vào Bid Radar; TBMT đã được nhận dạng "
-            "nhưng chưa có luồng nhập trong Work Package này."
-        )
-    imported = import_khmt_workbook(Path(source_path))
-    searched: TargetedSearchResult = search_packages(imported.packages, request)
+    """Import and evaluate KHMT or TBMT through the source-neutral backend."""
+    source_map = {
+        SourceType.KHMT: OpportunitySourceType.KHMT,
+        SourceType.TBMT: OpportunitySourceType.TBMT,
+    }
+    try:
+        opportunity_source = source_map[source_type]
+    except KeyError as exc:
+        raise ValueError("Chỉ nguồn KHMT hoặc TBMT được phép nhập vào Bid Radar.") from exc
     database = Database(config.storage.database_url)
     database.require_current_schema()
+    service = OpportunityIntelligenceService(
+        OpportunityReviewService(SqlAlchemyOpportunityReviewRepository(database))
+    )
+    loaded = service.load_workbook(Path(source_path), opportunity_source)
+    searched = service.search_opportunities(loaded.items, request)
     if source_detection is not None and (
         source_detection.requires_human or source_reviewer
     ):
@@ -201,12 +211,16 @@ def run_bid_radar_import_search(
             reviewer=source_reviewer,
         )
     return BidRadarResult(
-        source_path=Path(source_path),
-        source_sha256=imported.batch.source_sha256,
-        packages=imported.packages,
-        issues=imported.issues,
-        rows=_bid_radar_rows(database, searched.evaluated),
+        source_type=loaded.source_type,
+        load_result=loaded,
+        source_path=loaded.source_path,
+        source_sha256=loaded.source_sha256,
+        items=loaded.items,
+        issues=loaded.issues,
+        rows=_bid_radar_rows(service, searched.evaluated),
         matched_count=searched.matched_count,
+        indeterminate_count=searched.indeterminate_count,
+        nonmatched_count=searched.nonmatched_count,
         total_examined=searched.total_examined,
     )
 
@@ -232,55 +246,81 @@ def run_bid_radar_source_review(
 
 def run_bid_radar_review(
     config: AppConfig,
-    package: PlanPackage,
+    item: OpportunityRadarItem,
     decision: str,
     reviewer: str,
     note: str = "",
 ) -> str:
-    """Record one explicit human decision through MI-3."""
+    """Record one explicit source-neutral human decision through MI-3."""
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    event = CandidateReviewService(database).record_decision(
-        package,
-        decision=HumanReviewDecision(decision),
+    service = OpportunityIntelligenceService(
+        OpportunityReviewService(SqlAlchemyOpportunityReviewRepository(database))
+    )
+    event = service.record_review(
+        item,
+        decision=decision,
         reviewer=reviewer,
         note=note,
     )
-    return event.decision
+    return event.decision.value
 
 
 def run_bid_radar_export(
     config: AppConfig,
-    packages: tuple[PlanPackage, ...],
+    load_result: OpportunityLoadResult | tuple[object, ...],
     *,
     source_path: Path,
     expected_source_sha256: str,
-) -> ConfirmedPackageExportResult:
-    """Export only MI-3 latest-state confirmations through MI-4."""
-    verify_source_integrity(source_path, expected_source_sha256)
+) -> ConfirmedOpportunityExportResult:
+    """Export current confirmations through the source-neutral MI facade."""
+    if not isinstance(load_result, OpportunityLoadResult):
+        verify_source_integrity(source_path, expected_source_sha256)
+        raise TypeError("Bid Radar export requires the authoritative imported source.")
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    return export_confirmed_packages(
-        CandidateReviewService(database),
-        packages,
+    service = OpportunityIntelligenceService(
+        OpportunityReviewService(SqlAlchemyOpportunityReviewRepository(database))
+    )
+    return service.export_confirmed(
+        load_result,
         output=config.storage.report_dir / "CÁC GÓI ĐÃ XÁC NHẬN.xlsx",
     )
 
 
 def run_bid_radar_legal_docx(
     config: AppConfig,
-    packages: tuple[PlanPackage, ...],
+    load_result: OpportunityLoadResult | tuple[object, ...],
     *,
     source_path: Path,
     expected_source_sha256: str,
 ) -> tuple[LegalDocxExportResult, ...]:
-    """Generate read-only Legal DOCX files through MI-5."""
-    verify_source_integrity(source_path, expected_source_sha256)
+    """Generate KHMT Legal DOCX from source-neutral confirmed observations."""
+    if not isinstance(load_result, OpportunityLoadResult):
+        verify_source_integrity(source_path, expected_source_sha256)
+        raise TypeError("Legal DOCX requires the authoritative imported source.")
+    if load_result.source_type is not OpportunitySourceType.KHMT:
+        raise ValueError("Legal DOCX hiện chỉ hỗ trợ nguồn KHMT; TBMT chưa có mẫu DOCX.")
+    verify_source_integrity(load_result.source_path, load_result.source_sha256)
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    return export_confirmed_legal_docx(
-        CandidateReviewService(database),
-        packages,
+    service = OpportunityIntelligenceService(
+        OpportunityReviewService(SqlAlchemyOpportunityReviewRepository(database))
+    )
+    packages = import_khmt_workbook(load_result.source_path).packages
+    package_by_key = {
+        radar_item_from_plan_package(package).observation_key: package
+        for package in packages
+    }
+    confirmed = service.current_confirmed(load_result.items)
+    selected = []
+    for record in confirmed:
+        package = package_by_key.get(record.identity.observation_key)
+        if package is None:
+            raise ValueError("KHMT Legal DOCX không tìm thấy đúng gói theo source identity.")
+        selected.append((package, record))
+    return export_confirmed_legal_docx_records(
+        selected,
         output_dir=config.storage.report_dir,
     )
 

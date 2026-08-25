@@ -91,7 +91,6 @@ from .gui_services import (
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
     run_bid_radar_review,
-    run_bid_radar_source_review,
     run_create_manual_tender_workspace,
     run_document_classification_confirmation,
     run_document_extraction_inspection,
@@ -303,8 +302,9 @@ class QICrawlerWindow(QMainWindow):
         self._hsmt_fact_dashboard: HSMTFactDashboard | None = None
         self._document_workspace_tender: str | None = None
         self._document_session_duplicates = 0
-        self._bid_radar_packages: tuple[Any, ...] = ()
+        self._bid_radar_items: tuple[Any, ...] = ()
         self._bid_radar_rows: tuple[BidRadarRow, ...] = ()
+        self._bid_radar_load_result: Any | None = None
         self._bid_radar_loaded_source: Path | None = None
         self._bid_radar_loaded_sha256: str | None = None
         self._login_ready: threading.Event | None = None
@@ -633,9 +633,9 @@ class QICrawlerWindow(QMainWindow):
     def _build_bid_radar_page(self) -> None:
         _page, layout = self._new_page(
             "Bid Radar",
-            "Nhập KHMT, lọc cơ hội, sau đó xác nhận thủ công trước khi xuất hồ sơ.",
+            "Nhập KHMT/TBMT, lọc cơ hội, sau đó xác nhận thủ công trước khi xuất hồ sơ.",
         )
-        source_box = QGroupBox("1. NHẬP KHMT")
+        source_box = QGroupBox("1. NHẬP NGUỒN CƠ HỘI")
         source_layout = QFormLayout(source_box)
         source_row = QHBoxLayout()
         self.bid_radar_path = QLineEdit()
@@ -696,7 +696,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_table.setHorizontalHeaderLabels(
             [
                 "Gói tin",
-                "Mã PL",
+                "Mã gốc",
                 "Revision",
                 "Tên gói",
                 "Giá gói thầu",
@@ -756,6 +756,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_export_button = QPushButton("XUẤT GÓI ĐÃ XÁC NHẬN (XLSX)")
         self.bid_radar_export_button.clicked.connect(self.start_bid_radar_export)
         self.bid_radar_legal_button = QPushButton("TẠO LEGAL DOCX")
+        self.bid_radar_legal_button.setEnabled(False)
         self.bid_radar_legal_button.clicked.connect(self.start_bid_radar_legal_docx)
         output_actions.addWidget(self.bid_radar_export_button)
         output_actions.addWidget(self.bid_radar_legal_button)
@@ -767,7 +768,7 @@ class QICrawlerWindow(QMainWindow):
             self,
             "Chọn file KHMT",
             str(self.config.storage.report_dir),
-            "Excel KHMT (*.xlsx)",
+            "Excel nguồn (*.xlsx)",
         )
         if path:
             selected = Path(path).resolve()
@@ -778,8 +779,9 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_path.setText(str(selected))
 
     def _clear_bid_radar_loaded_state(self) -> None:
-        self._bid_radar_packages = ()
+        self._bid_radar_items = ()
         self._bid_radar_rows = ()
+        self._bid_radar_load_result = None
         self._bid_radar_loaded_source = None
         self._bid_radar_loaded_sha256 = None
         self.bid_radar_table.setRowCount(0)
@@ -788,6 +790,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_note.clear()
         self.bid_radar_source_summary.setText("Chưa nhận dạng file nguồn.")
         self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
+        self.bid_radar_legal_button.setEnabled(False)
         self._on_bid_radar_selected()
 
     def _render_bid_radar_source_detection(
@@ -814,26 +817,27 @@ class QICrawlerWindow(QMainWindow):
         current_text = self.bid_radar_path.text().strip()
         current = Path(current_text).resolve() if current_text else None
         if (
-            not self._bid_radar_packages
+            not self._bid_radar_items
+            or self._bid_radar_load_result is None
             or self._bid_radar_loaded_source is None
             or self._bid_radar_loaded_sha256 is None
             or current != self._bid_radar_loaded_source
         ):
             self.bid_radar_status.setText(
-                f"Chưa có dữ liệu KHMT hợp lệ để {action}. Hãy nhập file hiện tại trước."
+                f"Chưa có dữ liệu nguồn hợp lệ để {action}. Hãy nhập file hiện tại trước."
             )
             return False
         try:
             current_sha256 = _sha256(current)
         except OSError:
             self.bid_radar_status.setText(
-                "Không thể đọc file KHMT hiện tại. Hãy chọn và nhập lại file trước khi xuất."
+                "Không thể đọc file nguồn hiện tại. Hãy chọn và nhập lại file trước khi xuất."
             )
             return False
         if current_sha256 != self._bid_radar_loaded_sha256:
             self._clear_bid_radar_loaded_state()
             self.bid_radar_status.setText(
-                "File KHMT đã thay đổi. Hãy nhập lại trước khi xuất XLSX hoặc Legal DOCX."
+                "File nguồn đã thay đổi. Hãy nhập lại trước khi xuất XLSX hoặc Legal DOCX."
             )
             return False
         return True
@@ -898,42 +902,14 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_status.setText(str(exc))
             return
         self._render_bid_radar_source_detection(detection, resolved.final_type)
-        if resolved.final_type is SourceType.TBMT:
-            self.bid_radar_status.setText(
-                "TBMT_SOURCE_RECOGNIZED\n"
-                "Đã nhận dạng file TBMT. Chức năng nhập TBMT vào Bid Radar sẽ được "
-                "triển khai ở Work Package tiếp theo."
-            )
-            if resolved.authority == "HUMAN":
-                reviewer = self.bid_radar_reviewer.text().strip()
-                if not reviewer:
-                    self.bid_radar_status.setText(
-                        "TBMT_SOURCE_RECOGNIZED\nCần tên người xác nhận trước khi lưu lựa chọn TBMT."
-                    )
-                    return
-                self._submit(
-                    run_bid_radar_source_review,
-                    self.config,
-                    detection,
-                    resolved.final_type,
-                    reviewer,
-                    self.bid_radar_note.text().strip(),
-                    on_success=lambda _value: None,
-                    button=self.bid_radar_import_button,
-                    progress=self.bid_radar_progress,
-                    status=self.bid_radar_status,
-                    task_name="bid_radar_source_review",
-                    long_operation=True,
-                )
-            return
-        if resolved.final_type is not SourceType.KHMT:
+        if resolved.final_type not in (SourceType.KHMT, SourceType.TBMT):
             self.bid_radar_status.setText("Chưa có loại nguồn hợp lệ để nhập.")
             return
         reviewer = self.bid_radar_reviewer.text().strip() if resolved.authority == "HUMAN" else None
         if resolved.authority == "HUMAN" and not reviewer:
             self.bid_radar_status.setText("Cần tên người xác nhận trước khi nhập nguồn này.")
             return
-        self.bid_radar_status.setText("Đang nhập và lọc KHMT...")
+        self.bid_radar_status.setText(f"Đang nhập và lọc {resolved.final_type.value}...")
         self._submit(
             run_bid_radar_import_search,
             self.config,
@@ -961,31 +937,33 @@ class QICrawlerWindow(QMainWindow):
 
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
         self._bid_radar_rows = tuple(result.rows)
-        self._bid_radar_packages = tuple(
-            getattr(result, "packages", tuple(row.package for row in self._bid_radar_rows))
-        )
+        self._bid_radar_items = tuple(result.items)
+        self._bid_radar_load_result = result.load_result
         source_path = getattr(result, "source_path", None)
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
         self._bid_radar_loaded_sha256 = getattr(result, "source_sha256", None)
+        self.bid_radar_legal_button.setEnabled(result.source_type.value == "KHMT")
         self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
         for row_index, row in enumerate(self._bid_radar_rows):
-            package = row.package
+            item = row.item
             values = (
-                getattr(package.plan, "plan_id_raw", ""),
-                getattr(package.plan, "plan_base_id", ""),
-                getattr(package.plan, "plan_revision", "") or "",
-                package.package_name,
-                str(package.package_price) if package.package_price is not None else "",
-                package.province_city_name or "",
-                "PHÙ HỢP" if row.matched else "KHÔNG PHÙ HỢP",
+                item.identity.raw_id,
+                item.identity.base_id,
+                item.identity.revision or "",
+                item.package_name,
+                str(item.package_price) if item.package_price is not None else "",
+                item.province_city_name or "",
+                self._bid_radar_disposition_label(row.disposition),
                 self._bid_radar_review_label(row.review_state),
             )
             for column, value in enumerate(values):
                 self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
         status_lines = [
             (
-                f"Đã nhập {len(self._bid_radar_packages)} gói; phù hợp {result.matched_count}; "
-                f"cảnh báo {len(getattr(result, 'issues', ()))}. Lọc không đồng nghĩa xác nhận."
+                f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"phù hợp {result.matched_count}; cần kiểm tra {result.indeterminate_count}; "
+                f"không phù hợp {result.nonmatched_count}; cảnh báo {len(getattr(result, 'issues', ()))}. "
+                "Lọc không đồng nghĩa xác nhận."
             )
         ]
         for issue in getattr(result, "issues", ()):
@@ -993,6 +971,14 @@ class QICrawlerWindow(QMainWindow):
             row = f" dòng {issue.source_row}" if getattr(issue, "source_row", None) else ""
             status_lines.append(f"- {code}{row}: {issue.message}")
         self.bid_radar_status.setText("\n".join(status_lines))
+
+    @staticmethod
+    def _bid_radar_disposition_label(value: Any) -> str:
+        return {
+            "MATCH": "PHÙ HỢP",
+            "NO_MATCH": "KHÔNG PHÙ HỢP",
+            "INDETERMINATE": "CẦN KIỂM TRA",
+        }.get(getattr(value, "value", value), "CẦN KIỂM TRA")
 
     def _on_bid_radar_selected(self) -> None:
         selected = self.bid_radar_table.currentRow()
@@ -1020,7 +1006,7 @@ class QICrawlerWindow(QMainWindow):
         self._submit(
             run_bid_radar_review,
             self.config,
-            self._bid_radar_rows[selected].package,
+            self._bid_radar_rows[selected].item,
             decision,
             reviewer,
             self.bid_radar_note.text().strip(),
@@ -1043,8 +1029,8 @@ class QICrawlerWindow(QMainWindow):
         row = self._bid_radar_rows[row_index]
         self._bid_radar_rows = self._bid_radar_rows[:row_index] + (
             BidRadarRow(
-                package=row.package,
-                matched=row.matched,
+                item=row.item,
+                disposition=row.disposition,
                 reasons=row.reasons,
                 review_state=decision,
             ),
@@ -1063,7 +1049,7 @@ class QICrawlerWindow(QMainWindow):
         self._submit(
             run_bid_radar_export,
             self.config,
-            self._bid_radar_packages,
+            self._bid_radar_load_result,
             source_path=self._bid_radar_loaded_source,
             expected_source_sha256=self._bid_radar_loaded_sha256,
             on_success=self._render_bid_radar_export,
@@ -1081,12 +1067,17 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_bid_radar_legal_docx(self) -> None:
+        if self._bid_radar_load_result is not None and self._bid_radar_load_result.source_type.value == "TBMT":
+            self.bid_radar_status.setText(
+                "Legal DOCX hiện chỉ hỗ trợ nguồn KHMT; TBMT chưa có mẫu DOCX."
+            )
+            return
         if not self._bid_radar_export_ready("tạo Legal DOCX"):
             return
         self._submit(
             run_bid_radar_legal_docx,
             self.config,
-            self._bid_radar_packages,
+            self._bid_radar_load_result,
             source_path=self._bid_radar_loaded_source,
             expected_source_sha256=self._bid_radar_loaded_sha256,
             on_success=self._render_bid_radar_legal_docx,

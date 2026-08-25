@@ -19,6 +19,58 @@ from qi_crawler.market_intelligence.search import TargetedSearchValidationError
 from qi_crawler.market_intelligence.source_detection import SourceType, SourceTypeDetection
 
 
+def _fake_radar_item(raw_id: str = "PL260001-00") -> SimpleNamespace:
+    namespace = raw_id[:2]
+    base_id, revision = raw_id.rsplit("-", 1)
+    return SimpleNamespace(
+        identity=SimpleNamespace(raw_id=raw_id, base_id=base_id, revision=revision),
+        source_type=SimpleNamespace(value="KHMT" if namespace == "PL" else "TBMT"),
+        package_name="Gói thử nghiệm",
+        package_price=100,
+        province_city_name="Hà Nội",
+    )
+
+
+def _fake_result(
+    item: SimpleNamespace | None = None,
+    *,
+    path: Path = Path("khmt.xlsx"),
+    source_type: str = "KHMT",
+    source_sha256: str = "a" * 64,
+    issues: tuple[object, ...] = (),
+    disposition: str = "MATCH",
+    matched_count: int = 1,
+    indeterminate_count: int = 0,
+    nonmatched_count: int = 0,
+) -> SimpleNamespace:
+    item = item or _fake_radar_item("PL260001-00")
+    row = SimpleNamespace(
+        item=item,
+        disposition=disposition,
+        reasons=(),
+        review_state="UNREVIEWED",
+    )
+    load_result = SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        source_path=path,
+        source_sha256=source_sha256,
+        items=(item,),
+    )
+    return SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        load_result=load_result,
+        source_path=path,
+        source_sha256=source_sha256,
+        items=(item,),
+        rows=(row,),
+        issues=issues,
+        matched_count=matched_count,
+        indeterminate_count=indeterminate_count,
+        nonmatched_count=nonmatched_count,
+        total_examined=1,
+    )
+
+
 @pytest.fixture(scope="module")
 def application() -> QApplication:
     return QApplication.instance() or QApplication([])
@@ -61,7 +113,7 @@ def test_bid_radar_source_selector_defaults_to_automatic(window: QICrawlerWindow
     assert window.bid_radar_source_type.currentText() == "TỰ ĐỘNG"
 
 
-def test_tbmt_source_is_recognized_without_calling_khmt_importer(
+def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -91,9 +143,26 @@ def test_tbmt_source_is_recognized_without_calling_khmt_importer(
 
     window.start_bid_radar_import()
 
-    assert captured == []
-    assert "TBMT_SOURCE_RECOGNIZED" in window.bid_radar_status.text()
-    assert "Work Package tiếp theo" in window.bid_radar_status.text()
+    assert captured == [gui.run_bid_radar_import_search]
+    assert "Work Package tiếp theo" not in window.bid_radar_status.text()
+
+
+def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow) -> None:
+    item = _fake_radar_item("IB2600463290-00")
+    result = _fake_result(
+        item,
+        path=Path("tbmt.xlsx"),
+        source_type="TBMT",
+        disposition="INDETERMINATE",
+        matched_count=0,
+        indeterminate_count=1,
+    )
+    result.rows[0].reasons = ("PRICE_UNKNOWN",)
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_table.item(0, 0).text() == "IB2600463290-00"
+    assert window.bid_radar_table.item(0, 6).text() == "CẦN KIỂM TRA"
+    assert not window.bid_radar_legal_button.isEnabled()
 
 
 def test_unknown_source_requires_explicit_human_selection(
@@ -213,45 +282,14 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
 
 
 def test_filter_match_does_not_auto_confirm(window: QICrawlerWindow) -> None:
-    row = SimpleNamespace(
-        package=SimpleNamespace(
-            plan=SimpleNamespace(plan_base_id="PL260001", plan_revision=None),
-            package_name="Gói thử nghiệm",
-            package_price=100,
-            province_city_name="Hà Nội",
-        ),
-        matched=True,
-        reasons=("Từ khóa phù hợp",),
-        review_state="UNREVIEWED",
-    )
-    window._render_bid_radar_result(
-        SimpleNamespace(
-            packages=(row.package,),
-            rows=(row,),
-            matched_count=1,
-            total_examined=1,
-        )
-    )
+    window._render_bid_radar_result(_fake_result())
 
     assert window.bid_radar_table.item(0, 7).text() == "Chưa xem"
     assert window._bid_radar_rows[0].review_state != "CONFIRMED"
 
 
 def test_review_requires_reviewer(window: QICrawlerWindow) -> None:
-    row = SimpleNamespace(
-        package=SimpleNamespace(
-            plan=SimpleNamespace(plan_base_id="PL260001", plan_revision=None),
-            package_name="Gói thử nghiệm",
-            package_price=100,
-            province_city_name="Hà Nội",
-        ),
-        matched=True,
-        reasons=(),
-        review_state="UNREVIEWED",
-    )
-    window._render_bid_radar_result(
-        SimpleNamespace(packages=(row.package,), rows=(row,), matched_count=1, total_examined=1)
-    )
+    window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
     window.start_bid_radar_review("CONFIRMED")
 
@@ -262,20 +300,7 @@ def test_review_delegates_to_candidate_review_service(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    row = SimpleNamespace(
-        package=SimpleNamespace(
-            plan=SimpleNamespace(plan_base_id="PL260001", plan_revision=None),
-            package_name="Gói thử nghiệm",
-            package_price=100,
-            province_city_name="Hà Nội",
-        ),
-        matched=True,
-        reasons=(),
-        review_state="UNREVIEWED",
-    )
-    window._render_bid_radar_result(
-        SimpleNamespace(packages=(row.package,), rows=(row,), matched_count=1, total_examined=1)
-    )
+    window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
     window.bid_radar_reviewer.setText("Bid Team")
     captured: dict[str, object] = {}
@@ -309,7 +334,14 @@ def test_exports_delegate_to_mi4_and_mi5_services(
     window.bid_radar_path.setText(str(source))
     window._bid_radar_loaded_source = source
     window._bid_radar_loaded_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
-    window._bid_radar_packages = (object(),)
+    window._bid_radar_items = (_fake_radar_item(),)
+    window._bid_radar_load_result = SimpleNamespace(
+        source_type=SimpleNamespace(value="KHMT"),
+        source_path=source,
+        source_sha256=window._bid_radar_loaded_sha256,
+        items=window._bid_radar_items,
+    )
+    window.bid_radar_legal_button.setEnabled(True)
 
     window.start_bid_radar_export()
     window.start_bid_radar_legal_docx()
@@ -328,33 +360,13 @@ def test_switching_khmt_source_clears_stale_rows_and_blocks_export(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    package = SimpleNamespace(
-        plan=SimpleNamespace(plan_id_raw="PL-A", plan_base_id="PL-A", plan_revision=None),
-        package_name="Gói A",
-        package_price=100,
-        province_city_name="Hà Nội",
-    )
-    row = SimpleNamespace(
-        package=package,
-        matched=True,
-        reasons=(),
-        review_state="UNREVIEWED",
-    )
+    item = _fake_radar_item("PL260001-00")
     source_a = tmp_path / "source-a.xlsx"
     source_b = tmp_path / "source-b.xlsx"
     source_a.write_bytes(b"a")
     source_b.write_bytes(b"b")
     window.bid_radar_path.setText(str(source_a))
-    window._render_bid_radar_result(
-        SimpleNamespace(
-            source_path=source_a,
-            packages=(package,),
-            rows=(row,),
-            issues=(),
-            matched_count=1,
-            total_examined=1,
-        )
-    )
+    window._render_bid_radar_result(_fake_result(item, path=source_a))
     assert window.bid_radar_table.rowCount() == 1
 
     monkeypatch.setattr(
@@ -370,7 +382,7 @@ def test_switching_khmt_source_clears_stale_rows_and_blocks_export(
 
     assert window.bid_radar_path.text() == str(source_b)
     assert window.bid_radar_table.rowCount() == 0
-    assert window._bid_radar_packages == ()
+    assert window._bid_radar_items == ()
     assert captured == []
     assert "nhập" in window.bid_radar_status.text().lower()
 
@@ -383,24 +395,10 @@ def test_changed_khmt_content_at_same_path_blocks_both_exports(
     source = tmp_path / "khmt.xlsx"
     source.write_bytes(b"source-a")
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
-    package = SimpleNamespace(
-        plan=SimpleNamespace(plan_id_raw="PL-A", plan_base_id="PL-A", plan_revision=None),
-        package_name="Gói A",
-        package_price=100,
-        province_city_name="Hà Nội",
-    )
-    row = SimpleNamespace(package=package, matched=True, reasons=(), review_state="UNREVIEWED")
+    item = _fake_radar_item("PL260001-00")
     window.bid_radar_path.setText(str(source))
     window._render_bid_radar_result(
-        SimpleNamespace(
-            source_path=source,
-            source_sha256=source_sha,
-            packages=(package,),
-            rows=(row,),
-            issues=(),
-            matched_count=1,
-            total_examined=1,
-        )
+        _fake_result(item, path=source, source_sha256=source_sha)
     )
     source.write_bytes(b"source-b")
     captured: list[object] = []
@@ -425,12 +423,17 @@ def test_bid_radar_import_issues_show_code_row_and_message(
     )
     window._render_bid_radar_result(
         SimpleNamespace(
-            source_path=Path("khmt.xlsx"),
-            packages=(),
+            items=(),
+            load_result=SimpleNamespace(source_type=SimpleNamespace(value="KHMT"), source_path=Path("khmt.xlsx"), source_sha256="a" * 64, items=()),
             rows=(),
             issues=(issue,),
             matched_count=0,
+            indeterminate_count=0,
+            nonmatched_count=0,
             total_examined=0,
+            source_type=SimpleNamespace(value="KHMT"),
+            source_path=Path("khmt.xlsx"),
+            source_sha256="a" * 64,
         )
     )
 

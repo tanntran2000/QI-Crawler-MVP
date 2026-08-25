@@ -75,14 +75,26 @@ def export_confirmed_legal_docx(
 ) -> tuple[LegalDocxExportResult, ...]:
     """Write one DOCX per latest confirmed package without mutating MI state."""
 
-    confirmed = tuple(
-        sorted(review_service.current_confirmed(packages), key=_sort_key)
+    confirmed = review_service.current_confirmed(packages)
+    return export_confirmed_legal_docx_records(
+        tuple((reviewed.package, reviewed.event) for reviewed in confirmed),
+        output_dir=output_dir,
     )
-    if not confirmed:
+
+
+def export_confirmed_legal_docx_records(
+    records: Iterable[tuple[PlanPackage, Any]],
+    *,
+    output_dir: Path = Path("."),
+) -> tuple[LegalDocxExportResult, ...]:
+    """Render already-selected confirmed KHMT packages without another review authority."""
+
+    selected = tuple(sorted(records, key=lambda pair: _package_sort_key(pair[0])))
+    if not selected:
         return ()
 
     output_dir = Path(output_dir)
-    targets = tuple(_target_path(output_dir, reviewed) for reviewed in confirmed)
+    targets = tuple(_target_path_for_package(output_dir, package) for package, _event in selected)
     if len(set(targets)) != len(targets):
         raise LegalDocxCollisionError(
             "Nhiều gói xác nhận cùng mã kế hoạch tạo ra cùng tên DOCX; không ghi đè."
@@ -93,9 +105,8 @@ def export_confirmed_legal_docx(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     results: list[LegalDocxExportResult] = []
-    for reviewed, target in zip(confirmed, targets, strict=True):
-        _write_new_document(target, reviewed)
-        package = reviewed.package
+    for (package, _event), target in zip(selected, targets, strict=True):
+        _write_new_document(target, package)
         results.append(
             LegalDocxExportResult(
                 output=target,
@@ -108,18 +119,22 @@ def export_confirmed_legal_docx(
 
 
 def _target_path(output_dir: Path, reviewed: ReviewedCandidate) -> Path:
-    base_id = reviewed.package.plan.plan_base_id
+    return _target_path_for_package(output_dir, reviewed.package)
+
+
+def _target_path_for_package(output_dir: Path, package: PlanPackage) -> Path:
+    base_id = package.plan.plan_base_id
     if not base_id or not _SAFE_PLAN_BASE.fullmatch(base_id):
         raise LegalDocxExportError("Mã kế hoạch không hợp lệ để tạo tên file DOCX.")
     return output_dir / f"ThongTin_{base_id}.docx"
 
 
-def _write_new_document(path: Path, reviewed: ReviewedCandidate) -> None:
+def _write_new_document(path: Path, package: PlanPackage) -> None:
     document = Document()
     document.add_heading("Thông tin gói thầu", level=1)
     table = document.add_table(rows=0, cols=2)
     table.style = "Table Grid"
-    for label, value in _field_values(reviewed.package):
+    for label, value in _field_values(package):
         cells = table.add_row().cells
         cells[0].text = label
         cells[1].text = value
@@ -157,4 +172,14 @@ def _sort_key(reviewed: ReviewedCandidate) -> tuple[str, str, int, str, int]:
         event.source_row,
         event.plan_id_raw.casefold(),
         event.id,
+    )
+
+
+def _package_sort_key(package: PlanPackage) -> tuple[str, str, int, str]:
+    batch = package.plan.import_batch
+    return (
+        batch.source_sha256.casefold(),
+        batch.sheet.casefold(),
+        package.source_row,
+        package.plan.plan_id_raw.casefold(),
     )
