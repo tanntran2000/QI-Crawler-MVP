@@ -24,6 +24,13 @@ FAILURE != AUTOMATIC GLOBAL BLOCKER`: an entry blocks work only when its
 affected capability/layer intersects the active Work Package or a governance /
 release contract explicitly makes it a gate.
 
+When an open failure intersects the active Work Package's capability or layer,
+the Reviewer must revalidate `CURRENT_EVIDENCE` against the exact active/audit
+Git objects before using the entry as blocker, closure evidence or proof.
+Stale line locators or stale source claims must be updated or marked
+`REQUIRES_VERIFICATION`. Failure Memory is routing evidence, not a substitute
+for current source inspection.
+
 ## Entry schema
 
 Every entry uses these fields exactly once:
@@ -85,7 +92,7 @@ STATE = OPEN
 SEVERITY_AT_DETECTION = IMPORTANT
 DISPOSITION = RELEASE_BLOCKER
 DETECTED_BY = FULL_REPO_AUDIT
-AFFECTED_BASELINE = current main d199e3203c172e525e20d86bddab7c23f830c7b4
+AFFECTED_BASELINE = main at detection: d199e3203c172e525e20d86bddab7c23f830c7b4
 PRODUCT_HOUSE_LAYER = INFRASTRUCTURE / DELIVERY
 SYMPTOM = publisher and installer tests still validate Alembic 0013
 ROOT_CAUSE = scripts/publish_windows_release.ps1:56-57,69 pins 0013 while src/qi_crawler/db.py:14 declares 0015_add_opportunity_review_events
@@ -154,7 +161,7 @@ STATE = OPEN
 SEVERITY_AT_DETECTION = IMPORTANT
 DISPOSITION = AUTHORITY_DEBT
 DETECTED_BY = FULL_REPO_AUDIT
-AFFECTED_BASELINE = current main d199e3203c172e525e20d86bddab7c23f830c7b4
+AFFECTED_BASELINE = main at detection: d199e3203c172e525e20d86bddab7c23f830c7b4
 PRODUCT_HOUSE_LAYER = APPLICATION BACKEND / DELIVERY CLI
 SYMPTOM = legacy bid_intelligence exposes evaluate_bid_gate, estimate_win_likelihood and GO/HOLD/NO-GO output
 ROOT_CAUSE = src/qi_crawler/bid_intelligence.py:184-324 remains imported by src/qi_crawler/cli.py:23-29 and reachable through bid-gate/danh-gia commands
@@ -177,7 +184,7 @@ STATE = OPEN
 SEVERITY_AT_DETECTION = IMPORTANT
 DISPOSITION = API_HOLD
 DETECTED_BY = FULL_REPO_AUDIT
-AFFECTED_BASELINE = current main d199e3203c172e525e20d86bddab7c23f830c7b4
+AFFECTED_BASELINE = main at detection: d199e3203c172e525e20d86bddab7c23f830c7b4
 PRODUCT_HOUSE_LAYER = DELIVERY API / INFRASTRUCTURE
 SYMPTOM = src/qi_crawler/api.py creates Database and queries ORM models directly in route handlers
 ROOT_CAUSE = API routes bypass the Application Backend boundary
@@ -200,7 +207,7 @@ STATE = OPEN
 SEVERITY_AT_DETECTION = IMPORTANT
 DISPOSITION = BACKEND_INTEGRITY_DEBT
 DETECTED_BY = FULL_REPO_AUDIT
-AFFECTED_BASELINE = source-sensitive Bid Radar import/export flow on current main
+AFFECTED_BASELINE = source-sensitive Bid Radar import/export flow at detection; exact main SHA was not recorded in the original finding
 PRODUCT_HOUSE_LAYER = APPLICATION BACKEND / DESKTOP DELIVERY
 SYMPTOM = GUI stores loaded source SHA and blocks export after same-path content changes
 ROOT_CAUSE = REQUIRES_VERIFICATION; targeted source search proves the check at gui.py:813-839, but does not prove a backend-wide invariant
@@ -223,7 +230,7 @@ STATE = OPEN
 SEVERITY_AT_DETECTION = MINOR
 DISPOSITION = TEST_DEBT
 DETECTED_BY = FULL_REPO_AUDIT
-AFFECTED_BASELINE = current main d199e3203c172e525e20d86bddab7c23f830c7b4
+AFFECTED_BASELINE = main at detection: d199e3203c172e525e20d86bddab7c23f830c7b4
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / TEST INFRASTRUCTURE
 SYMPTOM = the autouse fixture monkeypatches Database.create_all to run migrations
 ROOT_CAUSE = tests/conftest.py:11-22 supplies a compatibility shim for a production method that is not present

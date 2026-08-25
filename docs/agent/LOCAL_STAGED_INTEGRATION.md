@@ -24,7 +24,8 @@ Roles remain separate:
 - `BUILDER_SINGLE_WRITER` is the only writer for one active micro-WP.
 - Local machine execution supplies `MACHINE_VERIFIER` evidence when required.
 - `REVIEWER_AUDITOR` independently judges scope, logic, invariants, risks,
-  diff, test adequacy, and the validity of supplied evidence.
+  diff, test adequacy, and the validity of supplied evidence after Builder and
+  Machine-Verifier evidence.
 - GitHub CI supplies clean-environment and multi-platform verification when
   available.
 
@@ -39,11 +40,11 @@ Human approves Parent WP
 → Single Writer implements one micro-WP
 → local verification
 → local commit
-→ LOCAL_REVIEW_PACKET
-→ STOP_FOR_INDEPENDENT_LOCAL_AUDIT
-→ Reviewer PASS / HOLD / FAIL
+→ REVIEWER HANDOFF CHECKPOINT
+→ INDEPENDENT REVIEW
+→ PASS / HOLD / FAIL
 → on PASS: push feature branch as remote checkpoint, without PR
-→ refresh active checkpoint handoff
+→ MICRO POST
 → next micro-WP
 → Parent Integration Gate
 → final local audit
@@ -106,11 +107,11 @@ requires explicit Work Order permission and Human approval.
 
 ## 6. Local Review Packet
 
-Every micro-WP must stop with this packet:
+Every micro-WP must stop with this Builder-to-Reviewer handoff:
 
 ```text
-LOCAL_REVIEW_PACKET
-===================
+REVIEWER_HANDOFF_CHECKPOINT
+===========================
 PARENT_WP:
 MICRO_WP:
 BASE_SHA:
@@ -160,8 +161,11 @@ KNOWN_RISKS:
 TREE:
 clean / dirty
 
+AUDIT_OBJECT:
+BASE_SHA..HEAD_SHA
+
 PATCH:
-unified diff or bounded relevant patch
+OPTIONAL_FALLBACK — only when direct exact Git-object access is unavailable
 
 NEXT:
 STOP_FOR_INDEPENDENT_LOCAL_AUDIT
@@ -173,6 +177,44 @@ fixtures, databases, caches, or generated artifacts into the packet.
 
 For a failure, include the relevant traceback/error excerpt and the command
 that produced it.
+
+The Reviewer must directly inspect `BASE_SHA..HEAD_SHA` with `git diff`,
+`git show`, source inspection and test inspection whenever those objects are
+available in the canonical checkout. A copied patch is fallback transport,
+not the default audit object.
+
+The Reviewer may run bounded verification such as targeted tests,
+`git diff --check`, collection checks and architecture/import inspection. A
+fresh Builder full-suite result need not be rerun by default unless risk or a
+finding requires it. The Reviewer must inspect test quality and reject
+tautological or weak evidence.
+
+The standard independent packet is:
+
+```text
+INDEPENDENT_REVIEW_PACKET
+ROLE
+PARENT_WP
+MICRO_WP
+BASE_SHA
+HEAD_SHA
+AUDITED_RANGE
+AUDIT_OBJECT_ACCESS = DIRECT_CANONICAL_GIT | FALLBACK_PATCH
+CHANGED_FILES
+SCOPE_AUDIT
+ARCHITECTURE_AUDIT
+DOMAIN_INVARIANTS
+TEST_QUALITY
+INDEPENDENT_TEST_COMMANDS
+DIFF_CHECK
+KNOWN_FAILURE_MODES
+DATA_SAFETY
+FINDINGS: CRITICAL / IMPORTANT / MINOR
+BUILDER_EVIDENCE_VERIFIED = YES | PARTIAL | NO
+AUDIT_VERDICT = PASS | HOLD | FAIL
+EXACTLY_ONE_NEXT_ACTION
+NEXT_AUTHORITY
+```
 
 ## 7. Independent local audit outcomes
 
@@ -384,8 +426,9 @@ Cross-agent/session handoffs must include:
 ```text
 ROADMAP_REVISION
 ROADMAP_BASELINE_SHA
-LIVE_MAIN_HEAD
-ACTIVE_BRANCH_HEAD
+HANDOFF_CAPTURE_BASE
+AUDIT_TARGET_CODE_HEAD
+LIVE_GIT_HEAD
 ACTIVE_PARENT_WP
 ACTIVE_MICRO_WP
 LAST_AUDITED_CODE_HEAD

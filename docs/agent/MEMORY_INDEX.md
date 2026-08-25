@@ -85,6 +85,11 @@ Live repository/GitHub state and merged code/tests outrank stale handoffs.
 Human decisions and verified source evidence outrank proposals. Feedback may
 identify risk, but it cannot silently change scope or authority.
 
+Independent review uses direct Git-object access by default. The audit object
+is the exact `BASE_SHA..HEAD_SHA` range in the canonical checkout; a copied
+patch is transport/fallback evidence only when those objects are unavailable.
+Builder evidence and an independent audit are separate authorities.
+
 ## Handoff rule
 
 `CURRENT.md` contains exactly one active handoff snapshot. Historical snapshots
@@ -97,6 +102,14 @@ must be refreshed before a different agent is expected to continue safely.
 The handoff records the last audited **code** head separately from any later
 handoff/docs-only branch head. Live Git remains authority for the exact current
 branch `HEAD`.
+
+Handoff identity uses `HANDOFF_CAPTURE_BASE` (Git head verified immediately
+before writing), `AUDIT_TARGET_CODE_HEAD` (the exact code/test commit under
+review), `LAST_AUDITED_CODE_HEAD` (the already-audited code head), and
+`LIVE_GIT_HEAD` (always re-verified at read-in). A tracked handoff must not
+predict its own future docs commit SHA; known docs-only ancestry is reconciled
+by Git range inspection, while unexplained material divergence is
+`ENTRY_HOLD`.
 
 ## Documentation lifecycle contract
 

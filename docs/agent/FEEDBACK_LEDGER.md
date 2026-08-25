@@ -232,3 +232,27 @@ Promoted to: AGENTS.md; docs/agent/MEMORY_INDEX.md;
 docs/agent/OPERATING_MODEL.md; docs/agent/HUMAN_COLLABORATION.md;
 docs/agent/LOCAL_STAGED_INTEGRATION.md
 ```
+
+### FB-0009 — Direct-object independent review is the default
+
+```text
+State: PROMOTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C-1 governance correction
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: When exact Git objects are available, the Reviewer must perform
+the independent local audit directly and return an INDEPENDENT_REVIEW_PACKET.
+Evidence: approved material governance correction before 02C-1 review.
+Impact: Requiring a manually exported patch by default weakens object
+authority and adds unnecessary handoff friction.
+Suggestion: Audit BASE_SHA..HEAD_SHA directly; use a patch only as fallback.
+Scope change required: NO
+Response: Added direct-object review, Reviewer authority ordering and the
+standard independent packet to the durable governance spine.
+Disposition: ACCEPTED; PROMOTED to durable governance.
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+docs/agent/MEMORY_INDEX.md
+```

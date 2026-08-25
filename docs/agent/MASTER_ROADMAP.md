@@ -539,8 +539,8 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | Source/web crawl | `STABLE` / `MAINTENANCE_ONLY` | Supported web adapters, discovery, retry/resume, dedup and compliance controls. | New-source coverage and bounded operational fixes only. | Human-prioritized source work; do not rework mature crawling for HSMT. |
 | KHMT/PL intake | `OPERATIONAL` | Source-routed KHMT workbook intake preserves PL identity, raw fields and provenance. | Broader source variants may need bounded corrections. | Source evidence and regression fixture. |
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
-| TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search and Human Review persistence are merged. | Confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Candidate `WP-MI-TBMT-02C` after current governance reconciliation. |
-| TBMT Bid Radar | `PARTIAL` | Source-neutral schema, parser, importer, filter/search and Human Review persistence are merged. | Source-neutral confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Candidate `WP-MI-TBMT-02C` after current governance reconciliation. |
+| TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search and Human Review persistence are merged. | Confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Active execution is governed by `CURRENT.md` and live Git/GitHub. |
+| TBMT Bid Radar | `PARTIAL` | Source-neutral schema, parser, importer, filter/search and Human Review persistence are merged. | Source-neutral confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Active execution is governed by `CURRENT.md` and live Git/GitHub. |
 | Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | Storage Reconciliation and protected-data verification. |
 | Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
@@ -590,8 +590,10 @@ TEAM BID DELIVERY:
   NOT YET OPERATIONAL for TBMT Bid Radar.
 ```
 
-This is descriptive architecture status, not implementation authorization. Do
-not activate 02C from this roadmap update.
+This is descriptive architecture status, not a substitute for `CURRENT.md`
+or live Git/GitHub execution state. The current Opportunity Intelligence
+delivery-closure Parent is human-approved; its active Micro-WP state remains
+in `CURRENT.md` and live Git.
 
 ### Work Package architecture layer contract
 
@@ -722,9 +724,9 @@ opportunities for Team Bid.
 Current direction is KHMT/PL operational. TBMT source-neutral intake,
 filter/search and Human Review persistence are merged. Remaining gaps are
 source-neutral confirmed output, backend source-integrity closure, thin
-existing-GUI wiring and vertical KHMT/TBMT acceptance. The next candidate is
-`WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`, subject to
-design and Human approval. Do not activate it from this roadmap update.
+existing-GUI wiring and vertical KHMT/TBMT acceptance. The current Parent is
+`WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`, approved by
+Human authority; active Micro-WP state remains in `CURRENT.md` and live Git.
 
 Hard invariant:
 

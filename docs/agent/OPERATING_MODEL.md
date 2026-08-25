@@ -6,10 +6,22 @@
 - **PLANNER_ARCHITECT** turns an approved request into a bounded Work Order;
   planning does not edit production code.
 - **DOMAIN_REVIEWER** checks business meaning and source evidence.
-- **REVIEWER_AUDITOR** checks scope, risk, and proof against the Work Order.
 - **BUILDER_SINGLE_WRITER** is the only writer for a micro-Work Package.
 - **MACHINE_VERIFIER** runs the required tests, lint, and repository checks.
+- **REVIEWER_AUDITOR** checks scope, risk, and proof against the Work Order
+  after Builder/Machine-Verifier evidence; it never edits the implementation
+  under review.
 - **Team Bid** supplies operational observations and explicit human decisions.
+
+The execution authority order is:
+
+```text
+PLANNER_ARCHITECT
+→ BUILDER_SINGLE_WRITER
+→ MACHINE_VERIFIER evidence
+→ INDEPENDENT REVIEWER_AUDITOR
+→ HUMAN MERGE APPROVER
+```
 
 Roles describe authority, not a particular model or tool.
 
@@ -70,6 +82,46 @@ verified repository/GitHub evidence.
    A PRE/POST checkpoint is required for every Work Package, but ordinary
    checks do not require rewriting every document or creating a history file.
 
+For implementation review, the Builder/Machine-Verifier supplies broad
+execution evidence. The Reviewer performs independent, risk-focused
+verification and does not need to rerun the complete suite by default when
+fresh Builder evidence exists and no audit risk requires it. The Reviewer may
+run bounded tests, diff checks, collection checks and architecture/import
+inspection, and must inspect test quality for tautological or weak assertions.
+The Reviewer is not the Single Writer and must not modify code, tests or docs.
+
+The canonical audit object is the exact Git range `BASE_SHA..HEAD_SHA` in the
+canonical checkout. A copied patch is transport/fallback evidence only when
+those Git objects are unavailable. The standard independent packet contains:
+
+```text
+INDEPENDENT_REVIEW_PACKET
+ROLE
+PARENT_WP
+MICRO_WP
+BASE_SHA
+HEAD_SHA
+AUDITED_RANGE
+AUDIT_OBJECT_ACCESS = DIRECT_CANONICAL_GIT | FALLBACK_PATCH
+CHANGED_FILES
+SCOPE_AUDIT
+ARCHITECTURE_AUDIT
+DOMAIN_INVARIANTS
+TEST_QUALITY
+INDEPENDENT_TEST_COMMANDS
+DIFF_CHECK
+KNOWN_FAILURE_MODES
+DATA_SAFETY
+FINDINGS: CRITICAL / IMPORTANT / MINOR
+BUILDER_EVIDENCE_VERIFIED = YES | PARTIAL | NO
+AUDIT_VERDICT = PASS | HOLD | FAIL
+EXACTLY_ONE_NEXT_ACTION
+NEXT_AUTHORITY
+```
+
+`PASS` routes to `PLANNER_ARCHITECT`; a correction-required `HOLD` or `FAIL`
+routes to `BUILDER_SINGLE_WRITER`.
+
 Entry outcomes are:
 
 - `ENTRY_CLEAR`: no material conflict; approval may be requested.
@@ -125,10 +177,11 @@ Human-approved Parent WP
 → one Single Writer micro-WP
 → local Machine Verifier evidence
 → local commit
-→ LOCAL_REVIEW_PACKET
-→ STOP_FOR_INDEPENDENT_LOCAL_AUDIT
-→ Reviewer PASS/HOLD/FAIL
+→ REVIEWER HANDOFF CHECKPOINT
+→ INDEPENDENT REVIEW
+→ PASS/HOLD/FAIL
 → PASS: feature-branch remote checkpoint without PR
+→ MICRO POST
 → next micro-WP
 → Parent Integration Gate
 → Draft PR
