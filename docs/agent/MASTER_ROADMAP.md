@@ -580,7 +580,8 @@ DESKTOP FRONTEND:
   THIN EXISTING-GUI WIRING PENDING — TBMT delivery is not fully wired.
 
 CLI:
-  not a required 02B delivery target unless separately approved.
+  not a required current Opportunity Intelligence delivery target
+  unless separately approved.
 
 API:
   HOLD.
