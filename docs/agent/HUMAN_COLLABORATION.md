@@ -360,3 +360,187 @@ CHAT = collaboration medium
 FILES = organizational memory
 GIT/GITHUB = repository truth
 ```
+
+## 16. Material Human input and Planner intent protocol
+
+Trivial chat does not require a formal packet. When a Human statement can
+materially affect scope, architecture, governance, product sequence,
+business/domain behavior, authority or risk, classify it as one or more of:
+
+```text
+PROBLEM
+IDEA
+REQUIREMENT
+PRIORITY
+CONSTRAINT
+ASSUMPTION
+BUSINESS_DECISION
+FACTUAL_CLAIM
+FUTURE_DIRECTION
+```
+
+`HUMAN BUSINESS / PRIORITY DECISION = A0 MATERIAL AUTHORITY`. A Human
+technical or factual assumption is not automatically a verified fact. The
+Planner may challenge it with verified Git/source evidence, the Roadmap, Delta,
+Project Memory, Failure Memory, Lessons and relevant domain evidence, but must
+not silently override an A0 decision. If an A0 decision conflicts with a
+technical safety or dependency constraint, report the risk and return it to the
+Human.
+
+### HUMAN_INTENT_RECONCILIATION — canonical material contract
+
+```text
+HUMAN_INTENT_RECONCILIATION
+===========================
+HUMAN_INPUT = <material request / idea / decision>
+INPUT_CLASSIFICATION = <one or more canonical classes>
+UNDERLYING_PROBLEM = <resolved / unknown>
+INTENDED_OUTCOME = <resolved>
+CURRENT_SCOPE_RELATION = IN_SCOPE / FUTURE / OUT_OF_SCOPE / CONFLICT
+AUTHORITY_CLASS = HUMAN_DECISION / FACTUAL_CLAIM / PROPOSAL / MIXED
+EVIDENCE_REQUIRED = YES / NO
+EVIDENCE_STATUS = VERIFIED / PARTIAL / UNKNOWN / NOT_APPLICABLE
+MATERIAL_CONSTRAINTS = <resolved>
+INTENT_PRESERVED = YES / NO
+UNRESOLVED_AMBIGUITY = NONE / <description>
+```
+
+This contract is required for material Planner decisions, not ordinary low-risk
+conversation. It preserves the underlying Human intent while distinguishing
+facts, assumptions and proposed solutions.
+
+### PLANNER_STRATEGIC_ASSESSMENT — canonical material contract
+
+For material intent, the Planner checks the applicable Delta, Roadmap, Context
+Spine, live state, evidence, authority boundary, dependencies, risk and timing
+before recommending implementation:
+
+The assessment explicitly records the applicable `DELTA_CHECK`,
+`ROADMAP_CHECK`, `SPINE_CHECK`, `LIVE_STATE_CHECK`, `EVIDENCE_CHECK`,
+`AUTHORITY_CHECK`, `DEPENDENCY_CHECK`, `RISK_CHECK` and
+`TIMING / SEQUENCING_CHECK`.
+
+```text
+PLANNER_STRATEGIC_ASSESSMENT
+============================
+RELEVANT_DELTA_IDS = <resolved>
+DELTA_ALIGNMENT = ALIGNED / PARTIAL / CONFLICT / NEW_DELTA_CANDIDATE / N/A
+PRODUCT_FRONTIER = <resolved>
+ROADMAP_ALIGNMENT = ALIGNED / PARTIAL / CONFLICT / N/A
+SPINE_EVIDENCE = <checked authorities>
+LIVE_STATE = VERIFIED / NOT_REQUIRED / HOLD
+DEPENDENCIES = SATISFIED / PARTIAL / BLOCKED / N/A
+AUTHORITY_BOUNDARY = PASS / HOLD
+MATERIAL_RISKS = <list / NONE>
+STRATEGIC_FIT = PASS / ADAPT / HOLD
+```
+
+`PLANNER_IDEA_EVALUATION` compares Human intent ↔ evidence ↔ Delta ↔ Roadmap
+↔ Context Spine ↔ live state ↔ authority boundary. The Planner preserves the
+intent, tests the proposed solution, presents the strongest evidence-based
+recommendation, and neither blindly obeys nor casually opposes the Human.
+
+The only canonical material Planner dispositions are:
+
+```text
+ACCEPT
+ADAPT
+PARK
+CHALLENGE
+REJECT
+NEEDS_HUMAN_CLARIFICATION
+```
+
+`ACCEPT` means the intent and direction are aligned and eligible. `ADAPT` means
+the intent is valid but the solution, scope or sequence must change. `PARK`
+means valuable intent is deferred by dependency, timing or current scope.
+`CHALLENGE` means material evidence or authority conflict requires Human
+reconsideration. `REJECT` is reserved for a proposal that violates a durable
+architecture, safety or authority contract and has no bounded valid adaptation.
+`NEEDS_HUMAN_CLARIFICATION` means material intent or authority is genuinely
+ambiguous. `REJECT` never overrides a valid A0 decision; accepted A0 risk is
+recorded and returned to the Human.
+
+### PLANNER_CHALLENGE — evidence-oriented shape
+
+```text
+PLANNER_CHALLENGE
+=================
+HUMAN_PROPOSAL =
+WHAT_IS_VALID_IN_THE_INTENT =
+CONFLICTING_EVIDENCE =
+DELTA_CONFLICT =
+ROADMAP_CONFLICT =
+SPINE_CONFLICT =
+AUTHORITY_CONFLICT =
+LOGICAL_OR_SAFETY_RISK =
+ALTERNATIVE_A =
+ALTERNATIVE_B =
+PLANNER_RECOMMENDATION =
+HUMAN_DECISION_REQUIRED = YES / NO
+```
+
+Alternatives are included when useful; the purpose is an evidence-backed
+challenge, not ceremonial verbosity.
+
+### PLANNER_DECISION_PACKET — material routing
+
+```text
+PLANNER_DECISION_PACKET
+=======================
+HUMAN_INTENT_SUMMARY =
+INPUT_CLASSIFICATION =
+VERIFIED_FACTS =
+UNVERIFIED_ASSUMPTIONS =
+RELEVANT_DELTA_IDS =
+MASTER_ROADMAP_ALIGNMENT =
+SPINE_CHECK =
+LIVE_STATE =
+DEPENDENCIES =
+AUTHORITY_BOUNDARY =
+MATERIAL_RISKS =
+PLANNER_DISPOSITION = ACCEPT / ADAPT / PARK / CHALLENGE / REJECT / NEEDS_HUMAN_CLARIFICATION
+PLANNER_RECOMMENDATION =
+ROUTING = WORK_ORDER / DELTA / SPINE / HUMAN / PARK / NO_ACTION
+HUMAN_DECISION_REQUIRED = YES / NO
+EXACTLY_ONE_NEXT_ACTION =
+```
+
+This packet is for material decisions only. Before producing a material Builder
+Work Order, `HUMAN_INTENT_RECONCILIATION = COMPLETE` and
+`PLANNER_STRATEGIC_ASSESSMENT = COMPLETE`; only `ACCEPT` or `ADAPT` permits the
+Work Order. `PARK`, `CHALLENGE`, `REJECT` and
+`NEEDS_HUMAN_CLARIFICATION` require the corresponding routing or Human
+clarification instead. Roadmap Entry Gate and Role Entry Gate remain mandatory.
+
+### Reviewer continuity and post-review Human loop
+
+For material work, carry the following intent into the existing WP-specific
+`REVIEWER_CHALLENGE_CONTRACT` from `OPERATING_MODEL.md`:
+
+```text
+HUMAN_INTENT_TO_PROTECT
+MATERIAL_CONSTRAINTS
+ASSUMPTIONS_TO_CHALLENGE
+AUTHORITY_BOUNDARIES
+KNOWN_RISKS
+SUCCESS / ACCEPTANCE INTENT
+```
+
+This reuses the existing Reviewer contract; the Planner must not tell the
+Reviewer which verdict to return. `REVIEWER_VERDICT !=
+PLANNER_POST_REVIEW_RECONCILIATION != HUMAN_MATERIAL_AUTHORITY`. After review,
+the Planner explicitly reports:
+
+```text
+WHAT_THE_WP_ACTUALLY_ACHIEVED
+WHAT_IT_DID_NOT_ACHIEVE
+MATERIAL_REVIEWER_FINDINGS
+REMAINING_RISKS
+WHETHER_HUMAN_INTENT_WAS_PRESERVED
+WHAT_DECISION_IS_NOW_REQUIRED
+```
+
+The Planner uses the existing post-review reconciliation contract, maps the
+result back to Human intent, and escalates material decisions to the Human. This
+protocol does not implement the M4 latest-WP Spine sync or Builder Integrity.
