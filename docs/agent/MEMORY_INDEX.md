@@ -120,6 +120,16 @@ The handoff records the last audited **code** head separately from any later
 handoff/docs-only branch head. Live Git remains authority for the exact current
 branch `HEAD`.
 
+When a governed transition trigger applies, invoke the canonical
+`LATEST_WP_SPINE_SYNC_AUDIT` defined in `LOCAL_STAGED_INTEGRATION.md` before
+declaring the next work `READY` or `PROMPT_READY`. It audits the latest
+governed transition against exact Git/live state, `CURRENT.md`, the relevant
+Delta and Context Spine; it does not replace `PROJECT_MEMORY`, the Master
+Roadmap, the Delta, a Spine promotion gate or implementation history. Use
+`FULL`/`DELTA`/`NO_RE_READ` economically: unchanged continuous work within the
+same Micro-WP does not rerun this audit unnecessarily. A material mismatch or
+missing promotion is `HOLD`, not an inferred completion.
+
 Handoff identity uses `HANDOFF_CAPTURE_BASE` (Git head verified immediately
 before writing), `AUDIT_TARGET_CODE_HEAD` (the exact code/test commit under
 review), `LAST_AUDITED_CODE_HEAD` (the already-audited code head), and
