@@ -153,6 +153,8 @@ PROMPT REQUEST
 → select FULL / DELTA / NO_RE_READ
 → read only required authority/context
 → reconcile active WP, audited head, scope and blockers
+→ reconcile Roadmap / Delta entry
+→ ROLE_ENTRY_GATE
 → PROMPT_READY or ENTRY_HOLD
 ```
 
@@ -176,6 +178,7 @@ LOCAL_STAGED_INTEGRATION READ
 PROJECT_MEMORY           READ
 CURRENT                  READ
 MASTER_ROADMAP           READ
+MASTER_ROADMAP_DELTA     READ when relevant
 
 LIVE_GIT                 VERIFIED
 LIVE_GITHUB              VERIFIED when relevant
@@ -186,13 +189,18 @@ LAST_AUDITED_CODE_HEAD   RESOLVED
 NEXT_MICRO_WP            RESOLVED
 NEXT_AUTHORITY           RESOLVED
 
+ROLE_ENTRY_GATE          PASS when triggered
+ROLE_SOURCE_EVIDENCE     RESOLVED when triggered
+ROLE_CONFLICT             NO when triggered
+
 RESULT                    PROMPT_READY / ENTRY_HOLD
 ```
 
 Never generate an implementation prompt from this document alone. If current
 state cannot be reconciled, return `ENTRY_HOLD` instead of inventing facts.
 Chat history may explain context, but it is not a substitute for reconciling
-the active handoff with live Git/GitHub.
+the active handoff with live Git/GitHub. The canonical role-entry contract is
+defined in `docs/agent/OPERATING_MODEL.md`; prompt readiness cannot bypass it.
 
 ## 11. Release-aware prompt generation
 

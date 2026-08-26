@@ -30,6 +30,13 @@ frontier; it does not authorize implementation scope by itself.
 12. Relevant entries in `docs/agent/LESSONS.md`.
 13. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
+After read-mode selection and Roadmap/Delta reconciliation, invoke the single
+canonical `ROLE_ENTRY_GATE` in `docs/agent/OPERATING_MODEL.md`. It is required
+before `READY`, `PROMPT_READY`, `START_IMPLEMENTATION` or `START_AUDIT` for
+new-agent/Parent entry, takeover, reassignment or material authority change.
+`ROLE_ENTRY_GATE` and `ROADMAP_ENTRY_GATE` are separate; a role or model name
+does not satisfy the other gate.
+
 ## Read-in mode selection
 
 Select read depth before loading expensive context. `READ BEFORE WORK` is
@@ -46,7 +53,8 @@ READ_MODE_SELECTOR
    changed materially.
 4. Select exactly one: FULL / DELTA / NO_RE_READ.
 5. Read only the authority/context required by that mode.
-6. Return READY, PROMPT_READY or ENTRY_HOLD.
+6. Invoke the canonical ROLE_ENTRY_GATE after roadmap/delta reconciliation.
+7. Return READY, PROMPT_READY or ENTRY_HOLD only when both gates pass.
 ```
 
 **FULL READ-IN** is required for a new agent, new Parent WP, Planner/Reviewer/
@@ -83,6 +91,10 @@ No `READY`, `PROMPT_READY` or `START_IMPLEMENTATION` is valid until
 material RD entry state also invalidates `NO_RE_READ`. Full roadmap read remains
 mandatory for new agents, new Parents, takeovers and material architecture or
 governance changes; it is not repeated for every command.
+
+The Roadmap Entry Gate does not establish role authority. After it passes,
+invoke `ROLE_ENTRY_GATE` from `OPERATING_MODEL.md`; unresolved role evidence or
+conflict remains `ENTRY_HOLD` even when the Roadmap gate is clear.
 
 ## Authority order
 
@@ -146,7 +158,9 @@ path; an unrelated Micro-WP may record `N/A` without reading the whole file.
 Before `PROMPT_READY` or `HANDOFF_READY`, resolve `SPINE_SYNC_STATE = PASS`.
 Read-mode selection does not exempt an agent from routing newly accepted
 durable knowledge. `NO_RE_READ` means unchanged authority may be reused; it
-does not permit newly learned material information to remain unrecorded.
+does not permit newly learned material information to remain unrecorded. Prompt
+readiness also requires `ROLE_ENTRY_GATE = PASS` and `ROLE_CONFLICT = NO` when
+the gate trigger applies.
 
 An agent that is asked to generate the next technical Work Order must not rely
 on prose memory alone. Before writing the prompt it must establish:

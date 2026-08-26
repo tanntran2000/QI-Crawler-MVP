@@ -54,6 +54,67 @@ SPINE_RESPONSIBILITY
 `ROLE > MODEL NAME`. A role is assigned by `WORK_ORDER`, `CURRENT` and
 `HUMAN_AUTHORITY`, not by ChatGPT, Codex, CI, a tool name or model identity.
 
+## ROLE_ENTRY_GATE — canonical readiness contract
+
+`ROLE_ENTRY_GATE` is the one readiness contract applied after read-mode and
+Roadmap/Delta reconciliation and before an agent may declare `READY`,
+`PROMPT_READY`, `START_IMPLEMENTATION` or `START_AUDIT`. It validates the
+existing canonical `ROLE_CONTRACT`; it does not duplicate role definitions.
+
+```text
+ROLE_ENTRY_GATE
+===============
+ASSIGNED_ROLE = <canonical ROLE_ID>
+ROLE_SOURCE_EVIDENCE = <Human assignment / approved Work Order / CURRENT>
+ROLE_CONTRACT = READ
+MISSION = UNDERSTOOD
+AUTHORITY = UNDERSTOOD
+MANDATORY_READ = SATISFIED
+INPUTS = RESOLVED
+MANDATORY_DUTIES = UNDERSTOOD
+MUST_NOT = UNDERSTOOD
+REQUIRED_OUTPUT = RESOLVED
+HANDOFF_TO = RESOLVED
+STOP_CONDITIONS = UNDERSTOOD
+ESCALATION_PATH = RESOLVED
+SPINE_RESPONSIBILITY = UNDERSTOOD
+ROLE_CONFLICT = NO
+ROLE_ENTRY_GATE_RESULT = PASS
+```
+
+`ROLE > MODEL NAME`. The role is established from the latest explicit
+`HUMAN_AUTHORITY` assignment when present, the approved Work Order, and the
+governed `CURRENT.md` handoff. These sources must reconcile; a material conflict
+without an explicit Human reassignment sets `ROLE_CONFLICT = YES` and
+`ROLE_ENTRY_GATE_RESULT = ENTRY_HOLD`, with escalation to
+`PLANNER_ARCHITECT` or `HUMAN_AUTHORITY`. ChatGPT is not automatically Planner,
+Codex is not automatically Builder, and CI is not business authority.
+
+A fresh gate is mandatory for a new agent, new Parent, agent entry,
+`PLANNER_ARCHITECT`/`BUILDER_SINGLE_WRITER`/Writer/`REVIEWER_AUDITOR`/
+`DOMAIN_REVIEWER` takeover, material role reassignment, or material
+authority-boundary change. A prior PASS may be reused only for unchanged
+continuous work by the same agent/session with the same role, authority and
+Work Order/lease and no material role conflict or takeover. Read-mode reuse is
+not authority reuse across a takeover.
+
+The gate fails closed to `ENTRY_HOLD` for a missing or unknown role, model/tool
+identity used as authority, Work Order/`CURRENT.md` conflict, a Reviewer asked
+to edit reviewed output, a Builder asked to audit its own implementation, a
+Planner asked to self-authorize a Human-only action, unresolved required
+output/handoff/stop conditions, or takeover that reuses another agent's role
+assertion without verification. Until resolved, there is no implementation,
+prompt or audit authority. `ROLE_ENTRY_GATE` and `ROADMAP_ENTRY_GATE` are
+separate required gates; neither substitutes for the other:
+
+```text
+READ_MODE_SELECTOR
+→ ROADMAP / DELTA ENTRY RECONCILIATION
+→ ROLE_ENTRY_GATE
+→ ENTRY OUTCOME
+→ READY / PROMPT_READY / START...
+```
+
 ### ROLE_CONTRACT — HUMAN_AUTHORITY
 
 ```text

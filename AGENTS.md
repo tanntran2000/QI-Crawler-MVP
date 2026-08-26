@@ -191,6 +191,23 @@ A changed roadmap SHA or blueprint revision invalidates `NO_RE_READ` and
 requires at least a delta reconciliation. Do not reread the full roadmap for
 every ordinary command.
 
+### Role entry gate
+
+Before a new agent, new Parent, agent entry, Planner/Builder/Writer/Reviewer or
+Domain Reviewer takeover, material role reassignment, or material authority-
+boundary change may declare `READY`, `PROMPT_READY`, `START_IMPLEMENTATION` or
+`START_AUDIT`, it must pass the single canonical `ROLE_ENTRY_GATE` defined in
+`docs/agent/OPERATING_MODEL.md`. The gate resolves the assigned canonical role
+from the latest explicit Human assignment, approved Work Order and governed
+`CURRENT.md` handoff; those sources must reconcile. `ROLE > MODEL NAME`: a
+ChatGPT/Codex/CI/tool/model identity is never role evidence or business
+authority. Missing, unknown, conflicting or takeover-reused role evidence fails
+closed to `ENTRY_HOLD` and escalates to the Planner or Human as appropriate.
+The gate checks the existing role contract; it does not replace the separate
+Roadmap Entry Gate. Reuse is allowed only for the same agent/session, role,
+authority and Work Order/lease with no material conflict or takeover. No role
+resolution means no implementation, prompt or audit authority.
+
 ### Post-merge handoff gate
 
 After a PR merge, the governed transition is:
