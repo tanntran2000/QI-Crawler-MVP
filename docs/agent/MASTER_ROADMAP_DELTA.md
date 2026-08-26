@@ -244,8 +244,12 @@ PROMOTION_CONDITION = Durable reviewer contract is present in AGENTS and
 COMPLETION_EVIDENCE = Reviewer packet fields and independent stale-state tests
   or document checks demonstrate the bridge.
 REMOVE_FROM_DELTA_WHEN = Promoted to durable governance and no open contract gap remains.
-PLANNER_NOTES = Reviewer remains non-writer and non-Planner; strategic
-  observations may be non-blocking with PLANNER_ATTENTION_REQUIRED = YES.
+PLANNER_NOTES = Core Reviewer Bridge is merged and active, but remaining
+  governance read-path cleanup includes stale prompt/read sequences that do not
+  explicitly include MASTER_ROADMAP_DELTA. Keep RD-0002 active until
+  WP-GOV-PLANNER-CONTINUITY-01 resolves that contract gap. Reviewer remains
+  non-writer and non-Planner; strategic observations may be non-blocking with
+  PLANNER_ATTENTION_REQUIRED = YES.
 ```
 
 ### RD-0003 — Canonical failure deduplication
@@ -304,6 +308,42 @@ REMOVE_FROM_DELTA_WHEN = Promoted to roadmap and the maturity gap is tracked by
   a concrete approved capability WP.
 PLANNER_NOTES = Do not call deep HSMT analysis DONE merely because current
   samples parse.
+```
+
+### RD-0005 — Planner Human Intent & Strategic Continuity
+
+```text
+ID = RD-0005
+TITLE = PLANNER HUMAN INTENT & STRATEGIC CONTINUITY
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0
+CRAWLER_VALUE = HIGH
+PRODUCT_AREA = Agent governance / strategic continuity / Human intent preservation
+PRODUCT_HOUSE_LAYERS = GOVERNANCE; ALL MATERIAL PRODUCT HOUSE LAYERS
+OBSERVATION = Human and Planner need a stable strategic collaboration contract
+  so material Human intent is transformed into bounded Builder instructions,
+  durable Spine routing, strategic handoff context and Reviewer challenge
+  criteria.
+WHY_IT_MATTERS = Without explicit Planner responsibility, Human intent may
+  remain chat-only, Builder prompts may lose rationale or constraints, future
+  agents may lack strategic context, and Reviewer findings may be consumed
+  superficially.
+ROADMAP_IMPACT = ROADMAP_UPGRADE / GOVERNANCE
+RELEVANT_CURRENT_WP = WP-GOV-PLANNER-CONTINUITY-01
+TARGET_STATE = Planner owns strategic synthesis, Human-intent reconciliation,
+  Builder contract generation, Reviewer challenge design, Reviewer-result
+  reconciliation and strategic handoff preparation while preserving role
+  boundaries.
+PROMOTION_TARGET = GOVERNANCE
+PROMOTION_CONDITION = Human-approved Planner Continuity contract is durably
+  present in AGENTS and supporting governance files and independently audited.
+COMPLETION_EVIDENCE = Exact-head independent governance audit proves Human
+  intent preservation, Builder/Reviewer separation, strategic handoff behavior
+  and Planner authority boundaries.
+REMOVE_FROM_DELTA_WHEN = Planner Continuity governance is merged, post-merge
+  promoted and no material contract gap remains.
+PLANNER_NOTES = Planner is strategic synthesis authority, not Human authority,
+  Builder, Reviewer or Source Truth.
 ```
 
 ## 9. Non-authority boundary
