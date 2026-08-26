@@ -99,6 +99,15 @@ Historical tags and releases must never be silently moved.
     ALWAYS MODIFY`: inspect the applicable authorities at every transition,
     but material new durable information must update the correct authority.
 
+14. **LAW 14 — ROADMAP DELTA & REVIEWER CONTINUITY**: `docs/agent/MASTER_ROADMAP_DELTA.md`
+    is mandatory companion context alongside `MASTER_ROADMAP.md`. New
+    material product understanding that is not yet ready for permanent roadmap
+    promotion must be triaged there, with PRE/MID-trigger/POST reconciliation.
+    The Reviewer checks implementation alignment and documentation freshness;
+    stale relevant organizational memory may block handoff. The Delta does not
+    silently override the Master Roadmap; material conflict routes to the
+    Planner and Human authority.
+
 ### Canonical Context Spine routing
 
 Route accepted or verified material knowledge to the narrowest authority:
@@ -108,6 +117,8 @@ CURRENT execution/handoff/transition state
   → docs/agent_handoff/CURRENT.md
 Strategic architecture/frontier/capability maturity
   → docs/agent/MASTER_ROADMAP.md
+Active unresolved roadmap/product evolution
+  → docs/agent/MASTER_ROADMAP_DELTA.md
 Durable fact already merged to main
   → docs/agent/PROJECT_MEMORY.md
 Material engineering failure/root cause/prevention

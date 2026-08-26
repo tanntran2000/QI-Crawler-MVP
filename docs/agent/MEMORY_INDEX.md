@@ -20,13 +20,15 @@ frontier; it does not authorize implementation scope by itself.
 5. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
 6. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
    README, strategic capability map, and dependencies.
-7. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
-8. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
-9. Live GitHub state when the Work Package involves a branch, PR, remote
+7. `docs/agent/MASTER_ROADMAP_DELTA.md` — active unresolved product and
+   architecture evolution companion; mandatory alongside the Master Roadmap.
+8. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
+9. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
+10. Live GitHub state when the Work Package involves a branch, PR, remote
    checkpoint, or CI.
-10. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
-11. Relevant entries in `docs/agent/LESSONS.md`.
-12. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+11. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
+12. Relevant entries in `docs/agent/LESSONS.md`.
+13. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
 ## Read-in mode selection
 
@@ -50,13 +52,15 @@ READ_MODE_SELECTOR
 **FULL READ-IN** is required for a new agent, new Parent WP, Planner/Reviewer/
 Writer takeover, material architecture or governance/blueprint change, or an
 unresolved authority conflict requiring full reconciliation. Full mode reads
-the complete `MASTER_ROADMAP.md` and required governance spine.
+the complete `MASTER_ROADMAP.md`, relevant `MASTER_ROADMAP_DELTA.md` entries,
+and the required governance spine.
 
 **DELTA READ-IN** is the default for a new Micro-WP within the same approved
 Parent, with the same Product House/architecture baseline, no material
 governance change and no unresolved conflict. Read `CURRENT.md`, live state,
-changed deltas, relevant contracts and relevant lessons/feedback only. Do not
-reread unchanged large documents merely because the Micro-WP number changed.
+the relevant active Delta entries, changed contracts and relevant
+lessons/feedback only. Do not reread unchanged large documents merely because
+the Micro-WP number changed.
 
 **NO RE-READ** is allowed for continuous work in the same Micro-WP, Approval
 Lease, writer and authority with no material scope, baseline, blocker or file
@@ -75,7 +79,8 @@ No `READY`, `PROMPT_READY` or `START_IMPLEMENTATION` is valid until
 `ROADMAP_BASELINE = VERIFIED`, `PRODUCT_FRONTIER = RESOLVED`,
 `ROADMAP_NODE = RESOLVED`, `ARCHITECTURE_LAYERS = RESOLVED` and
 `READ_MODE = RESOLVED`. A changed roadmap SHA or blueprint revision invalidates
-`NO_RE_READ` and requires a delta reconciliation. Full roadmap read remains
+`NO_RE_READ` and requires a delta reconciliation. A changed Delta SHA or
+material RD entry state also invalidates `NO_RE_READ`. Full roadmap read remains
 mandatory for new agents, new Parents, takeovers and material architecture or
 governance changes; it is not repeated for every command.
 
@@ -156,10 +161,14 @@ HUMAN_COLLABORATION      READ
 LOCAL_STAGED_INTEGRATION READ
 PROJECT_MEMORY           READ
 MASTER_ROADMAP           READ
+MASTER_ROADMAP_DELTA     READ
 CURRENT                  READ
 
 ARCHITECTURE_LAYERS      RESOLVED for material technical work
 PRODUCT_FRONTIER         RESOLVED for material technical work
+ROADMAP_DELTA_BASELINE   VERIFIED when a material Delta is relevant
+RELEVANT_DELTA_IDS       RESOLVED when a material Delta is relevant
+DOC_FRESHNESS_STATE      PASS / accepted STALE_NONBLOCKING
 
 LIVE_GIT                 VERIFIED
 LIVE_GITHUB              VERIFIED when a remote branch/PR/CI is relevant

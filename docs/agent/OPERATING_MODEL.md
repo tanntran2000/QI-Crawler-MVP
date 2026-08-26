@@ -131,6 +131,36 @@ NEXT_AUTHORITY
 `PASS` routes to `PLANNER_ARCHITECT`; a correction-required `HOLD` or `FAIL`
 routes to `BUILDER_SINGLE_WRITER`.
 
+For a material product or architecture WP, the Reviewer is also the
+implementation ↔ Delta ↔ Roadmap bridge. The Reviewer independently compares
+the Builder output with relevant `MASTER_ROADMAP_DELTA.md` entries,
+`MASTER_ROADMAP.md`, Product House layers and the Context Spine, and reports
+Delta alignment, roadmap alignment, Crawler value and documentation
+freshness. The Reviewer remains non-writer and non-Planner: it reports stale
+or missing promotion to the Planner and does not edit reviewed files or
+authorize scope.
+
+The extended reviewer packet includes:
+
+```text
+PRODUCT_ROADMAP_AUDIT
+RELEVANT_DELTA_IDS
+DELTA_ALIGNMENT = SATISFIED | PARTIAL | NOT_APPLICABLE | CONFLICT | NEW_DELTA_DISCOVERED
+MASTER_ROADMAP_ALIGNMENT = ALIGNED | PARTIALLY_ALIGNED | MISALIGNED | CONFLICT
+PRODUCT_HOUSE_ALIGNMENT = PASS | HOLD
+CRAWLER_VALUE = IMPROVED | PRESERVED | NEUTRAL | DEGRADED | REQUIRES_VERIFICATION
+ARCHITECTURAL_OBSERVATIONS
+NEW_DELTA_CANDIDATES
+ROADMAP_PROMOTION_CANDIDATE = YES | NO
+SPINE_FRESHNESS_AUDIT = PASS | STALE_NONBLOCKING | HOLD
+CHECKED_SPINE_FILES
+STALE_DOCS
+MISSING_PROMOTIONS
+DOC_FRESHNESS_STATE = PASS | STALE_NONBLOCKING | HOLD
+PLANNER_ATTENTION_REQUIRED = YES | NO
+REVIEWER_RECOMMENDATION
+```
+
 Entry outcomes are:
 
 - `ENTRY_CLEAR`: no material conflict; approval may be requested.
@@ -143,16 +173,19 @@ Before `READY`, `PROMPT_READY` or `START_IMPLEMENTATION`, reconcile:
 
 ```text
 ROADMAP_BASELINE = VERIFIED
+ROADMAP_DELTA_BASELINE = VERIFIED when a material Delta is relevant
+RELEVANT_DELTA_IDS = RESOLVED when a material Delta is relevant
 PRODUCT_FRONTIER = RESOLVED
 ROADMAP_NODE = RESOLVED
 ARCHITECTURE_LAYERS = RESOLVED
 READ_MODE = RESOLVED
+DOC_FRESHNESS_STATE = PASS / accepted STALE_NONBLOCKING
 ```
 
 Use FULL roadmap read for a new agent/Parent, takeover or material
 architecture/governance change; DELTA for a new Micro-WP under unchanged
 architecture; and NO-RE-READ only for unchanged same-session work. A changed
-roadmap SHA or blueprint revision requires at least DELTA.
+roadmap SHA, Delta SHA or material RD state requires at least DELTA.
 
 After a merge, reconcile live state before handoff:
 

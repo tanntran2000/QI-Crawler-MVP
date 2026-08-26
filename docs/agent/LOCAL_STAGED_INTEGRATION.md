@@ -234,6 +234,20 @@ If `SPINE_AUDIT = HOLD` or `SPINE_SYNC_STATE != PASS`, do not advance to the
 next Micro-WP and do not declare `HANDOFF_READY`. Corrections remain
 forward-only; not every transition requires every Spine document to change.
 
+For a material product or architecture WP, the Reviewer gate also requires:
+
+```text
+IMPLEMENTATION_AUDIT
+ROADMAP_FIT_AUDIT
+SPINE_FRESHNESS_AUDIT
+```
+
+The Reviewer compares the exact Builder output with relevant
+`MASTER_ROADMAP_DELTA.md` entries, `MASTER_ROADMAP.md`, Product House layers
+and applicable Spine authorities. The Reviewer reports alignment and stale or
+missing promotion to the Planner; it remains a non-writer and does not enlarge
+the Builder scope.
+
 ## 7. Independent local audit outcomes
 
 The Reviewer issues one primary outcome:
@@ -408,6 +422,28 @@ There is one semantic meaning per active machine-readable key in `CURRENT.md`.
 Historical values use explicit namespaced keys and must not override the active
 checkpoint for a simple parser. `LAST_AUDITED_CODE_HEAD` remains distinct from
 later documentation or handoff commits.
+
+Before `HANDOFF_READY`, the active Delta and document gates must be recorded:
+
+```text
+ROADMAP_DELTA_CHECK = PASS
+DOC_FRESHNESS_STATE = PASS | accepted STALE_NONBLOCKING
+SPINE_SYNC_STATE = PASS
+```
+
+The Delta is checked at three bounded points:
+
+```text
+PRE-WP  → identify relevant Delta entries and verify the Delta baseline
+MID-WP  → reconcile on a material clarification, scope/architecture signal,
+           source-model mismatch, or behavior that looks wrong despite green tests
+POST-WP → answer relevance, satisfaction/partiality/invalidation, new Delta
+           candidates, and whether promotion/removal is required
+```
+
+`MASTER_ROADMAP_DELTA.md` stages unresolved evolution and does not silently
+override `MASTER_ROADMAP.md`; material conflict is `ROADMAP_CONFLICT = YES`
+and routes to Planner/Human authority with `ENTRY_HOLD`.
 
 Concrete source findings must be reconciled against Git objects when available;
 an audit report is evidence, not source-object authority. When a generic
