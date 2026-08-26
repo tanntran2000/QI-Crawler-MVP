@@ -2,73 +2,67 @@
 
 ## HANDOFF_ID
 
-REMOTE INTEGRATION — WP-GOV-ROADMAP-DELTA-POSTMERGE-01
+WP-GOV-PLANNER-CONTINUITY-01 / M0 — POSTMERGE ENTRY & HUMAN INTENT CAPTURE
 
 ## Status
 
-WP-GOV-ROADMAP-DELTA-POSTMERGE-01 REMOTE CHECKPOINTED / DRAFT PR OPEN
-FINAL EXACT-HEAD AUDIT REQUIRED / HOSTED-CI WAIVER ACTIVE / NO CI PASS CLAIM
+PLANNER CONTINUITY M0 ENTRY / HUMAN INTENT CAPTURE IN PROGRESS
+NO ROLE-CONTRACT IMPLEMENTATION / NO LAW 15 / NO CI PASS CLAIM
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = WP-GOV-ROADMAP-DELTA-POSTMERGE-01
-ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = gov/roadmap-delta-postmerge-01
-MAIN_BASE = e1e7f80e7a41cc4ed402b23966a0583d8eb89a53
-ENTRY_HEAD = e1e7f80e7a41cc4ed402b23966a0583d8eb89a53
-HANDOFF_CAPTURE_BASE = 0e6db6a425a5278abd216fe32ca7f6f1d6a7d1ff
-PARENT_STATE = REMOTE_CHECKPOINTED_PENDING_FINAL_AUDIT
-OBJECTIVE = POST_AUDIT_REMOTE_INTEGRATION
+PREVIOUS_PARENT_WP = WP-GOV-ROADMAP-DELTA-POSTMERGE-01
+PREVIOUS_PARENT_STATE = MERGED_CLOSED
+LAST_MERGED_PR = 63
+LAST_MERGED_PR_HEAD = 334c6e3e98b266c0b46ca3dfe6c1c1af6a10ccc3
+LAST_MERGE_COMMIT = f0a0f07ecda1d86f5731027487aeb837dbb1eca7
+ACTIVE_PARENT_WP = WP-GOV-PLANNER-CONTINUITY-01
+ACTIVE_MICRO_WP = M0
+ACTIVE_BRANCH = gov/planner-continuity-01
+ENTRY_HEAD = f0a0f07ecda1d86f5731027487aeb837dbb1eca7
+HANDOFF_CAPTURE_BASE = f0a0f07ecda1d86f5731027487aeb837dbb1eca7
+PARENT_STATE = ENTRY_PRE_HUMAN_INTENT_CAPTURE
+OBJECTIVE = PLANNER_CONTINUITY_ROLE_GOVERNANCE
 PRODUCT_FRONTIER = Unified Tender Warehouse
 ROADMAP_REVISION = 1.2
-ROADMAP_BASELINE_SHA = e1e7f80e7a41cc4ed402b23966a0583d8eb89a53
-ROADMAP_DELTA_BASELINE = e1e7f80e7a41cc4ed402b23966a0583d8eb89a53
-RELEVANT_DELTA_IDS = RD-0001; RD-0002; RD-0003; RD-0004; RD-0005
-LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
+ROADMAP_BASELINE_SHA = f0a0f07ecda1d86f5731027487aeb837dbb1eca7
+ROADMAP_DELTA_BASELINE = f0a0f07ecda1d86f5731027487aeb837dbb1eca7
+RELEVANT_DELTA_IDS = RD-0002; RD-0005; RD-0006; RD-0007
+LAST_AUDITED_DOC_HEAD = 334c6e3e98b266c0b46ca3dfe6c1c1af6a10ccc3
 LAST_AUDITED_CODE_HEAD = 1b68007d1cd57b8763231a84367e9289064a9843
-LAST_AUDITED_DOC_HEAD = 0e6db6a425a5278abd216fe32ca7f6f1d6a7d1ff
-REMOTE_CHECKPOINT = DONE
-REMOTE_CHECKPOINT_HEAD = 0e6db6a425a5278abd216fe32ca7f6f1d6a7d1ff
-PR_STATE = DRAFT_OPEN
-PR_NUMBER = 63
-PR_URL = https://github.com/tanntran2000/QI-Crawler-MVP/pull/63
-MERGE_STATE = NOT_MERGED
-INDEPENDENT_AUDIT = PASS
-INDEPENDENT_AUDIT_HEAD = 0e6db6a425a5278abd216fe32ca7f6f1d6a7d1ff
-VERIFICATION_STATE = REMOTE_INTEGRATION_PENDING_FINAL_AUDIT
-DOC_SYNC_STATE = REMOTE_INTEGRATION
-SPINE_IMPACT = CURRENT; HISTORY; PROJECT_MEMORY; FEEDBACK; ROADMAP_DELTA
-SPINE_SYNC_STATE = PASS
+PR_STATE = NONE
+MERGE_STATE = PREVIOUS_PARENT_MERGED
+REMOTE_CHECKPOINT = NOT_APPLICABLE_M0
+VERIFICATION_STATE = M0_DOCUMENTATION_IN_PROGRESS
+DOC_SYNC_STATE = M0_PENDING_REVIEW
 ROADMAP_DELTA_CHECK = PASS
-DOC_FRESHNESS_STATE = PASS
-INDEPENDENT_DOC_AUDIT = PASS_PR62_AUDIT
-LAST_MERGED_PR = 62
-LAST_MERGE_COMMIT = e1e7f80e7a41cc4ed402b23966a0583d8eb89a53
-LAST_MERGED_WP = WP-GOV-ROADMAP-DELTA-01
-WP_GOV_ROADMAP_DELTA_01 = MERGED
-MASTER_ROADMAP_DELTA = ACTIVE_ON_MAIN
-REVIEWER_CONTINUITY_BRIDGE = ACTIVE_ON_MAIN
-LAW_14 = ACTIVE_ON_MAIN
-BUG_HUNT = PARKED_BY_HUMAN_A0
-GOVERNANCE_REFORM_FB_0011 = PARKED_SEPARATE
+SPINE_IMPACT = CURRENT; HISTORY; FEEDBACK; ROADMAP_DELTA
+SPINE_SYNC_STATE = M0_PENDING_REVIEW
+DOC_FRESHNESS_STATE = M0_PENDING_REVIEW
+ROLE_CONTRACT_IMPLEMENTATION = NOT_STARTED
+LAW_15 = NOT_IMPLEMENTED
+PLANNER_CONTINUITY_IMPLEMENTATION_STARTED = NO
 CI_WAIVER = ACTIVE
 HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
 CI_PASS_CLAIMED = NO
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
-PUSH = DONE_REMOTE_CHECKPOINT
-PR = DRAFT_63
-MERGE = NOT_MERGED
+BUG_HUNT = PARKED_BY_HUMAN_A0
+GOVERNANCE_REFORM_FB_0011 = PARKED_SEPARATE
+FB_0017 = ACCEPTED_QUEUED
+FB_0018 = ACCEPTED_QUEUED
+RD_0005 = APPROVED_ACTIVE_EXTENDED
+RD_0006 = APPROVED_ACTIVE
+RD_0007 = APPROVED_ACTIVE
 PRODUCTION_CHANGE_EXPECTED = NO
 TEST_CHANGE_EXPECTED = NO
 CI_WORKFLOW_CHANGE_EXPECTED = NO
-OPEN_BLOCKERS = FINAL_EXACT_HEAD_INTEGRATION_AUDIT_PENDING
-SCOPE_BOUNDARIES = POSTMERGE_DOCS_ONLY; NO_PLANNER_CONTINUITY_IMPLEMENTATION; NO_BUG_HUNT; NO_FB_0011_ACTIVATION; NO_FB_0017; NO_RD_0006; NO_LAW_15
-NEXT_STATE = FINAL_EXACT_HEAD_INTEGRATION_AUDIT
-NEXT_PARENT_WP = WP-GOV-PLANNER-CONTINUITY-01
+OPEN_BLOCKERS = INDEPENDENT_M0_GOVERNANCE_ENTRY_AUDIT_PENDING
+SCOPE_BOUNDARIES = DOCS_GOVERNANCE_PARENT_PRE_ONLY; NO_ROLE_CONTRACT_IMPLEMENTATION; NO_LAW_15; NO_BUILDER_INTEGRITY; NO_BUG_HUNT; NO_FB_0011_ACTIVATION
+NEXT_STATE = INDEPENDENT_M0_GOVERNANCE_ENTRY_AUDIT
 NEXT_AUTHORITY = REVIEWER_AUDITOR
-EXACTLY_ONE_NEXT_ACTION = FINAL_EXACT_HEAD_INTEGRATION_AUDIT
+EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_M0_GOVERNANCE_ENTRY_AUDIT
 HANDOFF_READY = NO
 ACTIVE_DUPLICATE_KEYS = NONE
 PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md; docs/agent/MASTER_ROADMAP_DELTA.md
@@ -77,33 +71,32 @@ ROADMAP_CONTEXT_REQUIRED = YES
 
 ## Current verified context
 
-PR #62 merged `WP-GOV-ROADMAP-DELTA-01` into `main` at merge commit
-`e1e7f80e7a41cc4ed402b23966a0583d8eb89a53`; the audited feature head was
-`1b68007d1cd57b8763231a84367e9289064a9843`. The merge made the mandatory
-`MASTER_ROADMAP_DELTA.md` companion, the LAW 14 Delta/reviewer-continuity
-contract and its supporting governance bridge active on main. The Product
-Frontier remains Unified Tender Warehouse.
+PR #63 merged `WP-GOV-ROADMAP-DELTA-POSTMERGE-01` into `main` at
+`f0a0f07ecda1d86f5731027487aeb837dbb1eca7`; its audited head was
+`334c6e3e98b266c0b46ca3dfe6c1c1af6a10ccc3`. The Product Frontier remains
+Unified Tender Warehouse. The Roadmap Delta companion and Reviewer continuity
+bridge remain active on main.
 
 The hosted-CI waiver remains active: `CI_PASS_CLAIMED = NO` and
 `PENDING_RETRO_CI = YES`; official Team Bid release remains blocked. Human A0's
-full local bug-hunt remains parked, not cancelled. `FB-0011` remains parked and
-separate. RD-0002 remains active until Planner Continuity resolves the
-remaining governance read-path cleanup; RD-0005 records the accepted Planner
-Human Intent direction. The audited post-merge reconciliation is checkpointed
-at `0e6db6a425a5278abd216fe32ca7f6f1d6a7d1ff` on remote branch
-`gov/roadmap-delta-postmerge-01`; Draft PR #63 targets `main` and is not merged.
-The forward handoff correction does not implement Planner Continuity, FB-0017,
-RD-0006 or LAW 15.
+full bug-hunt remains parked, and `FB-0011` remains parked separately.
+
+M0 captures approved Human governance intent for the Planner operating loop,
+role-contract continuity, the role entry gate and latest-WP Spine sync. These
+are staging inputs for later Planner Continuity micro-WPs, not implementation
+authorization. RD-0002 remains active for governance read-path cleanup; RD-0005
+is extended with the operating-loop detail; RD-0006 and RD-0007 are active
+future governance Deltas.
 
 ## Next governed action
 
-Final exact-head integration audit of Draft PR #63 against `main`, after which
-Human authority decides whether to merge. Planner Continuity remains the next
-governance WP, not active implementation in this transition.
+Independent Reviewer audit of this M0 entry, including Human-intent capture,
+Delta alignment, active-key uniqueness, Spine freshness and confirmation that
+role contracts, LAW 15, Builder Integrity and FB-0011 were not implemented or
+activated.
 
 ## Authority
 
 This file is the active handoff, not a diary, roadmap, review report or chat
-summary. Live Git/GitHub remains authoritative for volatile PR, CI and merge
-state. Historical snapshots under `docs/agent_handoff/history/` are
-non-normative after capture.
+summary. Live Git/GitHub remains authoritative for volatile state. Historical
+snapshots under `docs/agent_handoff/history/` are non-normative after capture.
