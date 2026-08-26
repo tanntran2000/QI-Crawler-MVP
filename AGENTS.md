@@ -51,11 +51,18 @@ Historical tags and releases must never be silently moved.
 ## Engineering governance laws
 
 1. **LAW 1 — PLAN-FIRST**: Planner creates the design/work-order; Planner does not code.
-2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: `PLANNER_ARCHITECT` →
-   `BUILDER_SINGLE_WRITER` → `MACHINE_VERIFIER` evidence →
-   `INDEPENDENT REVIEWER_AUDITOR` → `HUMAN MERGE APPROVER`. These are
-   authority roles, not model names. The Reviewer audits independently and
-   never edits the implementation under review.
+2. **LAW 2 — SEPARATION OF RESPONSIBILITIES**: The governed coordination flow
+   is `HUMAN MATERIAL INTENT` → `PLANNER_ARCHITECT` → `BUILDER_SINGLE_WRITER`
+   → `MACHINE_VERIFIER` evidence when applicable →
+   `PLANNER_BUILDER_RESULT_REVIEW` → `INDEPENDENT REVIEWER_AUDITOR` →
+   `PLANNER_POST_REVIEW_RECONCILIATION` → Human material, merge or release
+   authority. Planner builder-result review is orchestration and evidence/scope
+   analysis; it does not edit Builder output, replace Machine Verifier or
+   perform the independent audit. Planner post-review reconciliation does not
+   rewrite the Reviewer verdict, substitute for independent review or authorize
+   Human-only decisions. These are authority roles, not model names. One
+   Writer, independent review and Human final material authority remain
+   mandatory.
 3. **LAW 3 — SYSTEMIC LESSONS ONLY**: Record durable architectural lessons; do not pollute lessons with minor typos.
 4. **LAW 4 — PROOF-GATED DEFINITION OF DONE**: Verify against the explicit Work Order contract; never claim unqualified perfection.
 5. **LAW 5 — MINIMAL COMPLETE FIX**: Fix at root cause with the smallest complete change; no masking or speculative refactoring.
@@ -107,6 +114,19 @@ Historical tags and releases must never be silently moved.
     stale relevant organizational memory may block handoff. The Delta does not
     silently override the Master Roadmap; material conflict routes to the
     Planner and Human authority.
+
+15. **LAW 15 — HUMAN INTENT & PLANNER STRATEGIC RECONCILIATION**: Human
+    material intent must flow through Planner capture, interpretation and
+    explicit disposition into the Work Order, handoff, Delta or Feedback
+    authority, then through Builder, Planner builder-result analysis, Reviewer
+    audit and Planner's direct Roadmap/Delta/Spine/live-state reconciliation
+    back to Human when material. Human material intent must not be silently
+    dropped. Human authority does not mean every Human technical assumption is
+    a verified fact. `REVIEWER AUDIT VERDICT != PLANNER STRATEGIC INTEGRATION
+    DECISION != HUMAN MATERIAL AUTHORITY`. Planner may challenge a technical
+    assumption with evidence, must not silently override an A0 business
+    decision, and must independently reconcile Reviewer evidence before
+    recommending merge or next work.
 
 ### Canonical Context Spine routing
 

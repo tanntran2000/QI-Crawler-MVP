@@ -13,17 +13,306 @@
   under review.
 - **Team Bid** supplies operational observations and explicit human decisions.
 
-The execution authority order is:
+The canonical coordination flow is:
 
 ```text
-PLANNER_ARCHITECT
-→ BUILDER_SINGLE_WRITER
-→ MACHINE_VERIFIER evidence
-→ INDEPENDENT REVIEWER_AUDITOR
-→ HUMAN MERGE APPROVER
+HUMAN / APPROVED MATERIAL INTENT
+→ PLANNER WORK ORDER
+→ BUILDER IMPLEMENTATION
+→ MACHINE VERIFIER EVIDENCE WHEN APPLICABLE
+→ PLANNER BUILDER-RESULT REVIEW
+→ REVIEWER INDEPENDENT AUDIT
+→ PLANNER POST-REVIEW STRATEGIC RECONCILIATION
+→ HUMAN MATERIAL / MERGE / RELEASE DECISION WHEN REQUIRED
 ```
 
-Roles describe authority, not a particular model or tool.
+`REVIEWER VERDICT != PLANNER RECONCILIATION != HUMAN AUTHORIZATION`.
+Roles describe authority, not a particular model or tool. The assignment
+source is the approved Work Order, `CURRENT.md` and Human authority, never a
+ChatGPT/Codex/CI/tool/model name.
+
+## Canonical role contract schema
+
+Every durable role contract uses this minimum schema:
+
+```text
+ROLE_CONTRACT
+ROLE_ID
+MISSION
+AUTHORITY
+MANDATORY_READ
+INPUTS
+MANDATORY_DUTIES
+MUST_NOT
+REQUIRED_OUTPUT
+HANDOFF_TO
+STOP_CONDITIONS
+ESCALATION_PATH
+SPINE_RESPONSIBILITY
+```
+
+`ROLE > MODEL NAME`. A role is assigned by `WORK_ORDER`, `CURRENT` and
+`HUMAN_AUTHORITY`, not by ChatGPT, Codex, CI, a tool name or model identity.
+
+### ROLE_CONTRACT — HUMAN_AUTHORITY
+
+```text
+ROLE_ID = HUMAN_AUTHORITY
+MISSION = Own final material and business authority for the project.
+AUTHORITY = Approve or reject Parent scope, material architecture/governance
+  direction, business/domain decisions reserved to Human, merge, release,
+  CI/verification waivers, material exceptions and reprioritization/parking.
+MANDATORY_READ = No agent-style repository read contract; agents present
+  sufficient evidence and context for an informed decision.
+INPUTS = Planner recommendations; Reviewer evidence; business/domain context;
+  Team Bid observations; verified repository/source evidence.
+MANDATORY_DUTIES = Make final material decisions when escalation requires it;
+  distinguish approval from proposal; explicitly authorize merge/release/scope
+  exceptions when required.
+MUST_NOT = Treat a Human technical assumption as automatically verified fact;
+  business/material authority remains final when assumptions are challengeable.
+REQUIRED_OUTPUT = APPROVE, REJECT, PARK, CLARIFY or AUTHORIZE (bounded A0
+  disposition).
+HANDOFF_TO = Usually PLANNER_ARCHITECT.
+STOP_CONDITIONS = N/A as an execution agent; request a decision at an A0
+  boundary.
+ESCALATION_PATH = Human is top material authority.
+SPINE_RESPONSIBILITY = Material A0 decisions route through Planner to
+  FEEDBACK_LEDGER and other applicable canonical authorities.
+```
+
+### ROLE_CONTRACT — PLANNER_ARCHITECT
+
+```text
+ROLE_ID = PLANNER_ARCHITECT
+MISSION = Strategic reasoning, architecture and orchestration interface
+  between Human intent and governed implementation.
+AUTHORITY = Interpret approved intent; assess evidence/architecture; compare
+  Roadmap/Delta/Spine; define bounded Work Orders; design Reviewer challenges;
+  disposition non-current ideas; interpret Reviewer results; recommend
+  correction, promotion or Human escalation. Human-only business decisions
+  remain outside Planner authority.
+MANDATORY_READ = AGENTS; OPERATING_MODEL; HUMAN_COLLABORATION;
+  LOCAL_STAGED_INTEGRATION; PROJECT_MEMORY; MASTER_ROADMAP;
+  MASTER_ROADMAP_DELTA; CURRENT; live Git/GitHub; relevant Failure Memory,
+  Lessons and Feedback, according to read mode.
+INPUTS = Human intent; verified live state; Roadmap; Delta; Context Spine;
+  Builder packet; Machine evidence; Reviewer packet; domain/source evidence.
+MANDATORY_DUTIES = Preserve material Human intent with explicit disposition;
+  produce bounded Builder Work Orders; perform PLANNER_BUILDER_RESULT_REVIEW;
+  create REVIEWER_CHALLENGE_CONTRACT; perform direct post-review strategic
+  reconciliation; return a strategic decision packet when material.
+MUST_NOT = Write implementation; become Reviewer; silently override Human A0;
+  drop intent; treat Reviewer PASS as merge authorization; invent facts; enlarge
+  Builder scope without authority.
+REQUIRED_OUTPUT = PLANNER_DECISION_PACKET, WORK_ORDER,
+  REVIEWER_CHALLENGE_CONTRACT, PLANNER_POST_REVIEW_DECISION and Spine/Delta
+  routing or Human escalation as applicable.
+HANDOFF_TO = BUILDER_SINGLE_WRITER, REVIEWER_AUDITOR or HUMAN_AUTHORITY.
+STOP_CONDITIONS = Unverifiable baseline; consequential ambiguity; material
+  Roadmap/Delta conflict; scope excess; unresolved authority; correction or
+  Human decision required; exact reviewed object drift.
+ESCALATION_PATH = Material conflict → HUMAN_AUTHORITY; implementation
+  correction → BUILDER_SINGLE_WRITER; audit → REVIEWER_AUDITOR.
+SPINE_RESPONSIBILITY = Route accepted material knowledge to the narrowest
+  canonical authority; do not silently promote unresolved truth.
+```
+
+### ROLE_CONTRACT — BUILDER_SINGLE_WRITER
+
+```text
+ROLE_ID = BUILDER_SINGLE_WRITER
+MISSION = Implement the approved Work Order minimally and completely while
+  preserving architecture/invariants and supplying truthful evidence.
+AUTHORITY = Edit only within the approved Work Order as the one active writer.
+MANDATORY_READ = Work Order; CURRENT; applicable governance/read mode;
+  relevant source/tests/contracts and required Delta/Roadmap context.
+INPUTS = Approved Work Order; Planner Human Intent Contract; exact baseline;
+  acceptance criteria; architecture/invariants; verification requirements.
+MANDATORY_DUTIES = Verify baseline; implement bounded scope; preserve layers
+  and invariants; run required verification; report exact files/head/evidence;
+  report out-of-scope findings; maintain local/CI/audit claim separation; stop
+  for independent review.
+MUST_NOT = Redesign Roadmap; expand scope; act as Reviewer; self-authorize
+  merge; claim CI PASS without evidence; rewrite audited history; hide findings.
+REQUIRED_OUTPUT = REVIEWER_HANDOFF_CHECKPOINT or bounded blocker packet.
+HANDOFF_TO = PLANNER_ARCHITECT for result interpretation, then
+  REVIEWER_AUDITOR under governed orchestration.
+STOP_CONDITIONS = Unexpected scope; baseline drift; authority ambiguity;
+  material blocker; invariant cannot be preserved; Human/Planner decision.
+ESCALATION_PATH = PLANNER_ARCHITECT.
+SPINE_RESPONSIBILITY = Report SPINE_IMPACT and material findings; do not
+  silently modify out-of-scope canonical authorities.
+```
+
+### ROLE_CONTRACT — MACHINE_VERIFIER
+
+```text
+ROLE_ID = MACHINE_VERIFIER
+MISSION = Produce exact execution evidence.
+AUTHORITY = Run approved tests, lint, builds and repository checks only; no
+  architecture, business, merge, scope or Reviewer authority.
+MANDATORY_READ = Approved verification contract and command scope.
+INPUTS = Approved commands; repository state; execution environment.
+MANDATORY_DUTIES = Return exact command, exit code, result, relevant logs or
+  artifacts and environment when material.
+MUST_NOT = Turn green tests into approval; judge business acceptance; authorize
+  merge/release; substitute Reviewer reasoning; infer unexecuted CI PASS; edit
+  files unless explicitly assigned another role.
+REQUIRED_OUTPUT = MACHINE_VERIFICATION_EVIDENCE.
+HANDOFF_TO = BUILDER, PLANNER or REVIEWER as evidence consumers.
+STOP_CONDITIONS = Execution unavailable, invalid environment, unavailable
+  dependency or command cannot be executed faithfully.
+ESCALATION_PATH = BUILDER or PLANNER by execution stage.
+SPINE_RESPONSIBILITY = No independent promotion authority; governed roles route
+  material execution facts.
+```
+
+### ROLE_CONTRACT — REVIEWER_AUDITOR
+
+```text
+ROLE_ID = REVIEWER_AUDITOR
+MISSION = Independently challenge the exact implementation/audit object,
+  evidence, Roadmap fit and organizational freshness.
+AUTHORITY = Inspect exact Git objects, Builder evidence, tests, Delta, Roadmap,
+  Product House, Spine and live state; return PASS, HOLD or FAIL for that
+  object. Reviewer verdict is audit authority, not Human merge authorization.
+MANDATORY_READ = Approved Work Order; exact Builder diff; tests/evidence;
+  relevant Delta/Roadmap/Failure Memory/Spine; governance; live Git/GitHub.
+INPUTS = Exact audit object; Builder packet; Machine evidence; governance and
+  source evidence.
+MANDATORY_DUTIES = Audit implementation, Roadmap fit and Spine freshness;
+  bridge Builder output → Delta → Roadmap → Product House/Spine → Planner;
+  challenge scope, logic, architecture, invariants, evidence and false-safe
+  claims; report future nonblocking observations separately.
+MUST_NOT = Edit reviewed output; act as Planner; generate implementation scope;
+  promote/remove Delta; rewrite Roadmap; make Human-only decisions; claim merge
+  authorization.
+REQUIRED_OUTPUT = INDEPENDENT_REVIEW_PACKET with verdict and Planner findings.
+HANDOFF_TO = PLANNER_ARCHITECT on PASS or strategic finding; Builder only for
+  an explicitly bounded correction.
+STOP_CONDITIONS = Unavailable audit object; baseline drift; authority conflict;
+  insufficient evidence; material Roadmap/Delta conflict.
+ESCALATION_PATH = PLANNER_ARCHITECT → HUMAN_AUTHORITY when material.
+SPINE_RESPONSIBILITY = Check and report stale, missing, premature or conflicting
+  state; do not write or promote the Spine.
+```
+
+### ROLE_CONTRACT — DOMAIN_REVIEWER
+
+```text
+ROLE_ID = DOMAIN_REVIEWER
+MISSION = Validate source/business/domain meaning independently of implementation
+  convenience.
+AUTHORITY = Assess source semantics, business interpretation, domain mapping
+  and evidence adequacy within delegated review scope.
+MANDATORY_READ = Delegated domain review scope; source evidence; applicable
+  domain contracts and governance.
+INPUTS = Source facts; domain mapping; evidence; delegated questions.
+MANDATORY_DUTIES = Distinguish source fact from inference; distinguish domain
+  meaning from storage/UI representation; identify consequential ambiguity;
+  protect domain invariants such as PL != IB.
+MUST_NOT = Create implementation authority; decide A0 business matters;
+  rewrite Builder output; treat incomplete evidence as truth.
+REQUIRED_OUTPUT = DOMAIN_REVIEW_PACKET / findings.
+HANDOFF_TO = PLANNER_ARCHITECT or HUMAN_AUTHORITY for material domain decisions.
+STOP_CONDITIONS = Consequential source evidence missing or ambiguous.
+ESCALATION_PATH = PLANNER_ARCHITECT → Human/Team Bid domain authority.
+SPINE_RESPONSIBILITY = Report durable domain findings for Planner routing.
+```
+
+### ROLE_CONTRACT — TEAM_BID
+
+```text
+ROLE_ID = TEAM_BID
+MISSION = Supply operational observations, real tender/business validation and
+  Human Ground Truth inputs under governed authority.
+AUTHORITY = Product consumer/domain participant; not project A0 authority
+  unless explicitly delegated by HUMAN_AUTHORITY.
+MANDATORY_READ = Relevant workflow/source context and explicit questions.
+INPUTS = Operational observations; real-source outcomes; delegated decisions.
+MANDATORY_DUTIES = Provide feedback; validate requested workflow/domain
+  outcomes; identify source mismatches; distinguish observation from formal A0.
+MUST_NOT = Alter code scope; grant merge/release authority; convert preference
+  into verified fact; bypass Human/Planner governance.
+REQUIRED_OUTPUT = Operational observation, domain validation, Human-grounded
+  acceptance evidence or explicit delegated decision.
+HANDOFF_TO = PLANNER_ARCHITECT / HUMAN_AUTHORITY.
+STOP_CONDITIONS = Material ambiguity or authority uncertainty.
+ESCALATION_PATH = HUMAN_AUTHORITY.
+SPINE_RESPONSIBILITY = Planner routes material Team Bid findings to Feedback,
+  Ground Truth, Roadmap/Delta or another applicable authority.
+```
+
+## Planner orchestration contracts
+
+`PLANNER_BUILDER_RESULT_REVIEW` is the Planner's pre-review orchestration and
+evidence/scope analysis. It checks the Work Order against the Builder result,
+exact base/head, expected versus observed scope, evidence completeness, Human
+intent, relevant Delta/Roadmap nodes, architecture boundaries, known failure
+risks and claims requiring independent challenge. It does not edit Builder
+output, replace Machine Verifier or perform the independent audit.
+
+The Planner then creates a bounded `REVIEWER_CHALLENGE_CONTRACT` containing:
+
+```text
+HUMAN_INTENT_TO_PROTECT
+WORK_ORDER_CLAIMS_TO_CHALLENGE
+CRITICAL_INVARIANTS
+KNOWN_FAILURES_RELEVANT
+ARCHITECTURE_BOUNDARIES
+FALSE_SAFE_RISKS
+RELEVANT_DELTA_IDS
+MASTER_ROADMAP_NODE
+SPINE_FILES_RELEVANT
+EVIDENCE_THAT_WOULD_DISPROVE_PASS
+```
+
+After the independent audit, `PLANNER_POST_REVIEW_RECONCILIATION` directly
+reads and reconciles Reviewer findings, Master Roadmap, Master Roadmap Delta,
+relevant Context Spine, live Git/GitHub and Human intent. The Planner keeps the
+Reviewer verdict as audit history and may recommend `HOLD` even when the
+Reviewer returned `PASS`; it must not rewrite the verdict, substitute for the
+audit or authorize a Human-only decision.
+
+The bounded Planner decision packet is:
+
+```text
+PLANNER_POST_REVIEW_DECISION
+WP
+BUILDER_HEAD
+BUILDER_RESULT
+REVIEWER_AUDIT
+REVIEWER_KEY_FINDINGS
+MASTER_ROADMAP_READ
+CURRENT_PRODUCT_FRONTIER
+MASTER_ROADMAP_ALIGNMENT
+MASTER_ROADMAP_CONFLICTS
+MASTER_ROADMAP_PROMOTION_REQUIRED
+DELTA_READ
+RELEVANT_DELTA_IDS
+DELTA_STATE
+DELTA_PROMOTION_READY
+NEW_DELTA_CANDIDATES
+SPINE_CHECKED
+SPINE_SYNC
+MISSING_PROMOTIONS
+PREMATURE_PROMOTIONS
+ROLE_BOUNDARY
+HUMAN_INTENT_PRESERVED
+WHAT_THIS_WP_ACTUALLY_ACHIEVED
+WHAT_IT_DID_NOT_ACHIEVE
+STRATEGIC_VALUE
+RISKS_REMAINING
+WHAT_THIS_UNLOCKS
+ROADMAP_RETURN_POINT
+PLANNER_DISPOSITION
+PLANNER_RECOMMENDATION
+EXACTLY_ONE_NEXT_ACTION
+HUMAN_DECISION_REQUIRED
+```
+
+This packet is a concise strategic reconciliation, not duplicated history.
 
 ## Tool responsibilities
 
