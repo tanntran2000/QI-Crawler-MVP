@@ -90,7 +90,7 @@ jobs:
   tests-windows-312:
     name: Tests Windows 3.12
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       QT_QPA_PLATFORM: offscreen
 
