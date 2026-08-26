@@ -385,7 +385,7 @@ Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ### FB-0015 — Reviewer continuity and documentation freshness authority
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-ROADMAP-DELTA-01
@@ -402,8 +402,39 @@ the Reviewer remains independent, non-writing and non-Planner.
 Scope change required: NO
 Response: Added the Delta read gate, Reviewer bridge and freshness fields to
 the governance contracts; no Reviewer edit or promotion authority is added.
-Disposition: ACCEPTED / GOVERNANCE_COMPANION_PENDING_AUDIT
+Independent audit: PASS
+PR #62: MERGED
+Disposition: PROMOTED / DURABLE_GOVERNANCE_STATE
 Promoted to: AGENTS.md; docs/agent/MEMORY_INDEX.md;
 docs/agent/OPERATING_MODEL.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
 docs/agent/MASTER_ROADMAP_DELTA.md
+```
+
+### FB-0016 — Planner Human Intent & Strategic Continuity
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-PLANNER-CONTINUITY-01
+Type: GOVERNANCE / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Planner is the primary strategic collaboration interface where
+Human and Planner discuss work before Builder execution. Planner preserves
+material Human intent, gives every material statement an explicit disposition,
+routes current-scope requirements into the Builder Work Order, and routes
+future or out-of-scope intent to the correct Context Spine authority.
+Impact: Planner provides strategic synthesis across the three-pole development
+model while Human retains final material authority; future roles receive
+strategic handoff context and Builder-readable contracts with Reviewer challenge
+criteria.
+Constraint: Planner interprets Reviewer findings after audit but may not become
+Reviewer, rewrite HOLD into PASS without governed resolution, or replace Human
+authority.
+Evidence: Human A0 decision recorded for the post-merge Roadmap Delta
+transition.
+Scope change required: NO
+Response: Captured for the separately authorized Planner Continuity Work Package.
+Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_PLANNER_CONTINUITY_01
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ```

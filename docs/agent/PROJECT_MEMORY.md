@@ -249,6 +249,23 @@ branches must remain in their Work Package handoff.
   state in `CURRENT.md`.
 - **Last verified:** `82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`.
 
+## MEM-015 — Roadmap Delta and Reviewer continuity governance
+
+- **State:** ACTIVE
+- **Since main commit:** `e1e7f80e7a41cc4ed402b23966a0583d8eb89a53`.
+- **Contract:** PR #62 merged the mandatory `MASTER_ROADMAP_DELTA.md`
+  companion and LAW 14. The independent Reviewer now reports three relevant
+  dimensions: implementation, roadmap fit and Spine freshness.
+  `MASTER_ROADMAP_DELTA.md` does not silently override `MASTER_ROADMAP.md`;
+  material Roadmap/Delta conflict routes to Planner/Human authority with
+  `ENTRY_HOLD`.
+- **Boundary:** This is governance continuity only. It does not claim a
+  product-runtime, HSMT, Warehouse or CI capability change.
+- **Evidence:** PR #62, merge commit
+  `e1e7f80e7a41cc4ed402b23966a0583d8eb89a53`, audited feature head
+  `1b68007d1cd57b8763231a84367e9289064a9843`.
+- **Last verified:** `e1e7f80e7a41cc4ed402b23966a0583d8eb89a53`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
