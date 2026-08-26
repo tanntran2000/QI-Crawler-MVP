@@ -60,7 +60,7 @@ SOURCE ACQUISITION
 ```
 
 ```text
-CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
+CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
 ACTIVE EXECUTION STATE    → docs/agent_handoff/CURRENT.md → live Git/GitHub
 ```
 
@@ -296,7 +296,7 @@ allowing the Human-approved Parent decomposition, micro-WP count, sequence and
 implementation details to adapt.
 
 ```text
-CURRENT_PRODUCT_FRONTIER = Opportunity Intelligence
+CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
 ACTIVE EXECUTION STATE    → docs/agent_handoff/CURRENT.md → live Git/GitHub
 ```
 
@@ -539,8 +539,8 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | Source/web crawl | `STABLE` / `MAINTENANCE_ONLY` | Supported web adapters, discovery, retry/resume, dedup and compliance controls. | New-source coverage and bounded operational fixes only. | Human-prioritized source work; do not rework mature crawling for HSMT. |
 | KHMT/PL intake | `OPERATIONAL` | Source-routed KHMT workbook intake preserves PL identity, raw fields and provenance. | Broader source variants may need bounded corrections. | Source evidence and regression fixture. |
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
-| TBMT source-neutral intake | `DONE` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search and Human Review persistence are merged. | Confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Active execution is governed by `CURRENT.md` and live Git/GitHub. |
-| TBMT Bid Radar | `PARTIAL` | Source-neutral schema, parser, importer, filter/search and Human Review persistence are merged. | Source-neutral confirmed output, backend source-integrity closure, thin existing-GUI wiring and vertical KHMT/TBMT acceptance. | Active execution is governed by `CURRENT.md` and live Git/GitHub. |
+| TBMT source-neutral intake | `OPERATIONAL` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search, Human Review persistence, confirmed XLSX, backend integrity, thin GUI wiring and vertical acceptance are merged. | Broader source variants and future lifecycle expansion. | Unified Tender Warehouse reliability and source evidence. |
+| TBMT Bid Radar | `OPERATIONAL` | TBMT intake → source-neutral filtering/search → Human Review → persistence → confirmed XLSX → thin existing GUI → vertical KHMT/TBMT acceptance. | Broader workflow/reporting and API integration remain future scope; TBMT Legal DOCX is unsupported. | Unified Tender Warehouse reliability and Human authority. |
 | Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | Storage Reconciliation and protected-data verification. |
 | Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
@@ -559,25 +559,25 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 
 ```text
 PRODUCT LANE:
-  Opportunity Intelligence
+  Opportunity Intelligence (DELIVERY CLOSURE MERGED; NEXT FRONTIER: Unified Tender Warehouse)
 
 DOMAIN CORE:
-  PARTIAL — source-neutral Opportunity contract exists;
-  downstream contract needs completion.
+  OPERATIONAL for the merged source-neutral Opportunity contract;
+  broader domain capability remains future scope.
 
 SOURCE ADAPTER:
   DONE for bounded TBMT XLSX intake.
 
 APPLICATION BACKEND:
-  PARTIAL — source-neutral filter/search/review persistence is merged;
-  confirmed output and source-integrity closure remain.
+  OPERATIONAL — source-neutral filter/search, review persistence,
+  confirmed output and source-integrity guard are merged.
 
 PERSISTENCE:
-  PARTIAL — source-neutral Opportunity Human Review persistence is merged;
-  broader confirmed-output integration remains.
+  OPERATIONAL for source-neutral Opportunity Human Review and confirmed
+  output; broader warehouse persistence remains future scope.
 
 DESKTOP FRONTEND:
-  THIN EXISTING-GUI WIRING PENDING — TBMT delivery is not fully wired.
+  OPERATIONAL for thin existing-GUI Bid Radar wiring and vertical acceptance.
 
 CLI:
   not a required current Opportunity Intelligence delivery target
@@ -587,13 +587,14 @@ API:
   HOLD.
 
 TEAM BID DELIVERY:
-  NOT YET OPERATIONAL for TBMT Bid Radar.
+  OPERATIONAL for the bounded KHMT/TBMT workflow; TBMT Legal DOCX remains
+  explicitly unsupported.
 ```
 
 This is descriptive architecture status, not a substitute for `CURRENT.md`
-or live Git/GitHub execution state. The current Opportunity Intelligence
-delivery-closure Parent is human-approved; its active Micro-WP state remains
-in `CURRENT.md` and live Git.
+or live Git/GitHub execution state. The Opportunity Intelligence delivery-
+closure Parent is merged; the next frontier is Unified Tender Warehouse and
+its active execution state belongs in `CURRENT.md` and live Git.
 
 ### Work Package architecture layer contract
 
@@ -721,12 +722,12 @@ an unnecessary crawler rewrite.
 **Mission:** turn KHMT/TBMT sources into understandable, source-backed
 opportunities for Team Bid.
 
-Current direction is KHMT/PL operational. TBMT source-neutral intake,
-filter/search and Human Review persistence are merged. Remaining gaps are
-source-neutral confirmed output, backend source-integrity closure, thin
-existing-GUI wiring and vertical KHMT/TBMT acceptance. The current Parent is
-`WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`, approved by
-Human authority; active Micro-WP state remains in `CURRENT.md` and live Git.
+Current direction is KHMT/PL operational. The bounded TBMT source-neutral
+workflow is merged and operational through vertical KHMT/TBMT acceptance.
+Future gaps are broader source variants, API integration and wider lifecycle
+outputs; TBMT Legal DOCX remains explicitly unsupported. The next product
+frontier is Unified Tender Warehouse, with active execution state in
+`CURRENT.md` and live Git.
 
 Hard invariant:
 
@@ -1194,8 +1195,8 @@ verified CI/release state, applicable governance and Human authority.
 
 1. Mature source crawling does not block HSMT work when Team Bid can provide
    documents manually.
-2. Opportunity Intelligence should complete TBMT Bid Radar integration before
-   broad opportunity-lifecycle expansion.
+2. Opportunity Intelligence delivery closure is complete before broad
+   opportunity-lifecycle expansion.
 3. Unified Tender Warehouse reliability should precede heavy reliance on large
    HSMT/AI historical corpora.
 4. Tender Package & HSMT Intelligence must precede SOP Bid Intelligence.
@@ -1211,8 +1212,7 @@ verified CI/release state, applicable governance and Human authority.
 Likely development path, not an approval sequence:
 
 ```text
-WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure
-→ Unified Tender Warehouse reliability
+Unified Tender Warehouse reliability
 → Tender Package & HSMT Intelligence hardening
 → Completeness / Evidence
 → SOP Bid Intelligence

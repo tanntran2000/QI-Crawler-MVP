@@ -2,51 +2,48 @@
 
 ## HANDOFF_ID
 
-CI WAIVER TRANSITION — WP-MI-TBMT-02C / OPPORTUNITY INTELLIGENCE DELIVERY CLOSURE
+POST-MERGE — WP-MI-TBMT-02C / MAIN TRUTH RECONCILIATION
 
 ## Status
 
-WP-MI-TBMT-02C ACTIVE / CI WAIVER ACTIVE / PENDING MERGE GATE
-PR #60 OPEN DRAFT / NO MERGE / NO HOSTED-CI PASS CLAIM
+WP-MI-TBMT-02C MERGED TO MAIN / CI WAIVER ACTIVE / NEXT FULL LOCAL BUG AUDIT
+PR #60 MERGED / HOSTED-CI PASS NOT CLAIMED
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = WP-MI-TBMT-02C
-ACTIVE_MICRO_WP = NONE_PARENT_INTEGRATION
-ACTIVE_BRANCH = mi/tbmt-02c-opportunity-delivery
-MAIN_BASE = a5a6256070765266bba565530374953090a3d884
-PARENT_STATE = CI_WAIVER_ACTIVE_PENDING_MERGE_GATE
-MICRO_STATE = PARENT_INTEGRATION
-OBJECTIVE = VERTICAL_KHMT_TBMT_ACCEPTANCE
-ENTRY_HEAD = 5ae607d9166265d563cf475c53d0fe42ec0ad5ef
-MICRO_BASE_SHA = 5ae607d9166265d563cf475c53d0fe42ec0ad5ef
-ARCHITECTURE_LAYER_CONTRACT = DELIVERY_SURFACE_THIN_WIRING_IN_SCOPE; APPLICATION_BACKEND_REUSE; DOMAIN_PROTECT; API_CLI_OUT
+ACTIVE_PARENT_WP = NONE
+ACTIVE_MICRO_WP = NONE
+ACTIVE_BRANCH = main
+MAIN_BASE = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
+PARENT_STATE = MERGED_MAIN_TRUTH
+MICRO_STATE = NONE
+OBJECTIVE = POST_MERGE_RECONCILIATION
+ENTRY_HEAD = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
+HANDOFF_CAPTURE_BASE = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
+ARCHITECTURE_LAYER_CONTRACT = DELIVERY_SURFACE_THIN_WIRING_COMPLETE; APPLICATION_BACKEND_REUSE; DOMAIN_PROTECT; API_CLI_OUT
 MIGRATION_EXPECTED = NO
 PRODUCTION_CHANGE_EXPECTED = NO
 PRE_WP_DOC_SYNC = PASS
-PRODUCT_FRONTIER = Opportunity Intelligence
-
+PRODUCT_FRONTIER = Unified Tender Warehouse
 ROADMAP_REVISION = 1.2
 ROADMAP_BASELINE_SHA = bba21071d3a6b42ea87c845e44413a08d863644a
-HANDOFF_CAPTURE_BASE = ec0ddabdbda43faf9ec45bd31c9b9a12954b8ee9
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
+
 LAST_AUDITED_CODE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-AUDITED_CODE_HEAD = 4baed3eda52cc23a04c8fcdbbe2c327ab6c2ef7f
 ACCEPTANCE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-LAST_AUDITED_GOVERNANCE_HEAD = 41840438e4deb92f443fbd1ea04f63e01c9af8f9
+LAST_AUDITED_DOC_HEAD = 38d481f95ea9d2c9aa871d12def63b07d27e5aee
+MERGED_FEATURE_HEAD = d5fecd3cc95e55f825e83e75321a3182da633384
+MERGE_COMMIT = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
 REMOTE_CHECKPOINT = PASS
 REMOTE_CHECKPOINT_HEAD = 601e43890ad26170644dd5a7adbef4a1b22464af
 INDEPENDENT_AUDIT = PASS
-SPINE_AUDIT = PENDING_REVIEWER
-SPINE_IMPACT = CURRENT; FEEDBACK_LEDGER
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/FEEDBACK_LEDGER.md
+SPINE_AUDIT = PASS
+SPINE_IMPACT = CURRENT; ROADMAP; PROJECT_MEMORY; FAILURE_MEMORY; FEEDBACK_LEDGER; CHANGELOG
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP.md; docs/agent/PROJECT_MEMORY.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/FEEDBACK_LEDGER.md; CHANGELOG.md
 SPINE_SYNC_STATE = PASS
 
-LAST_AUDITED_DOC_HEAD = 38d481f95ea9d2c9aa871d12def63b07d27e5aee
-PARENT_POST_HEAD = N/A
-INDEPENDENT_DOC_AUDIT = NOT_APPLICABLE
-VERIFICATION_STATE = BUILDER_LOCAL_VERIFICATION_PASS
+VERIFICATION_STATE = POST_MERGE_RECONCILIATION_LOCAL
 BUILDER_FULL_TEST = 628_PASSED
 COLLECTION = 628_NO_ERRORS
 PARENT_INTEGRATION_BASE = a5a6256070765266bba565530374953090a3d884
@@ -54,30 +51,42 @@ PARENT_INTEGRATION_HEAD = 886856f57184425db6f6ffb4bd4e8d700e37ba12
 LAST_COMPLETED_MICRO_WP = WP-MI-TBMT-02C-4
 PARENT_FULL_VERIFICATION = PASS
 PARENT_TARGETED_VERIFICATION = PASS
+PARENT_INTEGRATION_BLOCKERS = NONE
 RUFF = PASS
 DIFF_CHECK = PASS
 INDEPENDENT_TARGETED_VERIFICATION = PASS
-FM_007 = RESOLVED_LOCAL_AUDITED_REMOTE_CHECKPOINTED_PENDING_MERGE
+FM_007 = MERGED_RESOLVED_PENDING_RETRO_CI_ONLY
+P0_WAL_BACKUP = RESOLVED_LOCAL_AUDITED
+P0_BACKUP_MECHANISM = SQLITE_CONNECTION_BACKUP
+FC2_DOMAIN_APPLICATION_BOUNDARY = RESOLVED_LOCAL_AUDITED
+FC2_ARCHITECTURE_GUARD = RESOLVED_LOCAL_AUDITED
+CURRENT_SCHEMA_REVISION = 0015_add_opportunity_review_events
+REVIEW_INHERITANCE = FORBIDDEN
+IMPLICIT_HUMAN_REVIEW = ABSENT
+LEGACY_KHMT_COMPATIBILITY = PASS
 
-LAST_MERGED_PARENT_WP = WP-GOV-BLUEPRINT-KVS-HANDOFF-01
-LAST_MERGED_PR = 58
-LAST_MERGE_COMMIT = bba21071d3a6b42ea87c845e44413a08d863644a
-MERGE_STATE = NO
+LAST_MERGED_PARENT_WP = WP-MI-TBMT-02C
+LAST_MERGED_PR = 60
+LAST_MERGE_COMMIT = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
+MERGE_STATE = MERGED_MAIN
 CODE_REMOTE_CHECKPOINT = PASS
-PUSH = YES
-PR = OPEN_DRAFT
-MERGE = NO
+PUSH = NO_NEW_DOCS_PUSH
+PR = MERGED_60
+MERGE = MERGED_MAIN
 
 QI_KVS_BLUEPRINT = MERGED_TARGET_ARCHITECTURE
 QI_KVS_IMPLEMENTATION = NOT_ACTIVE
-ROADMAP_ENTRY_GATE = ACTIVE
-POST_MERGE_HANDOFF_GATE = ACTIVE
-HANDOFF_FRESHNESS = ACTIVE
-OPPORTUNITY_ROADMAP_RECONCILIATION = 02B_MERGED_CAPABILITIES_RECORDED
+ROADMAP_ENTRY_GATE = PASS
+POST_MERGE_HANDOFF_GATE = PASS
+HANDOFF_FRESHNESS = PASS
+OPPORTUNITY_ROADMAP_RECONCILIATION = 02C_MERGED_CAPABILITIES_RECORDED
 
 HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
-HOSTED_CI_RUN = 32865755230
-CI_ATTEMPTS = 3_PRE_EXECUTION_FAILURE
+PR_CI_RUN = 32869607389
+PR_CI_EXECUTION = PRE_EXECUTION_FAILURE
+MAIN_POST_MERGE_CI_RUN = 32870547007
+MAIN_POST_MERGE_CI_EXECUTION = PRE_EXECUTION_FAILURE
+CI_ATTEMPTS = 3_PRE_EXECUTION_FAILURE_PLUS_WAIVER_HEAD_FAILURE
 CI_EXECUTION = PRE_EXECUTION_FAILURE
 CI_WAIVER = ACTIVE
 CI_PASS_CLAIMED = NO
@@ -86,28 +95,31 @@ LOCAL_VERIFICATION = PASS
 PRODUCT_CI_FAILURE = NOT_ESTABLISHED
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
 FULL_REPO_AUDIT = HOLD
+FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
+OPEN_OUT_OF_SCOPE_FINDINGS = WINDOWS_PUBLISHER_SCHEMA_DRIFT; LEGACY_BID_AUTHORITY_QUARANTINE; API_LAYER_BYPASS; BID_RADAR_SOURCE_INTEGRITY_BACKEND_ENFORCEMENT; TEST_CREATE_ALL_SHIM
 
-DOC_SYNC_STATE = CI_WAIVER_TRANSITION
-PROVEN_COMPLETE = WP_MI_TBMT_02C_4_VERTICAL_KHMT_TBMT_ACCEPTANCE
+DOC_SYNC_STATE = POST_MERGE_RECONCILIATION
+PROVEN_COMPLETE = WP_MI_TBMT_02C_OPPORTUNITY_INTELLIGENCE_DELIVERY_CLOSURE
 IMPLEMENTED_MICRO_WP = WP_MI_TBMT_02C_3_THIN_EXISTING_GUI_WIRING
 IMPLEMENTATION_CODE_HEAD = 4baed3eda52cc23a04c8fcdbbe2c327ab6c2ef7f
 ACCEPTANCE_PROVEN = WP_MI_TBMT_02C_4_VERTICAL_KHMT_TBMT_ACCEPTANCE
 AUDIT_TARGET_CODE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-OPEN_BLOCKERS = INDEPENDENT_SPINE_AUDIT_PENDING; CI_WAIVER_ACTIVE; PENDING_RETRO_CI
-RELEVANT_NEXT_WP_DEBT = NONE_FOR_IMPLEMENTED_SCOPE
-SCOPE_BOUNDARIES = ACCEPTANCE_TESTS_ONLY; NO_PRODUCTION_CODE; NO_API_CLI_CI_CHANGES
+OPEN_BLOCKERS = CI_WAIVER_ACTIVE; PENDING_RETRO_CI; FULL_LOCAL_BUG_AUDIT_PENDING
+RELEVANT_NEXT_WP_DEBT = NONE_FOR_MERGED_02C_SCOPE
+SCOPE_BOUNDARIES = NO_NEW_IMPLEMENTATION; FULL_LOCAL_BUG_AUDIT_BEFORE_FURTHER_GOVERNANCE_OR_PRODUCT_WORK
 
 CODEGRAPH_PARENT_AUDIT = PASS
 INDEPENDENT_PARENT_AUDIT = PASS
-PR_STATE = OPEN_DRAFT
+INDEPENDENT_DOC_AUDIT = PENDING_POST_MERGE_DOC_AUDIT
+PR_STATE = MERGED_60
 PR_NUMBER = 60
-PR_HEAD = ec0ddabdbda43faf9ec45bd31c9b9a12954b8ee9
-MERGE_AUTHORIZATION = NOT_YET_GRANTED
-NEXT_PARENT_OR_MICRO_WP = WP-MI-TBMT-02C
-NEXT_STATE = CI_WAIVER_SPINE_AUDIT
-NEXT_AUTHORITY = REVIEWER_AUDITOR
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_SPINE_AUDIT_CI_WAIVER_WP_MI_TBMT_02C
-HANDOFF_READY = YES_FOR_INDEPENDENT_SPINE_AUDIT
+PR_HEAD = d5fecd3cc95e55f825e83e75321a3182da633384
+MERGE_AUTHORIZATION = COMPLETED_PR_60
+NEXT_PARENT_OR_MICRO_WP = FULL_LOCAL_BUG_AUDIT
+NEXT_STATE = FULL_LOCAL_BUG_AUDIT
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+EXACTLY_ONE_NEXT_ACTION = FULL_LOCAL_BUG_AUDIT_WP
+HANDOFF_READY = YES_FOR_FULL_LOCAL_BUG_AUDIT
 ACTIVE_DUPLICATE_KEYS = NONE
 PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md
 ROADMAP_CONTEXT_REQUIRED = YES
@@ -115,56 +127,41 @@ ROADMAP_CONTEXT_REQUIRED = YES
 
 ## Verified merged truth
 
-The WP-MI-TBMT-02C-2 implementation commit is independently audited and
-remote-checkpointed at code head
-`30d9b977000cbc4c4abcc20125fe501344d7e935` with handoff head
-`4bd2c91463571494b4750f8a99dbd1fe522c3101`: 622 tests passed, Ruff and
-diff-check passed, and source-neutral confirmed-output tests cover KHMT, TBMT,
-latest-state review filtering, same-path mutation and missing-source
-fail-closed behavior. It is not merged to main and has no hosted-CI PASS claim.
+PR #60 merged `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`
+into `main` at merge commit
+`82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`; the merged feature head is
+`d5fecd3cc95e55f825e83e75321a3182da633384`. The audited code and acceptance
+heads remain recorded separately above. The Parent delivered the bounded
+KHMT/TBMT source-neutral workflow: intake, tri-state filter/search, explicit
+Human Review, persistence, confirmed XLSX, backend source-integrity guard,
+thin existing-GUI wiring and vertical acceptance. KHMT Legal DOCX remains
+supported; TBMT Legal DOCX remains explicitly unsupported; API work remains
+out of scope and on HOLD.
 
-- PR #58 merged exact Parent POST head
-  `fdf23030bbbcba1cde408039d0e1c138d77f5cf1` into `main` at
-  `bba21071d3a6b42ea87c845e44413a08d863644a`.
-- The independently audited documentation head was
-  `38d481f95ea9d2c9aa871d12def63b07d27e5aee`.
-- `MASTER_ROADMAP.md` is Blueprint revision 1.2. QI-KVS is a cross-cutting
-  target architecture only; Knowledge DB/API/MCP/AI runtime implementation is
-  not active.
-- Opportunity Intelligence records source-neutral TBMT intake, filter/search
-  and Human Review persistence as merged. The next candidate is
-  `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`.
-- GitHub Actions run `32818993709` completed as infrastructure/quota
-  pre-execution failure: all four jobs returned failure with no executed step
-  list. This is not product-test evidence and is not CI PASS. No rerun is
-  authorized while the quota condition remains.
-- `PENDING_RETRO_CI = YES`; official Team Bid release remains blocked.
+Local Parent evidence was 628 tests passed with 628 collected and no errors;
+the Parent targeted set and independent audits passed. Hosted CI did not
+allocate a runner for the waiver-head or post-merge main runs, so no CI PASS
+is claimed. Runs `32865755230` (attempts 1/2/3), `32869607389` and
+`32870547007` all failed before workflow steps executed. The temporary waiver
+and `PENDING_RETRO_CI = YES` remain active; official Team Bid release remains
+blocked and `PRODUCT_CI_FAILURE` is not established.
 
-## Active Parent boundary
+The earlier PR #58 / Blueprint 1.2 merge remains historical context. The
+current product frontier is now Unified Tender Warehouse, while the full
+repository audit remains HOLD for the previously recorded out-of-scope
+findings. No direct 02C blocker remains.
 
-`WP-MI-TBMT-02C` started with the governed Roadmap Entry Gate and a fresh
-live-Git/GitHub reconciliation. Its design target remains backend-first
-Opportunity Intelligence delivery closure: source-neutral confirmed output,
-backend source-integrity enforcement, thin existing-GUI wiring and vertical
-KHMT/TBMT acceptance. FM-007 directly intersects that backend integrity
-boundary. API evolution, broad GUI redesign and QI-KVS runtime implementation
-remain out of scope unless separately approved.
+## Next governed action
 
-## Verified 02C-4 acceptance
-
-- KHMT and TBMT vertical acceptance passed with PL/IB namespaces preserved.
-- MATCH, NO_MATCH and INDETERMINATE tri-state behavior remained distinct.
-- FILTER MATCH did not auto-confirm; latest Human state, restart persistence
-  and revision isolation were proven.
-- Confirmed XLSX output, backend SHA fail-closed behavior and FM-007
-  regression passed. KHMT Legal DOCX remains supported; TBMT Legal DOCX is
-  explicitly unsupported.
-- Production code, migrations, dependencies, API/CLI/CI files and business
-  data were unchanged.
+Run a fresh full local audit/test sweep and prioritize finding defects before
+any further governance or product work. The audit must capture evidence and
+root cause first; it must not silently fix defects. A separate bounded Work
+Package is required for any correction.
 
 ## Authority
 
 This file is the current organizational handoff, not a substitute for live
-Git/GitHub. A new agent must be able to continue from repository + handoff
-without old chat history, and must return `ENTRY_HOLD` if live state materially
-disagrees with this snapshot.
+Git/GitHub. A new agent must re-resolve live Git state and return `ENTRY_HOLD`
+if it materially disagrees with this snapshot. Historical snapshots are
+non-normative; this reconciliation does not authorize a release, CI rerun,
+production-data access, or implementation outside the next audit action.

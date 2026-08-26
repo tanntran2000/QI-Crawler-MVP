@@ -5,18 +5,25 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 ## Unreleased - 2026-08-22
 
 - Them nhan dang va routing Excel KHMT/TBMT theo filename + schema + PL/IB,
-  co human override append-only; TBMT moi duoc nhan dang, chua import vao Bid Radar.
+  co human override append-only; TBMT duoc dua vao luong Opportunity
+  source-neutral sau khi xac minh identity.
 - Them adapter intake TBMT XLSX source-neutral theo IB Opportunity; xac nhan
   read-only tren workbook TBMT that bao phu cac dang identity da quan sat,
   giu nguyen revision HSMT (`-00` lan phat hanh dau, `-01` lan cap nhat sau
-  chinh sua) va giu tach biet PL/IB; chua trien khai TBMT Bid Radar
-  review/export/GUI.
+  chinh sua) va giu tach biet PL/IB. Luong da merge gom filter/search,
+  Human Review persistence, confirmed XLSX va thin Bid Radar GUI.
 - Hoan tat Business Fast-Track MI-0 -> MI-6 va xac nhan end-to-end bang workbook KHMT that `KHMT_19_8_2026.xlsx`.
 - Real Golden Team Bid: import 413 goi, preset HCM/0-500 trieu loc 9 ung vien, Human Authority ghi 3 `CONFIRMED`, 6 `NEEDS_REVIEW`, 0 `REJECTED`.
 - Xac minh `current_confirmed()` chi tra 3 goi da duoc con nguoi xac nhan; 6 goi `NEEDS_REVIEW` khong duoc xuat.
 - Xac minh confirmed XLSX va 3 Legal DOCX mo lai dung PL/revision/source-row, khong cross-package contamination va khong mutate review history.
 - Xac minh SHA-256 workbook nguon khong thay doi truoc/sau Real Golden; business data, acceptance DB va generated output khong duoc commit vao Git.
 - Them Bid Radar GUI cho import KHMT, filter, Human Review va export, voi source-identity guard de chan export neu workbook tai cung duong dan da bi thay noi dung.
+- WP-MI-TBMT-02C da merge: source-neutral TBMT delivery closure, KHMT Legal DOCX
+  compatibility va vertical KHMT/TBMT acceptance da duoc ghi nhan; TBMT Legal
+  DOCX va API integration van explicitly unsupported/future scope.
+- Local Parent verification dat 628 tests passed / 628 collected; hosted CI
+  dang trong temporary infrastructure waiver, khong claim CI PASS va official
+  Team Bid release van bi block boi pending retro-CI.
 - Local regression dat 448 tests; GitHub CI exact-head cua Real Golden PASS tren Code Quality, Ubuntu 3.12, Ubuntu 3.11 va Windows 3.12.
 - Trusted Storage/Warehouse tiep tuc la lane uu tien: managed-copy behavior da ton tai, nhung SHA Vault, Canonical Package Shelf va Missing/Recoverable/Safe Restore chua duoc coi la da hoan tat.
 

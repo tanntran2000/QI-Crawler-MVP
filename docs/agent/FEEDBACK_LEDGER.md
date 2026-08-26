@@ -299,10 +299,12 @@ Suggestion: After TBMT Parent closeout, evaluate a Parent-centric flow where
 Micro-WPs are locally verified/audited and Parent-WPs own PR/CI/merge gates;
 Planner and Reviewer remain separate authorities.
 Scope change required: NO
-Response: Accepted and parked for post-Parent promotion; no durable
-governance contract is changed by this Micro-WP.
-Disposition: ACCEPTED / PARKED_FOR_POST_PARENT_PROMOTION
-Promoted to: N/A — post-Parent governance review
+Response: The Parent closeout condition was reached when PR #60 merged, but
+the governance law is not rewritten by this reconciliation. Route the
+proposal toward `WP-GOV-INTEGRATION-V2-01 — Parent-Centric Integration & CI
+Governance` after the Human-requested full local bug audit.
+Disposition: ACCEPTED / QUEUED_FOR_POST_AUDIT_PROMOTION
+Promoted to: WP-GOV-INTEGRATION-V2-01 (queued after full local bug audit)
 ```
 
 ### FB-0012 — Temporary CI waiver after exact-head runner failures
@@ -328,4 +330,31 @@ unchanged; future Parent-centric governance FB-0011 remains separate and
 inactive.
 Disposition: ACCEPTED
 Promoted to: N/A — temporary operational waiver
+```
+
+### FB-0013 — Full local bug audit before further governance or product work
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-MI-TBMT-02C post-merge reconciliation
+Type: TEST_GAP / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: After the 02C closeout, run a fresh full local audit/test sweep
+and prioritize finding defects before continuing with governance or product
+work.
+Evidence: Human post-merge instruction following PR #60 and the active
+full-repository audit hold.
+Impact: Prevents unresolved runtime, logic and architecture defects from
+being hidden by a governance transition or a new feature slice.
+Suggestion: The audit must establish evidence and root cause first; it must
+not silently fix defects. Any correction requires a separate bounded Work
+Package and independent review.
+Scope change required: NO
+Response: Recorded as the exactly-one next action in CURRENT.md; no correction
+is authorized by this feedback entry.
+Disposition: ACCEPTED / QUEUED_FOR_NEXT_WORK_PACKAGE
+Promoted to: CURRENT.md execution state; future findings route to the
+applicable failure/lesson authority
 ```

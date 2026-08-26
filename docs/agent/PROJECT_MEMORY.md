@@ -73,8 +73,9 @@ branches must remain in their Work Package handoff.
   require named Human correction; corrections are append-only Ground Truth
   for the source SHA. Human source correction does not rewrite PL/IB identity.
   TBMT is recognized with source-neutral candidate intake; source-neutral
-  filter/search and Human Review persistence are merged, while confirmed
-  output and GUI integration remain incomplete.
+  filter/search, Human Review persistence, confirmed output and thin GUI
+  integration are merged in the 02C delivery closure. See MEM-014 for the
+  current capability boundary and remaining API/TBMT Legal DOCX gaps.
 - **Evidence:** merged PR #44 / WP-MI-SRC-01 plus later Opportunity
   Intelligence merges recorded in MEM-010 and MEM-012.
 - **Last verified:** `bba21071d3a6b42ea87c845e44413a08d863644a`.
@@ -118,10 +119,12 @@ branches must remain in their Work Package handoff.
   72 candidates, and 0 issues. SHA-256 was
   `E4B8FF62D8FF979BD646287EB7C894B9F03D089691B9122A6A96847457A1CDB4` with
   size 120194 bytes; bytes and size were unchanged before/after acceptance.
-  Source-neutral Human-review persistence is now merged in WP-MI-TBMT-02B;
-  confirmed export, GUI and API integration remain future work. Source-neutral
-  Bid Radar filter/search is covered by MEM-010 below and review persistence by
-  MEM-012.
+  Source-neutral Human-review persistence is merged in WP-MI-TBMT-02B; the
+  confirmed output and thin GUI delivery closure are merged in WP-MI-TBMT-02C.
+  KHMT Legal DOCX remains compatible, while TBMT Legal DOCX and API
+  integration remain explicitly unsupported/future scope. Source-neutral
+  Bid Radar filter/search is covered by MEM-010 and review persistence by
+  MEM-012; the consolidated closure is MEM-014.
 - **Last verified:** `8e6184bc2baadb9e8b7f4056f7e104247201197c`.
 
 ## MEM-009 — Product House and builder handoff discipline
@@ -146,9 +149,9 @@ branches must remain in their Work Package handoff.
   source-neutral `OpportunityRadarItem` contract; merged 02B-2 provides
   bounded budget, province/city, keyword and selection-method filtering/search.
   The legacy KHMT `PlanPackage` adapter and its audited exclude-keyword
-  compatibility remain intact. FILTER MATCH is not Human CONFIRMED; export,
-  GUI and API integration remain future work. Human-review persistence is
-  covered by MEM-012.
+  compatibility remain intact. FILTER MATCH is not Human CONFIRMED; confirmed
+  output and thin GUI integration are merged in MEM-014, while API integration
+  remains future scope. Human-review persistence is covered by MEM-012.
   `IB...-00` Human Review does not imply `IB...-01` review.
 - **Evidence:** PR #52, merge commit
   `d2aa8a9bded931d54aaa50c398b701b1598024ec`, branch head
@@ -175,8 +178,9 @@ branches must remain in their Work Package handoff.
   `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`, merged feature head
   `6513acfe7397467d1588fb3d404938ac04c8c00c`, audited code head
   `b5043e8396b43306d09c1c0b0ca9cad8b58cfd3a`.
-- **Scope gap:** Confirmed XLSX/Legal DOCX export, GUI and API integration are
-  not complete in this memory entry.
+- **Scope gap:** Confirmed XLSX, backend source-integrity, thin GUI delivery and
+  KHMT Legal DOCX compatibility are merged in MEM-014; TBMT Legal DOCX remains
+  unsupported and API integration remains future scope.
 - **Last verified:** `cbda73692dfe6b99c6a2045b2306b57e1e4136fb`.
 
 ## MEM-011 — Documentation lifecycle and context governance
@@ -217,9 +221,33 @@ branches must remain in their Work Package handoff.
   `AGENTS.md`, `MASTER_ROADMAP.md`, `MEMORY_INDEX.md`, operating/handoff
   governance and independent documentation audit.
 - **Boundary:** QI-KVS runtime implementation remains NOT_ACTIVE. Product
-  Frontier remains Opportunity Intelligence; the next candidate Parent is
+  Frontier is now Unified Tender Warehouse after the merged
   `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`.
 - **Last verified:** `bba21071d3a6b42ea87c845e44413a08d863644a`.
+
+## MEM-014 — Opportunity Intelligence Delivery Closure
+
+- **State:** ACTIVE
+- **Since main commit:** `82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`.
+- **Contract:** The merged WP-MI-TBMT-02C delivery closure provides KHMT/TBMT
+  source-neutral backend routing with PL/IB preservation, tri-state
+  filter/search, explicit Human Review authority, review persistence and
+  revision isolation, source-neutral confirmed XLSX, backend SHA fail-closed
+  export integrity, thin existing Bid Radar GUI integration and vertical
+  KHMT/TBMT acceptance. KHMT Legal DOCX remains compatible; TBMT Legal DOCX is
+  explicitly unsupported. API integration and broader lifecycle expansion are
+  not claimed.
+- **Evidence:** PR #60, merge commit
+  `82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`, merged feature head
+  `d5fecd3cc95e55f825e83e75321a3182da633384`, audited code/acceptance head
+  `513becf3fc9a24d9ff8d26df37fee320486fd0de`, Parent local verification
+  628 passed with 628 collected and 63 targeted, and independent Parent and
+  Spine audits PASS.
+- **Boundary:** SQLite/review history remains authoritative; no implicit
+  Human confirmation, release publication or hosted-CI PASS is implied.
+  `CI_WAIVER = ACTIVE` and `PENDING_RETRO_CI = YES` remain current operational
+  state in `CURRENT.md`.
+- **Last verified:** `82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`.
 
 ## Explicitly not promoted
 

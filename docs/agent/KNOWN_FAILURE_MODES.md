@@ -203,9 +203,9 @@ PERMANENT_PREVENTION = keep transport code thin and forbid direct ORM access in 
 ```text
 ID = FM-007
 TITLE = Bid Radar source-integrity SHA enforcement exists only at delivery/GUI boundary
-STATE = RESOLVED_LOCAL
+STATE = MERGED
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = RESOLVED_LOCAL_AUDITED_REMOTE_CHECKPOINTED_PENDING_MERGE
+DISPOSITION = RESOLVED
 DETECTED_BY = FULL_REPO_AUDIT
 AFFECTED_BASELINE = source-sensitive Bid Radar import/export flow at detection; exact main SHA was not recorded in the original finding
 PRODUCT_HOUSE_LAYER = APPLICATION BACKEND / DESKTOP DELIVERY
@@ -217,7 +217,8 @@ FIX = added source_integrity.verify_source_integrity() and required it before so
 FIX_HEAD = 30d9b977000cbc4c4abcc20125fe501344d7e935
 REGRESSION_GUARD = source A/source B same-path export regression at application backend, GUI adapter and GUI boundaries; missing source fails closed
 INDEPENDENT_AUDIT = PASS
-CURRENT_EVIDENCE = source_integrity.py; confirmed_opportunity_export.py; opportunity_intelligence.py; gui_services.py; gui.py; tests/test_confirmed_opportunity_export.py; tests/test_bid_radar_gui.py; audited remote handoff 4bd2c91463571494b4750f8a99dbd1fe522c3101
+CURRENT_EVIDENCE = source_integrity.py; confirmed_opportunity_export.py; opportunity_intelligence.py; gui_services.py; gui.py; tests/test_confirmed_opportunity_export.py; tests/test_bid_radar_gui.py; audited remote handoff 4bd2c91463571494b4750f8a99dbd1fe522c3101; PR #60; merge commit 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9; independent Parent audit PASS; independent Spine audit PASS
+MERGE_CONTEXT = merged under hosted-CI infrastructure waiver; CI PASS not claimed; retro-CI debt remains (PENDING_RETRO_CI = YES)
 PERMANENT_PREVENTION = make source identity a backend precondition for every derived export path
 ```
 
