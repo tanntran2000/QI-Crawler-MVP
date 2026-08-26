@@ -358,3 +358,52 @@ Disposition: ACCEPTED / QUEUED_FOR_NEXT_WORK_PACKAGE
 Promoted to: CURRENT.md execution state; future findings route to the
 applicable failure/lesson authority
 ```
+
+### FB-0014 — Human priority override for Roadmap Delta
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-ROADMAP-DELTA-01
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: The full local bug-hunt remains desired but is deferred; the
+MASTER_ROADMAP_DELTA governance WP becomes the immediate next work package.
+Evidence: Human A0 decision in the Roadmap Delta Work Order after PR #61.
+Impact: Changes execution order without invalidating the bug-hunt's value or
+future intent.
+Suggestion: Keep the bug-hunt parked and run it after the Delta governance
+transition unless Human authority changes the order again.
+Scope change required: NO
+Response: Recorded `BUG_HUNT = PARKED_BY_HUMAN_A0` and
+`MASTER_ROADMAP_DELTA = IMPLEMENTING` in CURRENT.md.
+Disposition: ACCEPTED / EXECUTION_ORDER_OVERRIDE_ONLY
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
+```
+
+### FB-0015 — Reviewer continuity and documentation freshness authority
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-ROADMAP-DELTA-01
+Type: PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: The independent Reviewer must compare the current WP and Builder
+output with MASTER_ROADMAP_DELTA, MASTER_ROADMAP and relevant Context Spine
+files, then report stale or missing promotion to the Planner.
+Evidence: Human A0 Reviewer continuity decision in the Roadmap Delta Work Order.
+Impact: Prevents implementation from proceeding with stale organizational
+knowledge or a missing roadmap promotion.
+Suggestion: Require implementation, roadmap-fit and Spine-freshness audits;
+the Reviewer remains independent, non-writing and non-Planner.
+Scope change required: NO
+Response: Added the Delta read gate, Reviewer bridge and freshness fields to
+the governance contracts; no Reviewer edit or promotion authority is added.
+Disposition: ACCEPTED / GOVERNANCE_COMPANION_PENDING_AUDIT
+Promoted to: AGENTS.md; docs/agent/MEMORY_INDEX.md;
+docs/agent/OPERATING_MODEL.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+docs/agent/MASTER_ROADMAP_DELTA.md
+```

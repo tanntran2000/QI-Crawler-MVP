@@ -2,166 +2,106 @@
 
 ## HANDOFF_ID
 
-POST-MERGE — WP-MI-TBMT-02C / MAIN TRUTH RECONCILIATION
+WP-GOV-ROADMAP-DELTA-01 — MASTER ROADMAP DELTA & REVIEWER CONTINUITY GATE
 
 ## Status
 
-WP-MI-TBMT-02C MERGED TO MAIN / CI WAIVER ACTIVE / NEXT FULL LOCAL BUG AUDIT
-PR #60 MERGED / HOSTED-CI PASS NOT CLAIMED
+ROADMAP DELTA GOVERNANCE DOCS IN PROGRESS / BUG-HUNT PARKED BY HUMAN A0
+NO PRODUCTION CHANGE / NO HOSTED-CI PASS CLAIM
 
 ## Active machine-readable checkpoint
 
 ```text
-ACTIVE_PARENT_WP = NONE
+ACTIVE_PARENT_WP = WP-GOV-ROADMAP-DELTA-01
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = main
-MAIN_BASE = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
-PARENT_STATE = MERGED_MAIN_TRUTH
-MICRO_STATE = NONE
-OBJECTIVE = POST_MERGE_RECONCILIATION
-ENTRY_HEAD = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
-HANDOFF_CAPTURE_BASE = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
-ARCHITECTURE_LAYER_CONTRACT = DELIVERY_SURFACE_THIN_WIRING_COMPLETE; APPLICATION_BACKEND_REUSE; DOMAIN_PROTECT; API_CLI_OUT
-MIGRATION_EXPECTED = NO
-PRODUCTION_CHANGE_EXPECTED = NO
-PRE_WP_DOC_SYNC = PASS
+ACTIVE_BRANCH = gov/master-roadmap-delta-01
+MAIN_BASE = a26b9e43df660f8b81ed3fc0327400e00667d951
+ENTRY_HEAD = a26b9e43df660f8b81ed3fc0327400e00667d951
+HANDOFF_CAPTURE_BASE = a26b9e43df660f8b81ed3fc0327400e00667d951
+PARENT_STATE = ROADMAP_DELTA_IMPLEMENTATION
+OBJECTIVE = MASTER_ROADMAP_DELTA_AND_REVIEWER_CONTINUITY_GATE
 PRODUCT_FRONTIER = Unified Tender Warehouse
 ROADMAP_REVISION = 1.2
-ROADMAP_BASELINE_SHA = bba21071d3a6b42ea87c845e44413a08d863644a
+ROADMAP_BASELINE_SHA = a26b9e43df660f8b81ed3fc0327400e00667d951
+ROADMAP_DELTA_BASELINE = a26b9e43df660f8b81ed3fc0327400e00667d951
+RELEVANT_DELTA_IDS = RD-0001; RD-0002; RD-0003; RD-0004
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-
-LAST_AUDITED_CODE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-ACCEPTANCE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-LAST_AUDITED_DOC_HEAD = 38d481f95ea9d2c9aa871d12def63b07d27e5aee
-MERGED_FEATURE_HEAD = d5fecd3cc95e55f825e83e75321a3182da633384
-MERGE_COMMIT = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
-REMOTE_CHECKPOINT = PASS
-REMOTE_CHECKPOINT_HEAD = 601e43890ad26170644dd5a7adbef4a1b22464af
-INDEPENDENT_AUDIT = PASS
-SPINE_AUDIT = PASS
-SPINE_IMPACT = CURRENT; ROADMAP; PROJECT_MEMORY; FAILURE_MEMORY; FEEDBACK_LEDGER; CHANGELOG
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP.md; docs/agent/PROJECT_MEMORY.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/FEEDBACK_LEDGER.md; CHANGELOG.md
+LAST_AUDITED_CODE_HEAD = N/A_DOCS_ONLY_WP
+LAST_AUDITED_DOC_HEAD = 822ed74a7cf3a56b209086eb680fccc6e15ada0e
+REMOTE_CHECKPOINT = NONE
+PR_STATE = NONE
+MERGE_STATE = NOT_MERGED
+VERIFICATION_STATE = BUILDER_DOC_VERIFICATION_IN_PROGRESS
+DOC_SYNC_STATE = ROADMAP_DELTA_PRE
+SPINE_IMPACT = GOVERNANCE; ROADMAP; ROADMAP_DELTA; CURRENT; FEEDBACK; HISTORY
+SPINE_TARGET_FILES = AGENTS.md; docs/agent/MEMORY_INDEX.md; docs/agent/MASTER_ROADMAP.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/OPERATING_MODEL.md; docs/agent/LOCAL_STAGED_INTEGRATION.md; docs/agent/FEEDBACK_LEDGER.md; docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_pre_wp_gov_roadmap_delta_01.md
 SPINE_SYNC_STATE = PASS
-
-VERIFICATION_STATE = POST_MERGE_RECONCILIATION_LOCAL
-BUILDER_FULL_TEST = 628_PASSED
-COLLECTION = 628_NO_ERRORS
-PARENT_INTEGRATION_BASE = a5a6256070765266bba565530374953090a3d884
-PARENT_INTEGRATION_HEAD = 886856f57184425db6f6ffb4bd4e8d700e37ba12
-LAST_COMPLETED_MICRO_WP = WP-MI-TBMT-02C-4
-PARENT_FULL_VERIFICATION = PASS
-PARENT_TARGETED_VERIFICATION = PASS
-PARENT_INTEGRATION_BLOCKERS = NONE
-RUFF = PASS
-DIFF_CHECK = PASS
-INDEPENDENT_TARGETED_VERIFICATION = PASS
-FM_007 = MERGED_RESOLVED_PENDING_RETRO_CI_ONLY
-P0_WAL_BACKUP = RESOLVED_LOCAL_AUDITED
-P0_BACKUP_MECHANISM = SQLITE_CONNECTION_BACKUP
-FC2_DOMAIN_APPLICATION_BOUNDARY = RESOLVED_LOCAL_AUDITED
-FC2_ARCHITECTURE_GUARD = RESOLVED_LOCAL_AUDITED
-CURRENT_SCHEMA_REVISION = 0015_add_opportunity_review_events
-REVIEW_INHERITANCE = FORBIDDEN
-IMPLICIT_HUMAN_REVIEW = ABSENT
-LEGACY_KHMT_COMPATIBILITY = PASS
-
-LAST_MERGED_PARENT_WP = WP-MI-TBMT-02C
-LAST_MERGED_PR = 60
-LAST_MERGE_COMMIT = 82013b0bc1a4b3a62a12567d3d4cc02974f93ec9
-MERGE_STATE = MERGED_MAIN
-CODE_REMOTE_CHECKPOINT = PASS
-PUSH = NO_NEW_DOCS_PUSH
-PR = MERGED_60
-MERGE = MERGED_MAIN
-
-QI_KVS_BLUEPRINT = MERGED_TARGET_ARCHITECTURE
-QI_KVS_IMPLEMENTATION = NOT_ACTIVE
-ROADMAP_ENTRY_GATE = PASS
-POST_MERGE_HANDOFF_GATE = PASS
-HANDOFF_FRESHNESS = PASS
-OPPORTUNITY_ROADMAP_RECONCILIATION = 02C_MERGED_CAPABILITIES_RECORDED
-
-HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
-PR_CI_RUN = 32869607389
-PR_CI_EXECUTION = PRE_EXECUTION_FAILURE
-MAIN_POST_MERGE_CI_RUN = 32870547007
-MAIN_POST_MERGE_CI_EXECUTION = PRE_EXECUTION_FAILURE
-CI_ATTEMPTS = 3_PRE_EXECUTION_FAILURE_PLUS_WAIVER_HEAD_FAILURE
-CI_EXECUTION = PRE_EXECUTION_FAILURE
+ROADMAP_DELTA_CHECK = PASS
+DOC_FRESHNESS_STATE = PASS
+INDEPENDENT_DOC_AUDIT = PENDING
+BUG_HUNT = PARKED_BY_HUMAN_A0
+MASTER_ROADMAP_DELTA = IMPLEMENTING
+GOVERNANCE_REFORM_FB_0011 = PARKED_SEPARATE
 CI_WAIVER = ACTIVE
+HOSTED_CI_STATE = INFRASTRUCTURE_UNAVAILABLE
 CI_PASS_CLAIMED = NO
 PENDING_RETRO_CI = YES
-LOCAL_VERIFICATION = PASS
-PRODUCT_CI_FAILURE = NOT_ESTABLISHED
-OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
 FULL_REPO_AUDIT = HOLD
-FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
-OPEN_OUT_OF_SCOPE_FINDINGS = WINDOWS_PUBLISHER_SCHEMA_DRIFT; LEGACY_BID_AUTHORITY_QUARANTINE; API_LAYER_BYPASS; BID_RADAR_SOURCE_INTEGRITY_BACKEND_ENFORCEMENT; TEST_CREATE_ALL_SHIM
-
-DOC_SYNC_STATE = POST_MERGE_RECONCILIATION
-PROVEN_COMPLETE = WP_MI_TBMT_02C_OPPORTUNITY_INTELLIGENCE_DELIVERY_CLOSURE
-IMPLEMENTED_MICRO_WP = WP_MI_TBMT_02C_3_THIN_EXISTING_GUI_WIRING
-IMPLEMENTATION_CODE_HEAD = 4baed3eda52cc23a04c8fcdbbe2c327ab6c2ef7f
-ACCEPTANCE_PROVEN = WP_MI_TBMT_02C_4_VERTICAL_KHMT_TBMT_ACCEPTANCE
-AUDIT_TARGET_CODE_HEAD = 513becf3fc9a24d9ff8d26df37fee320486fd0de
-OPEN_BLOCKERS = CI_WAIVER_ACTIVE; PENDING_RETRO_CI; FULL_LOCAL_BUG_AUDIT_PENDING
-RELEVANT_NEXT_WP_DEBT = NONE_FOR_MERGED_02C_SCOPE
-SCOPE_BOUNDARIES = NO_NEW_IMPLEMENTATION; FULL_LOCAL_BUG_AUDIT_BEFORE_FURTHER_GOVERNANCE_OR_PRODUCT_WORK
-
-CODEGRAPH_PARENT_AUDIT = PASS
-INDEPENDENT_PARENT_AUDIT = PASS
-INDEPENDENT_DOC_AUDIT = PENDING_POST_MERGE_DOC_AUDIT
-PR_STATE = MERGED_60
-PR_NUMBER = 60
-PR_HEAD = d5fecd3cc95e55f825e83e75321a3182da633384
-MERGE_AUTHORIZATION = COMPLETED_PR_60
-NEXT_PARENT_OR_MICRO_WP = FULL_LOCAL_BUG_AUDIT
-NEXT_STATE = FULL_LOCAL_BUG_AUDIT
-NEXT_AUTHORITY = PLANNER_ARCHITECT
-EXACTLY_ONE_NEXT_ACTION = FULL_LOCAL_BUG_AUDIT_WP
-HANDOFF_READY = YES_FOR_FULL_LOCAL_BUG_AUDIT
+OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
+PUSH = NO
+PR = NO
+MERGE = NO
+PRODUCTION_CHANGE_EXPECTED = NO
+TEST_CHANGE_EXPECTED = NO
+CI_WORKFLOW_CHANGE_EXPECTED = NO
+OPEN_BLOCKERS = INDEPENDENT_GOVERNANCE_DELTA_AUDIT_PENDING
+SCOPE_BOUNDARIES = DOCS_GOVERNANCE_ONLY; NO_PROJECT_MEMORY_UPDATE; NO_LESSONS_UPDATE; NO_PRODUCTION_TEST_CI_CHANGES
+NEXT_STATE = INDEPENDENT_GOVERNANCE_DELTA_AUDIT
+NEXT_AUTHORITY = REVIEWER_AUDITOR
+EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_GOVERNANCE_DELTA_AUDIT
+HANDOFF_READY = NO_PENDING_INDEPENDENT_AUDIT
 ACTIVE_DUPLICATE_KEYS = NONE
-PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md
+PROJECT_CONTEXT_MAP = docs/agent/MASTER_ROADMAP.md; docs/agent/MASTER_ROADMAP_DELTA.md
 ROADMAP_CONTEXT_REQUIRED = YES
 ```
 
-## Verified merged truth
+## Current verified context
 
-PR #60 merged `WP-MI-TBMT-02C — Opportunity Intelligence Delivery Closure`
-into `main` at merge commit
-`82013b0bc1a4b3a62a12567d3d4cc02974f93ec9`; the merged feature head is
-`d5fecd3cc95e55f825e83e75321a3182da633384`. The audited code and acceptance
-heads remain recorded separately above. The Parent delivered the bounded
-KHMT/TBMT source-neutral workflow: intake, tri-state filter/search, explicit
-Human Review, persistence, confirmed XLSX, backend source-integrity guard,
-thin existing-GUI wiring and vertical acceptance. KHMT Legal DOCX remains
-supported; TBMT Legal DOCX remains explicitly unsupported; API work remains
-out of scope and on HOLD.
+PR #61 merged the prior TBMT 02C post-merge documentation reconciliation at
+`a26b9e43df660f8b81ed3fc0327400e00667d951`. Product Frontier remains Unified
+Tender Warehouse. The hosted-CI waiver remains active, `CI_PASS_CLAIMED = NO`,
+and `PENDING_RETRO_CI = YES`; official Team Bid release remains blocked.
 
-Local Parent evidence was 628 tests passed with 628 collected and no errors;
-the Parent targeted set and independent audits passed. Hosted CI did not
-allocate a runner for the waiver-head or post-merge main runs, so no CI PASS
-is claimed. Runs `32865755230` (attempts 1/2/3), `32869607389` and
-`32870547007` all failed before workflow steps executed. The temporary waiver
-and `PENDING_RETRO_CI = YES` remain active; official Team Bid release remains
-blocked and `PRODUCT_CI_FAILURE` is not established.
+Human A0 has parked the previously queued `WP-QA-POST-02C-01` full local
+bug-hunt. It remains desired, not cancelled, and is superseded only in
+execution order by this Roadmap Delta WP. `WP-GOV-INTEGRATION-V2-01` remains
+parked and separate; this WP does not activate Parent-centric integration
+reform.
 
-The earlier PR #58 / Blueprint 1.2 merge remains historical context. The
-current product frontier is now Unified Tender Warehouse, while the full
-repository audit remains HOLD for the previously recorded out-of-scope
-findings. No direct 02C blocker remains.
+## Delta governance objective
+
+`MASTER_ROADMAP_DELTA.md` is now the active, unresolved product/architecture
+evolution companion and is mandatory read context alongside
+`MASTER_ROADMAP.md`. RD-0001 through RD-0004 are approved active entries; they
+are staging records, not implementation authorization. The Delta does not
+silently override the Master Roadmap. A material conflict is
+`ROADMAP_CONFLICT = YES` and requires `ENTRY_HOLD` plus Planner/Human
+resolution.
+
+The Reviewer is the independent bridge from Builder output through relevant
+Delta entries, Master Roadmap, Product House and Context Spine. The Reviewer
+reports implementation, roadmap-fit and Spine-freshness evidence, but remains
+non-writer and non-Planner. Stale relevant organizational knowledge can block
+handoff.
 
 ## Next governed action
 
-Run a fresh full local audit/test sweep and prioritize finding defects before
-any further governance or product work. The audit must capture evidence and
-root cause first; it must not silently fix defects. A separate bounded Work
-Package is required for any correction.
+Independent Reviewer audit of this governance Delta, including Delta alignment,
+roadmap fit, Spine freshness, active-key uniqueness and the absence of silent
+override, scope expansion or accidental activation of FB-0011.
 
 ## Authority
 
-This file is the current organizational handoff, not a substitute for live
-Git/GitHub. A new agent must re-resolve live Git state and return `ENTRY_HOLD`
-if it materially disagrees with this snapshot. Historical snapshots are
-non-normative; this reconciliation does not authorize a release, CI rerun,
-production-data access, or implementation outside the next audit action.
+This file is the active handoff, not a diary, roadmap, review report or chat
+summary. Live Git/GitHub remains authoritative for volatile state. Historical
+snapshots under `docs/agent_handoff/history/` are non-normative after capture.

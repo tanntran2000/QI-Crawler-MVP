@@ -300,6 +300,20 @@ CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
 ACTIVE EXECUTION STATE    → docs/agent_handoff/CURRENT.md → live Git/GitHub
 ```
 
+### Master Roadmap Delta companion
+
+```text
+MASTER_ROADMAP = canonical durable Product House / strategic blueprint
+MASTER_ROADMAP_DELTA = mandatory active evolution companion
+```
+
+`MASTER_ROADMAP_DELTA.md` stages unresolved, materially useful product or
+architecture evolution and is mandatory context alongside this document. It
+does not authorize implementation and does not silently override the Master
+Roadmap. Human-approved Work Orders remain scope authority; a material
+Roadmap/Delta conflict is `ROADMAP_CONFLICT = YES` and requires `ENTRY_HOLD`
+with Planner/Human resolution.
+
 The default route is one primary frontier at a time. **NO ROADMAP EXPLOSION:**
 do not create unrelated
 Warehouse, HSMT or AI/UI Parents merely because those future lanes exist.
