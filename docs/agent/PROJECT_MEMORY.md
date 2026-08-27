@@ -287,6 +287,28 @@ branches must remain in their Work Package handoff.
   implementation outside a separately approved Work Package.
 - **Last verified:** `d10445fc2ffc92e810f0d6258160151efc1c846f`.
 
+## MEM-017 — Role-specific agent prompt profiles and large bounded execution
+
+- **State:** ACTIVE
+- **Since main commit:** `5e7b478d75662b979bed1688262374ba0d60220b`.
+- **Contract:** PR #67 merged the M1 governance prompt-profile contracts.
+  Planner-generated Builder and Reviewer profiles preserve role separation,
+  bounded Approval Leases, large coherent batches, staged self-verification,
+  independent review and explicit stop conditions. `CURRENT.md` remains an
+  active transition authority with governed write frequency; handoffs are
+  short, factual and evidence-backed rather than diaries. Plugin execution,
+  exact-object review and post-merge reconciliation remain explicit contract
+  requirements.
+- **Evidence:** PR #67, merged feature head
+  `59bb04ad751360a7db9415982cde87f48f947994`, merge commit
+  `5e7b478d75662b979bed1688262374ba0d60220b`, exact-head Python CI run
+  `33057122566` with all four required jobs passing, and independent final
+  audit PASS with non-blocking findings.
+- **Boundary:** Governance/process only. This does not claim Warehouse,
+  HSMT, AI, release or other product capability implementation, and it does
+  not authorize WP-WH-MIN-01/M1.
+- **Last verified:** `5e7b478d75662b979bed1688262374ba0d60220b`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
