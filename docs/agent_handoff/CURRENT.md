@@ -7,10 +7,13 @@ WP-GOV-AGENT-PROMPT-PROFILES-01 / M0 POST-PR66 CONTINUITY
 ## Status
 
 WP-GOV-PLANNER-CONTINUITY-01 and PR #65 remain MERGED / CLOSED. PR #66 is
-MERGED. M0 is independently audited; M1 is the active governance
-implementation candidate for role-specific profiles, bounded batches,
-follow-through, plugin evidence and terminal sync. WP-WH-MIN-01/M1 is NOT
-STARTED.
+MERGED. M0 is independently audited PASS. The M1 implementation received
+independent correction re-audit PASS at
+`b5f6016f4bdd653b2ece9ed1049636d9c233cc6b`; PR #67 is the active integration
+object, and terminal handoff corrections have moved the branch into the PR67
+final gate. Final exact-head independent audit, Planner reconciliation and
+Human merge decision remain pending; no merge authorization exists.
+WP-WH-MIN-01/M1 is NOT STARTED.
 
 ## Active machine-readable checkpoint
 
@@ -199,15 +202,19 @@ hosted-CI waiver debt remains recorded as `PENDING_RETRO_CI = YES`, so the
 official Team Bid release remains blocked pending its governed recovery.
 
 WP-GOV-AGENT-PROMPT-PROFILES-01 is the active governance Parent in the M1
-correction batch. M0 has independent Reviewer PASS and Planner post-review
-reconciliation PASS. M1 is a docs-only corrected candidate pending Planner
-result review and independent re-audit. Warehouse M1 remains not started.
+PR67 final gate. M0 has independent Reviewer PASS and Planner post-review
+reconciliation PASS. The M1 implementation correction re-audit passed at
+`b5f6016f4bdd653b2ece9ed1049636d9c233cc6b`; terminal handoff corrections
+moved the branch into the PR67 final gate. Final PR-head independent audit,
+Planner reconciliation and Human merge decision remain pending. Warehouse M1
+remains not started.
 
 ## Next governed action
 
-Planner review of the M1 correction Builder result, followed by the required
-independent re-audit and governed transition, is the next action. This handoff
-does not authorize Warehouse implementation.
+The next governed action is the Planner-owned PR67 final gate: verify the
+exact final PR head and exact-head CI, obtain independent Reviewer audit of
+that exact head, reconcile the verdict, and route to Human merge decision only
+if all gates PASS. This handoff does not authorize Warehouse implementation.
 
 ## Authority
 
