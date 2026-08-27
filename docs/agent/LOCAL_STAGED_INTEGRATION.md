@@ -61,10 +61,13 @@ The Human approval is an Approval Lease for the bounded Parent WP. Re-approval
 is required when scope, baseline, writer, authority, or a material blocker
 changes.
 
-## 4. Micro-WP sizing and Parent-WP split review
+## 4. Work-package sizing and Parent-WP split review
 
-Target **4–6 independently auditable micro-WPs** per Parent WP. This is a
-heuristic, not a hard numeric law.
+Choose micro-WP or `LARGE_BOUNDED_BATCH` boundaries by capability coherence,
+risk, architecture/data boundaries and independent auditability. A larger
+batch is valid only when its objective, exclusions, internal stages, semantic
+commits, stage verification and final stop condition are explicit. There is no
+universal numeric micro-WP target.
 
 Trigger:
 
@@ -72,11 +75,9 @@ Trigger:
 SPLIT_REVIEW_REQUIRED
 ```
 
-when either:
-
-- the Parent WP exceeds six meaningful slices; or
-- it crosses multiple major architectural or migration boundaries such that
-  cumulative integration risk is no longer bounded.
+when cumulative integration risk is no longer bounded, or when the work crosses
+multiple major architectural or migration boundaries that require separate
+authority, data-safety or audit treatment.
 
 The Reviewer returns one of:
 
@@ -86,6 +87,50 @@ SPLIT_PARENT_WP
 ```
 
 with the architectural reason.
+
+### 4.1 Large bounded batch and Approval Lease
+
+`LARGE_BOUNDED_BATCH` is a coherent set of internal stages under one approved
+Work Order, not a bypass around review. Before approval, the Planner records:
+
+```text
+BATCH_OBJECTIVE
+BATCH_SCOPE / BATCH_EXCLUSIONS
+INTERNAL_STAGES
+STAGE_ENTRY / STAGE_OUTPUT / STAGE_VERIFICATION / STAGE_STOP
+SEMANTIC_LOCAL_COMMITS
+FINAL_CUMULATIVE_VERIFICATION
+MATERIAL_BOUNDARY_ESCALATION
+```
+
+The Human `APPROVAL_LEASE` covers that bounded batch, including safe in-scope
+commands, git add, semantic local commits and ordinary stage transitions. It
+does not authorize another file family, writer, architecture/data boundary,
+future Work Package, scope expansion, material architecture expansion,
+destructive/data-destroying operation, audited-history rewrite, amend, rebase,
+force push, unauthorized remote push, PR creation/state change, merge, release,
+Human business/A0 decision, Reviewer verdict creation or Planner reconciliation
+creation. A material blocker or boundary pauses execution for Planner/Human
+reapproval. The Builder reports stage evidence as it works, but the independent
+Reviewer audits the complete coherent batch at its governed handoff.
+
+### 4.2 Planner follow-through lifecycle
+
+Planner ownership continues through the complete governed unit:
+
+```text
+PLANNED → AUTHORIZED → BUILDER_RUNNING → BUILDER_RETURNED
+→ PLANNER_BUILDER_RESULT_REVIEW → REVIEWER_ASSIGNED → REVIEWER_RETURNED
+→ PLANNER_POST_REVIEW_RECONCILIATION → INTEGRATION_OR_HUMAN_DECISION
+→ POST_STATE_VERIFIED → CLOSED
+```
+
+`WORK_ORDER_ISSUED != DONE`, `AUTHORIZED != BUILDER_COMPLETE`,
+`BUILDER_RETURNED != REVIEWED`, `REVIEWER_PASS != MERGE_AUTHORIZATION`,
+`MERGE_PERFORMED != POST_STATE_VERIFIED`, and
+`POST_STATE_VERIFIED != RELEASE_AUTHORIZATION`. `CLOSED` requires terminal
+evidence; Planner does not implement, audit independently or replace Human
+authority.
 
 ## 5. Commit freeze and forward correction
 
@@ -381,7 +426,24 @@ When the next governed unit or a takeover is about to begin, the
 `LATEST_WP_SPINE_SYNC_AUDIT` packet must be complete and `PASS`; a remote
 checkpoint or Micro POST alone does not establish this continuity result.
 
-### 8.2 Builder handoff discipline
+### 8.2 CURRENT write authority and Builder handoff discipline
+
+`CURRENT.md` is the active handoff/transition authority and is conditionally
+writable by the active `BUILDER_SINGLE_WRITER` only when it is in the approved
+`WRITE_SCOPE`, a governed transition trigger exists, and each fact has resolved
+evidence and authority provenance. The Builder may record observable execution
+facts and already-resolved Reviewer, Planner or Human decisions from exact
+evidence, but may not originate them:
+
+```text
+RECORD_AUTHORITY != ORIGINATE_AUTHORITY
+CURRENT_UPDATE_FREQUENCY = GOVERNED_STATE_TRANSITION_FREQUENCY
+CURRENT_UPDATE_FREQUENCY != COMMAND_FREQUENCY
+```
+
+CURRENT is not a command, test, edit or chat diary. Large-Batch stage progress
+does not require a refresh unless a material transition, handoff or blocker
+occurs.
 
 The Builder refreshes `CURRENT.md` only at these governed state transitions:
 
@@ -511,6 +573,32 @@ POST-WP → answer relevance, satisfaction/partiality/invalidation, new Delta
 `MASTER_ROADMAP_DELTA.md` stages unresolved evolution and does not silently
 override `MASTER_ROADMAP.md`; material conflict is `ROADMAP_CONFLICT = YES`
 and routes to Planner/Human authority with `ENTRY_HOLD`.
+
+### 8.3.1 Self-referential terminal sync
+
+When a terminal handoff records the completion of the transition that writes
+it, apply this narrow, non-recursive rule:
+
+1. Live Git/GitHub is the volatile merge-state authority.
+2. Material merge state must be reconciled before subsequent governed technical
+   execution receives authority.
+3. A docs-only PR whose purpose is reconciling the immediately preceding merge
+   does not require another standalone docs PR solely to record its own merge.
+4. The terminal-sync PR's own merge SHA/PR identity may temporarily remain
+   represented only by live Git/GitHub.
+5. At the next governed Parent/WP/technical-entry transition, CURRENT must
+   reconcile that terminal-sync PR before new Builder authority.
+6. The exception applies only to that terminal-sync PR's own volatile
+   integration identity.
+7. It does not permit stale ACTIVE_PARENT, ACTIVE_MICRO, WRITER, SCOPE,
+   AUTHORITY, COMPLETION, NEXT_ACTION or BLOCKER state.
+8. Any materially wrong active state is `HANDOFF_STALE → ENTRY_HOLD`.
+9. The exception cannot hide a material merge conflict, failed CI, failed audit
+   or Human-decision boundary.
+
+The sync still writes only authorized handoff/Spine files, preserves audited
+heads, records one next action and verifies key uniqueness, scope, diff and
+tree. It stops rather than starting or authorizing another WP.
 
 Concrete source findings must be reconciled against Git objects when available;
 an audit report is evidence, not source-object authority. When a generic

@@ -327,6 +327,98 @@ For technical Work Packages where applicable:
 - If a plugin is unavailable, report `TOOL_UNAVAILABLE` and use the documented
   fallback; never disable or remove a plugin to bypass its workflow.
 
+## Governed work profiles and bounded execution
+
+Every Builder Work Order must be role-specific and must resolve the mission,
+authority, mandatory reads, inputs, in-scope files, explicit exclusions,
+acceptance criteria, verification contract, evidence format, stop conditions,
+handoff target, and `SPINE_IMPACT`/`SPINE_TARGET_FILES`/`SPINE_SYNC_STATE`.
+The Builder executes only that bounded contract as the Single Writer. A
+Human-approved `APPROVAL_LEASE` authorizes the complete bounded Work Package,
+including safe in-scope commands, git add, semantic local commits and normal
+internal stage transitions; it does not authorize scope expansion, merge,
+release or a different writer.
+
+`LARGE_BOUNDED_BATCH` is an auditable execution shape, not a relaxation of
+scope. The Planner may group coherent work when the batch has one objective,
+explicit capability and risk boundaries, internal stages, semantic commits,
+stage-level verification, a final cumulative verification and one clear stop
+condition. The Reviewer audits the coherent batch as one object with stronger
+risk-oriented challenge. There is no universal micro-WP count or automatic
+permission to continue across a material architecture, data-safety, authority
+or scope boundary; such a boundary requires a governed stop and reapproval.
+
+`CURRENT_WRITE_AUTHORITY` is conditional. `CURRENT.md` is writable by the
+active `BUILDER_SINGLE_WRITER` only when it is in the approved `WRITE_SCOPE`, a
+governed transition trigger exists, and every recorded fact has resolved
+evidence and authority provenance. The Builder may record observable facts and
+already-resolved Reviewer, Planner or Human decisions from exact evidence, but
+may not originate those decisions. `RECORD_AUTHORITY != ORIGINATE_AUTHORITY`.
+`CURRENT_UPDATE_FREQUENCY` is governed-transition frequency, never command,
+edit or test frequency; the handoff is not a diary.
+
+An Approval Lease never implicitly authorizes scope or material architecture
+expansion, destructive/data-destroying operations, audited-history rewrite,
+amend, rebase, force push, unauthorized remote push, PR creation or state
+change, merge, release, Human business/A0 decisions, Reviewer verdict
+creation, or Planner reconciliation creation. Those actions require their own
+governed authority.
+
+The Reviewer receives a challenge contract after the Builder result is
+available. It must identify the Human intent to protect, claims and critical
+invariants to challenge, relevant failures and architecture boundaries,
+false-safe risks, required evidence, affected Spine/Delta/Roadmap nodes and
+the evidence that would disprove PASS. A Reviewer must remain independent and
+must not be instructed to return PASS.
+
+Planner follow-through is part of the governed lifecycle:
+
+```text
+PLANNED → AUTHORIZED → BUILDER_RUNNING → BUILDER_RETURNED
+→ PLANNER_BUILDER_RESULT_REVIEW → REVIEWER_ASSIGNED → REVIEWER_RETURNED
+→ PLANNER_POST_REVIEW_RECONCILIATION → INTEGRATION_OR_HUMAN_DECISION
+→ POST_STATE_VERIFIED → CLOSED
+```
+
+The Planner must reconcile what the Work Package achieved and did not achieve,
+remaining risks, Human-intent preservation, applicable organizational memory,
+and the next authority. `WORK_ORDER_ISSUED != DONE`,
+`AUTHORIZED != BUILDER_COMPLETE`, `BUILDER_RETURNED != REVIEWED`,
+`REVIEWER_VERDICT != PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION`,
+`REVIEWER_PASS != MERGE_AUTHORIZATION`,
+`MERGE_PERFORMED != POST_STATE_VERIFIED`, and
+`POST_STATE_VERIFIED != RELEASE_AUTHORIZATION`. `CLOSED` requires terminal
+evidence for the governed unit; no role may silently promote candidate
+governance into merged or final truth.
+
+Plugin evidence is a contract, not a name-drop. For each applicable plugin,
+the Work Order must explicitly set `PLUGIN_APPLICABILITY = REQUIRED | OPTIONAL
+| NOT_APPLICABLE`. The evidence records `PLUGIN`, `PURPOSE`, `INVOCATION`,
+`RESULT`, `FALLBACK`, `IMPACT_RADIUS`, `EDIT_RADIUS`, `TEST_RADIUS` and any
+limitation. `REQUIRED` needs invocation evidence; `OPTIONAL` permits non-use
+without a false use claim; `NOT_APPLICABLE` must not manufacture evidence.
+`PLUGIN_AVAILABLE != PLUGIN_REQUIRED`, `PLUGIN_INSTALLED != PLUGIN_USED`, and
+`PLUGIN_USED_WITHOUT_EVIDENCE = USAGE_NOT_PROVEN`. When CodeGraph is required,
+the Work Order resolves purpose, seed queries, expected impact/edit/test
+radii, and fallback. Use result classifications honestly:
+`USED_AND_SUCCEEDED`, `USED_WITH_FALLBACK`, `TOOL_UNAVAILABLE` or
+`NOT_APPLICABLE`. CodeGraph is impact intelligence only; Superpowers provide
+execution discipline only.
+
+For a terminal handoff that records its own completion, apply the narrow
+`SELF_REFERENTIAL_TERMINAL_SYNC_RULE`: the terminal sync may update only the
+authorized handoff authority, must preserve the pre-sync audited code/document
+heads and exact next action, must not claim its own future commit or live
+GitHub state, and must be followed by verification of duplicate keys, scope,
+diff and tree. If `PR N` is reconciled by a terminal docs `PR N+1`, that
+terminal PR does not require `PR N+2` solely to record its own merge; its own
+volatile identity may remain live-only until the next governed transition.
+That next transition must reconcile it before new Builder authority. This
+exception applies only to the terminal PR's own volatile integration identity;
+materially wrong active Parent/Micro/Writer/scope/authority/completion/next
+action/blocker state is `HANDOFF_STALE → ENTRY_HOLD`, and a failed audit, CI or
+Human-decision boundary cannot be hidden.
+
 ## Test collection integrity
 
 At the beginning of a coding task:

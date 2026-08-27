@@ -499,3 +499,103 @@ Response: Staged as a future governance Delta only; no Builder Integrity
 Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_BUILDER_INTEGRITY_01
 Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0019 — Role-specific Planner Prompt Profiles
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Prompts must not be written ad hoc. Planner must study each
+  role's canonical duties and authority before constructing a task. Builder
+  and Reviewer require distinct role-specific prompt contracts; Builder scope
+  governs execution and proof, while Reviewer scope governs independent
+  challenge and must not presuppose PASS. Reviewer challenge follows review of
+  actual Builder output/evidence, and Planner remains engaged through Builder
+  result, Reviewer result, CI/remote integration and post-state transitions.
+Impact: Preserves role separation, Human intent, independent review and
+  evidence-backed completion across future Builder and Reviewer work.
+Evidence: Human A0 governance direction captured in M0 after PR #66 merge.
+Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
+  profiles in later bounded micro-WPs with explicit entry, scope and evidence
+  contracts.
+Scope change required: NO
+Response: Implemented and corrected in the M1 governance candidate as canonical
+  Builder and Reviewer prompt-profile contracts; independent re-audit passed,
+  and integration remains pending.
+Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
+Promoted to: NONE_YET; promotion follows independent audit and governed review
+```
+
+### FB-0020 — Large Bounded Batch Execution & Review
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Builder and Reviewer should receive larger coherent workloads so
+  project execution does not stall on trivial command/commit boundaries.
+  Larger Work Packages must remain bounded and auditable. Builder should
+  receive an approval lease covering the authorized batch, rather than
+  requiring reapproval for each safe in-scope command, git add, local commit,
+  targeted test, or normal stage transition. A large Builder batch should
+  retain internal stages, targeted verification, semantic local commits,
+  final batch verification and explicit stop conditions. Increasing Builder
+  workload must not weaken architecture invariants, data safety, test
+  discipline, evidence quality, scope boundaries, or Human authority.
+  Reviewer workload should also be larger: audit the coherent batch rather
+  than every trivial micro-change. Reviewer must compensate for the larger
+  audit object with a stronger risk-oriented challenge covering architecture,
+  invariants, implementation logic, test fitness, compatibility,
+  recovery/data safety, claim accuracy and applicable organizational-memory
+  freshness. Independent Reviewer separation remains mandatory. Material risk
+  boundaries may still require an intermediate stop/checkpoint.
+  Final principle: BIGGER WORK PACKAGE + SMALL SEMANTIC COMMITS + STAGE
+  SELF-VERIFICATION + STRONG INDEPENDENT REVIEW + STOP ON MATERIAL RISK =
+  FASTER EXECUTION WITHOUT LOWERING GOVERNANCE QUALITY.
+Impact: Reduce Human/Planner/Builder round-trip latency while preserving
+  technical stability and proof-gated delivery.
+Evidence: Human A0 governance direction captured in M0-C2 after the original
+  M0 commit.
+Response: Implemented and corrected in the M1 governance candidate as a large
+  bounded batch and Approval Lease contract with internal stage safety;
+  independent re-audit passed, and integration remains pending.
+Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
+Promoted to: NONE_YET; promotion follows independent audit and governed review
+```
+
+### FB-0021 — CURRENT Write Authority & Transition Ownership
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M1 correction
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: CURRENT.md is an active handoff and transition authority, not a
+  command/test/edit diary. It is conditionally writable by the active
+  BUILDER_SINGLE_WRITER only when CURRENT is in approved WRITE_SCOPE, a
+  governed transition trigger exists, and each fact has evidence and authority
+  provenance. The Builder may record observable facts and already-resolved
+  Reviewer, Planner or Human decisions from exact evidence, but may not
+  originate those decisions. RECORD_AUTHORITY != ORIGINATE_AUTHORITY.
+Impact: Preserves handoff freshness, role separation, authority provenance and
+  evidence-backed transitions without turning a Large Batch into a diary.
+Evidence: Human A0 requirement recorded in the M1 independent audit finding
+  F-001 and this bounded forward-correction Work Order.
+Suggestion: Keep CURRENT updates at governed transition frequency and reconcile
+  authority-derived values from exact source evidence.
+Scope change required: NO
+Response: Implemented in the M1 correction candidate; independent re-audit
+  passed, and integration remains pending.
+Disposition: ACCEPTED / IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
+Promoted to: NONE_YET; promotion follows independent re-audit and governed
+  review
+```
