@@ -575,6 +575,39 @@ E-HSDT = QI-created bid material
 REFERENCE_EXAMPLE = reference only; never source authority by role alone
 ```
 
+### WP_WH_MIN_01_DELTA_ANCHOR
+
+```text
+ARCHITECTURE_OPTION = B_DOMAIN_FIRST_TENDERCASE
+PRIMARY_DELTA_IDS = RD-0001; RD-0004; RD-0010
+PRIMARY_PARTIAL_DELTA_IDS = RD-0008
+BOUNDARY_ONLY_DELTA_IDS = RD-0009
+OUT_OF_PARENT_DELTA_IDS = RD-0003; RD-0007
+EXECUTION_MODEL = 2_LARGE_BOUNDED_BATCHES
+
+BATCH_A = CORE
+  TenderCase/lifecycle/revision Domain Contract
+  managed-source reuse
+  persistence
+  Package/Revision Shelf membership
+  reopen
+  integrity-checked retrieval core
+
+BATCH_B = OPERATIONAL
+  operational retrieval/export
+  seven logical SOP zones
+  thin Team Bid delivery wiring
+  restart/reopen UX
+  real operational acceptance
+
+DEFERRED = full completeness/reconciliation; full backup/recovery/archive;
+  deep HSMT; SOP evaluation; AI; API redesign; broad GUI redesign
+```
+
+This anchor preserves the earlier Warehouse M1–M6 concepts while separating
+the approved core Batch A from the later operational Batch B. It does not
+authorize either batch beyond the active Human-approved Work Order.
+
 ### Candidate Parent-WP sequence
 
 No Parent below is authorized merely by appearing here. Before each Parent,

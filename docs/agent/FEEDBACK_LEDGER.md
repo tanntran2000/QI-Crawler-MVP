@@ -604,3 +604,29 @@ Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
 Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
   docs/agent/LOCAL_STAGED_INTEGRATION.md; docs/agent/PROJECT_MEMORY.md
 ```
+
+### FB-0022 — Warehouse Domain Authority Model
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-WH-MIN-01
+Type: ARCHITECTURE
+Authority: A0 HUMAN_DECISION
+Decision: OPTION_B_DOMAIN_FIRST_TENDERCASE
+Observation: Filesystem/folder presentation may exist later, but TenderCase,
+  domain identity and database identity remain authoritative. BUSINESS_FOLDER
+  != DATABASE_IDENTITY, FILENAME != DOCUMENT_IDENTITY and DOCUMENT_ROLE !=
+  PACKAGE_MEMBERSHIP. Option C / filesystem-first authority is not selected
+  for the current architecture.
+Impact: Keeps Warehouse lifecycle meaning in Domain Core and prevents a
+  presentation folder, filename or document role from becoming package
+  identity or membership authority.
+Evidence: Human A0 approval for WP-WH-MIN-01 Stage 0 and Option B.
+Scope change required: NO
+Response: Captured as the Stage 0 authority anchor; implementation is limited
+  to the approved Stage 0 + Batch A Work Order.
+Disposition: ACCEPTED / ACTIVE_FOR_WP_WH_MIN_01
+Promoted to: CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md
+```
