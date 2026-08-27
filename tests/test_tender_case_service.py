@@ -10,7 +10,6 @@ from qi_crawler.db import Database
 from qi_crawler.market_intelligence.opportunity_contract import OpportunityIdentity
 from qi_crawler.tender_case import AuthorityClass, PlanContext, TenderRelease
 from qi_crawler.tender_case_service import (
-    ManagedDocumentMissing,
     ManagedDocumentShaMismatch,
     TenderCaseService,
     TenderCaseServiceError,

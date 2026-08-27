@@ -9,10 +9,12 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from sqlalchemy import select
+
 from .db import Database
 from .document_intake import DocumentIntakeService, extract_document_identity
 from .market_intelligence.opportunity_contract import OpportunityIdentity
-from .models import Document
+from .models import Document, TenderCaseRecord, TenderReleaseRecord
 from .tender_case import (
     AuthorityClass,
     PlanContext,
@@ -159,7 +161,6 @@ class TenderCaseService:
     def get_release_manifest(
         self, case_id: str, release_id: int | None = None
     ) -> ReleaseManifest | tuple[ReleaseManifest, ...]:
-        case = self.open_case(case_id)
         releases = []
         if release_id is not None:
             record = self.persistence.release_record(release_id)
@@ -168,9 +169,6 @@ class TenderCaseService:
             releases = [(record, TenderRelease(OpportunityIdentity.from_raw(record.raw_id)))]
         else:
             with self.database.session() as session:
-                from sqlalchemy import select
-                from .models import TenderReleaseRecord
-
                 records = tuple(
                     session.scalars(
                         select(TenderReleaseRecord)
@@ -242,10 +240,6 @@ class TenderCaseService:
                 temporary.unlink(missing_ok=True)
 
     def _case_record_id(self, case_id: str) -> int:
-        from sqlalchemy import select
-
-        from .models import TenderCaseRecord
-
         with self.database.session() as session:
             record = session.scalar(
                 select(TenderCaseRecord.id).where(TenderCaseRecord.case_key == case_id)

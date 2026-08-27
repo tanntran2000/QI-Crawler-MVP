@@ -11,14 +11,12 @@ from qi_crawler.db import Database
 from qi_crawler.market_intelligence.opportunity_contract import OpportunityIdentity
 from qi_crawler.models import (
     Document,
-    Notice,
     TenderCaseRecord,
     TenderDocumentMembershipRecord,
     TenderReleaseRecord,
 )
 from qi_crawler.tender_case import AuthorityClass, TenderRelease, TenderReleaseError
 from qi_crawler.tender_case_persistence import TenderCasePersistence
-
 
 ROOT = Path(__file__).parent.parent
 
