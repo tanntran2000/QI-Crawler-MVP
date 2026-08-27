@@ -413,7 +413,7 @@ docs/agent/MASTER_ROADMAP_DELTA.md
 ### FB-0016 — Planner Human Intent & Strategic Continuity
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-PLANNER-CONTINUITY-01
@@ -433,16 +433,21 @@ Reviewer, rewrite HOLD into PASS without governed resolution, or replace Human
 authority.
 Evidence: Human A0 decision recorded for the post-merge Roadmap Delta
 transition.
+Independent audit: PASS
+PR #64: MERGED
+Merged feature head: db19f42985030f2b154804f959fca615c523a06e
+Merge commit: d10445fc2ffc92e810f0d6258160151efc1c846f
 Scope change required: NO
-Response: Captured for the separately authorized Planner Continuity Work Package.
-Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_PLANNER_CONTINUITY_01
-Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
+Response: Implemented, independently audited and merged as durable governance
+through the Planner Continuity Work Package.
+Disposition: PROMOTED / DURABLE_GOVERNANCE_STATE
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md; PROJECT_MEMORY.md
 ```
 
 ### FB-0017 — Planner Review Orchestration & Role Continuity
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-PLANNER-CONTINUITY-01
@@ -458,11 +463,16 @@ Required contract: Explicit role contracts, ROLE_ENTRY_GATE,
 Impact: Preserves Human intent, Reviewer independence and evidence-backed
   strategic continuity across the three-pole development model.
 Evidence: Human A0 decision captured in Planner Continuity M0.
+Independent audit: PASS
+PR #64: MERGED
+Merged feature head: db19f42985030f2b154804f959fca615c523a06e
+Merge commit: d10445fc2ffc92e810f0d6258160151efc1c846f
 Scope change required: NO
-Response: Captured for the approved Planner Continuity implementation WPs;
-  no role contract or LAW 15 implementation is made in M0.
-Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_PLANNER_CONTINUITY_01
-Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
+Response: Implemented, independently audited and merged as durable governance
+through the Planner Continuity Work Package; no product capability change is
+implied.
+Disposition: PROMOTED / DURABLE_GOVERNANCE_STATE
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md; PROJECT_MEMORY.md
 ```
 
 ### FB-0018 — Builder Implementation Integrity & Evidence Discipline

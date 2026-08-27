@@ -250,9 +250,9 @@ PERMANENT_PREVENTION = keep production lifecycle tests separate from compatibili
 ```text
 ID = FM-009
 TITLE = Windows hosted CI runtime amplification exceeds required-gate budget
-STATE = OPEN
+STATE = MERGED
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = CI_RELIABILITY_CORRECTION
+DISPOSITION = RESOLVED
 DETECTED_BY = PR #64 exact-head hosted CI / bounded root-cause triage
 AFFECTED_BASELINE = 269a6d19539091eab5b903e2684b66ebdf9116ae
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / CI / TEST INFRASTRUCTURE
@@ -261,10 +261,10 @@ ROOT_CAUSE = Verified root-cause class is material GitHub-hosted Windows runner 
 WHY_EXISTING_TESTS_MISSED_IT = Functional correctness tests detect assertion failures but do not prove a stable hosted-runner runtime envelope. The test suite can remain correct while infrastructure/runtime variance exhausts the CI job budget.
 CI_IMPLICATION = A repeated timeout or cancellation is not PASS and is not automatically a product regression. Preserve exact-run timing evidence, compare healthy and degraded executions, perform bounded attribution, and only then alter a runtime budget. Hosted CI waiver is not justified while hosted CI itself is functioning.
 FIX = Raise only the Windows 3.12 hard job ceiling from 25 to 35 minutes after root-cause-class investigation; retain full regression and runtime attribution unchanged.
-FIX_HEAD = PENDING_THIS_CORRECTION
+FIX_HEAD = db19f42985030f2b154804f959fca615c523a06e
 REGRESSION_GUARD = The full Windows 3.12 required gate remains mandatory. A future execution that exceeds the 35-minute ceiling must HOLD and reopen runtime/test-harness investigation instead of recursively increasing the timeout.
-INDEPENDENT_AUDIT = PENDING
-CURRENT_EVIDENCE = PR #64; exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; 628-test local exact-head PASS in 267.39s; healthy hosted Windows 628 PASS in approximately 709s; two hosted executions reached 620 PASS in approximately 1404-1425s before cancellation; no assertion failure; Ruff, Ubuntu 3.12 and Ubuntu 3.11 passed; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally.
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = PR #64 merged feature head db19f42985030f2b154804f959fca615c523a06e; merge commit d10445fc2ffc92e810f0d6258160151efc1c846f; exact-head local 628 passed in 253.40s; exact merged-head Python CI run 32987119489 passed all four required jobs with no CI waiver; Windows 3.12 passed under the bounded 35-minute ceiling. Earlier evidence remains: exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; healthy hosted Windows 628 PASS in approximately 709s; two hosted executions reached 620 PASS in approximately 1404-1425s before cancellation without assertion failure; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally.
 PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement.
 ```
 
