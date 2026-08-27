@@ -197,28 +197,50 @@ authorize implementation scope.
 ID = RD-0001
 TITLE = TENDER LIFECYCLE & WAREHOUSE SHELF ENRICHMENT
 STATUS = APPROVED_ACTIVE
-SOURCE = Human / product architecture decision
+SOURCE = Human A0 / product architecture decision / Team Bid working-model evidence
 CRAWLER_VALUE = CRITICAL
-PRODUCT_AREA = Tender lineage and Warehouse organization
-PRODUCT_HOUSE_LAYERS = SOURCE ADAPTERS; DOMAIN CORE; WAREHOUSE
-OBSERVATION = KHLCNT/TBMT stage supplies initial PL identity and package
-  information; formal HSMT stage adds official IB identity, retained lineage,
-  carried-forward package information and HSMT documents.
-WHY_IT_MATTERS = PL and IB remain separate namespaces while one Tender
-  Lineage / Warehouse Shelf can carry both stages.
+PRODUCT_AREA = Tender lifecycle, TenderCase identity and Warehouse organization
+PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
+  INFRASTRUCTURE / PERSISTENCE; DELIVERY SURFACE
+OBSERVATION = KHLCNT/TBMT planning supplies PL identity and package context;
+  the formal tender stage adds official IB identity and exact revision while
+  retaining lineage. The Warehouse must carry the full tender case from plan
+  context through source E-HSMT, QI working bid materials, final submission and
+  post-bid evidence without collapsing those authority classes.
+WHY_IT_MATTERS = PL and IB are separate namespaces; one TenderCase may link
+  them without renaming either. A business folder, filename or document role
+  is not package identity. E-HSMT source material, QI-created E-HSDT material,
+  final submission snapshots, post-bid evidence and reference examples must
+  remain distinguishable or the system can contaminate source truth and later
+  analysis.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
 RELEVANT_CURRENT_WP = NONE
-TARGET_STATE = Stage-aware shelf with explicit PL→IB relation and package continuity.
+TARGET_STATE = A stage-aware TenderCase / Warehouse Shelf with explicit PL→IB
+  relation, `base_id` lineage, exact `(base_id, revision)` identity, retained
+  revision history and a logical Team Bid workspace with seven SOP zones:
+  `01_Source_E-HSMT`, `02_Requirement_Register`, `03_Legal_Capability`,
+  `04_Technical_Vendor`, `05_Commercial_Price`, `06_Submission_FINAL`, and
+  `07_Evidence_Archive`.
 PROMOTION_TARGET = MASTER_ROADMAP
-PROMOTION_CONDITION = Planner accepts the durable lifecycle/shelf model and
-  reconciles it into the strategic blueprint.
-COMPLETION_EVIDENCE = Approved domain contract plus source-backed package,
-  revision and stage regression evidence.
-REMOVE_FROM_DELTA_WHEN = Promoted to MASTER_ROADMAP and no active gap remains.
-PLANNER_NOTES = Chapter III/V are not expected before HSMT stage; missing
-  Chapter III/V before HSMT is NOT_YET_APPLICABLE, not failure. At HSMT stage,
-  SOURCE_DOCUMENT_MISSING differs from crawler failure. No implementation is
-  authorized by this Delta alone.
+PROMOTION_CONDITION = The TenderCase/lifecycle model, authority classes,
+  revision semantics and SOP workspace contract are implemented, independently
+  audited and proven against real Team Bid package evidence.
+COMPLETION_EVIDENCE = Source-backed PL→IB relation tests; revision-preservation
+  regressions; source-vs-working-vs-final-vs-reference authority tests; real
+  package acceptance showing reopen/retrieve behavior without identity loss.
+REMOVE_FROM_DELTA_WHEN = Promoted to MASTER_ROADMAP and no active TenderCase /
+  lifecycle / shelf semantic gap remains.
+PLANNER_NOTES = Preserve `PL != IB`; `base_id = lineage`; `(base_id, revision)`
+  is exact revision identity; new revision never overwrites the old revision.
+  `BUSINESS_FOLDER != DATABASE_IDENTITY`; `DOCUMENT_ROLE != PACKAGE_MEMBERSHIP`;
+  `REFERENCE_EXAMPLE != SOURCE_AUTHORITY`; `E-HSMT != E-HSDT`;
+  `SOURCE_PACKAGE != WORKING_BID_WORKSPACE`; `FINAL_SUBMISSION != WORKING_FILES`.
+  Chapter III/V are not expected before HSMT stage; missing Chapter III/V before
+  HSMT is `NOT_YET_APPLICABLE`, not failure. At HSMT stage,
+  `SOURCE_DOCUMENT_MISSING` differs from crawler failure. The Human-supplied
+  Chapter III/V examples from another HSMT may be used as reference specimens
+  but must never be auto-promoted into the active tender's source bundle.
+  No implementation is authorized by this Delta alone.
 ```
 
 ### RD-0002 — Reviewer implementation/Delta/Roadmap bridge
@@ -286,28 +308,42 @@ PLANNER_NOTES = Same symptom with unresolved root cause remains
 ID = RD-0004
 TITLE = BASIC CRAWLER FIRST / REAL HSMT MATURITY
 STATUS = APPROVED_ACTIVE
-SOURCE = Human / product sequencing decision
+SOURCE = Human A0 / product sequencing decision
 CRAWLER_VALUE = CRITICAL
-PRODUCT_AREA = Capability sequencing and HSMT maturity
-PRODUCT_HOUSE_LAYERS = SOURCE ADAPTERS; WAREHOUSE; EVIDENCE; EXTRACTION
-OBSERVATION = Near-term priority is reliable intake, storage, retrieval,
-  identity, evidence, persistence and basic HSMT handling before deep analysis.
-WHY_IT_MATTERS = Working samples do not prove stable deep HSMT analysis or
-  complete real-package coverage.
+PRODUCT_AREA = Capability sequencing, Team Bid basic usability and HSMT maturity
+PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
+  INFRASTRUCTURE / PERSISTENCE; DELIVERY SURFACE; EVIDENCE; EXTRACTION
+OBSERVATION = Near-term priority is a Minimum Safe Warehouse that can reliably
+  intake, preserve, identify, organize, reopen and retrieve real Team Bid PDF,
+  DOCX and XLSX tender documents before deep HSMT analysis. Existing working
+  samples and extraction code do not prove stable complete HSMT intelligence.
+WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
+  extraction needs trustworthy package/revision/source boundaries before it can
+  be treated as evidence for deeper reasoning. Building every Warehouse feature
+  before pilot use delays operational feedback; jumping directly to HSMT risks
+  analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
 RELEVANT_CURRENT_WP = NONE
-TARGET_STATE = Real Human-supplied HSMT packages are acceptance specimens and
-  defect-discovery evidence; deep analysis remains explicitly unproven until
-  completeness and evidence gates pass.
+TARGET_STATE = `Minimum Safe Warehouse → Team Bid real pilot → basic Warehouse
+  operations → package completeness/reconciliation → integrity/recovery
+  hardening → real HSMT maturity`. Deep HSMT analysis remains explicitly
+  unproven until package completeness and evidence gates pass.
 PROMOTION_TARGET = MASTER_ROADMAP
-PROMOTION_CONDITION = Roadmap maturity and dependency text reflects this
-  sequencing without claiming HSMT deep analysis DONE.
-COMPLETION_EVIDENCE = Real-package acceptance evidence, completeness accounting
-  and bounded extraction regressions.
+PROMOTION_CONDITION = Roadmap maturity and dependency text reflects the staged
+  vertical strategy and real Team Bid acceptance demonstrates safe Warehouse
+  usability without claiming deep HSMT analysis DONE.
+COMPLETION_EVIDENCE = Real-package acceptance with PDF/DOCX/XLSX intake,
+  restart persistence, retrieval and SHA preservation; later completeness
+  accounting and bounded extraction regressions for HSMT maturity.
 REMOVE_FROM_DELTA_WHEN = Promoted to roadmap and the maturity gap is tracked by
-  a concrete approved capability WP.
-PLANNER_NOTES = Do not call deep HSMT analysis DONE merely because current
-  samples parse.
+  concrete approved capability WPs with verified advancement.
+PLANNER_NOTES = Candidate sequencing is `WP-WH-MIN-01 → WP-WH-OPS-01 →
+  WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → HSMT Intelligence`. This sequence is
+  planning context, not implementation authority. Minimum support targets the
+  currently proven modern formats PDF/DOCX/XLSX (plus existing ZIP intake);
+  legacy `.doc` is not silently assumed in the minimum contract and requires a
+  later explicit need/evidence decision. Do not call deep HSMT analysis DONE
+  merely because current samples parse.
 ```
 
 ### RD-0005 — Planner Human Intent & Strategic Continuity
@@ -411,6 +447,325 @@ REMOVE_FROM_DELTA_WHEN = Promoted to durable governance, merged, post-merge
   reconciled and no material Builder evidence gap remains.
 PLANNER_NOTES = No implementation in Planner Continuity M0.
 ```
+
+### RD-0008 — Protected managed source authority, Vault and recovery
+
+```text
+ID = RD-0008
+TITLE = PROTECTED MANAGED SOURCE AUTHORITY / VAULT / RECOVERY
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0 / Team Bid storage-risk requirement / existing managed-store evidence
+CRAWLER_VALUE = CRITICAL
+PRODUCT_AREA = Managed tender source preservation, retrieval and recovery
+PRODUCT_HOUSE_LAYERS = APPLICATION BACKEND; INFRASTRUCTURE / PERSISTENCE;
+  DOMAIN CORE; DELIVERY SURFACE
+OBSERVATION = QI-Crawler already preserves immutable original document bytes,
+  SHA/version and tender/bundle metadata, but the durable Roadmap still marks
+  the managed file-storage component as partial. Team Bid operationally needs a
+  protected managed copy that survives source-file moves/deletion, supports
+  safe retrieval/export and can be reconciled/recovered when Shelf state is
+  missing or damaged.
+WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
+  disappears because the user's source copy moved, or uncontrolled cleanup can
+  make a tender package unusable precisely when Team Bid needs sudden source
+  comparison. Source authority must therefore belong to the managed copy after
+  successful intake, not to the user's original path.
+ROADMAP_IMPACT = ROADMAP_UPGRADE
+RELEVANT_CURRENT_WP = NONE
+TARGET_STATE = `External file → staging/validation → SHA-256 → immutable managed
+  Vault → Package/Revision Shelf membership → retrieval/export`, with integrity
+  states for missing/orphaned/corrupt objects and an explicit recovery path.
+  Storage-pressure handling routes `HOT → COLD/ARCHIVE` under policy instead of
+  destructive age-based deletion.
+PROMOTION_TARGET = MASTER_ROADMAP
+PROMOTION_CONDITION = Managed source authority, Vault/Shelf boundary,
+  retrieval/export, integrity checking and bounded recovery behavior are
+  implemented and independently verified.
+COMPLETION_EVIDENCE = Real and regression evidence proving source deletion or
+  move does not destroy the managed copy; byte-identical retrieval by SHA;
+  missing-Shelf/Vault reconciliation; no silent overwrite; backup/recovery
+  evidence where required by the approved WP.
+REMOVE_FROM_DELTA_WHEN = The managed source authority and recovery model is
+  promoted to the Roadmap and the material preservation gap is closed.
+PLANNER_NOTES = `ORIGINAL USER FILE DELETED != MANAGED COPY LOST`;
+  `DATABASE RECORD EXISTS + STORED FILE MISSING = INTEGRITY FAILURE`;
+  `STORED FILE EXISTS + DATABASE RECORD MISSING = ORPHAN / RECONCILIATION`.
+  Internal machine-safe filenames are not business identity; controlled Team
+  Bid export may use an appropriate business filename while preserving bytes
+  and SHA. Do not equate the existing analytical `warehouse.py` DuckDB manager
+  with the Unified Tender Warehouse product capability.
+```
+
+### RD-0009 — Tender Package completeness and source reconciliation
+
+```text
+ID = RD-0009
+TITLE = TENDER PACKAGE COMPLETENESS & SOURCE RECONCILIATION
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0 / HSMT workflow evidence / false-complete risk analysis
+CRAWLER_VALUE = CRITICAL
+PRODUCT_AREA = E-HSMT source bundle integrity and completeness
+PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
+  INFRASTRUCTURE / PERSISTENCE; EVIDENCE; DELIVERY SURFACE
+OBSERVATION = A set of stored files is not proof that a tender revision's
+  source package is complete. HSMT chapters may be embedded or separate;
+  amendments/clarifications may supersede earlier material; some attachments
+  lack self-identifying IB text; and reference specimens may have the same
+  document role while belonging to another package.
+WHY_IT_MATTERS = Deep extraction or Requirement Register generation over an
+  incomplete, wrong-revision or contaminated source package can yield a
+  false-safe answer despite green parsers. Completeness must be an explicit
+  accounted state rather than inferred from file count.
+ROADMAP_IMPACT = ROADMAP_UPGRADE
+RELEVANT_CURRENT_WP = NONE
+TARGET_STATE = For each exact package revision, reconcile expected versus
+  observed source material using explicit states `EXPECTED`, `FOUND`, `MISSING`,
+  `CONFLICT`, `UNKNOWN`, `SUPERSEDED`, `QUARANTINED`; retain evidence/provenance
+  for membership and distinguish `SOURCE_DOCUMENT_MISSING` from extraction or
+  crawler failure.
+PROMOTION_TARGET = MASTER_ROADMAP
+PROMOTION_CONDITION = Package completeness/reconciliation semantics and their
+  evidence contract are implemented, independently audited and exercised on
+  real HSMT package specimens.
+COMPLETION_EVIDENCE = Real-package accounting where every expected source item
+  has an explicit outcome; cross-revision and foreign-package contamination
+  regressions; source-missing versus extraction-failed tests; evidence locators
+  for membership/reconciliation decisions.
+REMOVE_FROM_DELTA_WHEN = Completeness/reconciliation is promoted to the Roadmap
+  and HSMT work consumes the verified contract rather than inferring complete.
+PLANNER_NOTES = `FILE STORED != PACKAGE COMPLETE`; `DOCUMENT_ROLE !=
+  PACKAGE_MEMBERSHIP`; `REFERENCE_EXAMPLE != SOURCE_AUTHORITY`. The supplied
+  Chapter III and Chapter V examples are valuable structure/evidence specimens
+  but, because Human identified them as belonging to another HSMT, they must not
+  become members of the current PL2600272581 source package. A future parser may
+  identify their role, but package membership requires separate evidence.
+```
+
+### RD-0010 — Team Bid SOP workspace and minimum operational usability
+
+```text
+ID = RD-0010
+TITLE = TEAM BID SOP WORKSPACE & MINIMUM OPERATIONAL USABILITY
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0 / SOP V2.2 working-structure decision / Team Bid real workflow
+CRAWLER_VALUE = CRITICAL
+PRODUCT_AREA = Team Bid Warehouse delivery and tender working lifecycle
+PRODUCT_HOUSE_LAYERS = DELIVERY SURFACE; APPLICATION BACKEND; DOMAIN CORE;
+  INFRASTRUCTURE / PERSISTENCE
+OBSERVATION = Team Bid needs to start real work before every future Warehouse
+  automation is complete. The existing PySide6 document workspace already has
+  manual workspace creation, file/folder intake and manifest-oriented views,
+  while the Human operational model uses seven standard zones covering source
+  E-HSMT through final submission and evidence archive.
+WHY_IT_MATTERS = A technically correct storage backend that cannot be used in
+  daily Team Bid flow delays defect discovery and operational value. Conversely,
+  encoding business rules only in GUI folders would make the frontend the
+  authority. The system therefore needs a thin SOP workspace backed by Core and
+  Backend contracts.
+ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
+RELEVANT_CURRENT_WP = NONE
+TARGET_STATE = A Team Bid user can create/open a TenderCase, add PDF/DOCX/XLSX
+  files or a supported folder, see package/revision/document state, close and
+  reopen the app, find the same case, retrieve/export immutable originals and
+  organize working material in seven logical SOP zones:
+  `01_Source_E-HSMT`, `02_Requirement_Register`, `03_Legal_Capability`,
+  `04_Technical_Vendor`, `05_Commercial_Price`, `06_Submission_FINAL`,
+  `07_Evidence_Archive`.
+PROMOTION_TARGET = MASTER_ROADMAP
+PROMOTION_CONDITION = The minimum Team Bid vertical slice and subsequent SOP
+  workspace behavior are implemented and independently verified through real
+  operational acceptance.
+COMPLETION_EVIDENCE = A real TenderCase acceptance: intake PDF/DOCX/XLSX,
+  restart, search/reopen, stable package/revision identity, retrieve originals
+  with unchanged SHA, QI working DOCX remains non-source, foreign HSMT reference
+  samples remain non-members, and source deletion does not destroy the managed
+  copy. Later OPS evidence covers search/dashboard, version semantics,
+  controlled package export, final snapshots and archive behavior.
+REMOVE_FROM_DELTA_WHEN = Basic Team Bid Warehouse usability and the SOP
+  workspace model are promoted to the Roadmap with verified operational evidence.
+PLANNER_NOTES = Seven folders are the canonical business/logical workspace
+  view, not the database identity model and not necessarily the physical storage
+  layout. `01_Source_E-HSMT` is source authority; `02_Requirement_Register` is a
+  derived/controlled bridge; `03-05` are QI working E-HSDT material;
+  `06_Submission_FINAL` must evolve toward immutable submission snapshots;
+  `07_Evidence_Archive` is post-bid evidence, not a trash/cleanup target.
+  Frontend collects commands and displays authoritative state; Domain Core and
+  Application Backend own package/revision/membership/completeness semantics.
+```
+
+## 8A. Warehouse execution blueprint — pre-WP comparison baseline
+
+This section is a Human-approved planning baseline for agents to compare before
+opening or reviewing Warehouse/HSMT Work Packages. It is not an implementation
+lease and does not override the Master Roadmap.
+
+### Master Roadmap compatibility
+
+```text
+MASTER_ROADMAP_COMPARISON = ALIGNED
+ROADMAP_CONFLICT = NO
+CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
+```
+
+The Master Roadmap already establishes:
+
+- the primary route `Opportunity Intelligence → Unified Tender Warehouse →
+  Tender Package & HSMT Intelligence`;
+- the vertical Product House dependency `Delivery Surface → Application Backend
+  → Domain Core`, served by Source Adapters and Infrastructure/Persistence;
+- Domain invariants `PL != IB`, `base_id = lineage`, `(base_id, revision) = exact
+  revision identity`, `FILE STORED != PACKAGE COMPLETE`;
+- Source Adapters for manual HSMT and PDF/DOCX/XLSX tender documents;
+- Infrastructure/Persistence concepts including managed filesystem, Source Vault,
+  Package Shelf, archive and backup/recovery;
+- the rule `BACKEND FIRST != FRONTEND NEVER` and the prohibition on putting
+  material business rules only in PySide6 handlers.
+
+This Delta does not replace those rules. It adds the unresolved operational
+shape needed to convert the `PARTIAL` Warehouse frontier into an auditable
+Team Bid vertical slice.
+
+### Warehouse layer ownership
+
+```text
+DOMAIN CORE
+  owns TenderCase, PL/IB/revision identity, document authority class,
+  membership, version and completeness semantics.
+
+APPLICATION BACKEND
+  owns create/open case, add documents, manifest, link/reconcile membership,
+  list/search/retrieve/export and later submission/completeness use cases.
+
+INFRASTRUCTURE / PERSISTENCE
+  owns immutable managed bytes, SHA, database persistence, Vault/Shelf,
+  integrity, backup/recovery/archive mechanisms.
+
+THIN FRONTEND / DELIVERY
+  collects Team Bid commands and renders authoritative backend state;
+  it does not own package identity, revision, completeness or business truth.
+```
+
+### Tender lifecycle and authority flow
+
+```text
+KHMT / PL
+→ Opportunity / Human shortlist
+→ TenderCase
+→ explicit PL→IB relationship
+→ exact IB base + revision
+→ 01_Source_E-HSMT
+→ 02_Requirement_Register
+→ 03_Legal_Capability
+→ 04_Technical_Vendor
+→ 05_Commercial_Price
+→ 06_Submission_FINAL
+→ 07_Evidence_Archive
+```
+
+Authority separation:
+
+```text
+E-HSMT = OWNER / BMT / CĐT source material
+E-HSDT = QI-created bid material
+REFERENCE_EXAMPLE = reference only; never source authority by role alone
+```
+
+### Candidate Parent-WP sequence
+
+No Parent below is authorized merely by appearing here. Before each Parent,
+Planner must re-run Roadmap/Delta/Spine/live-state reconciliation and obtain the
+applicable Human approval.
+
+```text
+WP-WH-MIN-01 — Minimum Safe Tender Package Warehouse
+  M1 TenderCase / lifecycle / revision Domain Contract
+  M2 Managed Document Store / immutable source integrity
+  M3 Package / Revision Shelf + manifest backend
+  M4 Retrieval / original export + bounded recovery
+  M5 Thin Team Bid SOP Workspace GUI
+  M6 Real operational acceptance
+
+  EXIT:
+  MINIMUM_SAFE_WAREHOUSE = OPERATIONAL
+  TEAM_BID_PILOT_ALLOWED = YES
+
+WP-WH-OPS-01 — Basic Team Bid Warehouse Operations
+  search / dashboard / add-replace semantics / controlled package export /
+  SOP workspace operational hardening
+
+WP-WH-COMPLETE-01 — Package Completeness & Source Reconciliation
+  expected-vs-observed source inventory, missing/conflict/unknown/superseded /
+  quarantine accounting and evidence
+
+WP-WH-RECOVERY-01 — Warehouse Integrity, Backup & Recovery
+  integrity scan / orphan detection / SHA revalidation / recovery / archive /
+  storage-pressure policy
+
+RETURN TO ROADMAP:
+  Tender Package & HSMT Intelligence
+```
+
+### Minimum Safe Warehouse boundary
+
+Required for the first real Team Bid pilot:
+
+```text
+PDF intake
+DOCX intake
+XLSX intake
+supported folder / existing ZIP intake
+immutable managed original
+SHA-256
+safe duplicate handling
+TenderCase / package identity
+exact revision identity
+manual Team Bid workspace
+document membership
+persistent state across restart
+package manifest
+original retrieval / controlled export
+thin GUI workflow
+```
+
+Not required to declare the minimum vertical slice operational:
+
+```text
+legacy .doc support
+deep HSMT analysis
+full semantic Requirement Register automation
+cold archive automation
+DuckDB analytics completion
+Ground Truth expansion
+SOP evaluation engine
+API redesign
+GUI redesign
+Controlled Learning
+Mini AI
+```
+
+### Cross-WP invariants that must not be forgotten
+
+```text
+PL != IB
+base_id = lineage
+(base_id, revision) = exact revision identity
+NEW REVISION != OVERWRITE OLD REVISION
+E-HSMT != E-HSDT
+BUSINESS_FOLDER != DATABASE_IDENTITY
+FILENAME != DOCUMENT_IDENTITY
+DOCUMENT_ROLE != PACKAGE_MEMBERSHIP
+REFERENCE_EXAMPLE != SOURCE_AUTHORITY
+SOURCE_PACKAGE != WORKING_BID_WORKSPACE
+FINAL_SUBMISSION != WORKING_FILES
+FILE STORED != PACKAGE COMPLETE
+ORIGINAL USER FILE DELETED != MANAGED COPY LOST
+MACHINE READINESS != HUMAN BUSINESS DECISION
+```
+
+Any Warehouse/HSMT Work Order that contradicts these invariants, silently skips
+an earlier dependency, or claims maturity beyond its verified vertical slice
+returns to Planner/Human reconciliation instead of being inferred complete from
+WP length or green tests.
 
 ## 9. Non-authority boundary
 
