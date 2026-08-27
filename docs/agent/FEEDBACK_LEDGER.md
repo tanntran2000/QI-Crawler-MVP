@@ -499,3 +499,32 @@ Response: Staged as a future governance Delta only; no Builder Integrity
 Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_BUILDER_INTEGRITY_01
 Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0019 — Role-specific Planner Prompt Profiles
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Prompts must not be written ad hoc. Planner must study each
+  role's canonical duties and authority before constructing a task. Builder
+  and Reviewer require distinct role-specific prompt contracts; Builder scope
+  governs execution and proof, while Reviewer scope governs independent
+  challenge and must not presuppose PASS. Reviewer challenge follows review of
+  actual Builder output/evidence, and Planner remains engaged through Builder
+  result, Reviewer result, CI/remote integration and post-state transitions.
+Impact: Preserves role separation, Human intent, independent review and
+  evidence-backed completion across future Builder and Reviewer work.
+Evidence: Human A0 governance direction captured in M0 after PR #66 merge.
+Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
+  profiles in later bounded micro-WPs with explicit entry, scope and evidence
+  contracts.
+Scope change required: NO
+Response: Captured as active M0 material feedback; no prompt-profile,
+  follow-through or terminal-sync implementation is included in M0.
+Disposition: ACCEPTED / ACTIVE_PARENT
+Promoted to: NONE_YET; M1/M2 implementation pending
+```
