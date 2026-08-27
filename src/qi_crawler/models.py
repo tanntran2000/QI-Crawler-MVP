@@ -250,6 +250,28 @@ class TenderDocumentMembershipRecord(Base):
     document: Mapped[Document] = relationship()
 
 
+class TenderWorkspaceEntryRecord(Base):
+    """Explicit logical Team Bid zone assignment for one document membership."""
+
+    __tablename__ = "tender_workspace_entries"
+    __table_args__ = (
+        UniqueConstraint(
+            "membership_id", "zone_code", name="uq_tender_workspace_entry"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    membership_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_document_memberships.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    zone_code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    membership: Mapped[TenderDocumentMembershipRecord] = relationship()
+
+
 class DocumentExtraction(Base):
     """One native extraction run over one immutable stored document."""
 
