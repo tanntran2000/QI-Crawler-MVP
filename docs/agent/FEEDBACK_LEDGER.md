@@ -524,9 +524,9 @@ Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
   contracts.
 Scope change required: NO
 Response: Implemented and corrected in the M1 governance candidate as canonical
-  Builder and Reviewer prompt-profile contracts; independent re-audit remains
-  pending.
-Disposition: IMPLEMENTED_IN_CORRECTED_CANDIDATE / PENDING_REAUDIT
+  Builder and Reviewer prompt-profile contracts; independent re-audit passed,
+  and integration remains pending.
+Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
 Promoted to: NONE_YET; promotion follows independent audit and governed review
 ```
 
@@ -565,8 +565,8 @@ Evidence: Human A0 governance direction captured in M0-C2 after the original
   M0 commit.
 Response: Implemented and corrected in the M1 governance candidate as a large
   bounded batch and Approval Lease contract with internal stage safety;
-  independent re-audit remains pending.
-Disposition: IMPLEMENTED_IN_CORRECTED_CANDIDATE / PENDING_REAUDIT
+  independent re-audit passed, and integration remains pending.
+Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
 Promoted to: NONE_YET; promotion follows independent audit and governed review
 ```
 
@@ -594,8 +594,8 @@ Suggestion: Keep CURRENT updates at governed transition frequency and reconcile
   authority-derived values from exact source evidence.
 Scope change required: NO
 Response: Implemented in the M1 correction candidate; independent re-audit
-  remains pending.
-Disposition: ACCEPTED / IMPLEMENTED_IN_M1_CORRECTION_CANDIDATE_PENDING_REAUDIT
+  passed, and integration remains pending.
+Disposition: ACCEPTED / IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
 Promoted to: NONE_YET; promotion follows independent re-audit and governed
   review
 ```
