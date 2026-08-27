@@ -108,6 +108,34 @@ def test_bid_radar_is_reachable_without_removing_existing_pages(
     assert "HSMT / PHÂN TÍCH" in labels
 
 
+def test_team_bid_workspace_is_thinly_wired_into_existing_document_page(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.workspace_zone.count() == 7
+    assert window.workspace_zone.itemData(0) == "01_Source_E-HSMT"
+    assert window.workspace_zone.itemData(6) == "07_Evidence_Archive"
+    assert window.workspace_status.text().startswith("Chưa mở TenderCase")
+
+
+def test_team_bid_workspace_open_delegates_to_service(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["function"] = function
+        captured["args"] = args
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    window.workspace_case_id.setText("case-ui")
+    window.workspace_release_id.setText("IB2600000202-00")
+    window.start_tender_workspace_open()
+
+    assert captured["function"] is gui.run_tender_workspace_open_or_create
+    assert captured["args"] == (window.config, "case-ui", "IB2600000202-00")
+
+
 def test_bid_radar_source_selector_defaults_to_automatic(window: QICrawlerWindow) -> None:
     assert window.bid_radar_source_type.currentData() is None
     assert window.bid_radar_source_type.currentText() == "TỰ ĐỘNG"

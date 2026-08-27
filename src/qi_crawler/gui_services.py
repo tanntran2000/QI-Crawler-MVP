@@ -69,6 +69,13 @@ from .native_extraction import (
 from .notice_search import search_notices
 from .opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
 from .source_filter import active_source_domains, active_source_names
+from .tender_workspace import (
+    TeamBidZone,
+    TenderWorkspaceManifest,
+    TenderWorkspaceService,
+    WorkspaceEntry,
+    WorkspaceExportResult,
+)
 from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
 
 logger = logging.getLogger(__name__)
@@ -585,6 +592,68 @@ def run_workspace_document_intake(
     )
     manifest = run_tender_document_workspace(config, opened.tender_identifier)
     return WorkspaceDocumentIntakeResult(manifest=manifest, batch=batch)
+
+
+def run_tender_workspace_manifest(
+    config: AppConfig,
+    case_id: str,
+) -> TenderWorkspaceManifest:
+    """Read a domain-authoritative Team Bid workspace through one thin adapter."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).manifest(case_id)
+
+
+def run_tender_workspace_open_or_create(
+    config: AppConfig,
+    case_id: str,
+    release_id: str,
+) -> int:
+    """Open/create one case and exact IB release through the workspace service."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).open_or_create_release(
+        case_id,
+        release_id,
+    )
+
+
+def run_tender_workspace_add_path(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    input_path: Path,
+    zone: TeamBidZone | str,
+    authority: str,
+    evidence: str,
+    uploaded_by: str | None = None,
+) -> tuple[WorkspaceEntry, ...]:
+    """Intake and explicitly assign source files to one logical workspace zone."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).add_path_to_zone(
+        case_id,
+        release_id,
+        input_path,
+        zone=zone,
+        authority=authority,
+        evidence=evidence,
+        uploaded_by=uploaded_by,
+    )
+
+
+def run_tender_workspace_export(
+    config: AppConfig,
+    case_id: str,
+    destination: Path,
+) -> WorkspaceExportResult:
+    """Export immutable managed originals into a controlled logical-zone workspace."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).export(
+        case_id,
+        destination,
+    )
 
 
 def _manifest_for_base_or_new_workspace(

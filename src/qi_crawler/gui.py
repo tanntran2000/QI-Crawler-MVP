@@ -102,6 +102,10 @@ from .gui_services import (
     run_search,
     run_single_crawl,
     run_tender_document_workspace,
+    run_tender_workspace_add_path,
+    run_tender_workspace_export,
+    run_tender_workspace_manifest,
+    run_tender_workspace_open_or_create,
     run_web_document_intake,
     run_workspace_document_intake,
 )
@@ -124,6 +128,8 @@ from .standalone import (
     prepare_standalone_runtime,
 )
 from .standalone_smoke import run_standalone_smoke
+from .tender_case import AuthorityClass
+from .tender_workspace import TEAM_BID_ZONES, TenderWorkspaceError
 from .web_document_intake import WebDocumentIntakeSummary
 
 logger = logging.getLogger(__name__)
@@ -307,6 +313,9 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_load_result: Any | None = None
         self._bid_radar_loaded_source: Path | None = None
         self._bid_radar_loaded_sha256: str | None = None
+        self._workspace_release_record_id: int | None = None
+        self._workspace_opened_case_id: str | None = None
+        self._workspace_opened_release_id: str | None = None
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -470,6 +479,10 @@ class QICrawlerWindow(QMainWindow):
             self.document_import_button,
             self.document_web_button,
             self.document_workspace_button,
+            self.workspace_open_button,
+            self.workspace_add_button,
+            self.workspace_manifest_button,
+            self.workspace_export_button,
         )
         self.navigation.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.navigation.setCurrentRow(0)
@@ -1360,7 +1373,78 @@ class QICrawlerWindow(QMainWindow):
         extraction_layout.addWidget(self.document_evidence_view)
         layout.addWidget(self.document_extraction_box)
 
-        self.hsmt_dashboard_box = QGroupBox("E. TỔNG HỢP HSMT")
+        workspace_box = QGroupBox("E. TEAM BID WORKSPACE")
+        workspace_layout = QVBoxLayout(workspace_box)
+        workspace_form = QFormLayout()
+        self.workspace_case_id = QLineEdit()
+        self.workspace_case_id.setPlaceholderText("Mã hồ sơ nội bộ, ví dụ: TB-2026-001")
+        self.workspace_release_id = QLineEdit()
+        self.workspace_release_id.setPlaceholderText("IB2600000000-00 (bắt buộc revision)")
+        workspace_form.addRow("TenderCase:", self.workspace_case_id)
+        workspace_form.addRow("IB revision:", self.workspace_release_id)
+        self.workspace_zone = QComboBox()
+        for zone in TEAM_BID_ZONES:
+            self.workspace_zone.addItem(zone.value, zone.value)
+        self.workspace_authority = QComboBox()
+        for authority in AuthorityClass:
+            self.workspace_authority.addItem(authority.value, authority.value)
+        self.workspace_evidence = QLineEdit()
+        self.workspace_evidence.setPlaceholderText("Evidence bắt buộc cho membership")
+        workspace_form.addRow("Team Bid zone:", self.workspace_zone)
+        workspace_form.addRow("Authority class:", self.workspace_authority)
+        workspace_form.addRow("Evidence:", self.workspace_evidence)
+        workspace_layout.addLayout(workspace_form)
+
+        workspace_path_row = QHBoxLayout()
+        self.workspace_path = QLineEdit()
+        self.workspace_path.setReadOnly(True)
+        self.workspace_path.setPlaceholderText("Chọn file hoặc thư mục nguồn")
+        workspace_path_row.addWidget(self.workspace_path, 1)
+        self.workspace_file_button = QPushButton("CHỌN FILE")
+        self.workspace_file_button.clicked.connect(self._choose_workspace_file)
+        self.workspace_folder_button = QPushButton("CHỌN THƯ MỤC")
+        self.workspace_folder_button.clicked.connect(self._choose_workspace_folder)
+        workspace_path_row.addWidget(self.workspace_file_button)
+        workspace_path_row.addWidget(self.workspace_folder_button)
+        workspace_layout.addLayout(workspace_path_row)
+
+        workspace_actions = QHBoxLayout()
+        self.workspace_open_button = QPushButton("MỞ / TẠO CASE")
+        self.workspace_open_button.clicked.connect(self.start_tender_workspace_open)
+        self.workspace_add_button = self._primary_button("THÊM VÀO ZONE")
+        self.workspace_add_button.clicked.connect(self.start_tender_workspace_add)
+        self.workspace_manifest_button = QPushButton("TẢI LẠI MANIFEST")
+        self.workspace_manifest_button.clicked.connect(self.start_tender_workspace_manifest)
+        workspace_actions.addWidget(self.workspace_open_button)
+        workspace_actions.addWidget(self.workspace_add_button)
+        workspace_actions.addWidget(self.workspace_manifest_button)
+        workspace_actions.addStretch()
+        workspace_layout.addLayout(workspace_actions)
+
+        export_row = QHBoxLayout()
+        self.workspace_export_path = QLineEdit()
+        self.workspace_export_path.setReadOnly(True)
+        self.workspace_export_path.setPlaceholderText("Chọn thư mục export mới (không ghi đè)")
+        choose_export_button = QPushButton("CHỌN ĐÍCH EXPORT")
+        choose_export_button.clicked.connect(self._choose_workspace_export_folder)
+        self.workspace_export_button = QPushButton("XUẤT WORKSPACE")
+        self.workspace_export_button.clicked.connect(self.start_tender_workspace_export)
+        export_row.addWidget(self.workspace_export_path, 1)
+        export_row.addWidget(choose_export_button)
+        export_row.addWidget(self.workspace_export_button)
+        workspace_layout.addLayout(export_row)
+
+        self.workspace_status = QLabel(
+            "Chưa mở TenderCase. File chỉ được lưu khi zone, authority và evidence được khai báo rõ."
+        )
+        self.workspace_status.setWordWrap(True)
+        workspace_layout.addWidget(self.workspace_status)
+        self.workspace_manifest_summary = QLabel("Manifest: chưa tải.")
+        self.workspace_manifest_summary.setWordWrap(True)
+        workspace_layout.addWidget(self.workspace_manifest_summary)
+        layout.addWidget(workspace_box)
+
+        self.hsmt_dashboard_box = QGroupBox("F. TỔNG HỢP HSMT")
         dashboard_layout = QGridLayout(self.hsmt_dashboard_box)
         self.hsmt_fact_cards: dict[str, QPushButton] = {}
         for index, (group, label) in enumerate(
@@ -1449,6 +1533,176 @@ class QICrawlerWindow(QMainWindow):
         if selected:
             self.document_path.setText(selected)
             self._render_pending_document(Path(selected), "Thư mục chờ lưu")
+
+    def _choose_workspace_file(self) -> None:
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Chọn tài liệu Team Bid",
+            str(self.config.storage.document_dir),
+            "Tài liệu hỗ trợ (*.pdf *.docx *.xlsx *.zip)",
+        )
+        if selected:
+            self.workspace_path.setText(selected)
+
+    def _choose_workspace_folder(self) -> None:
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            "Chọn thư mục Team Bid",
+            str(self.config.storage.document_dir),
+        )
+        if selected:
+            self.workspace_path.setText(selected)
+
+    def _choose_workspace_export_folder(self) -> None:
+        selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục export mới")
+        if selected:
+            self.workspace_export_path.setText(selected)
+
+    def _workspace_case_and_release(self) -> tuple[str, str] | None:
+        case_id = self.workspace_case_id.text().strip()
+        release_id = self.workspace_release_id.text().strip()
+        if not case_id:
+            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+            return None
+        if not release_id:
+            self.workspace_status.setText("Vui lòng nhập mã IB có revision chính xác.")
+            return None
+        return case_id, release_id
+
+    @Slot()
+    def start_tender_workspace_open(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None:
+            return
+        case_id, release_id = values
+        self.workspace_status.setText("Đang mở hoặc tạo TenderCase...")
+        self._submit(
+            run_tender_workspace_open_or_create,
+            self.config,
+            case_id,
+            release_id,
+            on_success=lambda value: self._render_tender_workspace_open(case_id, value),
+            button=self.workspace_open_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_open",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_open(self, case_id: str, release_id: int) -> None:
+        self._workspace_release_record_id = release_id
+        self._workspace_opened_case_id = case_id
+        self._workspace_opened_release_id = self.workspace_release_id.text().strip()
+        self.workspace_status.setText(
+            f"Đã mở TenderCase {case_id}, release nội bộ #{release_id}. Đang tải manifest..."
+        )
+        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+
+    @Slot()
+    def start_tender_workspace_add(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None:
+            return
+        case_id, release_id = values
+        if self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy bấm MỞ / TẠO CASE trước khi thêm tài liệu.")
+            return
+        if (
+            case_id != self._workspace_opened_case_id
+            or release_id != self._workspace_opened_release_id
+        ):
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm tài liệu."
+            )
+            return
+        source_text = self.workspace_path.text().strip()
+        evidence = self.workspace_evidence.text().strip()
+        if not source_text:
+            self.workspace_status.setText("Vui lòng chọn file hoặc thư mục Team Bid.")
+            return
+        if not evidence:
+            self.workspace_status.setText("Evidence là bắt buộc cho mỗi membership.")
+            return
+        self.workspace_status.setText("Đang lưu tài liệu vào managed store và zone đã chọn...")
+        self._submit(
+            run_tender_workspace_add_path,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            Path(source_text),
+            self.workspace_zone.currentData(),
+            self.workspace_authority.currentData(),
+            evidence,
+            on_success=self._render_tender_workspace_added,
+            button=self.workspace_add_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_add",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_added(self, entries: tuple[Any, ...]) -> None:
+        self.workspace_status.setText(
+            f"Đã lưu {len(entries)} tài liệu vào zone đã khai báo. Đang tải lại manifest..."
+        )
+        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+
+    @Slot()
+    def start_tender_workspace_manifest(self) -> None:
+        case_id = self.workspace_case_id.text().strip()
+        if not case_id:
+            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+            return
+        self.workspace_status.setText("Đang tải manifest workspace...")
+        self._submit(
+            run_tender_workspace_manifest,
+            self.config,
+            case_id,
+            on_success=self._render_tender_workspace_manifest,
+            button=self.workspace_manifest_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_manifest",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_manifest(self, manifest: Any) -> None:
+        counts = ", ".join(
+            f"{view.zone.value}: {len(view.entries)}" for view in manifest.zones
+        )
+        self.workspace_manifest_summary.setText(
+            f"Manifest {manifest.case_id}: {len(manifest.entries)} tài liệu\n{counts}"
+        )
+        self.workspace_status.setText("Đã tải manifest. Có thể tiếp tục thêm hoặc export có kiểm soát.")
+
+    @Slot()
+    def start_tender_workspace_export(self) -> None:
+        case_id = self.workspace_case_id.text().strip()
+        destination_text = self.workspace_export_path.text().strip()
+        if not case_id:
+            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+            return
+        if not destination_text:
+            self.workspace_status.setText("Vui lòng chọn thư mục export mới.")
+            return
+        self.workspace_status.setText("Đang export bản sao managed originals...")
+        self._submit(
+            run_tender_workspace_export,
+            self.config,
+            case_id,
+            Path(destination_text),
+            on_success=self._render_tender_workspace_export,
+            button=self.workspace_export_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_export",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_export(self, result: Any) -> None:
+        self.workspace_status.setText(
+            f"Đã export {result.entry_count} tài liệu vào {result.output}."
+        )
 
     def _render_pending_document(self, path: Path, kind: str) -> None:
         suffix = path.suffix.upper().lstrip(".") or "THƯ MỤC"
@@ -2118,6 +2372,8 @@ class QICrawlerWindow(QMainWindow):
                 message = "Không thể ghi file Bid Radar. Hãy đóng file đang mở rồi thử lại."
             else:
                 message = "Không thể hoàn tất thao tác Bid Radar. Dữ liệu không bị ghi sai."
+        elif status is self.workspace_status and isinstance(error, TenderWorkspaceError):
+            message = f"Không thể hoàn tất workspace Team Bid: {error}"
         elif isinstance(error, SchemaNotReady):
             message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
