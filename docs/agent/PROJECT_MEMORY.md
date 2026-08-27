@@ -266,6 +266,27 @@ branches must remain in their Work Package handoff.
   `1b68007d1cd57b8763231a84367e9289064a9843`.
 - **Last verified:** `e1e7f80e7a41cc4ed402b23966a0583d8eb89a53`.
 
+## MEM-016 — Planner continuity and governed Human→Planner→Builder→Reviewer loop
+
+- **State:** ACTIVE
+- **Since main commit:** `d10445fc2ffc92e810f0d6258160151efc1c846f`.
+- **Contract:** PR #64 merged the Planner Continuity governance contract. The
+  Planner preserves material Human intent, prepares bounded Builder contracts,
+  keeps the independent Reviewer separate, reconciles Reviewer findings after
+  audit, and prepares the next Human decision packet. `ROLE_ENTRY_GATE` and
+  `LATEST_WP_SPINE_SYNC_AUDIT` are mandatory continuity checks; role is
+  authority, not model name. Hosted CI is available again for normal required
+  gates.
+- **Evidence:** PR #64, merged feature head
+  `db19f42985030f2b154804f959fca615c523a06e`, merge commit
+  `d10445fc2ffc92e810f0d6258160151efc1c846f`, and Python CI run
+  `32987119489` with all four required jobs passing; independent final audit
+  PASS.
+- **Boundary:** Governance continuity only. This does not claim a product,
+  Warehouse, HSMT or AI capability change, and it does not authorize
+  implementation outside a separately approved Work Package.
+- **Last verified:** `d10445fc2ffc92e810f0d6258160151efc1c846f`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
