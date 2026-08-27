@@ -334,6 +334,9 @@ TARGET_STATE = Planner owns strategic synthesis, Human-intent reconciliation,
   Builder contract generation, Reviewer challenge design, Reviewer-result
   reconciliation and strategic handoff preparation while preserving role
   boundaries.
+OPERATING_LOOP = BUILDER REPORT → PLANNER RESULT ANALYSIS → REVIEWER CHALLENGE
+  CONTRACT → REVIEWER RESULT → PLANNER DIRECT MASTER ROADMAP / DELTA / SPINE
+  RECONCILIATION → HUMAN DECISION PACKET
 PROMOTION_TARGET = GOVERNANCE
 PROMOTION_CONDITION = Human-approved Planner Continuity contract is durably
   present in AGENTS and supporting governance files and independently audited.
@@ -344,6 +347,69 @@ REMOVE_FROM_DELTA_WHEN = Planner Continuity governance is merged, post-merge
   promoted and no material contract gap remains.
 PLANNER_NOTES = Planner is strategic synthesis authority, not Human authority,
   Builder, Reviewer or Source Truth.
+```
+
+### RD-0006 — Role Contract Continuity & Role Entry Gate
+
+```text
+ID = RD-0006
+TITLE = ROLE CONTRACT CONTINUITY & ROLE ENTRY GATE
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0
+CRAWLER_VALUE = HIGH
+PRODUCT_AREA = Agent governance / role authority / new-agent continuity
+PRODUCT_HOUSE_LAYERS = GOVERNANCE; ALL MATERIAL PRODUCT HOUSE LAYERS
+OBSERVATION = Current governance names the major roles but does not yet
+  provide a complete, uniform role contract plus mandatory ROLE_ENTRY_GATE for
+  every new agent or takeover.
+WHY_IT_MATTERS = An agent that understands product context but misunderstands
+  its authority can still corrupt scope, evidence, review independence or the
+  Human decision flow.
+ROADMAP_IMPACT = ROADMAP_UPGRADE / GOVERNANCE
+RELEVANT_CURRENT_WP = WP-GOV-PLANNER-CONTINUITY-01
+TARGET_STATE = All major roles have explicit durable contracts in
+  mandatory-read Spine files, and every new agent or takeover verifies its
+  role before READY.
+PROMOTION_TARGET = GOVERNANCE
+PROMOTION_CONDITION = Role contracts, ROLE_ENTRY_GATE and role-boundary audit
+  are durably implemented and independently verified.
+COMPLETION_EVIDENCE = Exact-head independent governance audit proves role
+  mission, authority, duties, boundaries, handoff and stop conditions are
+  understood before READY.
+REMOVE_FROM_DELTA_WHEN = Promoted to durable governance, merged, post-merge
+  reconciled and no material role-readiness gap remains.
+PLANNER_NOTES = Do not implement role contracts in M0.
+```
+
+### RD-0007 — Builder Implementation Integrity & Evidence Discipline
+
+```text
+ID = RD-0007
+TITLE = BUILDER IMPLEMENTATION INTEGRITY & EVIDENCE DISCIPLINE
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0
+CRAWLER_VALUE = HIGH
+PRODUCT_AREA = Builder governance / implementation evidence / test integrity
+PRODUCT_HOUSE_LAYERS = GOVERNANCE; VERIFICATION; ALL AFFECTED PRODUCT HOUSE LAYERS
+OBSERVATION = Builder work needs durable preflight and evidence discipline so
+  authoritative layers, realistic tests and claim boundaries are preserved.
+WHY_IT_MATTERS = Mock evidence, weak traceability or conflating local PASS
+  with CI PASS can make an incomplete implementation appear verified and can
+  bypass Reviewer authority.
+ROADMAP_IMPACT = ROADMAP_UPGRADE / GOVERNANCE
+RELEVANT_CURRENT_WP = WP-GOV-BUILDER-INTEGRITY-01 / FUTURE
+TARGET_STATE = Builder preflight, authoritative-layer defense, TDD RED/GREEN
+  traceability, realistic tests, claim discipline and Builder-done versus
+  Reviewer-PASS separation are explicit and auditable.
+PROMOTION_TARGET = GOVERNANCE
+PROMOTION_CONDITION = Human-approved Builder Integrity contract is durably
+  implemented and independently verified.
+COMPLETION_EVIDENCE = Exact-head governance audit proves evidence provenance,
+  realistic regression coverage, local/CI claim separation and Reviewer
+  independence.
+REMOVE_FROM_DELTA_WHEN = Promoted to durable governance, merged, post-merge
+  reconciled and no material Builder evidence gap remains.
+PLANNER_NOTES = No implementation in Planner Continuity M0.
 ```
 
 ## 9. Non-authority boundary

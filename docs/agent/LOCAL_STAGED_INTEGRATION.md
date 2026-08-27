@@ -234,6 +234,64 @@ If `SPINE_AUDIT = HOLD` or `SPINE_SYNC_STATE != PASS`, do not advance to the
 next Micro-WP and do not declare `HANDOFF_READY`. Corrections remain
 forward-only; not every transition requires every Spine document to change.
 
+### 7.2 Latest-WP Spine sync audit
+
+`LATEST_WP_SPINE_SYNC_AUDIT` is the single continuity check for the latest
+completed governed unit before a triggered transition. It reconciles the
+exact Git object, active handoff, relevant Delta state and Context Spine; it
+does not create an implementation ledger or replace the Roadmap, Delta,
+Spine-promotion or role-entry gates.
+
+Run it when entering the next Micro-WP or Parent-WP, during a Planner,
+Reviewer or Builder takeover, at a cross-agent/session handoff, Parent
+Integration Gate, PR/merge transition or post-merge reconciliation. Unchanged
+continuous work inside the same Micro-WP does not require a repeat audit.
+
+The canonical audit packet is:
+
+```text
+LATEST_WP_SPINE_SYNC_AUDIT
+==========================
+LATEST_GOVERNED_UNIT = <Parent WP / Micro-WP>
+LATEST_COMPLETION_STATE = <resolved>
+LATEST_AUDITED_HEAD = <exact SHA / N/A with reason>
+LATEST_MERGED_HEAD = <exact SHA / NOT_MERGED>
+LIVE_HEAD = <verified>
+PROVEN_COMPLETE = <resolved>
+PROVEN_NOT_COMPLETE = <resolved / NONE>
+RELEVANT_DELTA_IDS = <resolved / NONE>
+DELTA_STATE_RECONCILED = PASS / HOLD
+SPINE_IMPACT = <resolved>
+SPINE_TARGET_FILES = <resolved>
+SPINE_FRESHNESS = PASS / STALE_NONBLOCKING / HOLD
+MISSING_PROMOTIONS = NONE / <list>
+CURRENT_FRESHNESS = PASS / HOLD
+ROLE_AUTHORITY_DRIFT = NO / YES
+NEXT_WORK_ALIGNMENT = PASS / HOLD
+LATEST_WP_SPINE_SYNC_AUDIT_RESULT = PASS / HOLD
+```
+
+The audit uses live Git/GitHub, exact audited or merged objects, `CURRENT.md`,
+and the durable Spine authorities in that order; copied audit prose is only
+supporting evidence. It keeps audited distinct from merged, a remote
+checkpoint distinct from CI PASS, a completed Micro-WP distinct from Parent
+completion, code heads distinct from later docs heads, and partial Delta state
+distinct from closed state.
+
+Return `HOLD` when any material identity, freshness, promotion, completion,
+next-work or authority fact cannot be reconciled. `ROLE_AUTHORITY_DRIFT = YES`
+also requires the existing `ROLE_ENTRY_GATE` to pass again before execution
+authority resumes. All required gates remain in force:
+
+```text
+READ_MODE_SELECTOR
+→ ROADMAP / DELTA RECONCILIATION
+→ ROLE_ENTRY_GATE
+→ LATEST_WP_SPINE_SYNC_AUDIT when triggered
+→ ENTRY OUTCOME
+→ READY / PROMPT_READY / START...
+```
+
 For a material product or architecture WP, the Reviewer gate also requires:
 
 ```text
@@ -318,6 +376,10 @@ Git and verifies that the last audited code head remains an ancestor.
 If the active snapshot, live Git, and live GitHub disagree materially, return
 `ENTRY_HOLD` and reconcile the handoff before generating or executing the next
 technical Work Order.
+
+When the next governed unit or a takeover is about to begin, the
+`LATEST_WP_SPINE_SYNC_AUDIT` packet must be complete and `PASS`; a remote
+checkpoint or Micro POST alone does not establish this continuity result.
 
 ### 8.2 Builder handoff discipline
 
@@ -418,6 +480,11 @@ with `PRODUCT_FRONTIER`, `PARENT_OBJECTIVE`, `DEPENDENCIES`, `MICRO_WP_PLAN`,
 `MEMORY_PROMOTION_REQUIRED`, `LESSON_PROMOTION_REQUIRED`, `RELEASE_IMPACT`
 and `NEXT_FRONTIER`.
 
+For a triggered Micro POST or remote checkpoint handoff, include the
+`LATEST_WP_SPINE_SYNC_AUDIT` result (or record the required `HOLD`) before
+opening the next governed entry; the audit supplements, rather than replaces,
+the bounded Micro POST fields.
+
 There is one semantic meaning per active machine-readable key in `CURRENT.md`.
 Historical values use explicit namespaced keys and must not override the active
 checkpoint for a simple parser. `LAST_AUDITED_CODE_HEAD` remains distinct from
@@ -468,6 +535,10 @@ PARENT PRE → MICRO PRE → AUDITED REMOTE CHECKPOINT → MICRO POST
 During post-merge reconciliation, check applicable `KNOWN_FAILURE_MODES`,
 `FEEDBACK_LEDGER` and `LESSONS` triggers. Preserve
 `ALWAYS CHECK != ALWAYS MODIFY`.
+
+Post-merge reconciliation also runs the triggered
+`LATEST_WP_SPINE_SYNC_AUDIT` before selecting the next Parent or Micro-WP;
+live main, the merged object, `CURRENT.md`, Delta and Spine must reconcile.
 
 After `PR MERGED`, verify live `main`, reconcile `CURRENT.md`, close the
 merged Parent state, check roadmap maturity and project-memory promotion,
@@ -524,6 +595,10 @@ Default cumulative evidence includes:
 
 The final local audit reviews the complete Parent-WP delta, not merely the last
 micro-WP.
+
+The cumulative Parent gate includes a triggered
+`LATEST_WP_SPINE_SYNC_AUDIT`; unresolved continuity or role drift is an
+`ENTRY_HOLD` even when the cumulative tests pass.
 
 ## 10. Hosted-CI temporary waiver
 

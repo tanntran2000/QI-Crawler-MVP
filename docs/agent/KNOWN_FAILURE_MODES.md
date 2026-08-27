@@ -245,6 +245,29 @@ CURRENT_EVIDENCE = tests/conftest.py:11-22 monkeypatches require_current_schema 
 PERMANENT_PREVENTION = keep production lifecycle tests separate from compatibility fixtures and audit shim reachability
 ```
 
+## FM-009 — Windows hosted CI runtime amplification exceeds required-gate budget
+
+```text
+ID = FM-009
+TITLE = Windows hosted CI runtime amplification exceeds required-gate budget
+STATE = OPEN
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = CI_RELIABILITY_CORRECTION
+DETECTED_BY = PR #64 exact-head hosted CI / bounded root-cause triage
+AFFECTED_BASELINE = 269a6d19539091eab5b903e2684b66ebdf9116ae
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / CI / TEST INFRASTRUCTURE
+SYMPTOM = Windows 3.12 had a healthy hosted execution of 628 tests in about 709 seconds, while two later equivalent executions reached only 620 passed after about 1404-1425 seconds and were cancelled at the 25-minute job boundary without an assertion failure.
+ROOT_CAUSE = Verified root-cause class is material GitHub-hosted Windows runner performance variance across otherwise equivalent executions. The exact underlying host resource mechanism (CPU scheduling, disk I/O, VM contention or equivalent) is REQUIRES_VERIFICATION because available GitHub telemetry does not expose it directly. Filesystem, temporary SQLite and repeated Alembic test lifecycle work are demonstrated runtime amplifiers, not proven production defects.
+WHY_EXISTING_TESTS_MISSED_IT = Functional correctness tests detect assertion failures but do not prove a stable hosted-runner runtime envelope. The test suite can remain correct while infrastructure/runtime variance exhausts the CI job budget.
+CI_IMPLICATION = A repeated timeout or cancellation is not PASS and is not automatically a product regression. Preserve exact-run timing evidence, compare healthy and degraded executions, perform bounded attribution, and only then alter a runtime budget. Hosted CI waiver is not justified while hosted CI itself is functioning.
+FIX = Raise only the Windows 3.12 hard job ceiling from 25 to 35 minutes after root-cause-class investigation; retain full regression and runtime attribution unchanged.
+FIX_HEAD = PENDING_THIS_CORRECTION
+REGRESSION_GUARD = The full Windows 3.12 required gate remains mandatory. A future execution that exceeds the 35-minute ceiling must HOLD and reopen runtime/test-harness investigation instead of recursively increasing the timeout.
+INDEPENDENT_AUDIT = PENDING
+CURRENT_EVIDENCE = PR #64; exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; 628-test local exact-head PASS in 267.39s; healthy hosted Windows 628 PASS in approximately 709s; two hosted executions reached 620 PASS in approximately 1404-1425s before cancellation; no assertion failure; Ruff, Ubuntu 3.12 and Ubuntu 3.11 passed; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally.
+PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

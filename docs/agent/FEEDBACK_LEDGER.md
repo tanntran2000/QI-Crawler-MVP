@@ -438,3 +438,54 @@ Response: Captured for the separately authorized Planner Continuity Work Package
 Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_PLANNER_CONTINUITY_01
 Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0017 — Planner Review Orchestration & Role Continuity
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-PLANNER-CONTINUITY-01
+Type: GOVERNANCE / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Planner analyzes Builder output before constructing a WP-specific,
+  risk-oriented Reviewer challenge; after review, Planner directly reconciles
+  Master Roadmap, Delta, Context Spine, live state and Human intent before
+  sending its own strategic conclusion to Human.
+Required contract: Explicit role contracts, ROLE_ENTRY_GATE,
+  LATEST_WP_SPINE_SYNC_AUDIT and PLANNER_POST_REVIEW_DECISION are mandatory
+  for future agents and takeovers.
+Impact: Preserves Human intent, Reviewer independence and evidence-backed
+  strategic continuity across the three-pole development model.
+Evidence: Human A0 decision captured in Planner Continuity M0.
+Scope change required: NO
+Response: Captured for the approved Planner Continuity implementation WPs;
+  no role contract or LAW 15 implementation is made in M0.
+Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_PLANNER_CONTINUITY_01
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
+```
+
+### FB-0018 — Builder Implementation Integrity & Evidence Discipline
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-BUILDER-INTEGRITY-01 / FUTURE
+Type: GOVERNANCE / PROCESS
+Authority: A0 HUMAN_DECISION
+Observation: Future Builder Integrity governance must defend authoritative
+  layers, preserve TDD RED/GREEN traceability, require realistic tests and
+  Builder preflight, enforce claim discipline, avoid mocks proving the thing
+  under test, distinguish local PASS from CI PASS, and distinguish Builder
+  done from Reviewer PASS.
+Impact: Prevents evidence overclaiming and implementation drift without
+  changing the current Planner Continuity scope.
+Evidence: Previously approved Human A0 Builder Integrity direction, captured
+  during Planner Continuity M0.
+Scope change required: NO
+Response: Staged as a future governance Delta only; no Builder Integrity
+  implementation is authorized in this Parent.
+Disposition: ACCEPTED / QUEUED_FOR_WP_GOV_BUILDER_INTEGRITY_01
+Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
+```

@@ -29,3 +29,8 @@ fixes.
 10. **Material knowledge must leave chat at acceptance.** Route accepted or
     verified durable knowledge to its correct Context Spine authority at the
     same governed transition; do not copy it indiscriminately to every file.
+11. **A timeout boundary is not root cause.** Compare working and slow runs
+    and attribute runtime before changing a budget. When external variance is
+    demonstrated, choose one evidence-based bounded ceiling; a later breach
+    requires renewed investigation rather than recursive timeout increases.
+    Preserve the failure evidence for future CI and test-architecture work.
