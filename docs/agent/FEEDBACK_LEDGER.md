@@ -523,9 +523,10 @@ Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
   profiles in later bounded micro-WPs with explicit entry, scope and evidence
   contracts.
 Scope change required: NO
-Response: Implemented in the M1 governance candidate as canonical Builder and
-  Reviewer prompt-profile contracts; independent audit remains pending.
-Disposition: IMPLEMENTED_IN_CANDIDATE / PENDING_INDEPENDENT_AUDIT
+Response: Implemented and corrected in the M1 governance candidate as canonical
+  Builder and Reviewer prompt-profile contracts; independent re-audit remains
+  pending.
+Disposition: IMPLEMENTED_IN_CORRECTED_CANDIDATE / PENDING_REAUDIT
 Promoted to: NONE_YET; promotion follows independent audit and governed review
 ```
 
@@ -562,9 +563,39 @@ Impact: Reduce Human/Planner/Builder round-trip latency while preserving
   technical stability and proof-gated delivery.
 Evidence: Human A0 governance direction captured in M0-C2 after the original
   M0 commit.
-Response: Implemented in the M1 governance candidate as a large bounded batch
-  and Approval Lease contract with internal stage safety; independent audit
-  remains pending.
-Disposition: IMPLEMENTED_IN_CANDIDATE / PENDING_INDEPENDENT_AUDIT
+Response: Implemented and corrected in the M1 governance candidate as a large
+  bounded batch and Approval Lease contract with internal stage safety;
+  independent re-audit remains pending.
+Disposition: IMPLEMENTED_IN_CORRECTED_CANDIDATE / PENDING_REAUDIT
 Promoted to: NONE_YET; promotion follows independent audit and governed review
+```
+
+### FB-0021 — CURRENT Write Authority & Transition Ownership
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M1 correction
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: CURRENT.md is an active handoff and transition authority, not a
+  command/test/edit diary. It is conditionally writable by the active
+  BUILDER_SINGLE_WRITER only when CURRENT is in approved WRITE_SCOPE, a
+  governed transition trigger exists, and each fact has evidence and authority
+  provenance. The Builder may record observable facts and already-resolved
+  Reviewer, Planner or Human decisions from exact evidence, but may not
+  originate those decisions. RECORD_AUTHORITY != ORIGINATE_AUTHORITY.
+Impact: Preserves handoff freshness, role separation, authority provenance and
+  evidence-backed transitions without turning a Large Batch into a diary.
+Evidence: Human A0 requirement recorded in the M1 independent audit finding
+  F-001 and this bounded forward-correction Work Order.
+Suggestion: Keep CURRENT updates at governed transition frequency and reconcile
+  authority-derived values from exact source evidence.
+Scope change required: NO
+Response: Implemented in the M1 correction candidate; independent re-audit
+  remains pending.
+Disposition: ACCEPTED / IMPLEMENTED_IN_M1_CORRECTION_CANDIDATE_PENDING_REAUDIT
+Promoted to: NONE_YET; promotion follows independent re-audit and governed
+  review
 ```

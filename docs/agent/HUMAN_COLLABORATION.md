@@ -88,11 +88,21 @@ complete prompt is not the shortest possible prompt.
 
 For Builder and Reviewer prompts, use the canonical role-specific profiles in
 `docs/agent/OPERATING_MODEL.md`. A Builder prompt must make the authorized
-scope, exclusions, acceptance/evidence contract and stop conditions explicit;
+scope, read mode, exclusions, acceptance/evidence contract and stop conditions
+explicit; every listed plugin/tool must be classified
+`REQUIRED | OPTIONAL | NOT_APPLICABLE`;
 a Reviewer prompt must challenge the resulting object and evidence without
 prescribing a verdict. A `LARGE_BOUNDED_BATCH` may group coherent stages under
 one Approval Lease, but it does not erase stage verification, semantic commit
 boundaries or independent review.
+
+`CURRENT.md` remains conditionally writable only by the active
+`BUILDER_SINGLE_WRITER` when it is in the approved scope and a governed
+transition trigger with evidence exists. The Builder may record facts and
+resolved external decisions from exact authority evidence, but may not
+originate them: `RECORD_AUTHORITY != ORIGINATE_AUTHORITY`. An Approval Lease
+does not implicitly authorize destructive actions, history rewrite, force push,
+PR/merge/release or Human/Reviewer/Planner decisions.
 
 ## 5. Context economy
 

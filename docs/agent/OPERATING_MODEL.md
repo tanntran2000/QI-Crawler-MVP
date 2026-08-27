@@ -305,6 +305,44 @@ SPINE_RESPONSIBILITY = Planner routes material Team Bid findings to Feedback,
   Ground Truth, Roadmap/Delta or another applicable authority.
 ```
 
+## CURRENT_WRITE_AUTHORITY_CONTRACT
+
+`CURRENT.md` is the active handoff and transition authority. It is
+conditionally writable by `BUILDER_SINGLE_WRITER`, not a general-purpose log.
+
+```text
+CURRENT_ROLE = ACTIVE_HANDOFF_AND_TRANSITION_AUTHORITY
+CURRENT_UPDATE_FREQUENCY = GOVERNED_STATE_TRANSITION_FREQUENCY
+CURRENT_UPDATE_FREQUENCY != COMMAND_FREQUENCY
+```
+
+The Builder may update CURRENT only when all of the following are true:
+
+1. `CURRENT.md` is inside the approved `WRITE_SCOPE`.
+2. The Builder holds the active `BUILDER_SINGLE_WRITER` lease.
+3. A governed transition, handoff, blocker or other authorized update trigger
+   exists.
+4. Every fact written has resolved evidence.
+5. Authority-derived facts have resolved authority provenance.
+
+The Builder may directly record observable execution facts such as branch,
+heads, changed files, tree state, local verification, remote checkpoint,
+hosted CI (only with actual evidence), blockers, authorized active work and
+the next authority/action. It may record already-resolved Reviewer verdicts,
+Planner reconciliations, Human decisions, audited heads, merge state or
+release state only from exact source evidence.
+
+```text
+RECORD_AUTHORITY != ORIGINATE_AUTHORITY
+```
+
+The Builder must not originate a Reviewer verdict, Planner reconciliation,
+Human A0 decision, merge/release authorization, Roadmap promotion or product
+priority. No separate approval is required when the active Work Order already
+authorizes the CURRENT transition. CURRENT must not become a command, test,
+edit or chat diary; ordinary Large-Batch stage progress does not require a
+CURRENT refresh unless a material transition, handoff or blocker occurs.
+
 ## BUILDER_WORK_ORDER_PROFILE — canonical task contract
 
 Every technical or governance Work Order supplied to a Builder uses a
@@ -321,11 +359,13 @@ HUMAN_INTENT_REFERENCE
 MISSION
 AUTHORITY
 MANDATORY_READ
+READ_MODE = FULL | DELTA | NO_RE_READ
 BASELINE_SHA
 BRANCH / WORKSPACE
 ROADMAP_AND_DELTA_CONTEXT
 ARCHITECTURE_LAYER_CONTRACT
 PLUGINS
+PLUGIN_APPLICABILITY = REQUIRED | OPTIONAL | NOT_APPLICABLE
 OBJECTIVE
 WRITE_SCOPE
 MUST_NOT_CHANGE
@@ -349,6 +389,14 @@ HANDOFF_TO = PLANNER_ARCHITECT
 The Builder may make only the changes explicitly authorized by
 `IN_SCOPE_FILES_AND_BEHAVIOR`. Missing or ambiguous fields are an entry hold,
 not an invitation to infer scope.
+
+`READ_MODE` determines the required context-reconciliation depth; `MANDATORY_READ`
+identifies the authorities/documents required under that mode. They are
+separate fields and neither may silently substitute for the other.
+
+```text
+READ_MODE != MANDATORY_READ
+```
 
 ## REVIEWER_CHALLENGE_PROFILE — independent audit contract
 
@@ -430,32 +478,67 @@ release, or future Work Package. A material risk or scope boundary pauses the
 batch for Planner/Human reapproval. There is no universal numeric micro-WP
 limit; slicing is determined by coherence, risk and independent auditability.
 
-## PLANNER_FOLLOW_THROUGH_CONTRACT
-
-After Builder completion the Planner must remain engaged through the complete
-batch lifecycle:
+An Approval Lease must never be read as implicit authorization for:
 
 ```text
-BUILDER_RESULT
+SCOPE_EXPANSION
+MATERIAL_ARCHITECTURE_EXPANSION
+DESTRUCTIVE_OPERATION / DATA_DESTRUCTION
+AUDITED_HISTORY_REWRITE / AMEND_AUDITED_COMMIT / REBASE_AUDITED_HISTORY
+FORCE_PUSH / UNAUTHORIZED_REMOTE_PUSH
+PR_CREATION / PR_STATE_CHANGE
+MERGE / RELEASE
+HUMAN_BUSINESS_DECISION / HUMAN_A0_OVERRIDE
+REVIEWER_VERDICT_CREATION / PLANNER_RECONCILIATION_CREATION
+```
+
+Each listed action requires its own governed authority.
+
+## PLANNER_FOLLOW_THROUGH_CONTRACT
+
+The Planner owns follow-through through the complete governed lifecycle:
+
+```text
+PLANNED
+→ AUTHORIZED
+→ BUILDER_RUNNING
+→ BUILDER_RETURNED
 → PLANNER_BUILDER_RESULT_REVIEW
-→ REVIEWER_CHALLENGE_PROFILE
-→ INDEPENDENT_REVIEW
+→ REVIEWER_ASSIGNED
+→ REVIEWER_RETURNED
 → PLANNER_POST_REVIEW_RECONCILIATION
-→ SPINE / DELTA PROMOTION CHECK
-→ HUMAN DECISION when required
-→ EXACTLY_ONE_NEXT_ACTION
+→ INTEGRATION_OR_HUMAN_DECISION
+→ POST_STATE_VERIFIED
+→ CLOSED
 ```
 
 The Planner records `WHAT_THE_WP_ACTUALLY_ACHIEVED`,
 `WHAT_IT_DID_NOT_ACHIEVE`, remaining risks, Human-intent preservation,
-promotion status and next authority. `REVIEWER_VERDICT !=
-PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION`; a PASS is never itself merge
-or release permission.
+promotion status and next authority. The lifecycle invariants are:
+
+```text
+WORK_ORDER_ISSUED != DONE
+AUTHORIZED != BUILDER_COMPLETE
+BUILDER_RETURNED != REVIEWED
+REVIEWER_PASS != MERGE_AUTHORIZATION
+MERGE_PERFORMED != POST_STATE_VERIFIED
+POST_STATE_VERIFIED != RELEASE_AUTHORIZATION
+```
+
+`CLOSED` requires terminal evidence for the governed unit. The Planner does
+not write Builder implementation, perform the independent audit, or replace
+Human authority. `REVIEWER_VERDICT != PLANNER_RECONCILIATION !=
+HUMAN_AUTHORIZATION`; a PASS is never itself merge or release permission.
 
 ## PLUGIN_EXECUTION_EVIDENCE_CONTRACT
 
-For each applicable CodeGraph or Superpowers invocation, machine/human
-evidence records:
+For each plugin listed by a technical Work Order, the Planner first records:
+
+```text
+PLUGIN_APPLICABILITY = REQUIRED | OPTIONAL | NOT_APPLICABLE
+```
+
+For each applicable invocation, machine/human evidence records:
 
 ```text
 PLUGIN
@@ -469,7 +552,13 @@ TEST_RADIUS
 LIMITATIONS
 ```
 
-Allowed classifications are `USED_AND_SUCCEEDED`, `USED_WITH_FALLBACK`,
+`REQUIRED` needs invocation evidence; `OPTIONAL` permits non-use but never a
+false use claim; `NOT_APPLICABLE` must not manufacture execution evidence.
+`PLUGIN_AVAILABLE != PLUGIN_REQUIRED`, `PLUGIN_INSTALLED != PLUGIN_USED`, and
+`PLUGIN_USED_WITHOUT_EVIDENCE = USAGE_NOT_PROVEN`. When CodeGraph is required,
+the Work Order resolves purpose, seed symbols/files/queries, expected impact,
+edit and test radii, and a fallback if unavailable. Allowed result
+classifications are `USED_AND_SUCCEEDED`, `USED_WITH_FALLBACK`,
 `TOOL_UNAVAILABLE` and `NOT_APPLICABLE`. CodeGraph answers impact questions;
 Superpowers govern execution discipline. Neither changes Work Order authority.
 
@@ -478,14 +567,26 @@ Superpowers govern execution discipline. Neither changes Work Order authority.
 A terminal handoff may record its own completion only within a narrow,
 non-recursive sync:
 
-1. write only the authorized handoff/Spine files;
-2. preserve the already-audited code/document heads and distinguish them from
-   the new handoff commit;
-3. record verified evidence, not a predicted future SHA or volatile CI/PR
-   state;
-4. record exactly one next action and its authority;
-5. verify active-key uniqueness, scope, diff and clean-tree state; and
-6. stop after that handoff rather than starting or authorizing another WP.
+1. Live Git/GitHub is the volatile merge-state authority.
+2. Material merge state must be reconciled before subsequent governed technical
+   execution receives authority.
+3. A docs-only PR whose purpose is reconciling the immediately preceding merge
+   does not require another standalone docs PR solely to record its own merge.
+4. The terminal-sync PR's own merge SHA/PR identity may temporarily remain
+   represented only by live Git/GitHub.
+5. At the next governed Parent/WP/technical-entry transition, CURRENT must
+   reconcile that terminal-sync PR before new Builder authority.
+6. The exception applies only to that terminal-sync PR's own volatile
+   integration identity.
+7. It does not permit stale ACTIVE_PARENT, ACTIVE_MICRO, WRITER, SCOPE,
+   AUTHORITY, COMPLETION, NEXT_ACTION or BLOCKER state.
+8. Any materially wrong active state is `HANDOFF_STALE → ENTRY_HOLD`.
+9. The exception cannot hide a material merge conflict, failed CI, failed audit
+   or Human-decision boundary.
+
+The sync still writes only authorized handoff/Spine files, preserves audited
+heads, records one next action and verifies key uniqueness, scope, diff and
+tree. It stops rather than starting or authorizing another WP.
 
 Missing evidence, baseline drift, material contradiction or required scope
 expansion is `HOLD` and routes to the Planner/Human authority. A terminal sync
