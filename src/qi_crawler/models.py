@@ -174,6 +174,82 @@ class Document(Base):
     )
 
 
+class TenderCaseRecord(Base):
+    """Persistence record for the domain-first TenderCase aggregate."""
+
+    __tablename__ = "tender_cases"
+    __table_args__ = (UniqueConstraint("case_key", name="uq_tender_case_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_key: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    plan_id_raw: Mapped[str | None] = mapped_column(String(255))
+    plan_base_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    plan_revision: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), default="PROVISIONAL", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    releases: Mapped[list[TenderReleaseRecord]] = relationship(
+        back_populates="case", cascade="all, delete-orphan"
+    )
+
+
+class TenderReleaseRecord(Base):
+    """One exact IB publication revision; revisions never overwrite each other."""
+
+    __tablename__ = "tender_releases"
+    __table_args__ = (
+        UniqueConstraint(
+            "case_id", "base_id", "revision", name="uq_tender_release_exact"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_cases.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    notice_id: Mapped[int | None] = mapped_column(
+        ForeignKey("notices.id", ondelete="SET NULL"), index=True
+    )
+    raw_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    base_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    revision: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    case: Mapped[TenderCaseRecord] = relationship(back_populates="releases")
+    memberships: Mapped[list[TenderDocumentMembershipRecord]] = relationship(
+        back_populates="release", cascade="all, delete-orphan"
+    )
+
+
+class TenderDocumentMembershipRecord(Base):
+    """Explicit document membership, independent from Document content identity."""
+
+    __tablename__ = "tender_document_memberships"
+    __table_args__ = (
+        UniqueConstraint(
+            "release_id", "document_id", "authority_class",
+            name="uq_tender_document_membership",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    release_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_releases.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    authority_class: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    release: Mapped[TenderReleaseRecord] = relationship(back_populates="memberships")
+    document: Mapped[Document] = relationship()
+
+
 class DocumentExtraction(Base):
     """One native extraction run over one immutable stored document."""
 
