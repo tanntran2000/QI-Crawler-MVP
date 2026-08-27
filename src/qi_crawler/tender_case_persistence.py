@@ -178,3 +178,10 @@ class TenderCasePersistence:
             if record is None:
                 raise TenderReleaseError("release not found")
             return record
+
+    def membership_record(self, membership_id: int) -> TenderDocumentMembershipRecord:
+        with self.database.session() as session:
+            record = session.get(TenderDocumentMembershipRecord, membership_id)
+            if record is None:
+                raise TenderCaseError("membership not found")
+            return record
