@@ -523,10 +523,10 @@ Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
   profiles in later bounded micro-WPs with explicit entry, scope and evidence
   contracts.
 Scope change required: NO
-Response: Captured as active M0 material feedback; no prompt-profile,
-  follow-through or terminal-sync implementation is included in M0.
-Disposition: ACCEPTED / ACTIVE_PARENT
-Promoted to: NONE_YET; M1/M2 implementation pending
+Response: Implemented in the M1 governance candidate as canonical Builder and
+  Reviewer prompt-profile contracts; independent audit remains pending.
+Disposition: IMPLEMENTED_IN_CANDIDATE / PENDING_INDEPENDENT_AUDIT
+Promoted to: NONE_YET; promotion follows independent audit and governed review
 ```
 
 ### FB-0020 — Large Bounded Batch Execution & Review
@@ -562,10 +562,9 @@ Impact: Reduce Human/Planner/Builder round-trip latency while preserving
   technical stability and proof-gated delivery.
 Evidence: Human A0 governance direction captured in M0-C2 after the original
   M0 commit.
-Response: Captured as design authority for the remaining governance
-  implementation batch. No execution-model governance rule is implemented by
-  M0-C2 itself.
-Disposition: ACCEPTED / ACTIVE_PARENT
-Promoted to: NONE_YET; implementation pending in governance implementation
-  batch.
+Response: Implemented in the M1 governance candidate as a large bounded batch
+  and Approval Lease contract with internal stage safety; independent audit
+  remains pending.
+Disposition: IMPLEMENTED_IN_CANDIDATE / PENDING_INDEPENDENT_AUDIT
+Promoted to: NONE_YET; promotion follows independent audit and governed review
 ```
