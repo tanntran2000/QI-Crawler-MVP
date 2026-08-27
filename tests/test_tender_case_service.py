@@ -10,6 +10,7 @@ from qi_crawler.db import Database
 from qi_crawler.market_intelligence.opportunity_contract import OpportunityIdentity
 from qi_crawler.tender_case import AuthorityClass, PlanContext, TenderRelease
 from qi_crawler.tender_case_service import (
+    ManagedDocumentMissing,
     ManagedDocumentShaMismatch,
     TenderCaseService,
     TenderCaseServiceError,
@@ -204,3 +205,42 @@ def test_missing_membership_or_managed_file_fails_closed(
 ) -> None:
     with pytest.raises(TenderCaseServiceError, match="membership"):
         service.retrieve_managed_original(999, tmp_path / "missing.pdf")
+
+
+def test_restart_and_external_source_deletion_preserve_managed_retrieval(
+    service: TenderCaseService, tmp_path: Path
+) -> None:
+    service.create_case("case-1")
+    release = service.add_release("case-1", "IB2600000009-00")
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"managed bytes survive source deletion")
+    membership = service.add_document(
+        "case-1", release.release_id, source,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="explicit source evidence",
+    )
+    managed = service.managed_path(membership.document_id)
+    source.unlink()
+
+    reopened = TenderCaseService(service.database, tmp_path / "managed")
+    destination = tmp_path / "reopened.pdf"
+    reopened.retrieve_managed_original(membership.id, destination)
+    assert destination.read_bytes() == b"managed bytes survive source deletion"
+    assert managed.read_bytes() == b"managed bytes survive source deletion"
+
+
+def test_missing_managed_object_fails_closed(
+    service: TenderCaseService, tmp_path: Path
+) -> None:
+    service.create_case("case-1")
+    release = service.add_release("case-1", "IB2600000010-00")
+    source = tmp_path / "missing.pdf"
+    source.write_bytes(b"will be removed")
+    membership = service.add_document(
+        "case-1", release.release_id, source,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="explicit source evidence",
+    )
+    service.managed_path(membership.document_id).unlink()
+    with pytest.raises(ManagedDocumentMissing, match="missing"):
+        service.retrieve_managed_original(membership.id, tmp_path / "result.pdf")
