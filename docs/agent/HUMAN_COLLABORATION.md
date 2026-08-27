@@ -86,6 +86,14 @@ superseded history, unrelated roadmap items, resolved defects, stale test
 counts, or information that the repository can reliably provide. The shortest
 complete prompt is not the shortest possible prompt.
 
+For Builder and Reviewer prompts, use the canonical role-specific profiles in
+`docs/agent/OPERATING_MODEL.md`. A Builder prompt must make the authorized
+scope, exclusions, acceptance/evidence contract and stop conditions explicit;
+a Reviewer prompt must challenge the resulting object and evidence without
+prescribing a verdict. A `LARGE_BOUNDED_BATCH` may group coherent stages under
+one Approval Lease, but it does not erase stage verification, semantic commit
+boundaries or independent review.
+
 ## 5. Context economy
 
 Prefer targeted read, then delta read, then repository reference over repeated
@@ -263,7 +271,7 @@ authority remain the source of truth.
 The detailed operating procedure is
 `docs/agent/LOCAL_STAGED_INTEGRATION.md`.
 
-For each implementation micro-WP, the Single Writer must stop after local
+For a normal implementation micro-WP, the Single Writer must stop after local
 verification and local commit with a `REVIEWER_HANDOFF_CHECKPOINT` and the
 explicit next state:
 
@@ -285,6 +293,14 @@ the relevant traceback/error excerpt needed for diagnosis.
 The independent Reviewer returns `LOCAL_AUDIT_PASS`, `LOCAL_AUDIT_HOLD`, or
 `LOCAL_AUDIT_FAIL`. The Single Writer must not proceed to the next micro-WP on
 HOLD/FAIL.
+
+When the Planner has approved a `LARGE_BOUNDED_BATCH`, the same checkpoint
+discipline applies at the batch boundary rather than after every safe internal
+stage. Internal stages still require explicit entry/exit criteria, targeted
+verification and semantic local commits. A material architecture, data-safety,
+authority or scope boundary remains an immediate stop and requires Planner or
+Human reapproval; the larger batch never creates implicit permission for the
+next Work Package.
 
 Every Reviewer handoff also reports:
 

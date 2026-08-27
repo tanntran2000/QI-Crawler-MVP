@@ -61,10 +61,13 @@ The Human approval is an Approval Lease for the bounded Parent WP. Re-approval
 is required when scope, baseline, writer, authority, or a material blocker
 changes.
 
-## 4. Micro-WP sizing and Parent-WP split review
+## 4. Work-package sizing and Parent-WP split review
 
-Target **4–6 independently auditable micro-WPs** per Parent WP. This is a
-heuristic, not a hard numeric law.
+Choose micro-WP or `LARGE_BOUNDED_BATCH` boundaries by capability coherence,
+risk, architecture/data boundaries and independent auditability. A larger
+batch is valid only when its objective, exclusions, internal stages, semantic
+commits, stage verification and final stop condition are explicit. There is no
+universal numeric micro-WP target.
 
 Trigger:
 
@@ -72,11 +75,9 @@ Trigger:
 SPLIT_REVIEW_REQUIRED
 ```
 
-when either:
-
-- the Parent WP exceeds six meaningful slices; or
-- it crosses multiple major architectural or migration boundaries such that
-  cumulative integration risk is no longer bounded.
+when cumulative integration risk is no longer bounded, or when the work crosses
+multiple major architectural or migration boundaries that require separate
+authority, data-safety or audit treatment.
 
 The Reviewer returns one of:
 
@@ -86,6 +87,29 @@ SPLIT_PARENT_WP
 ```
 
 with the architectural reason.
+
+### 4.1 Large bounded batch and Approval Lease
+
+`LARGE_BOUNDED_BATCH` is a coherent set of internal stages under one approved
+Work Order, not a bypass around review. Before approval, the Planner records:
+
+```text
+BATCH_OBJECTIVE
+BATCH_SCOPE / BATCH_EXCLUSIONS
+INTERNAL_STAGES
+STAGE_ENTRY / STAGE_OUTPUT / STAGE_VERIFICATION / STAGE_STOP
+SEMANTIC_LOCAL_COMMITS
+FINAL_CUMULATIVE_VERIFICATION
+MATERIAL_BOUNDARY_ESCALATION
+```
+
+The Human `APPROVAL_LEASE` covers that bounded batch, including safe in-scope
+commands, git add, semantic local commits and ordinary stage transitions. It
+does not authorize another file family, writer, architecture/data boundary,
+future Work Package, merge or release. A material blocker or boundary pauses
+execution for Planner/Human reapproval. The Builder reports stage evidence as
+it works, but the independent Reviewer audits the complete coherent batch at
+its governed handoff.
 
 ## 5. Commit freeze and forward correction
 
@@ -511,6 +535,24 @@ POST-WP → answer relevance, satisfaction/partiality/invalidation, new Delta
 `MASTER_ROADMAP_DELTA.md` stages unresolved evolution and does not silently
 override `MASTER_ROADMAP.md`; material conflict is `ROADMAP_CONFLICT = YES`
 and routes to Planner/Human authority with `ENTRY_HOLD`.
+
+### 8.3.1 Self-referential terminal sync
+
+When a terminal handoff records the completion of the transition that writes
+it, apply this narrow, non-recursive rule:
+
+1. edit only the authorized handoff/Spine files;
+2. preserve the already-audited code/document heads and distinguish them from
+   the new handoff commit;
+3. record verified evidence, not a predicted future SHA or volatile PR/CI
+   state;
+4. record exactly one next action and its authority;
+5. verify active-key uniqueness, scope, diff and clean-tree state; and
+6. stop after that handoff instead of starting or authorizing another WP.
+
+Missing evidence, baseline drift, material contradiction or scope expansion is
+`HOLD` for Planner/Human review. A terminal sync cannot recurse into
+implementation.
 
 Concrete source findings must be reconciled against Git objects when available;
 an audit report is evidence, not source-object authority. When a generic

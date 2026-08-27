@@ -305,6 +305,192 @@ SPINE_RESPONSIBILITY = Planner routes material Team Bid findings to Feedback,
   Ground Truth, Roadmap/Delta or another applicable authority.
 ```
 
+## BUILDER_WORK_ORDER_PROFILE — canonical task contract
+
+Every technical or governance Work Order supplied to a Builder uses a
+role-specific profile rather than an ad hoc prompt. The Planner resolves these
+fields before approval:
+
+```text
+BUILDER_WORK_ORDER_PROFILE
+==========================
+PARENT_WP
+EXECUTION_BATCH / MICRO_WP
+ROLE = BUILDER_SINGLE_WRITER
+HUMAN_INTENT_REFERENCE
+MISSION
+AUTHORITY
+MANDATORY_READ
+BASELINE_SHA
+BRANCH / WORKSPACE
+ROADMAP_AND_DELTA_CONTEXT
+ARCHITECTURE_LAYER_CONTRACT
+PLUGINS
+OBJECTIVE
+WRITE_SCOPE
+MUST_NOT_CHANGE
+ARCHITECTURE_AND_DATA_SAFETY_INVARIANTS
+INVARIANTS
+APPROVAL_LEASE
+INTERNAL_STAGES when applicable
+ACCEPTANCE_CRITERIA
+CI_FITNESS_CONTRACT
+REQUIRED_VERIFICATION
+EVIDENCE_OUTPUT
+STOP_CONDITIONS
+LOCAL_COMMIT_AUTHORIZATION = YES / NO
+REMOTE_CHECKPOINT_PUSH = YES / NO
+PR_AUTHORIZATION = YES / NO
+MERGE_AUTHORIZATION = HUMAN_ONLY unless explicitly governed
+SPINE_IMPACT / SPINE_TARGET_FILES / SPINE_SYNC_STATE
+HANDOFF_TO = PLANNER_ARCHITECT
+```
+
+The Builder may make only the changes explicitly authorized by
+`IN_SCOPE_FILES_AND_BEHAVIOR`. Missing or ambiguous fields are an entry hold,
+not an invitation to infer scope.
+
+## REVIEWER_CHALLENGE_PROFILE — independent audit contract
+
+The Planner creates this profile after the Builder result is available. It
+must challenge the actual object and evidence without prescribing a verdict:
+
+```text
+REVIEWER_CHALLENGE_PROFILE
+==========================
+ROLE = REVIEWER_AUDITOR
+WORK_ORDER_REFERENCE
+PARENT_WP / MICRO_WP_OR_BATCH
+AUDIT_BASE
+AUDIT_HEAD
+AUDIT_OBJECT
+BUILDER_PACKET_REFERENCE
+HUMAN_INTENT_TO_PROTECT
+WORK_ORDER_CLAIMS_TO_CHALLENGE
+BUILDER_CLAIMS_TO_CHALLENGE
+SCOPE_RISKS
+ARCHITECTURE_RISKS
+CRITICAL_INVARIANTS
+DOMAIN_INVARIANTS
+KNOWN_FAILURES_RELEVANT
+ARCHITECTURE_BOUNDARIES
+IMPLEMENTATION_LOGIC
+TEST_FITNESS
+COMPATIBILITY
+FAILURE / RECOVERY PATHS when applicable
+DATA_SAFETY when applicable
+FALSE_SAFE_AND_COMPATIBILITY_RISKS
+DATA_SAFETY_AND_RECOVERY_RISKS
+PLUGIN_EVIDENCE
+CI_FITNESS
+ROADMAP / DELTA FIT when applicable
+RELEVANT_DELTA_IDS / MASTER_ROADMAP_NODE
+SPINE_FILES_RELEVANT
+SPINE_FRESHNESS
+INDEPENDENT_CHECKS
+REQUIRED_EVIDENCE_AND_COMMANDS
+EVIDENCE_THAT_WOULD_DISPROVE_PASS
+OUT_OF_SCOPE_OBSERVATIONS
+FINDING_SEVERITY
+VERDICT = PASS / HOLD / FAIL
+MUST_NOT
+NEXT_AUTHORITY
+EXPECTED_OUTPUT = INDEPENDENT_REVIEW_PACKET
+```
+
+The Reviewer directly inspects the exact Git range, tests and supplied
+evidence when available, and reports `PASS`, `HOLD` or `FAIL`. It never edits
+the reviewed implementation, silently promotes candidate state, or acts as
+the Planner or Human authority.
+
+## LARGE_BOUNDED_BATCH and APPROVAL_LEASE_CONTRACT
+
+`LARGE_BOUNDED_BATCH` groups coherent internal stages under one approved
+objective. It is allowed only when the Planner can name the capability,
+architecture/data boundaries, expected files, acceptance contract, cumulative
+risk and final stop condition. Each batch retains the following internal
+discipline:
+
+```text
+BATCH_OBJECTIVE
+BATCH_SCOPE / BATCH_EXCLUSIONS
+INTERNAL_STAGES = <ordered bounded stages>
+STAGE_ENTRY / STAGE_OUTPUT / STAGE_VERIFICATION / STAGE_STOP
+SEMANTIC_LOCAL_COMMITS = <purpose per commit>
+FINAL_CUMULATIVE_VERIFICATION
+MATERIAL_BOUNDARY_ESCALATION
+STAGE_ID / STAGE_OBJECTIVE / FILES_CHANGED
+INVARIANTS_CHECKED / TARGETED_VERIFICATION / RESULT / COMMIT_SHA
+```
+
+The Approval Lease authorizes the bounded batch, its safe in-scope commands,
+git add, semantic local commits and ordinary stage transitions. It does not
+authorize a new file family, architecture/data boundary, writer, merge,
+release, or future Work Package. A material risk or scope boundary pauses the
+batch for Planner/Human reapproval. There is no universal numeric micro-WP
+limit; slicing is determined by coherence, risk and independent auditability.
+
+## PLANNER_FOLLOW_THROUGH_CONTRACT
+
+After Builder completion the Planner must remain engaged through the complete
+batch lifecycle:
+
+```text
+BUILDER_RESULT
+→ PLANNER_BUILDER_RESULT_REVIEW
+→ REVIEWER_CHALLENGE_PROFILE
+→ INDEPENDENT_REVIEW
+→ PLANNER_POST_REVIEW_RECONCILIATION
+→ SPINE / DELTA PROMOTION CHECK
+→ HUMAN DECISION when required
+→ EXACTLY_ONE_NEXT_ACTION
+```
+
+The Planner records `WHAT_THE_WP_ACTUALLY_ACHIEVED`,
+`WHAT_IT_DID_NOT_ACHIEVE`, remaining risks, Human-intent preservation,
+promotion status and next authority. `REVIEWER_VERDICT !=
+PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION`; a PASS is never itself merge
+or release permission.
+
+## PLUGIN_EXECUTION_EVIDENCE_CONTRACT
+
+For each applicable CodeGraph or Superpowers invocation, machine/human
+evidence records:
+
+```text
+PLUGIN
+PURPOSE
+INVOCATION
+RESULT
+FALLBACK
+IMPACT_RADIUS
+EDIT_RADIUS
+TEST_RADIUS
+LIMITATIONS
+```
+
+Allowed classifications are `USED_AND_SUCCEEDED`, `USED_WITH_FALLBACK`,
+`TOOL_UNAVAILABLE` and `NOT_APPLICABLE`. CodeGraph answers impact questions;
+Superpowers govern execution discipline. Neither changes Work Order authority.
+
+## SELF_REFERENTIAL_TERMINAL_SYNC_RULE
+
+A terminal handoff may record its own completion only within a narrow,
+non-recursive sync:
+
+1. write only the authorized handoff/Spine files;
+2. preserve the already-audited code/document heads and distinguish them from
+   the new handoff commit;
+3. record verified evidence, not a predicted future SHA or volatile CI/PR
+   state;
+4. record exactly one next action and its authority;
+5. verify active-key uniqueness, scope, diff and clean-tree state; and
+6. stop after that handoff rather than starting or authorizing another WP.
+
+Missing evidence, baseline drift, material contradiction or required scope
+expansion is `HOLD` and routes to the Planner/Human authority. A terminal sync
+does not recurse into implementation.
+
 ## Planner orchestration contracts
 
 `PLANNER_BUILDER_RESULT_REVIEW` is the Planner's pre-review orchestration and
@@ -433,6 +619,12 @@ verified repository/GitHub evidence.
 
    A PRE/POST checkpoint is required for every Work Package, but ordinary
    checks do not require rewriting every document or creating a history file.
+
+   For a `LARGE_BOUNDED_BATCH`, repeat `STAGE_ENTRY → STAGE_OUTPUT →
+   STAGE_VERIFICATION → semantic local commit` for each approved internal
+   stage, then perform one final cumulative verification and one coherent
+   Reviewer handoff. A material boundary interrupts this sequence for
+   Planner/Human review.
 
 Before advancing a handoff, the Builder reports material findings and
 `SPINE_IMPACT` but does not silently change an out-of-scope authority. The
@@ -586,10 +778,13 @@ A remote feature-branch checkpoint is backup/provenance, not CI evidence.
 Audited commits are preserved by default; later corrections use explicit
 forward-correction commits instead of silently rewriting accepted history.
 
-Target 4–6 independently auditable micro-WPs per Parent WP. If the work grows
-beyond six meaningful slices or crosses multiple major architectural/migration
-boundaries, trigger `SPLIT_REVIEW_REQUIRED` and decide `CONTINUE_PARENT` or
-`SPLIT_PARENT_WP` before expanding further.
+Slice Parent work by coherence, capability risk, architectural/data
+boundaries and independent auditability. A larger bounded batch is acceptable
+when its internal stages, semantic commits, evidence and final stop condition
+remain explicit. Trigger `SPLIT_REVIEW_REQUIRED` when cumulative risk is no
+longer bounded or a new major boundary appears, then decide `CONTINUE_PARENT`
+or `SPLIT_PARENT_WP` before expanding further. No universal numeric micro-WP
+target authorizes continued execution by itself.
 
 ## Temporary hosted-CI unavailability
 
