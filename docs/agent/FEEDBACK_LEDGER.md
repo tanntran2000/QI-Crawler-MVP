@@ -528,3 +528,44 @@ Response: Captured as active M0 material feedback; no prompt-profile,
 Disposition: ACCEPTED / ACTIVE_PARENT
 Promoted to: NONE_YET; M1/M2 implementation pending
 ```
+
+### FB-0020 — Large Bounded Batch Execution & Review
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
+Type: GOVERNANCE / PROCESS / HANDOFF
+Authority: A0 HUMAN_DECISION
+Observation: Builder and Reviewer should receive larger coherent workloads so
+  project execution does not stall on trivial command/commit boundaries.
+  Larger Work Packages must remain bounded and auditable. Builder should
+  receive an approval lease covering the authorized batch, rather than
+  requiring reapproval for each safe in-scope command, git add, local commit,
+  targeted test, or normal stage transition. A large Builder batch should
+  retain internal stages, targeted verification, semantic local commits,
+  final batch verification and explicit stop conditions. Increasing Builder
+  workload must not weaken architecture invariants, data safety, test
+  discipline, evidence quality, scope boundaries, or Human authority.
+  Reviewer workload should also be larger: audit the coherent batch rather
+  than every trivial micro-change. Reviewer must compensate for the larger
+  audit object with a stronger risk-oriented challenge covering architecture,
+  invariants, implementation logic, test fitness, compatibility,
+  recovery/data safety, claim accuracy and applicable organizational-memory
+  freshness. Independent Reviewer separation remains mandatory. Material risk
+  boundaries may still require an intermediate stop/checkpoint.
+  Final principle: BIGGER WORK PACKAGE + SMALL SEMANTIC COMMITS + STAGE
+  SELF-VERIFICATION + STRONG INDEPENDENT REVIEW + STOP ON MATERIAL RISK =
+  FASTER EXECUTION WITHOUT LOWERING GOVERNANCE QUALITY.
+Impact: Reduce Human/Planner/Builder round-trip latency while preserving
+  technical stability and proof-gated delivery.
+Evidence: Human A0 governance direction captured in M0-C2 after the original
+  M0 commit.
+Response: Captured as design authority for the remaining governance
+  implementation batch. No execution-model governance rule is implemented by
+  M0-C2 itself.
+Disposition: ACCEPTED / ACTIVE_PARENT
+Promoted to: NONE_YET; implementation pending in governance implementation
+  batch.
+```
