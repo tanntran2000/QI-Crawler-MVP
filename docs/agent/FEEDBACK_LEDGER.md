@@ -503,7 +503,7 @@ Promoted to: CURRENT.md; MASTER_ROADMAP_DELTA.md
 ### FB-0019 — Role-specific Planner Prompt Profiles
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
@@ -523,17 +523,19 @@ Suggestion: Implement canonical Planner-generated Builder and Reviewer prompt
   profiles in later bounded micro-WPs with explicit entry, scope and evidence
   contracts.
 Scope change required: NO
-Response: Implemented and corrected in the M1 governance candidate as canonical
-  Builder and Reviewer prompt-profile contracts; independent re-audit passed,
-  and integration remains pending.
-Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
-Promoted to: NONE_YET; promotion follows independent audit and governed review
+Response: Implemented and corrected as canonical Builder and Reviewer
+  prompt-profile contracts; PR #67 merged the audited result to main and the
+  exact-head CI run `33057122566` passed all required jobs.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+  docs/agent/PROJECT_MEMORY.md
 ```
 
 ### FB-0020 — Large Bounded Batch Execution & Review
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M0
@@ -563,17 +565,19 @@ Impact: Reduce Human/Planner/Builder round-trip latency while preserving
   technical stability and proof-gated delivery.
 Evidence: Human A0 governance direction captured in M0-C2 after the original
   M0 commit.
-Response: Implemented and corrected in the M1 governance candidate as a large
-  bounded batch and Approval Lease contract with internal stage safety;
-  independent re-audit passed, and integration remains pending.
-Disposition: IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
-Promoted to: NONE_YET; promotion follows independent audit and governed review
+Response: Implemented and corrected as a large bounded batch and Approval
+  Lease contract with internal stage safety; PR #67 merged the audited result
+  to main and the exact-head CI run `33057122566` passed all required jobs.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+  docs/agent/PROJECT_MEMORY.md
 ```
 
 ### FB-0021 — CURRENT Write Authority & Transition Ownership
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-GOV-AGENT-PROMPT-PROFILES-01 / M1 correction
@@ -594,8 +598,9 @@ Suggestion: Keep CURRENT updates at governed transition frequency and reconcile
   authority-derived values from exact source evidence.
 Scope change required: NO
 Response: Implemented in the M1 correction candidate; independent re-audit
-  passed, and integration remains pending.
-Disposition: ACCEPTED / IMPLEMENTED_IN_INDEPENDENTLY_AUDITED_CANDIDATE_PENDING_INTEGRATION
-Promoted to: NONE_YET; promotion follows independent re-audit and governed
-  review
+  passed, PR #67 merged the result to main and the exact-head CI run
+  `33057122566` passed all required jobs.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/LOCAL_STAGED_INTEGRATION.md; docs/agent/PROJECT_MEMORY.md
 ```
