@@ -689,3 +689,27 @@ Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
   docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
   docs/agent/MEMORY_INDEX.md
 ```
+
+### FB-0025 — Defer deep-review hardening until large Warehouse OPS Parent closes
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-WH-OPS-01
+Type: PROCESS / DEFECT / EXECUTION_ORDER
+Authority: A0 HUMAN_DECISION
+Observation: Potential crawler defects from earlier deep review must not expand
+  the bounded OPS-01 Parent while its controlled operational slice is active.
+Evidence: Human-directed sequencing and the approved WP-WH-OPS-01 scope.
+Impact: Prevents speculative hardening from contaminating the large Parent's
+  evidence and boundaries.
+Suggestion: Finish the large Parent first, then revalidate and harden confirmed
+  findings against immutable raw source, notice/source identity and
+  parsed-content-hash consistency.
+Scope change required: NO
+Response: The deferral condition is now satisfied by PR #72 merge; the next
+  Planner step revalidates the findings before creating any hardening work.
+Disposition: ACCEPTED / REVALIDATE_AFTER_PARENT_CLOSE
+Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent_handoff/CURRENT.md
+```

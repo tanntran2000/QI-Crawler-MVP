@@ -336,6 +336,34 @@ branches must remain in their Work Package handoff.
 
 Do not add RD-0011 as implemented memory.
 
+## MEM-019 — Operational Tender Warehouse controls
+
+- **State:** ACTIVE
+- **Since main commit:** `fcb394a6ee0926c1a355c486a72dc001e07d0096`.
+- **Contract:** WP-WH-OPS-01 extends the Minimum Safe Warehouse with exact
+  TenderCase/revision retrieval and mutation targeting, semantic replacement
+  slots, append-only supersession/source-correction history, same-SHA
+  idempotence, a named source-correction boundary, and zone-by-authority
+  enforcement. `SOURCE_E_HSMT` cannot be replaced by generic upload; working
+  E-HSDT and final submission remain distinct.
+- **Operational controls:** Exact-release dashboards and active-only exports;
+  integrity states `NOT_CHECKED`, `VERIFIED`, `MISSING` and `MISMATCH`;
+  deterministic Windows-safe collision naming; thin GUI delegation; and
+  controlled Team Bid workspace operations across the seven logical zones.
+- **Evidence:** PR #72 feature head
+  `196a693e4765be0bcde7460a27685d031553c92d`, merge commit
+  `fcb394a6ee0926c1a355c486a72dc001e07d0096`, post-merge Python CI run
+  `33156777447` with all four required jobs passing, CodeQL run
+  `33156777544` passing, independent implementation/Spine/final remote audit
+  PASS, and Real Bài 2 `IB2500585490-00` acceptance PASS.
+- **Schema:** `0018_add_tender_workspace_transitions`.
+- **Boundary:** This promotes operational retrieval, mutation, history,
+  integrity and workspace controls only. Full package completeness,
+  Vault/recovery/archive, deep HSMT, full SOP decision intelligence,
+  autonomous Human/business authority, pilot/release approval and the entire
+  Unified Tender Warehouse remain unclaimed and require later approved work.
+- **Last verified:** `fcb394a6ee0926c1a355c486a72dc001e07d0096`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

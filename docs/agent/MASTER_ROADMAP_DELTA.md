@@ -223,7 +223,7 @@ WHY_IT_MATTERS = PL and IB are separate namespaces; one TenderCase may link
   remain distinguishable or the system can contaminate source truth and later
   analysis.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-OPS-01 / VERIFIED PARTIAL ADVANCEMENT
+RELEVANT_CURRENT_WP = WP-WH-OPS-01 / VERIFIED MERGED PARTIAL ADVANCEMENT
 TARGET_STATE = A stage-aware TenderCase / Warehouse Shelf with explicit PL→IB
   relation, `base_id` lineage, exact `(base_id, revision)` identity, retained
   revision history and a logical Team Bid workspace with seven SOP zones:
@@ -303,9 +303,13 @@ WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
   before pilot use delays operational feedback; jumping directly to HSMT risks
   analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = WP-WH-OPS-01
-WP_WH_OPS_01_STATE = INDEPENDENT_AUDIT_PASS_LOCAL
-WP_WH_OPS_01_AUDITED_CODE_HEAD = 42c09df51044f83617a991996ecc885c1eeab4d1
+RELEVANT_CURRENT_WP = WP-WH-OPS-01 / MERGED_CLOSED
+WP_WH_OPS_01_STATE = MERGED_CLOSED
+WP_WH_OPS_01_MERGED_FEATURE_HEAD = 196a693e4765be0bcde7460a27685d031553c92d
+WP_WH_OPS_01_MERGE_COMMIT = fcb394a6ee0926c1a355c486a72dc001e07d0096
+WP_WH_OPS_01_PR = 72
+WP_WH_OPS_01_HOSTED_CI = PASS_EXACT_HEAD
+WP_WH_OPS_01_MAIN_POST_MERGE_CI = PASS / 33156777447
 CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
 WP_OBJECTIVE = Make existing TenderCase and exact tender revisions safely searchable,
   inspectable, maintainable and exportable for normal Team Bid operations while
@@ -401,7 +405,7 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   comparison. Source authority must therefore belong to the managed copy after
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-OPS-01 / VERIFIED MANAGED-SOURCE OPERATIONAL GUARDS
+RELEVANT_CURRENT_WP = WP-WH-OPS-01 / MERGED MANAGED-SOURCE OPERATIONAL GUARDS
 WP_WH_OPS_01_VERIFIED = managed-source use; SHA integrity projection;
   external-source deletion survival; controlled retrieval/export
 STILL_OUTSTANDING = full recovery; archive lifecycle; retention cleanup;
