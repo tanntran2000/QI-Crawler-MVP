@@ -12,8 +12,9 @@ with feature head `59bb04ad751360a7db9415982cde87f48f947994` and exact-head
 CI run `33057122566` PASS across all required jobs. M0 and the M1
 implementation correction re-audit are independently PASS; the M1 governance
 contracts are now durable on main. Warehouse Stage 0 and Batch A have passed
-independent audit; Batch B is the active bounded implementation slice. Batch B
-is not yet operationally accepted and no later Warehouse scope is authorized.
+independent audit; Batch B is the active bounded implementation slice. Real
+Golden BAI2 acceptance passed locally after the bounded D-BAI2-001 export
+correction, pending independent review; no later Warehouse scope is authorized.
 
 ## Active machine-readable checkpoint
 
@@ -26,15 +27,15 @@ PR66_LAST_MERGED_PR_HEAD = d482347baafa709043baaeb370d90e9863e52115
 PR66_LAST_MERGE_COMMIT = 6a85ae32453baaff34c8cdbfc2553f2e5665a996
 ACTIVE_PARENT_WP = WP-WH-MIN-01
 ARCHITECTURE_OPTION = B_DOMAIN_FIRST_TENDERCASE
-ACTIVE_MICRO_WP = BATCH_B_OPERATIONAL_TEAM_BID_WORKSPACE
+ACTIVE_MICRO_WP = D-BAI2-001_EXPORT_ZONE_CORRECTION
 ACTIVE_BRANCH = wh/min-safe-01-core
 ENTRY_HEAD = 74c5430f7188f29f26b88c6f20052b52aa0a3f70
-HANDOFF_CAPTURE_BASE = 71addbc4c8d2f594c2d1e320f8469e19c63f9ad4
-AUDIT_TARGET_CODE_HEAD = 71addbc4c8d2f594c2d1e320f8469e19c63f9ad4
-LIVE_GIT_HEAD = 71addbc4c8d2f594c2d1e320f8469e19c63f9ad4
+HANDOFF_CAPTURE_BASE = 97d1d65cf563adf515736f8234150e53ac47bd7f
+AUDIT_TARGET_CODE_HEAD = 97d1d65cf563adf515736f8234150e53ac47bd7f
+LIVE_GIT_HEAD = 97d1d65cf563adf515736f8234150e53ac47bd7f
 LIVE_MAIN_HEAD = 74c5430f7188f29f26b88c6f20052b52aa0a3f70
 PLANNER_CONTINUITY_PROVEN_COMPLETE = PR #66 MERGED; POST-PR65 SPINE RECONCILIATION
-PARENT_STATE = ACTIVE_BATCH_B_IMPLEMENTATION_PENDING_REVIEW
+PARENT_STATE = ACTIVE_BATCH_B_CORRECTION_PENDING_REVIEW
 PLANNER_CONTINUITY_M1_STATE = MERGED_CLOSED_DURABLE_GOVERNANCE
 PLANNER_CONTINUITY_M2_STATE = AUDITED_REMOTE_CHECKPOINT_COMPLETE
 PLANNER_CONTINUITY_M3_STATE = AUDITED_REMOTE_CHECKPOINT_COMPLETE
@@ -154,27 +155,34 @@ TEST_CHANGE_EXPECTED = NO
 CI_WORKFLOW_CHANGE_EXPECTED = NO
 IMPLEMENTATION_LEDGER = PARKED_FUTURE
 PLANNER_CONTINUITY_LAST_COMPLETED_MICRO_WP = POST_MERGE_SPINE_SYNC
-OPEN_BLOCKERS = INDEPENDENT_BATCH_B_REVIEW_REQUIRED; HOSTED_CI_NOT_RUN
+OPEN_BLOCKERS = D_BAI2_001_INDEPENDENT_REVIEW_REQUIRED; HOSTED_CI_NOT_RUN
 SCOPE_BOUNDARIES = DOMAIN_CORE; APPLICATION_BACKEND; PERSISTENCE_INFRA; SOURCE_ADAPTERS_REUSE_ONLY; THIN_GUI_SERVICE_WIRING; NO CLI; NO API; NO AI; NO BATCH_C; NO COMPLETENESS_ENGINE; NO FULL_RECOVERY_ARCHIVE; NO DEEP_HSMT; NO RELEASE
 CURRENT_SCHEMA_REVISION = 0017_add_tender_workspace_entries
 BATCH_A_CODE_HEAD = a5335b81212320029a446cca745dc3062a6f9ccc
 BATCH_A_BUILDER_STATE = INDEPENDENT_AUDIT_PASS
 LAST_BATCH_A_AUDITED_HEAD = d8997fb866f9d0a81ccaa2d95d9ec4d979e43933
-BATCH_B_STATE = IMPLEMENTED_CANDIDATE_PENDING_INDEPENDENT_REVIEW
+BATCH_B_STATE = CORRECTION_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW
 LAST_BATCH_A_TARGETED = 98 passed
-LAST_BATCH_B_TARGETED = 134 passed
-LAST_FULL_PYTEST = 660 passed
-LAST_VERIFIED_COLLECTION = 660
+LAST_BATCH_B_TARGETED = 134 passed (pre-correction baseline)
+D_BAI2_001_TARGETED = 69 passed
+LAST_FULL_PYTEST = 661 passed
+LAST_VERIFIED_COLLECTION = 661
 RUFF = PASS
 PIP_CHECK = PASS
 DIFF_CHECK = PASS
 DELTA_GUARD = PASS
 IDEAS_PRESERVED_NOT_YET_IMPLEMENTED = RD_0009_COMPLETENESS; FULL_RECOVERY_ARCHIVE; DEEP_HSMT
-NEXT_STATE = BATCH_B_INDEPENDENT_REVIEW
-NEXT_MICRO_WP = BATCH_B_OPERATIONAL_TEAM_BID_WORKSPACE
-NEXT_AUTHORITY = INDEPENDENT_REVIEWER_AUDITOR
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT REVIEW OF WP-WH-MIN-01 BATCH B
-HANDOFF_READY = YES_FOR_INDEPENDENT_REVIEW
+CORRECTION_BASE = dff1534892b905eaafe6b26fd4d814cfdafe5f63
+D_BAI2_001_CODE_HEAD = 97d1d65cf563adf515736f8234150e53ac47bd7f
+D_BAI2_001 = RESOLVED_LOCAL_CANDIDATE
+REAL_HSMT_ACCEPTANCE = PASS_CANDIDATE_PENDING_INDEPENDENT_REVIEW
+REAL_HSMT_ASSET = BAI2 / IB2500585490-00
+REAL_HSMT_EXPORT_ZONES = 7_LOGICAL_7_PHYSICAL
+NEXT_STATE = D_BAI2_001_PLANNER_REVIEW
+NEXT_MICRO_WP = D-BAI2-001_EXPORT_ZONE_CORRECTION
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+EXACTLY_ONE_NEXT_ACTION = PLANNER REVIEW D-BAI2-001 CORRECTION
+HANDOFF_READY = YES_FOR_PLANNER_REVIEW
 M1_CI_PASS_CLAIMED = YES_FOR_PR67_EXACT_HEAD_CI_RUN_33057122566
 PLANNER_CONTINUITY_LATEST_WP_SPINE_SYNC_FULL_CONTRACT = AUDITED_REMOTE_CHECKPOINT_COMPLETE
 PLANNER_CONTINUITY_PARENT_RECONCILIATION = PASS
@@ -230,8 +238,11 @@ work package.
 
 The active product direction is the Human-approved Minimum Safe Warehouse
 Parent using Architecture Option B (domain-first TenderCase). Stage 0 and
-Batch A are independently audited; Batch B now contains the bounded operational
-Team Bid workspace implementation and is awaiting independent review.
+Batch A are independently audited; Batch B contains the bounded operational
+Team Bid workspace implementation. D-BAI2-001 is fixed locally: exports now
+materialize all seven Team Bid zone directories before copying entries. Real
+Golden BAI2 acceptance passed locally with three source documents and is
+awaiting independent review.
 `MASTER_ROADMAP_DELTA.md` remains the planning authority for
 RD-0001/RD-0003/RD-0004/RD-0007/RD-0008/RD-0009/RD-0010. The prior hosted-CI
 waiver debt remains recorded as `PENDING_RETRO_CI = YES`, so the official Team
@@ -248,10 +259,10 @@ on main. Warehouse M1 remains not started.
 
 ## Next governed action
 
-The next governed action is independent review of the locally completed Batch B
-Minimum Safe Warehouse candidate. This handoff does not claim operational
-Warehouse readiness or authorize Batch C; independent review and Planner
-acceptance remain required.
+The next governed action is Planner review of the D-BAI2-001 correction and
+its Real Golden evidence. This handoff does not claim merged or hosted-CI
+validated Warehouse readiness and does not authorize Batch C; independent
+review and Planner acceptance remain required.
 
 ## Authority
 
