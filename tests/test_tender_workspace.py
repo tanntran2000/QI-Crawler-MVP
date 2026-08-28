@@ -96,6 +96,29 @@ def test_controlled_export_is_zone_layout_with_manifest_and_no_source_mutation(
     assert source.read_bytes() == original
 
 
+def test_export_materializes_all_team_bid_zone_directories_when_only_source_populated(
+    workspace, tmp_path: Path
+) -> None:
+    release = _release(workspace)
+    source = tmp_path / "hsmt.pdf"
+    source.write_bytes(b"source only")
+    workspace.add_path_to_zone(
+        "case-1",
+        release.release_id,
+        source,
+        zone=TeamBidZone.SOURCE_E_HSMT,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="explicit source declaration",
+    )
+
+    output = tmp_path / "all-zones"
+    workspace.export("case-1", output)
+
+    assert tuple(
+        zone.value for zone in TEAM_BID_ZONES if (output / zone.value).is_dir()
+    ) == tuple(zone.value for zone in TEAM_BID_ZONES)
+
+
 def test_export_does_not_overwrite_existing_destination(workspace, tmp_path: Path) -> None:
     release = _release(workspace)
     source = tmp_path / "hsmt.pdf"
