@@ -56,17 +56,57 @@ def url_hash(url: str) -> str:
 
 
 def parsed_content_hash(parsed: ParsedNotice) -> str:
-    payload = {
+    payload = _canonical_parsed_notice_payload(parsed)
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _canonical_parsed_notice_payload(parsed: ParsedNotice) -> dict[str, object]:
+    """Return the deterministic source state used for semantic change detection."""
+
+    def iso(value: datetime | None) -> str | None:
+        return value.isoformat() if value is not None else None
+
+    attachment_payloads = [
+        {"source_url": item.source_url, "file_name": item.file_name}
+        for item in parsed.attachments
+    ]
+    attachment_payloads.sort(
+        key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True)
+    )
+    item_payloads = [
+        {
+            "item_code": item.item_code,
+            "product_name": item.product_name,
+            "specification": item.specification,
+            "quantity": item.quantity,
+            "minimum_quantity": item.minimum_quantity,
+            "maximum_quantity": item.maximum_quantity,
+            "unit": item.unit,
+            "source_document": item.source_document,
+            "source_location": item.source_location,
+            "extraction_confidence": item.extraction_confidence,
+            "needs_human_review": item.needs_human_review,
+        }
+        for item in parsed.items
+    ]
+    item_payloads.sort(key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True))
+    return {
+        "source_url": parsed.source_url,
         "notice_code": parsed.notice_code,
         "source_notice_id": parsed.source_notice_id,
         "source_name": parsed.source_name,
+        "plan_code": parsed.plan_code,
         "title": parsed.title,
         "buyer": parsed.buyer,
         "procuring_entity_address": parsed.procuring_entity_address,
+        "buyer_tax_code": parsed.buyer_tax_code,
         "investor": parsed.investor,
+        "investor_tax_code": parsed.investor_tax_code,
         "project_name": parsed.project_name,
         "package_description": parsed.package_description,
         "package_price": parsed.package_price,
+        "estimated_price": parsed.estimated_price,
         "currency": parsed.currency,
         "published_at": parsed.published_at,
         "closing_at": parsed.closing_at,
@@ -74,31 +114,24 @@ def parsed_content_hash(parsed: ParsedNotice) -> str:
         "sector": parsed.sector,
         "selection_method": parsed.selection_method,
         "selection_form": parsed.selection_form,
-        "notice_version": parsed.notice_version,
-        "document_issue_at": (
-            parsed.document_issue_at.isoformat() if parsed.document_issue_at else None
-        ),
+        "notice_version": (parsed.notice_version or "").strip() or None,
+        "notice_type": parsed.notice_type or "tbmt",
+        "funding_source": parsed.funding_source,
+        "contract_type": parsed.contract_type,
+        "bid_type": parsed.bid_type,
+        "document_issue_at": iso(parsed.document_issue_at),
         "document_price": parsed.document_price,
         "bid_security_amount": parsed.bid_security_amount,
         "bid_security_method": parsed.bid_security_method,
         "issue_location": parsed.issue_location,
-        "bid_open_at": parsed.bid_open_at.isoformat() if parsed.bid_open_at else None,
+        "published_at_dt": iso(parsed.published_at_dt),
+        "closing_at_dt": iso(parsed.closing_at_dt),
+        "bid_open_at": iso(parsed.bid_open_at),
         "contract_duration": parsed.contract_duration,
-        "attachments": sorted(item.source_url for item in parsed.attachments),
-        "items": [
-            {
-                "item_code": item.item_code,
-                "product_name": item.product_name,
-                "quantity": item.quantity,
-                "unit": item.unit,
-                "specification": item.specification,
-            }
-            for item in parsed.items
-        ],
         "raw_text": parsed.raw_text,
+        "attachments": attachment_payloads,
+        "items": item_payloads,
     }
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
 
 
 def _source_name_from_kind(source_kind: str, source_url: str) -> str:
@@ -208,9 +241,16 @@ class CrawlerService:
 
     def _save_raw_html(self, url: str, html: str) -> Path:
         directory = self.config.storage.raw_dir / "html"
+        content = html.encode("utf-8")
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / f"{url_hash(url)}.html"
-        path.write_text(html, encoding="utf-8")
+        content_hash = hashlib.sha256(content).hexdigest()
+        path = directory / f"{content_hash}.html"
+        try:
+            with path.open("xb") as handle:
+                handle.write(content)
+        except FileExistsError:
+            if path.read_bytes() != content:
+                raise ValueError("raw HTML content-addressed collision") from None
         return path
 
     def _parse_detail(self, html: str, url: str) -> ParsedNotice:
@@ -291,7 +331,10 @@ class CrawlerService:
             # e-GP publishes explicit revisions. Its real notice code plus version must
             # remain the primary key so one revision does not overwrite another.
             if parsed.notice_code:
-                statement = select(Notice).where(Notice.notice_code == parsed.notice_code)
+                statement = select(Notice).where(
+                    Notice.source_name == parsed.source_name,
+                    Notice.notice_code == parsed.notice_code,
+                )
                 if version:
                     statement = statement.where(Notice.notice_version == version)
                 else:
