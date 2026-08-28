@@ -4,7 +4,7 @@
 QI-Crawler → Internal Bid Assistant
 
 **Status:** MASTER BLUEPRINT / STRATEGIC ROADMAP / MANDATORY ARCHITECTURE README
-**Blueprint revision:** 1.2 (conceptual roadmap revision; not application SemVer)
+**Blueprint revision:** 1.3 (conceptual roadmap revision; not application SemVer)
 **Execution model:** PARENT-WP / MICRO-WP ONLY
 
 **Core product boundary:** QI-Crawler reads, extracts, organizes, locates and
@@ -55,7 +55,7 @@ SOURCE ACQUISITION
 → SOP BID INTELLIGENCE
 → HUMAN GROUND TRUTH
 → CONTROLLED LEARNING
-→ BID ASSISTANT / OUTPUT
+→ BID ASSISTANT / CONTROLLED OUTPUT
 → optional MINI AI AGENTS
 ```
 
@@ -555,7 +555,7 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
 | TBMT source-neutral intake | `OPERATIONAL` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search, Human Review persistence, confirmed XLSX, backend integrity, thin GUI wiring and vertical acceptance are merged. | Broader source variants and future lifecycle expansion. | Unified Tender Warehouse reliability and source evidence. |
 | TBMT Bid Radar | `OPERATIONAL` | TBMT intake → source-neutral filtering/search → Human Review → persistence → confirmed XLSX → thin existing GUI → vertical KHMT/TBMT acceptance. | Broader workflow/reporting and API integration remain future scope; TBMT Legal DOCX is unsupported. | Unified Tender Warehouse reliability and Human authority. |
-| Unified Tender Warehouse | `PARTIAL` | Managed document storage foundations, hashing/identity, operational data stores, analytical warehouse assets and document intake foundations. | One package/revision shelf model, completeness, recovery, archive/integrity and source reconciliation. | Storage Reconciliation and protected-data verification. |
+| Unified Tender Warehouse | `PARTIAL` | The merged Minimum Safe Warehouse slice provides domain-first TenderCase identity, exact revision semantics, managed source preservation, restart/reopen, SHA retrieval, seven Team Bid zones and controlled derived export. | Full package/revision completeness, reconciliation, recovery, archive/integrity and broader source lifecycle remain open. | Storage reliability, completeness and protected-data verification. |
 | Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
 | Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
@@ -568,6 +568,21 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | PDF/unified output | `PLANNED` | No unified output authority is claimed. | Approved template and evidence/report bundle contract. | Confirmed source facts and Human review. |
 | Windows deployment | `OPERATIONAL` | Known-good v0.8.0 Windows delivery and persistent user-data boundary. | Future updates must preserve release/data governance. | Release impact assessment and verified candidate. |
 | Mini AI agents | `PARKED` | Future role boundary is documented only. | Unified Tender Warehouse, completeness, evidence and Ground Truth gates. | All unlock gates plus explicit Human approval. |
+
+### Warehouse maturity reconciliation
+
+```text
+MINIMUM_SAFE_WAREHOUSE = OPERATIONAL
+UNIFIED_TENDER_WAREHOUSE = PARTIAL
+```
+
+The merged Minimum Safe Warehouse slice is proven through domain-first
+TenderCase identity, exact `(base_id, revision)` semantics, managed source
+preservation, restart/reopen, SHA-verified retrieval, seven Team Bid zones,
+controlled derived export and the Real Golden Bài 2 evidence. Full package
+completeness/reconciliation, recovery/archive/integrity and deep HSMT
+intelligence remain future work; this maturity update does not declare the
+Unified Tender Warehouse complete.
 
 ### Capability layer maturity example — TBMT Bid Radar
 
@@ -607,8 +622,9 @@ TEAM BID DELIVERY:
 
 This is descriptive architecture status, not a substitute for `CURRENT.md`
 or live Git/GitHub execution state. The Opportunity Intelligence delivery-
-closure Parent is merged; the next frontier is Unified Tender Warehouse and
-its active execution state belongs in `CURRENT.md` and live Git.
+closure Parent is merged; the Minimum Safe Warehouse slice is now operational
+and broader Warehouse reliability remains the next frontier. Active execution
+state belongs in `CURRENT.md` and live Git.
 
 ### Work Package architecture layer contract
 
@@ -739,9 +755,10 @@ opportunities for Team Bid.
 Current direction is KHMT/PL operational. The bounded TBMT source-neutral
 workflow is merged and operational through vertical KHMT/TBMT acceptance.
 Future gaps are broader source variants, API integration and wider lifecycle
-outputs; TBMT Legal DOCX remains explicitly unsupported. The next product
-frontier is Unified Tender Warehouse, with active execution state in
-`CURRENT.md` and live Git.
+outputs; TBMT Legal DOCX remains explicitly unsupported. The merged Minimum
+Safe Warehouse is the current operational boundary, while broader Warehouse
+reliability remains future work with active execution state in `CURRENT.md` and
+live Git.
 
 Hard invariant:
 
@@ -804,8 +821,9 @@ INTERNAL STORAGE FORMAT != TEAM BID EXPORT FORMAT
 
 ### Warehouse shelf model — SOP alignment
 
-This is conceptual product organization; it does not claim every shelf exists
-today:
+This is the conceptual product organization. The Minimum Safe Warehouse now
+proves the seven logical Team Bid zones and their controlled derived export;
+the broader shelf, completeness and recovery lifecycle remains future work:
 
 ```text
 01_SOURCE
@@ -1071,7 +1089,7 @@ Ground Truth
 promotion is authorized by this roadmap. The future Agent Adapter is read-only
 with respect to knowledge authority.
 
-## Lane 8 — Bid Assistant / Output
+## Lane 8 — Bid Assistant / Controlled Output
 
 **Mission:** turn verified/source-backed information into useful Team Bid
 working artifacts: XLSX, DOCX, PDF, checklists, requirement registers,
@@ -1089,6 +1107,65 @@ verified data
 
 Autonomous final bid-document approval is not authorized. Source-derived facts
 remain separate from Team Bid derived/proposed data.
+
+### Future capability — Template-Driven Document Generation
+
+This is an internal capability of Lane 8, not a new roadmap lane and not an
+implementation authorization. A contract is only one possible `DOCUMENT_TYPE`.
+
+```text
+AUTHORITATIVE / VERIFIED DATA
+        ↓
+DOCUMENT DATA MODEL
+        ↓
+FIELD AUTHORITY CLASSIFICATION
+        ├── SOURCE_BACKED
+        ├── HUMAN_INPUT
+        └── DERIVED
+        ↓
+READINESS / COMPLETENESS VALIDATION
+        ↓
+TEMPLATE REGISTRY
+        ↓
+APPROVED TEMPLATE VERSION
+        ↓
+INSTRUMENTED TEMPLATE
+        ↓
+CONTROLLED RENDERING
+        ↓
+DRAFT OUTPUT
+        ↓
+POST-RENDER VALIDATION / LINTER
+        ↓
+OUTPUT MANIFEST
+        ↓
+HUMAN REVIEW
+        ↓
+FINAL SNAPSHOT
+```
+
+Preferred conceptual components are generic and reusable:
+`TemplateRegistry`, `DocumentDataModel`, `DocumentReadinessService`,
+`TemplateRenderer`, `DocumentOutputValidator` and `OutputManifest`.
+
+```text
+HSMT_SOURCE != DOCUMENT_TEMPLATE != GENERATED_OUTPUT
+ORIGINAL_TEMPLATE != INSTRUMENTED_TEMPLATE != RUNTIME_OUTPUT
+SOURCE_BACKED != HUMAN_INPUT != DERIVED
+TEMPLATE_FILENAME != TEMPLATE_IDENTITY
+TEMPLATE_ID + VERSION + SHA = EXACT_TEMPLATE_IDENTITY
+ONE_CANONICAL_FIELD → MANY_TEMPLATE_LOCATIONS
+DRAFT != FINAL
+DOCUMENT_RENDERED != DOCUMENT_COMPLETE
+MISSING_REQUIRED_FIELD → NOT_READY_FOR_FINAL
+REFERENCE_SAMPLE != SOURCE_AUTHORITY
+REFERENCE_SAMPLE != LEGAL_AUTHORITY
+GENERATED_OUTPUT != SOURCE_OF_RECORD
+SOURCE_REVISION_CHANGED → GENERATED_OUTPUT_REVIEW_REQUIRED
+```
+
+No AI, filename, reference sample or generated output becomes source or
+business authority. Template generation remains future approved work.
 
 ## Lane 9 — Mini AI Agents
 
@@ -1232,7 +1309,7 @@ Unified Tender Warehouse reliability
 → SOP Bid Intelligence
 → Human Ground Truth expansion
 → Controlled Learning
-→ Bid Assistant outputs
+→ Bid Assistant / Controlled Output
 → Mini AI Agents
 ```
 

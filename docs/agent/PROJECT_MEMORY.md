@@ -309,6 +309,33 @@ branches must remain in their Work Package handoff.
   not authorize WP-WH-MIN-01/M1.
 - **Last verified:** `5e7b478d75662b979bed1688262374ba0d60220b`.
 
+## MEM-018 — Minimum Safe Tender Package Warehouse
+
+- **State:** ACTIVE
+- **Since main commit:** `0154e87a12558f3c199414d3747811a419ae003d`.
+- **Architecture:** `OPTION_B_DOMAIN_FIRST_TENDERCASE`.
+- **Contract:** WP-WH-MIN-01 merged the Minimum Safe Warehouse slice.
+- **Proven:** TenderCase identity; exact IB revision identity; `PL != IB`;
+  document identity separated from package membership; managed DocumentIntake
+  reuse; external-source deletion survival; restart/reopen; SHA-verified
+  retrieval; seven logical Team Bid zones; seven physical derived export
+  folders; empty export zones materialized; exact release isolation;
+  source/working/final/reference separation; Bài 2
+  `IB2500585490-00` Real Golden PASS.
+- **Schema:** `0017_add_tender_workspace_entries`.
+- **Evidence:** PR #69, feature head
+  `acfcbe26becce69d6ea21177af227386b4ca207f`, merge commit
+  `0154e87a12558f3c199414d3747811a419ae003d`, Python CI
+  `33135412689` PASS, CodeQL `33135411050` PASS, independent audit PASS and
+  Real Golden Bài 2 PASS.
+- **Not claimed:** full package completeness/reconciliation; full
+  Vault/recovery/archive; deep HSMT intelligence; full SOP decision
+  intelligence; autonomous Human/business authority; or the entire Unified
+  Tender Warehouse complete.
+- **Last verified:** `0154e87a12558f3c199414d3747811a419ae003d`.
+
+Do not add RD-0011 as implemented memory.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
