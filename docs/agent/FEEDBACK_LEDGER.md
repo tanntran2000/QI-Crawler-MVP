@@ -661,3 +661,55 @@ Disposition: ACCEPTED / PARKED_FOR_FUTURE_OUTPUT_WP
 Promoted to: docs/agent/MASTER_ROADMAP.md;
   docs/agent/MASTER_ROADMAP_DELTA.md / RD-0011
 ```
+
+### FB-0024 — Canonical Checkout Identity Gate
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-WH-OPS-01 post-merge closeout
+Type: PROCESS / HANDOFF / GOVERNANCE
+Authority: A0 HUMAN_DECISION
+Observation: Builder and Reviewer can appear to use the same repository while
+  actually operating in different filesystem checkouts and Git object databases.
+Evidence: Builder canonical checkout was
+  C:\Users\Admin\Desktop\QI Technology\QI Crawler\egp-crawler-python;
+  Reviewer checkout was D:\QI Technology\QI Crawler\egp-crawler-python. The D:
+  checkout could not resolve 42c09df..., while the C: checkout could.
+Impact: Exact-object audits and baseline conclusions become unsafe without an
+  explicit checkout identity proof.
+Human decision: Every future agent proves the exact canonical folder and
+  repository identity; Builder and Reviewer independently compare the proof.
+Scope change required: NO
+Response: Added a canonical checkout identity gate and distinct WRONG_CHECKOUT
+  hold across the durable role, handoff and memory contracts.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+  docs/agent/MEMORY_INDEX.md
+```
+
+### FB-0025 — Defer deep-review hardening until large Warehouse OPS Parent closes
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-WH-OPS-01
+Type: PROCESS / DEFECT / EXECUTION_ORDER
+Authority: A0 HUMAN_DECISION
+Observation: Potential crawler defects from earlier deep review must not expand
+  the bounded OPS-01 Parent while its controlled operational slice is active.
+Evidence: Human-directed sequencing and the approved WP-WH-OPS-01 scope.
+Impact: Prevents speculative hardening from contaminating the large Parent's
+  evidence and boundaries.
+Suggestion: Finish the large Parent first, then revalidate and harden confirmed
+  findings against immutable raw source, notice/source identity and
+  parsed-content-hash consistency.
+Scope change required: NO
+Response: The deferral condition is now satisfied by PR #72 merge; the next
+  Planner step revalidates the findings before creating any hardening work.
+Disposition: ACCEPTED / REVALIDATE_AFTER_PARENT_CLOSE
+Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent_handoff/CURRENT.md
+```

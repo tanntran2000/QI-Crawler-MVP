@@ -34,3 +34,9 @@ fixes.
     demonstrated, choose one evidence-based bounded ceiling; a later breach
     requires renewed investigation rather than recursive timeout increases.
     Preserve the failure evidence for future CI and test-architecture work.
+12. **Repository identity is part of object identity.** A repository name,
+    origin URL or branch label does not prove that two agents share one
+    checkout or Git object database. Before claiming a commit is absent,
+    baseline drift exists, or an exact range is authoritative, prove the
+    absolute path, `git show-toplevel`, `git-dir`, `git-common-dir`, origin and
+    repository identity. A mismatch is `WRONG_CHECKOUT` and requires HOLD.

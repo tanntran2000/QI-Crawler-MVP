@@ -12,6 +12,15 @@
 - Use one canonical checkout: `egp-crawler-python`.
 - Work in place on one active short-lived feature branch at a time; never create any Git worktree anywhere, including sibling or project-local/nested `.worktrees/` or `worktrees/`, sibling clones, or WP-named folders.
 - After an approved merge, return to `main`, fast-forward from `origin/main`, and delete the merged local branch.
+- Every Work Order and active handoff declares `CANONICAL_CHECKOUT_EXPECTED` and
+  `EXPECTED_ORIGIN_REPOSITORY`.
+- Before interpreting a branch, head, audit range or missing object, prove the
+  actual working directory, `git show-toplevel`, `git-dir`, `git-common-dir`,
+  configured origin and path match. A secondary or sibling repository has no
+  authority unless Human/Planner explicitly reassigns the canonical checkout.
+- Builder and Reviewer independently prove the same canonical checkout. A
+  `WRONG_CHECKOUT` result is `ENTRY_HOLD`, not evidence of baseline drift or a
+  missing commit.
 
 ## Release and version governance
 

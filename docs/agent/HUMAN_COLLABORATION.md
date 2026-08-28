@@ -71,7 +71,7 @@ Prompts should be concise, non-repetitive, and token-efficient without omitting
 information needed for safe execution. The default Work Order shape is:
 
 ```text
-BLUEPRINT CONTEXT → BASE → WORKSPACE → PLUGINS → OBJECTIVE → SCOPE → ACCEPTANCE → VERIFY → DELIVERY
+BLUEPRINT CONTEXT → BASE → WORKSPACE IDENTITY → PLUGINS → OBJECTIVE → SCOPE → ACCEPTANCE → VERIFY → DELIVERY
 ```
 
 For technical work, prepend a concise `BLUEPRINT CONTEXT` identifying the
@@ -100,7 +100,12 @@ boundaries or independent review.
 `BUILDER_SINGLE_WRITER` when it is in the approved scope and a governed
 transition trigger with evidence exists. The Builder may record facts and
 resolved external decisions from exact authority evidence, but may not
-originate them: `RECORD_AUTHORITY != ORIGINATE_AUTHORITY`. An Approval Lease
+originate them: `RECORD_AUTHORITY != ORIGINATE_AUTHORITY`. For technical
+Builder and Reviewer Work Orders, `WORKSPACE IDENTITY` must name
+`CANONICAL_CHECKOUT_EXPECTED` and `EXPECTED_ORIGIN_REPOSITORY`. The active
+role must prove the resolved working directory, Git top-level, Git
+directory/common directory and origin before interpreting branch or object
+state; a mismatch is `WRONG_CHECKOUT` and requires `ENTRY_HOLD`. An Approval Lease
 does not implicitly authorize destructive actions, history rewrite, force push,
 PR/merge/release or Human/Reviewer/Planner decisions.
 
@@ -234,7 +239,7 @@ it does not replace the required `WORKSPACE` or `PLUGINS` sections. The
 shortest-complete prompt must include:
 
 ```text
-BASE → WORKSPACE → PLUGINS → OBJECTIVE → SCOPE → RELEASE IMPACT → VERSION IMPACT → ACCEPTANCE → VERIFY → DELIVERY
+BASE → WORKSPACE IDENTITY → PLUGINS → OBJECTIVE → SCOPE → RELEASE IMPACT → VERSION IMPACT → ACCEPTANCE → VERIFY → DELIVERY
 ```
 
 The prompt must not silently omit version consistency, GUI version display,

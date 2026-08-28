@@ -24,6 +24,31 @@ FAILURE != AUTOMATIC GLOBAL BLOCKER`: an entry blocks work only when its
 affected capability/layer intersects the active Work Package or a governance /
 release contract explicitly makes it a gate.
 
+## FM-010 — Secondary checkout caused false exact-object audit failure
+
+```text
+ID = FM-010
+TITLE = Secondary checkout caused false exact-object audit failure
+STATE = OPEN
+SEVERITY = IMPORTANT
+DISPOSITION = CONTAINED_PENDING_SECONDARY_REPOSITORY_DECISION
+DETECTED_BY = WP-WH-OPS-01 independent audit
+BASELINE = post-PR71 / WP-WH-OPS-01 local audit
+LAYER = ENGINEERING TOOLBOX / GOVERNANCE / GIT PROVENANCE
+SYMPTOM = Reviewer reported WRONG_OBJECT / COMMIT_ABSENT for 42c09df... because
+  the audit ran in a secondary D: checkout while the Builder used canonical C:.
+ROOT_CAUSE = The prior one-checkout rule named a repository but did not require
+  absolute path, git-common-dir or origin identity proof. Existing tests did not
+  cover cross-checkout governance provenance.
+CI_IMPLICATION = NONE_DIRECT
+FIX_HEAD = NOT_FIXED
+FIX = Require the canonical checkout identity gate before object conclusions;
+  the Work Order declares WHERE and Builder/Reviewer independently prove WHERE
+  plus WHAT.
+PREVENTION = WRONG_CHECKOUT is an ENTRY_HOLD and is not baseline drift,
+  COMMIT_ABSENT or AUDIT_OBJECT_ABSENT.
+```
+
 When an open failure intersects the active Work Package's capability or layer,
 the Reviewer must revalidate `CURRENT_EVIDENCE` against the exact active/audit
 Git objects before using the entry as blocker, closure evidence or proof.

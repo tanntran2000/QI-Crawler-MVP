@@ -422,6 +422,29 @@ If the active snapshot, live Git, and live GitHub disagree materially, return
 `ENTRY_HOLD` and reconcile the handoff before generating or executing the next
 technical Work Order.
 
+#### 8.1.1 Canonical checkout identity
+
+Every Builder checkpoint and Reviewer audit must carry the same identity proof,
+independent of repository name or branch label:
+
+```text
+CANONICAL_CHECKOUT_EXPECTED
+EXPECTED_ORIGIN_REPOSITORY
+BUILDER_GIT_TOPLEVEL
+BUILDER_GIT_DIR
+BUILDER_GIT_COMMON_DIR
+BUILDER_ORIGIN
+CHECKOUT_IDENTITY_GATE = PASS | ENTRY_HOLD
+```
+
+The Reviewer independently records `REVIEWER_GIT_TOPLEVEL`,
+`REVIEWER_GIT_DIR`, `REVIEWER_GIT_COMMON_DIR` and `REVIEWER_ORIGIN`, then
+cross-checks the expected path and repository identity before exact-object
+claims. Distinct failure classes are `WRONG_CHECKOUT`, `WRONG_BRANCH`,
+`WRONG_HEAD`, `AUDIT_OBJECT_ABSENT` and `ACTUAL_BASELINE_DRIFT`.
+`WRONG_CHECKOUT` is an entry hold and must not be collapsed into the other
+classes.
+
 When the next governed unit or a takeover is about to begin, the
 `LATEST_WP_SPINE_SYNC_AUDIT` packet must be complete and `PASS`; a remote
 checkpoint or Micro POST alone does not establish this continuity result.

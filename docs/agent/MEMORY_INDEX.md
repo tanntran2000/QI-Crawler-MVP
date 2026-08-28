@@ -30,6 +30,25 @@ frontier; it does not authorize implementation scope by itself.
 12. Relevant entries in `docs/agent/LESSONS.md`.
 13. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
+## Checkout identity gate
+
+Before interpreting branch, head, audit range or object absence, resolve the
+declared canonical checkout in this order:
+
+```text
+CANONICAL_CHECKOUT_EXPECTED = <absolute path>
+→ git show-toplevel
+→ git rev-parse --git-dir
+→ git rev-parse --git-common-dir
+→ git remote get-url origin
+→ compare resolved path and repository identity
+→ CHECKOUT_IDENTITY_GATE = PASS | ENTRY_HOLD
+```
+
+`WRONG_CHECKOUT` is distinct from `WRONG_BRANCH`, `WRONG_HEAD`,
+`AUDIT_OBJECT_ABSENT` and `ACTUAL_BASELINE_DRIFT`; do not infer the latter
+until the identity gate passes.
+
 After read-mode selection and Roadmap/Delta reconciliation, invoke the single
 canonical `ROLE_ENTRY_GATE` in `docs/agent/OPERATING_MODEL.md`. It is required
 before `READY`, `PROMPT_READY`, `START_IMPLEMENTATION` or `START_AUDIT` for
