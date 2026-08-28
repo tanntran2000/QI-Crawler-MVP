@@ -230,6 +230,8 @@ class TenderWorkspaceService:
         manifest = self.manifest(case_id)
         stage = Path(tempfile.mkdtemp(prefix="warehouse-export-", dir=output.parent))
         try:
+            for zone in TEAM_BID_ZONES:
+                (stage / zone.value).mkdir(parents=True, exist_ok=True)
             exported = []
             for entry in manifest.entries:
                 target = stage / entry.zone.value / entry.filename
