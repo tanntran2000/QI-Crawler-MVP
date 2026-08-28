@@ -608,7 +608,7 @@ Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
 ### FB-0022 — Warehouse Domain Authority Model
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-WH-MIN-01
@@ -623,10 +623,41 @@ Observation: Filesystem/folder presentation may exist later, but TenderCase,
 Impact: Keeps Warehouse lifecycle meaning in Domain Core and prevents a
   presentation folder, filename or document role from becoming package
   identity or membership authority.
-Evidence: Human A0 approval for WP-WH-MIN-01 Stage 0 and Option B.
+Evidence: Human A0 approval for WP-WH-MIN-01 Stage 0 and Option B, now backed
+  by merged PR #69 and its independently audited Minimum Safe Warehouse slice.
 Scope change required: NO
-Response: Captured as the Stage 0 authority anchor; implementation is limited
-  to the approved Stage 0 + Batch A Work Order.
-Disposition: ACCEPTED / ACTIVE_FOR_WP_WH_MIN_01
-Promoted to: CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md
+Response: Preserved as the Option B authority anchor and reconciled with the
+  merged Minimum Safe Warehouse facts; broader Warehouse work remains bounded.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE after PR #69
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md
+```
+
+### FB-0023 — Template-Driven Controlled Document Generation Boundary
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: POST-WAREHOUSE ROADMAP RECONCILIATION
+Type: ARCHITECTURE
+Authority: A0 HUMAN_DECISION
+Observation: Two reviewed document-generation references align with the
+  existing Bid Assistant / Output lane and support a generic template-driven,
+  Human-reviewed controlled-output architecture.
+Evidence: Human architecture discussion and Planner reconciliation after
+  WP-WH-MIN-01 completion.
+Impact: Provides a reusable future path for DOCX/forms/contracts and other
+  approved document types without allowing generated output, filename,
+  template, reference sample or AI inference to become source/business
+  authority.
+Suggestion: Enrich existing Lane 8 instead of creating a new roadmap lane.
+  Use immutable/versioned templates, canonical fields,
+  SOURCE_BACKED/HUMAN_INPUT/DERIVED provenance, readiness gates, controlled
+  rendering, post-render validation and Human final review.
+Scope change required: NO_CURRENT_IMPLEMENTATION
+Response: Accepted as architecture / roadmap evolution only.
+Disposition: ACCEPTED / PARKED_FOR_FUTURE_OUTPUT_WP
+Promoted to: docs/agent/MASTER_ROADMAP.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md / RD-0011
 ```

@@ -209,7 +209,9 @@ CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Tender lifecycle, TenderCase identity and Warehouse organization
 PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
   INFRASTRUCTURE / PERSISTENCE; DELIVERY SURFACE
-OBSERVATION = KHLCNT/TBMT planning supplies PL identity and package context;
+OBSERVATION = The merged Minimum Safe Warehouse now proves the minimum
+  TenderCase, exact revision, membership and seven-zone shelf semantics.
+  KHLCNT/TBMT planning supplies PL identity and package context;
   the formal tender stage adds official IB identity and exact revision while
   retaining lineage. The Warehouse must carry the full tender case from plan
   context through source E-HSMT, QI working bid materials, final submission and
@@ -229,10 +231,12 @@ TARGET_STATE = A stage-aware TenderCase / Warehouse Shelf with explicit PL→IB
   `04_Technical_Vendor`, `05_Commercial_Price`, `06_Submission_FINAL`, and
   `07_Evidence_Archive`.
 PROMOTION_TARGET = MASTER_ROADMAP
-PROMOTION_CONDITION = The TenderCase/lifecycle model, authority classes,
+PROMOTION_CONDITION = The broader TenderCase/lifecycle model, authority classes,
   revision semantics and SOP workspace contract are implemented, independently
   audited and proven against real Team Bid package evidence.
-COMPLETION_EVIDENCE = Source-backed PL→IB relation tests; revision-preservation
+COMPLETION_EVIDENCE = Merged WP-WH-MIN-01 evidence proves the minimum
+  TenderCase / exact revision / membership / seven-zone shelf semantics.
+  Remaining source-backed PL→IB relation tests; revision-preservation
   regressions; source-vs-working-vs-final-vs-reference authority tests; real
   package acceptance showing reopen/retrieve behavior without identity loss.
 REMOVE_FROM_DELTA_WHEN = Promoted to MASTER_ROADMAP and no active TenderCase /
@@ -300,6 +304,8 @@ WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
   analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
 RELEVANT_CURRENT_WP = NONE
+MINIMUM_SAFE_WAREHOUSE_MILESTONE = SATISFIED
+REAL_HSMT_BAI2 = PASS
 TARGET_STATE = `Minimum Safe Warehouse → Team Bid real pilot → basic Warehouse
   operations → package completeness/reconciliation → integrity/recovery
   hardening → real HSMT maturity`. Deep HSMT analysis remains explicitly
@@ -313,9 +319,10 @@ COMPLETION_EVIDENCE = Real-package acceptance with PDF/DOCX/XLSX intake,
   accounting and bounded extraction regressions for HSMT maturity.
 REMOVE_FROM_DELTA_WHEN = Promoted to roadmap and the maturity gap is tracked by
   concrete approved capability WPs with verified advancement.
-PLANNER_NOTES = Candidate sequencing is `WP-WH-MIN-01 → WP-WH-OPS-01 →
-  WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → HSMT Intelligence`. This sequence is
-  planning context, not implementation authority. Minimum support targets the
+PLANNER_NOTES = Minimum Safe Warehouse is proven; remaining candidate
+  sequencing is `WP-WH-OPS-01 → WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → Tender
+  Package & HSMT Intelligence`. This sequence is planning context, not
+  implementation authority. Minimum support targets the
   currently proven modern formats PDF/DOCX/XLSX (plus existing ZIP intake);
   legacy `.doc` is not silently assumed in the minimum contract and requires a
   later explicit need/evidence decision. Do not call deep HSMT analysis DONE
@@ -364,9 +371,11 @@ CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Managed tender source preservation, retrieval and recovery
 PRODUCT_HOUSE_LAYERS = APPLICATION BACKEND; INFRASTRUCTURE / PERSISTENCE;
   DOMAIN CORE; DELIVERY SURFACE
-OBSERVATION = QI-Crawler already preserves immutable original document bytes,
-  SHA/version and tender/bundle metadata, but the durable Roadmap still marks
-  the managed file-storage component as partial. Team Bid operationally needs a
+OBSERVATION = Merged Minimum Safe Warehouse evidence proves managed source
+  preservation and SHA-verified retrieval. QI-Crawler already preserves
+  immutable original document bytes,
+  SHA/version and tender/bundle metadata, but the broader Vault/recovery
+  component remains partial. Team Bid operationally needs a
   protected managed copy that survives source-file moves/deletion, supports
   safe retrieval/export and can be reconciled/recovered when Shelf state is
   missing or damaged.
@@ -377,6 +386,9 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
 RELEVANT_CURRENT_WP = NONE
+MANAGED_COPY_SURVIVAL = PROVEN
+SHA_RETRIEVAL = PROVEN
+FULL_VAULT_RECOVERY_ARCHIVE = NOT_COMPLETE
 TARGET_STATE = `External file → staging/validation → SHA-256 → immutable managed
   Vault → Package/Revision Shelf membership → retrieval/export`, with integrity
   states for missing/orphaned/corrupt objects and an explicit recovery path.
@@ -422,7 +434,7 @@ WHY_IT_MATTERS = Deep extraction or Requirement Register generation over an
   false-safe answer despite green parsers. Completeness must be an explicit
   accounted state rather than inferred from file count.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = NONE
+RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / FUTURE
 TARGET_STATE = For each exact package revision, reconcile expected versus
   observed source material using explicit states `EXPECTED`, `FOUND`, `MISSING`,
   `CONFLICT`, `UNKNOWN`, `SUPERSEDED`, `QUARANTINED`; retain evidence/provenance
@@ -457,7 +469,10 @@ CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Team Bid Warehouse delivery and tender working lifecycle
 PRODUCT_HOUSE_LAYERS = DELIVERY SURFACE; APPLICATION BACKEND; DOMAIN CORE;
   INFRASTRUCTURE / PERSISTENCE
-OBSERVATION = Team Bid needs to start real work before every future Warehouse
+OBSERVATION = The merged Minimum Safe Warehouse proves the minimum Team Bid
+  workspace portion: TenderCase intake, restart/reopen, retrieval and seven
+  logical zones with controlled derived export. Team Bid needs to start real work
+  before every future Warehouse
   automation is complete. The existing PySide6 document workspace already has
   manual workspace creation, file/folder intake and manifest-oriented views,
   while the Human operational model uses seven standard zones covering source
@@ -469,6 +484,7 @@ WHY_IT_MATTERS = A technically correct storage backend that cannot be used in
   Backend contracts.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
 RELEVANT_CURRENT_WP = NONE
+MINIMUM_SAFE_WAREHOUSE_PORTION = PROVEN_AND_MERGED
 TARGET_STATE = A Team Bid user can create/open a TenderCase, add PDF/DOCX/XLSX
   files or a supported folder, see package/revision/document state, close and
   reopen the app, find the same case, retrieve/export immutable originals and
@@ -477,15 +493,16 @@ TARGET_STATE = A Team Bid user can create/open a TenderCase, add PDF/DOCX/XLSX
   `04_Technical_Vendor`, `05_Commercial_Price`, `06_Submission_FINAL`,
   `07_Evidence_Archive`.
 PROMOTION_TARGET = MASTER_ROADMAP
-PROMOTION_CONDITION = The minimum Team Bid vertical slice and subsequent SOP
-  workspace behavior are implemented and independently verified through real
-  operational acceptance.
-COMPLETION_EVIDENCE = A real TenderCase acceptance: intake PDF/DOCX/XLSX,
+PROMOTION_CONDITION = The remaining SOP workspace behavior is implemented and
+  independently verified through real operational acceptance.
+COMPLETION_EVIDENCE = Merged Bài 2 real TenderCase acceptance proves intake,
   restart, search/reopen, stable package/revision identity, retrieve originals
-  with unchanged SHA, QI working DOCX remains non-source, foreign HSMT reference
-  samples remain non-members, and source deletion does not destroy the managed
-  copy. Later OPS evidence covers search/dashboard, version semantics,
-  controlled package export, final snapshots and archive behavior.
+  with unchanged SHA and the minimum seven-zone workspace. A later real
+  acceptance must cover the remaining SOP behavior: intake PDF/DOCX/XLSX,
+  QI working DOCX remains non-source, foreign HSMT reference samples remain
+  non-members, source deletion does not destroy the managed copy, and later OPS
+  evidence covers search/dashboard, version semantics, controlled package
+  export, final snapshots and archive behavior.
 REMOVE_FROM_DELTA_WHEN = Basic Team Bid Warehouse usability and the SOP
   workspace model are promoted to the Roadmap with verified operational evidence.
 PLANNER_NOTES = Seven folders are the canonical business/logical workspace
@@ -496,6 +513,48 @@ PLANNER_NOTES = Seven folders are the canonical business/logical workspace
   `07_Evidence_Archive` is post-bid evidence, not a trash/cleanup target.
   Frontend collects commands and displays authoritative state; Domain Core and
   Application Backend own package/revision/membership/completeness semantics.
+```
+
+### RD-0011 — Template-Driven Controlled Document Generation
+
+```text
+ID = RD-0011
+TITLE = TEMPLATE-DRIVEN CONTROLLED DOCUMENT GENERATION
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0 + reviewed architecture/reference evidence
+CRAWLER_VALUE = HIGH
+PRODUCT_AREA = Bid Assistant / Controlled Output
+PRODUCT_HOUSE_LAYERS = APPLICATION BACKEND; DOMAIN CORE; DELIVERY / OUTPUT;
+  VERIFICATION
+OBSERVATION = Reviewed document-generation workflows support a reusable
+  template-driven architecture in which one canonical data model feeds
+  multiple repeated template locations while preserving template structure
+  and Human authority.
+WHY_IT_MATTERS = QI-Crawler will eventually need controlled DOCX/forms/
+  contracts/other approved outputs without allowing AI, filenames, reference
+  samples or generated documents to become source or business authority.
+ROADMAP_IMPACT = ROADMAP_UPGRADE
+NEW_LANE = NO
+RELEVANT_CURRENT_WP = NONE
+IMPLEMENT_NOW = NO
+TARGET_STATE = immutable approved original template
+  → versioned instrumented template
+  → canonical document data model
+  → SOURCE_BACKED / HUMAN_INPUT / DERIVED authority
+  → readiness validation
+  → repeated/conditional structures
+  → template-preserving renderer
+  → post-render linter
+  → output manifest
+  → Human review
+  → final snapshot
+PROMOTION_TARGET = MASTER_ROADMAP / PROJECT_MEMORY when implemented
+PROMOTION_CONDITION = future approved Output WP + Golden Template acceptance
+  + independent audit + merged-main evidence
+PLANNER_NOTES = This Delta does NOT authorize implementation now, autonomous
+  legal drafting, literal-text replacement architecture, reference sample as
+  authority or AI-generated business truth. Use normal Delta schema and
+  lifecycle conventions.
 ```
 
 ## 8A. Warehouse execution blueprint — pre-WP comparison baseline
@@ -593,12 +652,12 @@ BATCH_A = CORE
   reopen
   integrity-checked retrieval core
 
-BATCH_B = OPERATIONAL
+BATCH_B = MERGED_MINIMUM_SAFE_WAREHOUSE_SLICE
   operational retrieval/export
   seven logical SOP zones
   thin Team Bid delivery wiring
   restart/reopen UX
-  real operational acceptance
+  real Bài 2 operational acceptance
 
 DEFERRED = full completeness/reconciliation; full backup/recovery/archive;
   deep HSMT; SOP evaluation; AI; API redesign; broad GUI redesign
@@ -625,7 +684,7 @@ WP-WH-MIN-01 — Minimum Safe Tender Package Warehouse
 
   EXIT:
   MINIMUM_SAFE_WAREHOUSE = OPERATIONAL
-  TEAM_BID_PILOT_ALLOWED = YES
+  TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_BUSINESS_DECISION
 
 WP-WH-OPS-01 — Basic Team Bid Warehouse Operations
   search / dashboard / add-replace semantics / controlled package export /
