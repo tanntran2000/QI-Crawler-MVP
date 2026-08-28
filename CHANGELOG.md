@@ -4,6 +4,10 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased - 2026-08-22
 
+- Bổ sung vận hành Workspace Team Bid domain-first: tìm đúng IB revision,
+  dashboard exact-release, thêm/thay thế/correction có lịch sử append-only,
+  integrity verification và export bảy zone an toàn, giữ nguyên Document Store
+  bất biến.
 - Them nhan dang va routing Excel KHMT/TBMT theo filename + schema + PL/IB,
   co human override append-only; TBMT duoc dua vao luong Opportunity
   source-neutral sau khi xac minh identity.

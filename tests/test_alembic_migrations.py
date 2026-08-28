@@ -53,6 +53,7 @@ CORE_TABLES = {
     "tender_releases",
     "tender_document_memberships",
     "tender_workspace_entries",
+    "tender_workspace_transitions",
 }
 
 
@@ -155,8 +156,87 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0017_add_tender_workspace_entries"
+            "0018_add_tender_workspace_transitions"
         )
+
+
+def test_workspace_transition_migration_preserves_existing_entries(tmp_path: Path) -> None:
+    database = tmp_path / "workspace-transition-migration.db"
+    config = _alembic_config(database)
+    command.upgrade(config, "0017_add_tender_workspace_entries")
+    engine = create_engine(f"sqlite:///{database}")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO tender_cases (case_key, status, created_at, updated_at) "
+                "VALUES ('case-migration', 'PROVISIONAL', :now, :now)"
+            ),
+            {"now": "2026-08-28 00:00:00"},
+        )
+        case_id = connection.scalar(
+            text("SELECT id FROM tender_cases WHERE case_key = 'case-migration'")
+        )
+        connection.execute(
+            text(
+                "INSERT INTO tender_releases "
+                "(case_id, raw_id, base_id, revision, created_at) "
+                "VALUES (:case_id, 'IB2600000001-00', 'IB2600000001', '00', :now)"
+            ),
+            {"case_id": case_id, "now": "2026-08-28 00:00:00"},
+        )
+        release_id = connection.scalar(
+            text("SELECT id FROM tender_releases WHERE case_id = :case_id"),
+            {"case_id": case_id},
+        )
+        document_id = connection.scalar(
+            text(
+                "SELECT id FROM documents ORDER BY id LIMIT 1"
+            )
+        )
+        if document_id is None:
+            connection.execute(
+                text(
+                    "INSERT INTO documents "
+                    "(document_source, document_type, original_filename, stored_path, "
+                    "mime_type, file_size, sha256, version, uploaded_at, status, created_at, updated_at) "
+                    "VALUES ('manual_upload', 'PDF', 'migration.pdf', 'migration.pdf', "
+                    "'application/pdf', 1, :sha, 1, :now, 'STORED', :now, :now)"
+                ),
+                {"sha": "a" * 64, "now": "2026-08-28 00:00:00"},
+            )
+            document_id = connection.scalar(text("SELECT id FROM documents ORDER BY id LIMIT 1"))
+        connection.execute(
+            text(
+                "INSERT INTO tender_document_memberships "
+                "(release_id, document_id, authority_class, evidence, created_at) "
+                "VALUES (:release_id, :document_id, 'REFERENCE_ONLY', 'migration', :now)"
+            ),
+            {"release_id": release_id, "document_id": document_id, "now": "2026-08-28 00:00:00"},
+        )
+        membership_id = connection.scalar(
+            text("SELECT id FROM tender_document_memberships ORDER BY id LIMIT 1")
+        )
+        connection.execute(
+            text(
+                "INSERT INTO tender_workspace_entries "
+                "(membership_id, zone_code, created_at) "
+                "VALUES (:membership_id, '07_Evidence_Archive', :now)"
+            ),
+            {"membership_id": membership_id, "now": "2026-08-28 00:00:00"},
+        )
+    engine.dispose()
+
+    command.upgrade(config, "head")
+    upgraded = create_engine(f"sqlite:///{database}")
+    with upgraded.connect() as connection:
+        assert connection.scalar(text("SELECT COUNT(*) FROM tender_workspace_entries")) == 1
+        assert connection.scalar(
+            text("SELECT slot_key FROM tender_workspace_entries")
+        ) == "legacy-entry-1"
+        assert connection.scalar(
+            text("SELECT version_num FROM alembic_version")
+        ) == "0018_add_tender_workspace_transitions"
+    upgraded.dispose()
 
 
 def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
@@ -180,7 +260,7 @@ def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
     assert "candidate_review_events" in inspect(upgraded).get_table_names()
     with upgraded.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0017_add_tender_workspace_entries"
+            "0018_add_tender_workspace_transitions"
         )
     upgraded.dispose()
 
@@ -240,7 +320,7 @@ def test_opportunity_review_migration_preserves_legacy_candidate_reviews(
             "mi-3-v1",
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0017_add_tender_workspace_entries"
+            "0018_add_tender_workspace_transitions"
         )
     upgraded.dispose()
 
@@ -351,7 +431,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0017_add_tender_workspace_entries"
+                "0018_add_tender_workspace_transitions"
         )
     upgraded.dispose()
 
@@ -397,7 +477,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0017_add_tender_workspace_entries"
+                "0018_add_tender_workspace_transitions"
         )
     engine.dispose()
 
@@ -451,7 +531,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0017_add_tender_workspace_entries"
+    assert result.revision == "0018_add_tender_workspace_transitions"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -465,7 +545,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0017_add_tender_workspace_entries"
+            "0018_add_tender_workspace_transitions"
         )
     upgraded_engine.dispose()
 

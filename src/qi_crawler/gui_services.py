@@ -597,11 +597,33 @@ def run_workspace_document_intake(
 def run_tender_workspace_manifest(
     config: AppConfig,
     case_id: str,
+    release_id: int | None = None,
 ) -> TenderWorkspaceManifest:
     """Read a domain-authoritative Team Bid workspace through one thin adapter."""
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    return TenderWorkspaceService(database, config.storage.document_dir).manifest(case_id)
+    return TenderWorkspaceService(database, config.storage.document_dir).manifest(case_id, release_id)
+
+
+def run_tender_workspace_search(config: AppConfig, query: str):
+    """Search case/release identifiers without selecting a mutable revision."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).search_cases(query)
+
+
+def run_tender_workspace_dashboard(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    verify_integrity: bool = False,
+):
+    """Read one exact-release operational dashboard through the application seam."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).release_dashboard(
+        case_id, release_id, verify_integrity=verify_integrity
+    )
 
 
 def run_tender_workspace_open_or_create(
@@ -646,13 +668,58 @@ def run_tender_workspace_export(
     config: AppConfig,
     case_id: str,
     destination: Path,
+    release_id: int | None = None,
 ) -> WorkspaceExportResult:
     """Export immutable managed originals into a controlled logical-zone workspace."""
     database = Database(config.storage.database_url)
     database.require_current_schema()
-    return TenderWorkspaceService(database, config.storage.document_dir).export(
+    workspace = TenderWorkspaceService(database, config.storage.document_dir)
+    if release_id is None:
+        return workspace.export(case_id, destination)
+    return workspace.export_release(case_id, release_id, destination)
+
+
+def run_tender_workspace_replace(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    prior_entry_id: int,
+    replacement_path: Path,
+    evidence: str,
+    actor: str | None = None,
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).replace_entry(
         case_id,
-        destination,
+        release_id,
+        prior_entry_id,
+        replacement_path,
+        evidence=evidence,
+        actor=actor,
+    )
+
+
+def run_tender_workspace_source_correction(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    prior_entry_id: int,
+    replacement_path: Path | None,
+    operator: str,
+    reason: str,
+    evidence: str,
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).correct_source_entry(
+        case_id,
+        release_id,
+        prior_entry_id,
+        replacement_path,
+        operator=operator,
+        reason=reason,
+        evidence=evidence,
     )
 
 

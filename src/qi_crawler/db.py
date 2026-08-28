@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0017_add_tender_workspace_entries"
+CURRENT_SCHEMA_REVISION = "0018_add_tender_workspace_transitions"
 
 
 class SchemaNotReady(click.ClickException):
