@@ -661,3 +661,31 @@ Disposition: ACCEPTED / PARKED_FOR_FUTURE_OUTPUT_WP
 Promoted to: docs/agent/MASTER_ROADMAP.md;
   docs/agent/MASTER_ROADMAP_DELTA.md / RD-0011
 ```
+
+### FB-0024 — Canonical Checkout Identity Gate
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-WH-OPS-01 post-merge closeout
+Type: PROCESS / HANDOFF / GOVERNANCE
+Authority: A0 HUMAN_DECISION
+Observation: Builder and Reviewer can appear to use the same repository while
+  actually operating in different filesystem checkouts and Git object databases.
+Evidence: Builder canonical checkout was
+  C:\Users\Admin\Desktop\QI Technology\QI Crawler\egp-crawler-python;
+  Reviewer checkout was D:\QI Technology\QI Crawler\egp-crawler-python. The D:
+  checkout could not resolve 42c09df..., while the C: checkout could.
+Impact: Exact-object audits and baseline conclusions become unsafe without an
+  explicit checkout identity proof.
+Human decision: Every future agent proves the exact canonical folder and
+  repository identity; Builder and Reviewer independently compare the proof.
+Scope change required: NO
+Response: Added a canonical checkout identity gate and distinct WRONG_CHECKOUT
+  hold across the durable role, handoff and memory contracts.
+Disposition: PROMOTED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/HUMAN_COLLABORATION.md; docs/agent/LOCAL_STAGED_INTEGRATION.md;
+  docs/agent/MEMORY_INDEX.md
+```

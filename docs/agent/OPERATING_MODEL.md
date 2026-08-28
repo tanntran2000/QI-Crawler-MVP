@@ -54,6 +54,31 @@ SPINE_RESPONSIBILITY
 `ROLE > MODEL NAME`. A role is assigned by `WORK_ORDER`, `CURRENT` and
 `HUMAN_AUTHORITY`, not by ChatGPT, Codex, CI, a tool name or model identity.
 
+## CANONICAL_CHECKOUT_IDENTITY_GATE
+
+Repository and object conclusions are valid only after the active Builder or
+Reviewer proves the declared checkout identity. The Planner declares the
+expected values in the Work Order; the Builder records and verifies them before
+writing; the Reviewer independently repeats the checks before exact-object
+conclusions.
+
+```text
+CANONICAL_CHECKOUT_EXPECTED = <absolute path>
+EXPECTED_ORIGIN_REPOSITORY = <owner/repository or URL>
+ACTUAL_WORKING_DIRECTORY = <resolved absolute path>
+GIT_TOPLEVEL = <resolved path>
+GIT_DIR = <resolved path>
+GIT_COMMON_DIR = <resolved path>
+ORIGIN = <resolved URL>
+CHECKOUT_PATH_MATCH = YES | NO
+REPOSITORY_IDENTITY = VERIFIED | MISMATCH
+CHECKOUT_IDENTITY_GATE = PASS | ENTRY_HOLD
+```
+
+`WRONG_CHECKOUT` fails closed to `ENTRY_HOLD`. It must not be reported as
+`BASELINE_DRIFT`, `COMMIT_ABSENT` or `AUDIT_OBJECT_ABSENT` until the identity
+gate is resolved.
+
 ## ROLE_ENTRY_GATE — canonical readiness contract
 
 `ROLE_ENTRY_GATE` is the one readiness contract applied after read-mode and
