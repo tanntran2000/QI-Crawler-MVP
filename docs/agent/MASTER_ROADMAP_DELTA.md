@@ -223,7 +223,7 @@ WHY_IT_MATTERS = PL and IB are separate namespaces; one TenderCase may link
   remain distinguishable or the system can contaminate source truth and later
   analysis.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = NONE
+RELEVANT_CURRENT_WP = WP-WH-OPS-01 / VERIFIED PARTIAL ADVANCEMENT
 TARGET_STATE = A stage-aware TenderCase / Warehouse Shelf with explicit PL→IB
   relation, `base_id` lineage, exact `(base_id, revision)` identity, retained
   revision history and a logical Team Bid workspace with seven SOP zones:
@@ -303,7 +303,23 @@ WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
   before pilot use delays operational feedback; jumping directly to HSMT risks
   analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = NONE
+RELEVANT_CURRENT_WP = WP-WH-OPS-01
+WP_WH_OPS_01_STATE = INDEPENDENT_AUDIT_PASS_LOCAL
+WP_WH_OPS_01_AUDITED_CODE_HEAD = 42c09df51044f83617a991996ecc885c1eeab4d1
+CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
+WP_OBJECTIVE = Make existing TenderCase and exact tender revisions safely searchable,
+  inspectable, maintainable and exportable for normal Team Bid operations while
+  preserving source/revision/document authority.
+WP_EXECUTION_MAP = OPS-A → OPS-B → OPS-C → OPS-D → OPS-E → OPS-F
+OPS_A = VERIFIED
+OPS_B = VERIFIED
+OPS_C = VERIFIED
+OPS_D = VERIFIED
+OPS_E = VERIFIED
+OPS_F = VERIFIED
+REAL_BAI2 = PASS / IB2500585490-00
+FULL_LOCAL_REGRESSION = 677 PASSED
+INDEPENDENT_AUDIT = PASS
 MINIMUM_SAFE_WAREHOUSE_MILESTONE = SATISFIED
 REAL_HSMT_BAI2 = PASS
 TARGET_STATE = `Minimum Safe Warehouse → Team Bid real pilot → basic Warehouse
@@ -385,7 +401,11 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   comparison. Source authority must therefore belong to the managed copy after
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = NONE
+RELEVANT_CURRENT_WP = WP-WH-OPS-01 / VERIFIED MANAGED-SOURCE OPERATIONAL GUARDS
+WP_WH_OPS_01_VERIFIED = managed-source use; SHA integrity projection;
+  external-source deletion survival; controlled retrieval/export
+STILL_OUTSTANDING = full recovery; archive lifecycle; retention cleanup;
+  capacity management; disaster recovery
 MANAGED_COPY_SURVIVAL = PROVEN
 SHA_RETRIEVAL = PROVEN
 FULL_VAULT_RECOVERY_ARCHIVE = NOT_COMPLETE
