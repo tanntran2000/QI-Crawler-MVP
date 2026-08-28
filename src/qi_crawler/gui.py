@@ -103,9 +103,13 @@ from .gui_services import (
     run_single_crawl,
     run_tender_document_workspace,
     run_tender_workspace_add_path,
+    run_tender_workspace_dashboard,
     run_tender_workspace_export,
     run_tender_workspace_manifest,
     run_tender_workspace_open_or_create,
+    run_tender_workspace_replace,
+    run_tender_workspace_search,
+    run_tender_workspace_source_correction,
     run_web_document_intake,
     run_workspace_document_intake,
 )
@@ -1380,8 +1384,20 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_case_id.setPlaceholderText("Mã hồ sơ nội bộ, ví dụ: TB-2026-001")
         self.workspace_release_id = QLineEdit()
         self.workspace_release_id.setPlaceholderText("IB2600000000-00 (bắt buộc revision)")
+        self.workspace_search_query = QLineEdit()
+        self.workspace_search_query.setPlaceholderText("Tìm case / IB / PL (không tự chọn revision)")
+        self.workspace_entry_id = QLineEdit()
+        self.workspace_entry_id.setPlaceholderText("Entry ID cần thay thế")
+        self.workspace_operator = QLineEdit()
+        self.workspace_operator.setPlaceholderText("Tên operator Team Bid cho source correction")
+        self.workspace_correction_reason = QLineEdit()
+        self.workspace_correction_reason.setPlaceholderText("Lý do correction")
         workspace_form.addRow("TenderCase:", self.workspace_case_id)
         workspace_form.addRow("IB revision:", self.workspace_release_id)
+        workspace_form.addRow("Tìm định danh:", self.workspace_search_query)
+        workspace_form.addRow("Workspace entry:", self.workspace_entry_id)
+        workspace_form.addRow("Operator correction:", self.workspace_operator)
+        workspace_form.addRow("Correction reason:", self.workspace_correction_reason)
         self.workspace_zone = QComboBox()
         for zone in TEAM_BID_ZONES:
             self.workspace_zone.addItem(zone.value, zone.value)
@@ -1411,12 +1427,24 @@ class QICrawlerWindow(QMainWindow):
         workspace_actions = QHBoxLayout()
         self.workspace_open_button = QPushButton("MỞ / TẠO CASE")
         self.workspace_open_button.clicked.connect(self.start_tender_workspace_open)
+        self.workspace_search_button = QPushButton("TÌM CASE")
+        self.workspace_search_button.clicked.connect(self.start_tender_workspace_search)
+        self.workspace_dashboard_button = QPushButton("DASHBOARD")
+        self.workspace_dashboard_button.clicked.connect(self.start_tender_workspace_dashboard)
         self.workspace_add_button = self._primary_button("THÊM VÀO ZONE")
         self.workspace_add_button.clicked.connect(self.start_tender_workspace_add)
+        self.workspace_replace_button = QPushButton("THAY THẾ ENTRY")
+        self.workspace_replace_button.clicked.connect(self.start_tender_workspace_replace)
+        self.workspace_source_correction_button = QPushButton("SỬA SOURCE")
+        self.workspace_source_correction_button.clicked.connect(self.start_tender_workspace_source_correction)
         self.workspace_manifest_button = QPushButton("TẢI LẠI MANIFEST")
         self.workspace_manifest_button.clicked.connect(self.start_tender_workspace_manifest)
         workspace_actions.addWidget(self.workspace_open_button)
+        workspace_actions.addWidget(self.workspace_search_button)
+        workspace_actions.addWidget(self.workspace_dashboard_button)
         workspace_actions.addWidget(self.workspace_add_button)
+        workspace_actions.addWidget(self.workspace_replace_button)
+        workspace_actions.addWidget(self.workspace_source_correction_button)
         workspace_actions.addWidget(self.workspace_manifest_button)
         workspace_actions.addStretch()
         workspace_layout.addLayout(workspace_actions)
@@ -1570,6 +1598,140 @@ class QICrawlerWindow(QMainWindow):
         return case_id, release_id
 
     @Slot()
+    def start_tender_workspace_search(self) -> None:
+        query = self.workspace_search_query.text().strip()
+        if not query:
+            self.workspace_status.setText("Vui lòng nhập case, IB hoặc PL để tìm.")
+            return
+        self.workspace_status.setText("Đang tìm TenderCase theo định danh chính xác...")
+        self._submit(
+            run_tender_workspace_search,
+            self.config,
+            query,
+            on_success=self._render_tender_workspace_search,
+            button=self.workspace_search_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_search",
+            long_operation=False,
+        )
+
+    def _render_tender_workspace_search(self, results: tuple[Any, ...]) -> None:
+        if not results:
+            self.workspace_status.setText("Không tìm thấy TenderCase/revision phù hợp.")
+            return
+        lines = [
+            f"{item.case_id}: {item.release_raw_id} (release #{item.release_id})"
+            for item in results
+        ]
+        self.workspace_status.setText(
+            "Kết quả tìm kiếm — hãy chọn đúng revision trước khi thao tác:\n"
+            + "\n".join(lines)
+        )
+
+    @Slot()
+    def start_tender_workspace_dashboard(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi xem dashboard.")
+            return
+        case_id, _release_text = values
+        self.workspace_status.setText("Đang kiểm tra dashboard exact-release...")
+        self._submit(
+            run_tender_workspace_dashboard,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            True,
+            on_success=self._render_tender_workspace_dashboard,
+            button=self.workspace_dashboard_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_dashboard",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_dashboard(self, dashboard: Any) -> None:
+        counts = ", ".join(
+            f"{view.zone.value}: {len(view.entries)}" for view in dashboard.zones
+        )
+        self.workspace_status.setText(
+            f"Dashboard {dashboard.case_id} / {dashboard.release_raw_id} — {counts}"
+        )
+
+    @Slot()
+    def start_tender_workspace_replace(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thay thế entry.")
+            return
+        entry_text = self.workspace_entry_id.text().strip()
+        source_text = self.workspace_path.text().strip()
+        if not entry_text.isdigit() or not source_text:
+            self.workspace_status.setText("Cần Entry ID và file thay thế hợp lệ.")
+            return
+        evidence = self.workspace_evidence.text().strip()
+        if not evidence:
+            self.workspace_status.setText("Evidence là bắt buộc cho thay thế.")
+            return
+        case_id, _release_text = values
+        self.workspace_status.setText("Đang thay thế entry theo slot đã chọn...")
+        self._submit(
+            run_tender_workspace_replace,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            int(entry_text),
+            Path(source_text),
+            evidence,
+            "Team Bid",
+            on_success=self._render_tender_workspace_replace,
+            button=self.workspace_replace_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_replace",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_replace(self, result: Any) -> None:
+        self.workspace_status.setText(f"Kết quả thay thế: {result.status}. Đang tải manifest...")
+        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+
+    @Slot()
+    def start_tender_workspace_source_correction(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi sửa source.")
+            return
+        entry_text = self.workspace_entry_id.text().strip()
+        operator = self.workspace_operator.text().strip()
+        reason = self.workspace_correction_reason.text().strip()
+        evidence = self.workspace_evidence.text().strip()
+        if not entry_text.isdigit() or not operator or not reason or not evidence:
+            self.workspace_status.setText("Entry ID, operator và reason/evidence là bắt buộc.")
+            return
+        case_id, _release_text = values
+        replacement = self.workspace_path.text().strip()
+        self.workspace_status.setText("Đang ghi source correction append-only...")
+        self._submit(
+            run_tender_workspace_source_correction,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            int(entry_text),
+            Path(replacement) if replacement else None,
+            operator,
+            reason,
+            evidence,
+            on_success=self._render_tender_workspace_replace,
+            button=self.workspace_source_correction_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_source_correction",
+            long_operation=True,
+        )
+
+    @Slot()
     def start_tender_workspace_open(self) -> None:
         values = self._workspace_case_and_release()
         if values is None:
@@ -1658,6 +1820,7 @@ class QICrawlerWindow(QMainWindow):
             run_tender_workspace_manifest,
             self.config,
             case_id,
+            self._workspace_release_record_id,
             on_success=self._render_tender_workspace_manifest,
             button=self.workspace_manifest_button,
             progress=self.document_progress,
@@ -1691,6 +1854,7 @@ class QICrawlerWindow(QMainWindow):
             self.config,
             case_id,
             Path(destination_text),
+            self._workspace_release_record_id,
             on_success=self._render_tender_workspace_export,
             button=self.workspace_export_button,
             progress=self.document_progress,

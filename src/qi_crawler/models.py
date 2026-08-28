@@ -267,9 +267,43 @@ class TenderWorkspaceEntryRecord(Base):
         index=True,
     )
     zone_code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    # Explicit replacement lineage; NULL is retained only for rows created before
+    # the operational transition migration and is upgraded lazily by the service.
+    slot_key: Mapped[str | None] = mapped_column(String(128), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     membership: Mapped[TenderDocumentMembershipRecord] = relationship()
+
+
+class TenderWorkspaceTransitionRecord(Base):
+    """Append-only transition between workspace entries in one semantic slot."""
+
+    __tablename__ = "tender_workspace_transitions"
+    __table_args__ = (
+        UniqueConstraint(
+            "prior_entry_id", name="uq_tender_workspace_transition_prior"
+        ),
+        UniqueConstraint(
+            "successor_entry_id", name="uq_tender_workspace_transition_successor"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    prior_entry_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_workspace_entries.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    successor_entry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tender_workspace_entries.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    transition_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    actor: Mapped[str | None] = mapped_column(String(255))
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class DocumentExtraction(Base):
