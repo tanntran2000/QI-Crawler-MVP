@@ -1,0 +1,64 @@
+# HISTORICAL / NON-NORMATIVE / MAY CONTAIN SUPERSEDED RULES
+
+# WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 — POST-MERGE PR #76 CLOSEOUT
+
+HISTORICAL = YES
+NORMATIVE_ACTIVE_HANDOFF = NO
+
+This snapshot records the terminal post-merge governance state for the bounded
+source-child reconciliation Work Package. `CURRENT.md` remains the active
+handoff authority; live Git/GitHub remains authoritative for volatile state.
+
+```text
+PARENT = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
+PHASE = POST_MERGE_SPINE_CLOSEOUT
+BASE = c90e86d6b7a27ecb5a1fb681747bd4c3140de97d
+RED_TEST_HEAD = b232f0d9e4108155d786fcdaea9a276555ff75ce
+AUDITED_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
+MERGED_FEATURE_HEAD = ad25adf2939fd54f36d4411a1dff526c21dcff76
+MERGE_COMMIT = 823e33dd34c43dccece8a2d70d248db12c9ee516
+PR = 76
+PR_STATE = MERGED_CLOSED
+SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
+CURRENT_SCHEMA_REVISION = 0019_add_source_child_lifecycle
+PR_HEAD_PYTHON_CI = 33238798500 / PASS
+PR_HEAD_CODEQL = 33238797624 / PASS
+POST_MERGE_PYTHON_CI = 33240243556 / PASS
+POST_MERGE_CODEQL = 33240243744 / PASS
+WINDOWS_POST_MERGE_TESTS = 703
+WINDOWS_POST_MERGE_PYTEST_SECONDS = 1188.84
+WINDOWS_RUNTIME_BUDGET = PASS
+FM_009_RECURRENCE = NO
+FM_014 = MERGED_RESOLVED
+FB_0026 = RESOLVED_PROMOTED
+MEM_021 = ADDED
+LESSON_14 = ADDED
+RD_0004 = RECONCILED
+RD_0009 = UNCHANGED_NOT_COMPLETE
+FULL_REPO_AUDIT = HOLD
+PACKAGE_COMPLETENESS = NOT_CLAIMED
+FULL_VAULT_RECOVERY_ARCHIVE = NOT_COMPLETE
+DEEP_HSMT = NOT_IMPLEMENTED
+PENDING_RETRO_CI = YES
+OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
+TEAM_BID_PILOT = NO
+RELEASE = NO
+ACTIVE_PARENT_WP = NONE
+LAST_COMPLETED_PARENT_WP = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
+NEXT_CANDIDATE_WP = WP-WH-COMPLETE-01
+NEXT_WP_AUTHORIZED = NO
+EXACTLY_ONE_NEXT_ACTION = PLANNER_REVALIDATE_WP_WH_COMPLETE_01_ON_CURRENT_MAIN
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+PUSH = NO
+PR_CREATION = NO
+MERGE = NO
+```
+
+The merged fix reconciles authoritative source snapshot membership for
+`Attachment` and `TenderItem` through active lifecycle state, preserves
+historical rows and downloaded evidence, reactivates the same logical child,
+and excludes inactive attachments from automatic download/retry processing.
+FM-014 is the single canonical failure record promoted from FB-0026 after
+runtime confirmation and independent audit. The full-repository audit remains
+HOLD for unrelated findings; package completeness, Vault/recovery/archive and
+deep HSMT remain future work. No release or Team Bid pilot is authorized.

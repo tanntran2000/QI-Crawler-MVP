@@ -387,6 +387,32 @@ Do not add RD-0011 as implemented memory.
   archive, deep HSMT, release, or Team Bid pilot.
 - **Last verified:** `bcf5ca60fe933a82c097c6575fd50de63acfca4c`.
 
+## MEM-021 — Source child lifecycle reconciliation
+
+- **State:** ACTIVE
+- **Since main commit:** `823e33dd34c43dccece8a2d70d248db12c9ee516`.
+- **Contract:** PR #76 merged source-child lifecycle reconciliation. Exact
+  source snapshot membership is represented by active child state for both
+  `Attachment` and `TenderItem`; source removal deactivates current membership
+  without hard-deleting historical rows. Downloaded attachment evidence is
+  preserved, and reappearance reactivates the same logical child rather than
+  creating duplicate state. Automatic download/retry paths operate only on
+  active source attachments, and exact Notice/source/revision boundaries remain
+  isolated.
+- **Schema:** `0019_add_source_child_lifecycle`.
+- **Evidence:** TDD RED test commit
+  `b232f0d9e4108155d786fcdaea9a276555ff75ce`; code/fix head
+  `1020ad2b7ab706e586ad3983cd8f7703185f992c`; merged feature head
+  `ad25adf2939fd54f36d4411a1dff526c21dcff76`; merge commit
+  `823e33dd34c43dccece8a2d70d248db12c9ee516`; PR-head Python CI
+  `33238798500` PASS and CodeQL `33238797624` PASS; post-merge Python CI
+  `33240243556` PASS and CodeQL `33240243744` PASS.
+- **Boundary:** `PACKAGE_COMPLETENESS != SOURCE_CHILD_LIFECYCLE`;
+  `WP-WH-COMPLETE-01` remains future/candidate only. Full
+  `FULL_VAULT_RECOVERY_ARCHIVE != COMPLETE`, deep HSMT is not implemented,
+  and `RELEASE = NO` / `TEAM_BID_PILOT = NO` remain in force.
+- **Last verified:** `823e33dd34c43dccece8a2d70d248db12c9ee516`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

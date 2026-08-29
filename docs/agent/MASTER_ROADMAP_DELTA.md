@@ -290,7 +290,10 @@ TITLE = BASIC CRAWLER FIRST / REAL HSMT MATURITY
 STATUS = APPROVED_ACTIVE
 SOURCE_INTEGRITY_HARDENING = MERGED_CLOSED / WP-HARDEN-SOURCE-INTEGRITY-01
 SOURCE_INTEGRITY_MERGE = bcf5ca60fe933a82c097c6575fd50de63acfca4c
-RELIABILITY_INTERLUDE = Source evidence hardening strengthens reliability before the next Warehouse maturity step.
+RELIABILITY_INTERLUDE = SATISFIED_FOR_CONFIRMED_SOURCE_CHILD_DEFECT
+SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
+SOURCE_CHILD_RECONCILIATION_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
+POST_MERGE_CI = PASS
 SOURCE = Human A0 / product sequencing decision
 CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Capability sequencing, Team Bid basic usability and HSMT maturity
@@ -350,6 +353,9 @@ PLANNER_NOTES = Minimum Safe Warehouse is proven; remaining candidate
   legacy `.doc` is not silently assumed in the minimum contract and requires a
   later explicit need/evidence decision. Do not call deep HSMT analysis DONE
   merely because current samples parse.
+SOURCE_CHILD_RECONCILIATION_BOUNDARY = SOURCE_CHILD_RECONCILIATION != TENDER_PACKAGE_COMPLETENESS_RECONCILIATION
+NEXT_PRODUCT_CANDIDATE = WP-WH-COMPLETE-01
+NEXT_WP_AUTHORIZED = NO
 ```
 
 ### RD-0007 — Builder Implementation Integrity & Evidence Discipline

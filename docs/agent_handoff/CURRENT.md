@@ -2,56 +2,60 @@
 
 ## HANDOFF_ID
 
-WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / IMPLEMENTATION
+WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / POST-MERGE CLOSEOUT
 
 ## Status
 
-WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 implements source-child lifecycle
-reconciliation after local TDD and full verification. It is not independently
-audited or merged; the full-repository audit remains HOLD for unrelated
-follow-up findings. No release, Team Bid pilot, or next-WP implementation is
-authorized.
+PR #76 merged the source-child lifecycle reconciliation fix. The parent is
+closed on live `main`; this handoff records the verified merge evidence and
+routes the next planning decision. Full-repository audit status remains HOLD
+for unrelated findings. No release or Team Bid pilot is authorized.
 
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / IMPLEMENTATION
-HANDOFF_CAPTURE_BASE = 1020ad2b7ab706e586ad3983cd8f7703185f992c
+HANDOFF_ID = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / POST-MERGE CLOSEOUT
+HANDOFF_CAPTURE_BASE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 BASE = c90e86d6b7a27ecb5a1fb681747bd4c3140de97d
 APPROVED_BASE = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
 AUDIT_TARGET_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
-LAST_AUDITED_CODE_HEAD = NOT_YET_INDEPENDENTLY_AUDITED
+LAST_AUDITED_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
 LAST_AUDITED_DOC_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-LIVE_MAIN_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-ACTIVE_PARENT_WP = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
+LIVE_MAIN_HEAD = 823e33dd34c43dccece8a2d70d248db12c9ee516
+ACTIVE_PARENT_WP = NONE
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = fix/source-child-reconciliation-01
-LAST_COMPLETED_PARENT_WP = WP-HARDEN-SOURCE-INTEGRITY-01
-PARENT_STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+ACTIVE_BRANCH = main
+LAST_COMPLETED_PARENT_WP = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
+PARENT_STATE = MERGED_CLOSED
 PRODUCT_FRONTIER = Unified Tender Warehouse
-CURRENT_SCHEMA_REVISION = 0019_add_source_child_lifecycle
 SOURCE_INTEGRITY_HARDENING = MERGED_CLOSED
-SOURCE_CHILD_RECONCILIATION = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
 CONFIRMED_DEFECT = STALE_CHILD_RECONCILIATION
-BUG_04 = MERGED_RESOLVED
-BUG_02 = MERGED_RESOLVED
-BUG_11 = MERGED_RESOLVED
-PR_74_STATE = MERGED_CLOSED
-PR_74_MERGED_FEATURE_HEAD = faebb2d8a113a0a8d56d10d4021e68b974c1e3fe
-PR_74_MERGE_COMMIT = bcf5ca60fe933a82c097c6575fd50de63acfca4c
-PR_74_PR_HEAD_PYTHON_CI_RUN = 33191769012
-PR_74_PR_HEAD_PYTHON_CI_RESULT = PASS
-PR_74_PR_HEAD_CODEQL_RUN = 33191767610
-PR_74_PR_HEAD_CODEQL_RESULT = PASS
-MAIN_POST_MERGE_PYTHON_CI_RUN = 33196201630
+RED_TEST_HEAD = b232f0d9e4108155d786fcdaea9a276555ff75ce
+AUDITED_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
+MERGED_FEATURE_HEAD = ad25adf2939fd54f36d4411a1dff526c21dcff76
+MERGE_COMMIT = 823e33dd34c43dccece8a2d70d248db12c9ee516
+CURRENT_SCHEMA_REVISION = 0019_add_source_child_lifecycle
+PR_76_STATE = MERGED_CLOSED
+PR_76_PR_HEAD_PYTHON_CI_RUN = 33238798500
+PR_76_PR_HEAD_PYTHON_CI_RESULT = PASS
+PR_76_PR_HEAD_CODEQL_RUN = 33238797624
+PR_76_PR_HEAD_CODEQL_RESULT = PASS
+MAIN_POST_MERGE_PYTHON_CI_RUN = 33240243556
 MAIN_POST_MERGE_PYTHON_CI_RESULT = PASS
-MAIN_POST_MERGE_CODEQL_RUN = 33196201430
+MAIN_POST_MERGE_CODEQL_RUN = 33240243744
 MAIN_POST_MERGE_CODEQL_RESULT = PASS
-HOSTED_CI_STATE = NOT_RUN_LOCAL_ONLY
-CI_PASS_CLAIMED = NO
+WINDOWS_POST_MERGE_TESTS = 703
+WINDOWS_POST_MERGE_PYTEST_SECONDS = 1188.84
+WINDOWS_RUNTIME_BUDGET = PASS
+FM_009_RECURRENCE = NO
+FM_014 = MERGED_RESOLVED
+FB_0026 = RESOLVED_PROMOTED
+HOSTED_CI_STATE = PASS_EXACT_MERGE_HEAD
+CI_PASS_CLAIMED = YES
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
 TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_BUSINESS_DECISION
@@ -61,8 +65,6 @@ FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
 OPEN_OUT_OF_SCOPE_FINDINGS = WINDOWS_PUBLISHER_SCHEMA_DRIFT; LEGACY_BID_AUTHORITY_QUARANTINE; API_LAYER_BYPASS; BID_RADAR_SOURCE_INTEGRITY_BACKEND_ENFORCEMENT; TEST_CREATE_ALL_SHIM
 LAST_VERIFIED_COLLECTION = 703
 LAST_BUILDER_FULL_PYTEST = 703 passed
-SOURCE_INTEGRITY_TARGETED = 34 passed
-FOCUSED_HARDENING_TESTS = 13 passed
 SOURCE_CHILD_RECONCILIATION_TARGETED = 12 passed
 SOURCE_CHILD_MIGRATION_TARGETED = 25 passed
 RUFF = PASS
@@ -71,27 +73,28 @@ DIFF_CHECK = PASS
 PUSH = NO
 PR = NO
 MERGE = NO
-NEXT_CANDIDATE_WP = NONE_PENDING_INDEPENDENT_AUDIT
+NEXT_CANDIDATE_WP = WP-WH-COMPLETE-01
 NEXT_WP_AUTHORIZED = NO
-RELIABILITY_DEBT_NEXT_CANDIDATE = NONE_PENDING_INDEPENDENT_AUDIT
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_AUDIT_OF_SOURCE_CHILD_RECONCILIATION
-NEXT_AUTHORITY = REVIEWER_AUDITOR
-HANDOFF_READY = YES_FOR_INDEPENDENT_REVIEW
+RELIABILITY_DEBT_NEXT_CANDIDATE = NONE_SELECTED
+EXACTLY_ONE_NEXT_ACTION = PLANNER_REVALIDATE_WP_WH_COMPLETE_01_ON_CURRENT_MAIN
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+HANDOFF_READY = YES_FOR_PLANNER_REVIEW
 ```
 
 ## Authority and scope
 
-PR #74 merged feature head `faebb2d8a113a0a8d56d10d4021e68b974c1e3fe` at
-merge commit `bcf5ca60fe933a82c097c6575fd50de63acfca4c`. Its independently
-audited source-integrity fixes remain durable on `main`. The current
-source-child reconciliation implementation is a separate local candidate and
-has not been independently audited, pushed or merged.
+PR #76 merged feature head `ad25adf2939fd54f36d4411a1dff526c21dcff76` at
+merge commit `823e33dd34c43dccece8a2d70d248db12c9ee516`. The PR-head and
+post-merge Python CI and CodeQL runs passed; Windows completed 703 tests in
+1188.84 seconds within the bounded runtime budget. The source-child defect is
+resolved with lifecycle state and authoritative active-set reconciliation;
+historical rows and downloaded evidence remain preserved.
 
-This implementation preserves historical child rows and downloaded evidence
-while reconciling active source membership, and filters inactive children from
-automatic downloads/retries. It does not claim full source-history
-reconciliation, Warehouse completeness/recovery/archive, deep HSMT, release
-readiness or Team Bid pilot approval. The next governed action is independent
-audit of this bounded implementation. `LIVE_GIT_HEAD` and
-`LIVE_MAIN_HEAD` must be resolved from Git at read-in; this handoff does not
-predict a future closeout-branch or docs-merge SHA.
+This closeout does not claim full package completeness, Vault/recovery/archive,
+deep HSMT, release readiness or Team Bid pilot approval. `FULL_REPO_AUDIT` stays
+HOLD for unrelated findings, while FM-014 records the single reconciled
+source-child root cause. The next governed action is Planner revalidation of
+the future `WP-WH-COMPLETE-01` candidate on current `main`.
+
+`LIVE_GIT_HEAD` must be resolved from Git at read-in; this document records
+historical merge evidence and does not replace live Git/GitHub authority.
