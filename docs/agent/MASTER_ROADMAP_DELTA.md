@@ -294,6 +294,9 @@ RELIABILITY_INTERLUDE = CLOSED
 SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
 SOURCE_CHILD_RECONCILIATION_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 POST_MERGE_CI = PASS
+ACTIVE_PRODUCT_PRIORITY = RD-0010 / TEAM_BID_BASIC_CRAWLER_DAILY_WORKFLOW
+NEXT_PARENT_CANDIDATE = WP-TB-BASIC-CRAWLER-01
+NEXT_WP_AUTHORIZED = NO
 HUMAN_PRIORITY_AFTER_RELIABILITY_INTERLUDE = RETURN_TO_TEAM_BID_BASIC_CRAWLER_UPDATE
 WP-WH-COMPLETE-01 = PARKED_NOT_AUTHORIZED
 WP-WH-RECOVERY-01 = PARKED_NOT_AUTHORIZED
@@ -348,14 +351,15 @@ COMPLETION_EVIDENCE = Real-package acceptance with PDF/DOCX/XLSX intake,
   accounting and bounded extraction regressions for HSMT maturity.
 REMOVE_FROM_DELTA_WHEN = Promoted to roadmap and the maturity gap is tracked by
   concrete approved capability WPs with verified advancement.
-PLANNER_NOTES = Minimum Safe Warehouse is proven; remaining candidate
-  sequencing is `WP-WH-OPS-01 → WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → Tender
-  Package & HSMT Intelligence`. This sequence is planning context, not
-  implementation authority. Minimum support targets the
-  currently proven modern formats PDF/DOCX/XLSX (plus existing ZIP intake);
-  legacy `.doc` is not silently assumed in the minimum contract and requires a
-  later explicit need/evidence decision. Do not call deep HSMT analysis DONE
-  merely because current samples parse.
+FUTURE_MATURITY_SEQUENCE_AFTER_HUMAN_REACTIVATION = `WP-WH-OPS-01 →
+  WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → Tender Package & HSMT Intelligence`
+PLANNER_NOTES = The future maturity sequence is planning context, not the
+  current execution sequence or implementation authority. The current route is
+  the Human-prioritized RD-0010 basic crawler/workspace decision. Minimum
+  support targets the currently proven modern formats PDF/DOCX/XLSX (plus
+  existing ZIP intake); legacy `.doc` is not silently assumed in the minimum
+  contract and requires a later explicit need/evidence decision. Do not call
+  deep HSMT analysis DONE merely because current samples parse.
 SOURCE_CHILD_RECONCILIATION_BOUNDARY = SOURCE_CHILD_RECONCILIATION != TENDER_PACKAGE_COMPLETENESS_RECONCILIATION
 NEXT_PRODUCT_CANDIDATE = TEAM_BID_BASIC_CRAWLER_UPDATE
 WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
@@ -401,6 +405,8 @@ PLANNER_NOTES = No implementation in Planner Continuity M0.
 ID = RD-0008
 TITLE = PROTECTED MANAGED SOURCE AUTHORITY / VAULT / RECOVERY
 STATUS = APPROVED_ACTIVE
+EXECUTION_STATE = PARKED_NOT_AUTHORIZED
+PARK_REASON = FB-0027_HUMAN_PRIORITY
 SOURCE = Human A0 / Team Bid storage-risk requirement / existing managed-store evidence
 CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Managed tender source preservation, retrieval and recovery
@@ -458,6 +464,8 @@ PLANNER_NOTES = `ORIGINAL USER FILE DELETED != MANAGED COPY LOST`;
 ID = RD-0009
 TITLE = TENDER PACKAGE COMPLETENESS & SOURCE RECONCILIATION
 STATUS = APPROVED_ACTIVE
+EXECUTION_STATE = PARKED_NOT_AUTHORIZED
+PARK_REASON = FB-0027_HUMAN_PRIORITY
 SOURCE = Human A0 / HSMT workflow evidence / false-complete risk analysis
 CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = E-HSMT source bundle integrity and completeness
@@ -508,6 +516,17 @@ CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Team Bid Warehouse delivery and tender working lifecycle
 PRODUCT_HOUSE_LAYERS = DELIVERY SURFACE; APPLICATION BACKEND; DOMAIN CORE;
   INFRASTRUCTURE / PERSISTENCE
+MINIMUM_SAFE_WORKSPACE = PROVEN
+BASIC_WAREHOUSE_OPERATIONS = PROVEN
+CURRENT_VERIFIED_PRODUCT_GAP = BID_RADAR_AND_TENDER_WORKSPACE_ARE_OPERATIONAL_BUT_DAILY_HANDOFF_IS_MANUAL
+TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF
+IB_RULE = EXACT_IB_REVISION_ONLY
+PL_RULE = PL_CONTEXT_MAY_CREATE_OR_OPEN_PROVISIONAL_CASE BUT MUST_NOT_FABRICATE_IB
+NEXT_PARENT_CANDIDATE = WP-TB-BASIC-CRAWLER-01
+NEXT_WP_AUTHORIZED = NO
+BOUNDARIES = NOT_SOURCE_CRAWLER_REWRITE; NOT_BROAD_GUI_REDESIGN;
+  NOT_API_EVOLUTION; NOT_LEGACY_GO_HOLD_AUTHORITY; NOT_PACKAGE_COMPLETENESS;
+  NOT_VAULT_RECOVERY; NOT_DEEP_HSMT; NOT_RELEASE
 OBSERVATION = The merged Minimum Safe Warehouse proves the minimum Team Bid
   workspace portion: TenderCase intake, restart/reopen, retrieval and seven
   logical zones with controlled derived export. Team Bid needs to start real work
