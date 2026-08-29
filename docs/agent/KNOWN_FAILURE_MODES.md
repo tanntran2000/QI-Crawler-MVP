@@ -293,6 +293,69 @@ CURRENT_EVIDENCE = PR #64 merged feature head db19f42985030f2b154804f959fca615c5
 PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement.
 ```
 
+## FM-011 — Mutable URL-keyed raw HTML evidence
+
+```text
+ID = FM-011
+TITLE = Mutable URL-keyed raw HTML evidence
+STATE = MERGED
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = RESOLVED
+DETECTED_BY = Independent audit of WP-HARDEN-SOURCE-INTEGRITY-01
+AFFECTED_BASELINE = PR #74 pre-fix source capture path
+PRODUCT_HOUSE_LAYER = SOURCE ADAPTERS / INFRASTRUCTURE / PERSISTENCE
+SYMPTOM = Repeated captures at one URL could overwrite or truncate prior raw HTML evidence.
+ROOT_CAUSE = URL/locator-derived storage identity was mutable rather than content-addressed.
+FIX = Immutable content-addressed raw capture with collision and partial-output guards.
+FIX_HEAD = faebb2d8a113a0a8d56d10d4021e68b974c1e3fe
+REGRESSION_GUARD = Same URL with different bytes stores both objects; same bytes are idempotent; a corrupt content-address collision fails closed.
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = PR #74; merge commit bcf5ca60fe933a82c097c6575fd50de63acfca4c; independent implementation audit PASS; final remote audit PASS; post-merge Python CI and CodeQL PASS.
+PERMANENT_PREVENTION = URL or locator is never immutable evidence identity; preserve immutable content-addressed source bytes.
+```
+
+## FM-012 — Cross-source notice-code aliasing
+
+```text
+ID = FM-012
+TITLE = Cross-source notice-code aliasing
+STATE = MERGED
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = RESOLVED
+DETECTED_BY = Independent audit of WP-HARDEN-SOURCE-INTEGRITY-01
+AFFECTED_BASELINE = PR #74 pre-fix notice identity path
+PRODUCT_HOUSE_LAYER = DOMAIN CORE / SOURCE ADAPTERS / PERSISTENCE
+SYMPTOM = Equal notice codes from different sources could alias to one record.
+ROOT_CAUSE = Source name was omitted from notice identity.
+FIX = Scope notice identity by source plus source-local business identity and revision semantics.
+FIX_HEAD = faebb2d8a113a0a8d56d10d4021e68b974c1e3fe
+REGRESSION_GUARD = Same code across two sources yields two rows; same source/code/revision is one row; different revisions are different rows.
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = PR #74; merge commit bcf5ca60fe933a82c097c6575fd50de63acfca4c; independent implementation audit PASS; final remote audit PASS; post-merge Python CI and CodeQL PASS.
+PERMANENT_PREVENTION = Source-local identifiers are never global identities.
+```
+
+## FM-013 — Partial semantic hash diverged from persisted source state
+
+```text
+ID = FM-013
+TITLE = Partial semantic hash diverged from persisted source state
+STATE = MERGED
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = RESOLVED
+DETECTED_BY = Independent audit of WP-HARDEN-SOURCE-INTEGRITY-01
+AFFECTED_BASELINE = PR #74 pre-fix semantic hash path
+PRODUCT_HOUSE_LAYER = DOMAIN CORE / APPLICATION BACKEND / PERSISTENCE
+SYMPTOM = A semantic hash could remain unchanged while persisted source-derived state changed.
+ROOT_CAUSE = Hash input was a subset of the persisted Notice, Attachment and TenderItem state.
+FIX = Deterministic canonical serialization covers the persisted source-derived state before hashing.
+FIX_HEAD = faebb2d8a113a0a8d56d10d4021e68b974c1e3fe
+REGRESSION_GUARD = Notice changes, Attachment filename/state changes and TenderItem persisted-field changes alter the hash; ordering is stable; identical state remains unchanged.
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = PR #74; merge commit bcf5ca60fe933a82c097c6575fd50de63acfca4c; independent implementation audit PASS; final remote audit PASS; post-merge Python CI and CodeQL PASS.
+PERMANENT_PREVENTION = Canonical semantic hashing must cover the persisted source state, not a convenient subset.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

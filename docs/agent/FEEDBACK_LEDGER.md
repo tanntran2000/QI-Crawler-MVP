@@ -693,23 +693,51 @@ Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
 ### FB-0025 — Defer deep-review hardening until large Warehouse OPS Parent closes
 
 ```text
-State: ACCEPTED
+State: RESOLVED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-WH-OPS-01
 Type: PROCESS / DEFECT / EXECUTION_ORDER
 Authority: A0 HUMAN_DECISION
-Observation: Potential crawler defects from earlier deep review must not expand
-  the bounded OPS-01 Parent while its controlled operational slice is active.
-Evidence: Human-directed sequencing and the approved WP-WH-OPS-01 scope.
-Impact: Prevents speculative hardening from contaminating the large Parent's
-  evidence and boundaries.
-Suggestion: Finish the large Parent first, then revalidate and harden confirmed
-  findings against immutable raw source, notice/source identity and
-  parsed-content-hash consistency.
+Observation: Potential crawler defects from earlier deep review were deferred
+  until the bounded OPS-01 Parent closed.
+Evidence: Planner revalidated the highest-priority findings after WP-WH-OPS-01;
+  BUG-04, BUG-02 and BUG-11 were confirmed, Human approved
+  WP-HARDEN-SOURCE-INTEGRITY-01, PR #74 merged independently audited fixes,
+  and post-merge Python CI and CodeQL passed.
+Impact: The confirmed source-integrity findings are now durably hardened
+  without expanding the completed OPS-01 evidence.
+Suggestion: Preserve the remaining stale-child reconciliation risk as a
+  separate bounded follow-up; do not treat this hardening as full source
+  history reconciliation.
 Scope change required: NO
-Response: The deferral condition is now satisfied by PR #72 merge; the next
-  Planner step revalidates the findings before creating any hardening work.
-Disposition: ACCEPTED / REVALIDATE_AFTER_PARENT_CLOSE
-Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent_handoff/CURRENT.md
+Response: The deferral condition was satisfied by PR #72 merge and the
+  confirmed findings were resolved by independently audited PR #74.
+Disposition: RESOLVED / PROMOTED_TO_MEM_020_AND_FAILURE_MEMORY
+Promoted to: docs/agent/PROJECT_MEMORY.md; docs/agent/KNOWN_FAILURE_MODES.md;
+  docs/agent/FEEDBACK_LEDGER.md
+```
+
+### FB-0026 — Persisted child rows may outlive a source-side deletion
+
+```text
+State: OPEN
+Author: Independent Reviewer
+Role: REVIEWER_AUDITOR
+WP: WP-HARDEN-SOURCE-INTEGRITY-01
+Type: DEFECT / TEST_GAP
+Authority: A3 REVIEW_FINDING
+Observation: Semantic hashing reflects the current parsed Attachment/TenderItem
+  source snapshot, while persistence has historically been additive child upsert;
+  an absent child may remain in the database.
+Evidence: Independent audit of the merged source-integrity hardening boundary.
+Impact: The canonical parsed source snapshot may differ from retained persisted
+  child rows after source-side deletion or removal.
+Suggestion: Planner should revalidate deletion/reconciliation on current main
+  before deciding on a bounded corrective Work Package; no fix is authorized by
+  this entry.
+Scope change required: NO
+Response: Parked as a bounded revalidation candidate outside WP-HARDEN-SOURCE-INTEGRITY-01.
+Disposition: OPEN / REVALIDATION_CANDIDATE
+Promoted to: docs/agent/FEEDBACK_LEDGER.md
 ```
