@@ -721,23 +721,49 @@ Promoted to: docs/agent/PROJECT_MEMORY.md; docs/agent/KNOWN_FAILURE_MODES.md;
 ### FB-0026 — Persisted child rows may outlive a source-side deletion
 
 ```text
-State: OPEN
+State: RESOLVED
 Author: Independent Reviewer
 Role: REVIEWER_AUDITOR
-WP: WP-HARDEN-SOURCE-INTEGRITY-01
+WP: WP-HARDEN-SOURCE-INTEGRITY-01 → WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
 Type: DEFECT / TEST_GAP
 Authority: A3 REVIEW_FINDING
 Observation: Semantic hashing reflects the current parsed Attachment/TenderItem
-  source snapshot, while persistence has historically been additive child upsert;
-  an absent child may remain in the database.
-Evidence: Independent audit of the merged source-integrity hardening boundary.
-Impact: The canonical parsed source snapshot may differ from retained persisted
-  child rows after source-side deletion or removal.
-Suggestion: Planner should revalidate deletion/reconciliation on current main
-  before deciding on a bounded corrective Work Package; no fix is authorized by
-  this entry.
+  source snapshot, while persistence had historically been additive child upsert;
+  an absent child could remain in the database.
+Evidence: A3 review finding was followed by runtime reproduction V2 on current
+  main, which confirmed the suspected stale-child behavior.
+Impact: The canonical parsed source snapshot could differ from retained
+  persisted child rows after source-side deletion or removal.
+Suggestion: Revalidate the bounded risk before deciding on implementation; do
+  not treat the original observation as runtime-confirmed at initial review time.
 Scope change required: NO
-Response: Parked as a bounded revalidation candidate outside WP-HARDEN-SOURCE-INTEGRITY-01.
-Disposition: OPEN / REVALIDATION_CANDIDATE
-Promoted to: docs/agent/FEEDBACK_LEDGER.md
+Response: Runtime V2 confirmed the suspected defect; Human approved
+  WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01; TDD implementation was independently
+  audited and merged as PR #76; post-merge Python CI and CodeQL PASS.
+Disposition: RESOLVED / PROMOTED_TO_FM_014_AND_MEM_021
+Promoted to: docs/agent/KNOWN_FAILURE_MODES.md / FM-014
+  docs/agent/PROJECT_MEMORY.md / MEM-021
+  docs/agent/LESSONS.md / Lesson 14
+```
+
+### FB-0027 — End current hardening sequence and return to Team Bid basic crawler
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: PROCESS / EXECUTION_ORDER / PRODUCT_PRIORITY
+WP: WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / TERMINAL CLOSEOUT
+Decision: CURRENT_HARDENING_SEQUENCE = CLOSED
+NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER_UPDATE
+WP-WH-COMPLETE-01 = PARKED_NOT_AUTHORIZED
+WP-WH-RECOVERY-01 = PARKED_NOT_AUTHORIZED
+DEEP_HSMT_INTELLIGENCE = PARKED_NOT_AUTHORIZED
+Boundary: PARKED != CANCELLED
+Response: The reliability hardening sequence is closed for this transition.
+The roadmap capabilities remain available for later Human reactivation.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_MASTER_ROADMAP_DELTA
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md
 ```

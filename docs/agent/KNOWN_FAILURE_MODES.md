@@ -356,6 +356,29 @@ CURRENT_EVIDENCE = PR #74; merge commit bcf5ca60fe933a82c097c6575fd50de63acfca4c
 PERMANENT_PREVENTION = Canonical semantic hashing must cover the persisted source state, not a convenient subset.
 ```
 
+## FM-014 — Authoritative source snapshot was not reconciled with persisted child membership
+
+```text
+ID = FM-014
+TITLE = Authoritative source snapshot was not reconciled with persisted child membership
+STATE = MERGED
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = RESOLVED
+DETECTED_BY = Independent Reviewer finding FB-0026 followed by runtime reproduction V2
+AFFECTED_BASELINE = main c90e86d6b7a27ecb5a1fb681747bd4c3140de97d
+PRODUCT_HOUSE_LAYER = SOURCE ADAPTERS / APPLICATION BACKEND / PERSISTENCE
+SYMPTOM = Attachment/TenderItem absent from a later authoritative snapshot remained persisted as current source child state.
+ROOT_CAUSE = upsert_parsed_notice() performed additive child upserts without reconciling persisted children absent from the authoritative current snapshot.
+WHY_EXISTING_TESTS_MISSED_IT = existing source-integrity tests validated identity/hash/persisted-field change but lacked present→absent and stale-current-membership regressions.
+CI_IMPLICATION = semantic hash/current parsed state is insufficient if persisted active membership is not reconciled; current-state consumers and automatic processing must use active membership semantics.
+FIX = source lifecycle fields + authoritative active-set reconciliation + inactive automatic-download/retry guards while preserving historical evidence.
+FIX_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
+REGRESSION_GUARD = present→absent; partial reconciliation; reactivation; downloaded evidence preservation; inactive download/retry guard; revision isolation; idempotence; hash/active-state alignment.
+INDEPENDENT_AUDIT = PASS local + PASS final remote
+CURRENT_EVIDENCE = PR #76; merged feature head ad25adf2939fd54f36d4411a1dff526c21dcff76; merge commit 823e33dd34c43dccece8a2d70d248db12c9ee516; post-merge Python CI 33240243556 PASS; CodeQL 33240243744 PASS; Windows 703 passed in 1188.84s.
+PERMANENT_PREVENTION = authoritative current snapshots must reconcile active membership explicitly; historical row/evidence retention must remain separate from current source membership.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

@@ -44,3 +44,9 @@ fixes.
     return different bytes; capture source evidence immutably and
     content-address it. URL, filename and path are locators, not proof that
     two captures are the same evidence object.
+14. **Current source membership is not historical row existence.** An
+    authoritative snapshot must reconcile which persisted children are
+    currently active. Source-side disappearance may deactivate current
+    membership, but it must not silently delete retained evidence or
+    downloaded provenance. Keep current membership lifecycle separate from
+    evidence-retention lifecycle.
