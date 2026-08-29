@@ -745,3 +745,25 @@ Promoted to: docs/agent/KNOWN_FAILURE_MODES.md / FM-014
   docs/agent/PROJECT_MEMORY.md / MEM-021
   docs/agent/LESSONS.md / Lesson 14
 ```
+
+### FB-0027 — End current hardening sequence and return to Team Bid basic crawler
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: PROCESS / EXECUTION_ORDER / PRODUCT_PRIORITY
+WP: WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / TERMINAL CLOSEOUT
+Decision: CURRENT_HARDENING_SEQUENCE = CLOSED
+NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER_UPDATE
+WP-WH-COMPLETE-01 = PARKED_NOT_AUTHORIZED
+WP-WH-RECOVERY-01 = PARKED_NOT_AUTHORIZED
+DEEP_HSMT_INTELLIGENCE = PARKED_NOT_AUTHORIZED
+Boundary: PARKED != CANCELLED
+Response: The reliability hardening sequence is closed for this transition.
+The roadmap capabilities remain available for later Human reactivation.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_MASTER_ROADMAP_DELTA
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md
+```

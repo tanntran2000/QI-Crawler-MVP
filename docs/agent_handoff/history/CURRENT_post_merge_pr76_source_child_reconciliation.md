@@ -39,6 +39,11 @@ FULL_REPO_AUDIT = HOLD
 PACKAGE_COMPLETENESS = NOT_CLAIMED
 FULL_VAULT_RECOVERY_ARCHIVE = NOT_COMPLETE
 DEEP_HSMT = NOT_IMPLEMENTED
+CURRENT_HARDENING_SEQUENCE = CLOSED
+HUMAN_A0_NEXT_DIRECTION = TEAM_BID_BASIC_CRAWLER_UPDATE
+WP-WH-COMPLETE-01 = PARKED_NOT_AUTHORIZED
+WP-WH-RECOVERY-01 = PARKED_NOT_AUTHORIZED
+PARKED != CANCELLED
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
 TEAM_BID_PILOT = NO
@@ -61,4 +66,8 @@ and excludes inactive attachments from automatic download/retry processing.
 FM-014 is the single canonical failure record promoted from FB-0026 after
 runtime confirmation and independent audit. The full-repository audit remains
 HOLD for unrelated findings; package completeness, Vault/recovery/archive and
-deep HSMT remain future work. No release or Team Bid pilot is authorized.
+deep HSMT remain future work. The current hardening sequence is closed and the
+Human-directed next product direction is a Team Bid basic crawler update;
+`WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` are parked, not cancelled, and
+remain available for later Human reactivation. No release or Team Bid pilot is
+authorized.

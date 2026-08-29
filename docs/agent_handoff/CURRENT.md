@@ -63,6 +63,10 @@ RELEASE = NO
 FULL_REPO_AUDIT = HOLD
 FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
 OPEN_OUT_OF_SCOPE_FINDINGS = WINDOWS_PUBLISHER_SCHEMA_DRIFT; LEGACY_BID_AUTHORITY_QUARANTINE; API_LAYER_BYPASS; BID_RADAR_SOURCE_INTEGRITY_BACKEND_ENFORCEMENT; TEST_CREATE_ALL_SHIM
+CURRENT_HARDENING_SEQUENCE = CLOSED
+NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER_UPDATE
+WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
+WP_WH_RECOVERY_01 = PARKED_NOT_AUTHORIZED
 LAST_VERIFIED_COLLECTION = 703
 LAST_BUILDER_FULL_PYTEST = 703 passed
 SOURCE_CHILD_RECONCILIATION_TARGETED = 12 passed
@@ -73,12 +77,12 @@ DIFF_CHECK = PASS
 PUSH = NO
 PR = NO
 MERGE = NO
-NEXT_CANDIDATE_WP = WP-WH-COMPLETE-01
+NEXT_CANDIDATE_WP = NONE_PENDING_PLANNER_PRODUCT_FRAMING
 NEXT_WP_AUTHORIZED = NO
 RELIABILITY_DEBT_NEXT_CANDIDATE = NONE_SELECTED
-EXACTLY_ONE_NEXT_ACTION = PLANNER_REVALIDATE_WP_WH_COMPLETE_01_ON_CURRENT_MAIN
+EXACTLY_ONE_NEXT_ACTION = PLANNER_FRAME_TEAM_BID_BASIC_CRAWLER_UPDATE_FROM_CURRENT_MAIN
 NEXT_AUTHORITY = PLANNER_ARCHITECT
-HANDOFF_READY = YES_FOR_PLANNER_REVIEW
+HANDOFF_READY = YES_FOR_PLANNER_PRODUCT_RESTART
 ```
 
 ## Authority and scope
@@ -93,8 +97,10 @@ historical rows and downloaded evidence remain preserved.
 This closeout does not claim full package completeness, Vault/recovery/archive,
 deep HSMT, release readiness or Team Bid pilot approval. `FULL_REPO_AUDIT` stays
 HOLD for unrelated findings, while FM-014 records the single reconciled
-source-child root cause. The next governed action is Planner revalidation of
-the future `WP-WH-COMPLETE-01` candidate on current `main`.
+source-child root cause. The current hardening sequence is closed; the next
+governed action is Planner framing of a Team Bid basic crawler update from
+current `main`. `WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked, not
+cancelled, and may be reactivated only by later Human authority.
 
 `LIVE_GIT_HEAD` must be resolved from Git at read-in; this document records
 historical merge evidence and does not replace live Git/GitHub authority.
