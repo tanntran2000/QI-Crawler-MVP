@@ -40,3 +40,7 @@ fixes.
     baseline drift exists, or an exact range is authoritative, prove the
     absolute path, `git show-toplevel`, `git-dir`, `git-common-dir`, origin and
     repository identity. A mismatch is `WRONG_CHECKOUT` and requires HOLD.
+13. **A source locator is not immutable evidence identity.** The same URL may
+    return different bytes; capture source evidence immutably and
+    content-address it. URL, filename and path are locators, not proof that
+    two captures are the same evidence object.

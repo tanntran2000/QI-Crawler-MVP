@@ -364,6 +364,29 @@ Do not add RD-0011 as implemented memory.
   Unified Tender Warehouse remain unclaimed and require later approved work.
 - **Last verified:** `fcb394a6ee0926c1a355c486a72dc001e07d0096`.
 
+## MEM-020 — Source integrity hardening
+
+- **State:** ACTIVE
+- **Contract:** Raw HTML source evidence is immutable and content-addressed.
+  The same bytes may reuse the same immutable object, while different bytes
+  produce a different raw object; existing raw evidence is never silently
+  truncated or overwritten. Notice identity is source-scoped: `notice_code`
+  is not a global identity. Source identity combines the source, its
+  business/source-local identity and revision semantics.
+- **Semantic change detection:** Parsed semantic change detection uses
+  deterministic canonical serialization covering the persisted source-derived
+  Notice, Attachment and TenderItem state.
+- **Evidence:** BUG-04, BUG-02 and BUG-11 were independently audited and
+  merged in PR #74 (feature head
+  `faebb2d8a113a0a8d56d10d4021e68b974c1e3fe`, merge commit
+  `bcf5ca60fe933a82c097c6575fd50de63acfca4c`). PR-head Python CI
+  `33191769012` PASS and CodeQL `33191767610` PASS; post-merge Python CI
+  `33196201630` PASS and CodeQL `33196201430` PASS.
+- **Boundary:** This does not claim full source-history reconciliation,
+  stale-child deletion or reconciliation, Warehouse completeness/recovery/
+  archive, deep HSMT, release, or Team Bid pilot.
+- **Last verified:** `bcf5ca60fe933a82c097c6575fd50de63acfca4c`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
