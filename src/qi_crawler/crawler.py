@@ -291,6 +291,7 @@ class CrawlerService:
                 attachment_ids = session.scalars(
                     select(Attachment.id).where(
                         Attachment.notice_id == notice.id,
+                        Attachment.source_active.is_(True),
                         Attachment.download_status.in_(["pending", "failed"]),
                     )
                 ).all()
@@ -433,6 +434,7 @@ class CrawlerService:
             notice.last_seen_at = now
 
             existing = {item.source_url: item for item in notice.attachments}
+            current_attachment_urls = {item.source_url for item in parsed.attachments}
             for item in parsed.attachments:
                 current = existing.get(item.source_url)
                 if current is None:
@@ -441,11 +443,23 @@ class CrawlerService:
                             source_url=item.source_url,
                             file_name=item.file_name,
                             download_status="pending",
+                            source_active=True,
+                            source_last_seen_at=now,
                         )
                     )
-                elif item.file_name and not current.file_name:
-                    current.file_name = item.file_name
+                else:
+                    if item.file_name and not current.file_name:
+                        current.file_name = item.file_name
+                    if changed or current.source_last_seen_at is None or not current.source_active:
+                        current.source_last_seen_at = now
+                    current.source_active = True
+                    current.source_removed_at = None
+            for current in existing.values():
+                if current.source_url not in current_attachment_urls and current.source_active:
+                    current.source_active = False
+                    current.source_removed_at = now
             existing_items = {item.item_code: item for item in notice.tender_items}
+            current_item_codes = {item.item_code for item in parsed.items}
             for item in parsed.items:
                 current_item = existing_items.get(item.item_code)
                 if current_item is None:
@@ -462,6 +476,8 @@ class CrawlerService:
                             source_location=item.source_location,
                             extraction_confidence=item.extraction_confidence,
                             needs_human_review=item.needs_human_review,
+                            source_active=True,
+                            source_last_seen_at=now,
                         )
                     )
                 else:
@@ -475,6 +491,14 @@ class CrawlerService:
                     current_item.source_location = item.source_location
                     current_item.extraction_confidence = item.extraction_confidence
                     current_item.needs_human_review = item.needs_human_review
+                    if changed or current_item.source_last_seen_at is None or not current_item.source_active:
+                        current_item.source_last_seen_at = now
+                    current_item.source_active = True
+                    current_item.source_removed_at = None
+            for current_item in existing_items.values():
+                if current_item.item_code not in current_item_codes and current_item.source_active:
+                    current_item.source_active = False
+                    current_item.source_removed_at = now
             session.flush()
             session.refresh(notice)
             return notice, created, changed
@@ -482,7 +506,7 @@ class CrawlerService:
     async def _download_attachment_http(self, notice_id: int, attachment_id: int) -> None:
         with self.db.session() as session:
             attachment = session.get(Attachment, attachment_id)
-            if not attachment or attachment.notice_id != notice_id:
+            if not attachment or attachment.notice_id != notice_id or not attachment.source_active:
                 return
             source_url = attachment.source_url
             attachment.download_attempts += 1
@@ -562,6 +586,7 @@ class CrawlerService:
             items = session.execute(
                 select(Attachment.notice_id, Attachment.id)
                 .where(Attachment.download_status.in_(["pending", "failed"]))
+                .where(Attachment.source_active.is_(True))
                 .order_by(Attachment.id.asc())
                 .limit(limit)
             ).all()
@@ -611,6 +636,9 @@ class CrawlerService:
                 if attachment is None:
                     attachment = Attachment(notice_id=notice.id, source_url=source_key)
                     session.add(attachment)
+                attachment.source_active = True
+                attachment.source_last_seen_at = datetime.now(UTC)
+                attachment.source_removed_at = None
                 attachment.file_name = item.file_name
                 attachment.local_path = str(item.local_path)
                 attachment.sha256 = item.sha256
@@ -765,6 +793,7 @@ class CrawlerService:
                         attachment_ids = session.scalars(
                             select(Attachment.id).where(
                                 Attachment.notice_id == notice.id,
+                                Attachment.source_active.is_(True),
                                 Attachment.download_status.in_(["pending", "failed"]),
                             )
                         ).all()
