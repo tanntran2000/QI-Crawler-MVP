@@ -33,6 +33,9 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
   Team Bid release van bi block boi pending retro-CI.
 - Local regression dat 448 tests; GitHub CI exact-head cua Real Golden PASS tren Code Quality, Ubuntu 3.12, Ubuntu 3.11 va Windows 3.12.
 - Trusted Storage/Warehouse tiep tuc la lane uu tien: managed-copy behavior da ton tai, nhung SHA Vault, Canonical Package Shelf va Missing/Recoverable/Safe Restore chua duoc coi la da hoan tat.
+- Them source-child lifecycle cho Attachment va TenderItem: snapshot thanh cong
+  reconcile active membership, giu nguyen historical evidence, reactivation va
+  chan auto-download/retry doi voi child da bien mat khoi nguon.
 
 ## 0.8.0 - 2026-08-23
 

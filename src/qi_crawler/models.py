@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    true,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -109,6 +120,11 @@ class Attachment(Base):
     download_error: Mapped[str | None] = mapped_column(Text)
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     downloaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true(), index=True
+    )
+    source_last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     notice: Mapped[Notice] = relationship(back_populates="attachments")
 
@@ -517,6 +533,11 @@ class TenderItem(Base):
     source_location: Mapped[str | None] = mapped_column(Text)
     extraction_confidence: Mapped[float] = mapped_column(Float, default=0.0)
     needs_human_review: Mapped[bool] = mapped_column(default=True, index=True)
+    source_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true(), index=True
+    )
+    source_last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     notice: Mapped[Notice] = relationship(back_populates="tender_items")
