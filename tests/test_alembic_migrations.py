@@ -149,6 +149,11 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert {"source_name", "source_notice_id"}.issubset(notice_columns)
     notice_indexes = {index["name"] for index in inspector.get_indexes("notices")}
     assert {"ix_notices_source_name", "ix_notices_source_notice_id"}.issubset(notice_indexes)
+    for table_name in ("attachments", "tender_items"):
+        columns = {column["name"] for column in inspector.get_columns(table_name)}
+        assert {"source_active", "source_last_seen_at", "source_removed_at"}.issubset(columns)
+        indexes = {index["name"] for index in inspector.get_indexes(table_name)}
+        assert f"ix_{table_name}_source_active" in indexes
     attachment_constraints = {
         tuple(constraint["column_names"])
         for constraint in inspector.get_unique_constraints("attachments")
@@ -156,8 +161,51 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0018_add_tender_workspace_transitions"
+            "0019_add_source_child_lifecycle"
         )
+
+
+def test_source_child_lifecycle_migration_from_0018_preserves_rows(tmp_path: Path) -> None:
+    database = tmp_path / "source-child-lifecycle.db"
+    config = _alembic_config(database)
+    command.upgrade(config, "0018_add_tender_workspace_transitions")
+    database_runtime = Database(f"sqlite:///{database}")
+    with database_runtime.engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO notices (source_url, url_hash, first_seen_at, last_seen_at) "
+                "VALUES ('https://example.test/notice', :url_hash, :now, :now)"
+            ),
+            {"url_hash": "f" * 64, "now": "2026-08-29 00:00:00"},
+        )
+        notice_id = connection.scalar(text("SELECT id FROM notices"))
+        connection.execute(
+            text(
+                "INSERT INTO attachments (notice_id, source_url) "
+                "VALUES (:notice_id, 'https://example.test/file.pdf')"
+            ),
+            {"notice_id": notice_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO tender_items (notice_id, item_code, product_name, created_at) "
+                "VALUES (:notice_id, 'A', 'Legacy product', :now)"
+            ),
+            {"notice_id": notice_id, "now": "2026-08-29 00:00:00"},
+        )
+    database_runtime.engine.dispose()
+
+    command.upgrade(config, "head")
+    upgraded = create_engine(f"sqlite:///{database}")
+    with upgraded.connect() as connection:
+        assert connection.scalar(text("SELECT source_active FROM attachments")) == 1
+        assert connection.scalar(text("SELECT source_removed_at FROM attachments")) is None
+        assert connection.scalar(text("SELECT source_active FROM tender_items")) == 1
+        assert connection.scalar(text("SELECT product_name FROM tender_items")) == "Legacy product"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0019_add_source_child_lifecycle"
+        )
+    upgraded.dispose()
 
 
 def test_workspace_transition_migration_preserves_existing_entries(tmp_path: Path) -> None:
@@ -235,7 +283,7 @@ def test_workspace_transition_migration_preserves_existing_entries(tmp_path: Pat
         ) == "legacy-entry-1"
         assert connection.scalar(
             text("SELECT version_num FROM alembic_version")
-        ) == "0018_add_tender_workspace_transitions"
+        ) == "0019_add_source_child_lifecycle"
     upgraded.dispose()
 
 
@@ -260,7 +308,7 @@ def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
     assert "candidate_review_events" in inspect(upgraded).get_table_names()
     with upgraded.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0018_add_tender_workspace_transitions"
+            "0019_add_source_child_lifecycle"
         )
     upgraded.dispose()
 
@@ -320,7 +368,7 @@ def test_opportunity_review_migration_preserves_legacy_candidate_reviews(
             "mi-3-v1",
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0018_add_tender_workspace_transitions"
+            "0019_add_source_child_lifecycle"
         )
     upgraded.dispose()
 
@@ -431,7 +479,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0018_add_tender_workspace_transitions"
+                "0019_add_source_child_lifecycle"
         )
     upgraded.dispose()
 
@@ -477,7 +525,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0018_add_tender_workspace_transitions"
+                "0019_add_source_child_lifecycle"
         )
     engine.dispose()
 
@@ -531,7 +579,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0018_add_tender_workspace_transitions"
+    assert result.revision == "0019_add_source_child_lifecycle"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -545,7 +593,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0018_add_tender_workspace_transitions"
+            "0019_add_source_child_lifecycle"
         )
     upgraded_engine.dispose()
 
