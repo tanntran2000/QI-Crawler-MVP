@@ -68,6 +68,10 @@ from .native_extraction import (
 )
 from .notice_search import search_notices
 from .opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
+from .opportunity_workspace_handoff import (
+    OpportunityWorkspaceHandoffResult,
+    OpportunityWorkspaceHandoffService,
+)
 from .source_filter import active_source_domains, active_source_names
 from .tender_workspace import (
     TeamBidZone,
@@ -271,6 +275,23 @@ def run_bid_radar_review(
         note=note,
     )
     return event.decision.value
+
+
+def run_bid_radar_workspace_handoff(
+    config: AppConfig,
+    item: OpportunityRadarItem,
+) -> OpportunityWorkspaceHandoffResult:
+    """Open the authoritative TenderCase for a persisted confirmed opportunity."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    review_service = OpportunityReviewService(
+        SqlAlchemyOpportunityReviewRepository(database)
+    )
+    workspace_service = TenderWorkspaceService(database, config.storage.document_dir)
+    return OpportunityWorkspaceHandoffService(
+        review_service,
+        workspace_service,
+    ).handoff(item)
 
 
 def run_bid_radar_export(
