@@ -72,7 +72,7 @@ def _radar_item() -> OpportunityRadarItem:
         package_name="Gói adapter",
         project="Dự án adapter",
         package_price_raw="1000",
-        package_price=Decimal("1000"),
+        package_price=Decimal(1000),
         funding_source="Ngân sách",
         source_fields={},
         raw_fields={},

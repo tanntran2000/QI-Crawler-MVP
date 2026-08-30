@@ -8,11 +8,14 @@ import pytest
 from openpyxl import Workbook
 
 from qi_crawler.db import Database
+from qi_crawler.market_intelligence.khmt_contract import OBSERVED_KHMT_HEADERS
 from qi_crawler.market_intelligence.opportunity_contract import (
     OpportunityIdentity,
-    OpportunityIdentityNamespace,
     OpportunityImportBatch,
     OpportunitySourceType,
+)
+from qi_crawler.market_intelligence.opportunity_intelligence import (
+    OpportunityIntelligenceService,
 )
 from qi_crawler.market_intelligence.opportunity_radar import (
     OpportunityRadarItem,
@@ -22,8 +25,6 @@ from qi_crawler.market_intelligence.opportunity_review import (
     OpportunityReviewDecision,
     OpportunityReviewService,
 )
-from qi_crawler.market_intelligence.opportunity_intelligence import OpportunityIntelligenceService
-from qi_crawler.market_intelligence.khmt_contract import OBSERVED_KHMT_HEADERS
 from qi_crawler.market_intelligence.tbmt_schema import OBSERVED_TBMT_HEADERS
 from qi_crawler.migrations import upgrade_database
 from qi_crawler.opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
@@ -73,7 +74,7 @@ def _item(
         package_name="Gói chuyển workspace",
         project="Dự án thử nghiệm",
         package_price_raw="1000",
-        package_price=Decimal("1000"),
+        package_price=Decimal(1000),
         funding_source="Ngân sách",
         source_fields={},
         raw_fields={},
@@ -318,7 +319,7 @@ def test_ambiguous_khmt_exact_plan_fails_closed(tmp_path: Path) -> None:
 
 
 def test_restart_reopens_tbmt_exact_case_and_release(tmp_path: Path) -> None:
-    database, review, workspace, handoff = _services(tmp_path)
+    database, review, _workspace, handoff = _services(tmp_path)
     item = _item()
     _confirm(review, item)
     first = handoff.handoff(item)
@@ -336,7 +337,7 @@ def test_restart_reopens_tbmt_exact_case_and_release(tmp_path: Path) -> None:
 
 
 def test_restart_reopens_khmt_provisional_case(tmp_path: Path) -> None:
-    database, review, workspace, handoff = _services(tmp_path)
+    database, review, _workspace, handoff = _services(tmp_path)
     item = _item(source_type=OpportunitySourceType.KHMT, raw_id="PL2600000001-00")
     _confirm(review, item)
     first = handoff.handoff(item)
@@ -355,7 +356,7 @@ def test_restart_reopens_khmt_provisional_case(tmp_path: Path) -> None:
 
 
 def test_tbmt_import_confirm_handoff_restart_preserves_exact_revision(tmp_path: Path) -> None:
-    database, review, workspace, handoff = _services(tmp_path)
+    database, review, _workspace, handoff = _services(tmp_path)
     source = _write_tbmt(tmp_path / "TBMT-source.xlsx")
     loaded = OpportunityIntelligenceService(review).load_workbook(
         source, OpportunitySourceType.TBMT
@@ -376,7 +377,7 @@ def test_tbmt_import_confirm_handoff_restart_preserves_exact_revision(tmp_path: 
 
 
 def test_khmt_import_confirm_handoff_restart_stays_provisional(tmp_path: Path) -> None:
-    database, review, workspace, handoff = _services(tmp_path)
+    database, review, _workspace, handoff = _services(tmp_path)
     source = _write_khmt(tmp_path / "KHMT-source.xlsx")
     loaded = OpportunityIntelligenceService(review).load_workbook(
         source, OpportunitySourceType.KHMT
