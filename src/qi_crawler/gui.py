@@ -91,6 +91,7 @@ from .gui_services import (
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
     run_bid_radar_review,
+    run_bid_radar_workspace_handoff,
     run_create_manual_tender_workspace,
     run_document_classification_confirmation,
     run_document_extraction_inspection,
@@ -479,6 +480,7 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_import_button,
             self.bid_radar_export_button,
             self.bid_radar_legal_button,
+            self.bid_radar_workspace_button,
             self.login_button,
             self.document_import_button,
             self.document_web_button,
@@ -765,6 +767,10 @@ class QICrawlerWindow(QMainWindow):
         ):
             button.setEnabled(False)
             review_actions.addWidget(button)
+        self.bid_radar_workspace_button = QPushButton("CHUYỂN SANG WORKSPACE")
+        self.bid_radar_workspace_button.setEnabled(False)
+        self.bid_radar_workspace_button.clicked.connect(self.start_bid_radar_workspace_handoff)
+        review_actions.addWidget(self.bid_radar_workspace_button)
         review_actions.addStretch()
         review_layout.addLayout(review_actions)
         layout.addWidget(review_box)
@@ -1009,6 +1015,8 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_needs_review_button,
         ):
             button.setEnabled(enabled)
+        workspace_enabled = enabled and self._bid_radar_rows[selected].review_state == "CONFIRMED"
+        self.bid_radar_workspace_button.setEnabled(workspace_enabled)
 
     def start_bid_radar_review(self, decision: str) -> None:
         selected = self.bid_radar_table.currentRow()
@@ -1058,6 +1066,52 @@ class QICrawlerWindow(QMainWindow):
             QTableWidgetItem(self._bid_radar_review_label(decision)),
         )
         self.bid_radar_status.setText("Đã lưu quyết định review. Có thể xuất lại dữ liệu đã xác nhận.")
+        self._on_bid_radar_selected()
+
+    @Slot()
+    def start_bid_radar_workspace_handoff(self) -> None:
+        selected = self.bid_radar_table.currentRow()
+        if not (0 <= selected < len(self._bid_radar_rows)):
+            self.bid_radar_status.setText("Hãy chọn một gói đã xác nhận trước khi mở workspace.")
+            return
+        row = self._bid_radar_rows[selected]
+        if row.review_state != "CONFIRMED":
+            self.bid_radar_status.setText(
+                "Chỉ cơ hội có review CONFIRMED mới được chuyển sang workspace."
+            )
+            self._on_bid_radar_selected()
+            return
+        self.bid_radar_status.setText("Đang kiểm tra review hiện tại và mở workspace...")
+        self._submit(
+            run_bid_radar_workspace_handoff,
+            self.config,
+            row.item,
+            on_success=self._render_bid_radar_workspace_handoff,
+            button=self.bid_radar_workspace_button,
+            progress=self.bid_radar_progress,
+            status=self.bid_radar_status,
+            task_name="bid_radar_workspace_handoff",
+            long_operation=True,
+        )
+
+    def _render_bid_radar_workspace_handoff(self, result: Any) -> None:
+        self.navigation.setCurrentRow(4)
+        self.workspace_case_id.setText(result.case_id)
+        self.workspace_release_id.setText(result.release_raw_id or "")
+        self._workspace_release_record_id = result.release_id
+        self._workspace_opened_case_id = result.case_id
+        self._workspace_opened_release_id = result.release_raw_id
+        if result.human_link_required:
+            self.workspace_status.setText(
+                "Đã tạo/mở TenderCase từ KHMT/PL. Chưa có IB exact revision. "
+                "Cần người dùng liên kết TBMT khi có bằng chứng phù hợp."
+            )
+        else:
+            self.workspace_status.setText(
+                f"Đã mở workspace {result.case_id} / {result.release_raw_id}. "
+                "Hãy tải manifest hoặc tiếp tục thao tác."
+            )
+        self.bid_radar_status.setText("Đã chuyển cơ hội CONFIRMED sang Tender Workspace.")
 
     @Slot()
     def start_bid_radar_export(self) -> None:

@@ -42,13 +42,14 @@ def _fake_result(
     matched_count: int = 1,
     indeterminate_count: int = 0,
     nonmatched_count: int = 0,
+    review_state: str = "UNREVIEWED",
 ) -> SimpleNamespace:
     item = item or _fake_radar_item("PL260001-00")
     row = SimpleNamespace(
         item=item,
         disposition=disposition,
         reasons=(),
-        review_state="UNREVIEWED",
+        review_state=review_state,
     )
     load_result = SimpleNamespace(
         source_type=SimpleNamespace(value=source_type),
@@ -314,6 +315,112 @@ def test_filter_match_does_not_auto_confirm(window: QICrawlerWindow) -> None:
 
     assert window.bid_radar_table.item(0, 7).text() == "Chưa xem"
     assert window._bid_radar_rows[0].review_state != "CONFIRMED"
+
+
+@pytest.mark.parametrize("review_state", ["UNREVIEWED", "REJECTED", "NEEDS_REVIEW"])
+def test_workspace_handoff_button_requires_confirmed_review(
+    window: QICrawlerWindow, review_state: str
+) -> None:
+    window._render_bid_radar_result(_fake_result(review_state=review_state))
+    window.bid_radar_table.selectRow(0)
+
+    assert hasattr(window, "bid_radar_workspace_button")
+    assert not window.bid_radar_workspace_button.isEnabled()
+
+
+def test_confirm_action_makes_workspace_handoff_eligible(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+
+    window._render_bid_radar_review(0, "CONFIRMED")
+
+    assert window.bid_radar_workspace_button.isEnabled()
+
+
+def test_workspace_handoff_click_delegates_item_without_review_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    window._render_bid_radar_result(_fake_result(review_state="CONFIRMED"))
+    window.bid_radar_table.selectRow(0)
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["function"] = function
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    window.start_bid_radar_workspace_handoff()
+
+    assert captured["function"] is gui.run_bid_radar_workspace_handoff
+    assert captured["args"] == (window.config, window._bid_radar_rows[0].item)
+    assert len(captured["args"]) == 2
+
+
+def test_tbmt_workspace_handoff_success_prefills_exact_case_and_revision(
+    window: QICrawlerWindow,
+) -> None:
+    result = SimpleNamespace(
+        source_type=SimpleNamespace(value="TBMT"),
+        case_id="IB2600463290",
+        release_raw_id="IB2600463290-01",
+        release_id=9,
+        human_link_required=False,
+        disposition=SimpleNamespace(value="CREATED_EXACT_RELEASE"),
+    )
+
+    window._render_bid_radar_workspace_handoff(result)
+
+    assert window.navigation.currentRow() == 4
+    assert window.workspace_case_id.text() == "IB2600463290"
+    assert window.workspace_release_id.text() == "IB2600463290-01"
+    assert window._workspace_release_record_id == 9
+    assert window._workspace_opened_case_id == "IB2600463290"
+    assert window._workspace_opened_release_id == "IB2600463290-01"
+
+
+def test_khmt_workspace_handoff_success_prefills_provisional_case(
+    window: QICrawlerWindow,
+) -> None:
+    result = SimpleNamespace(
+        source_type=SimpleNamespace(value="KHMT"),
+        case_id="PL2600000001-00",
+        release_raw_id=None,
+        release_id=None,
+        human_link_required=True,
+        disposition=SimpleNamespace(value="CREATED_PROVISIONAL_CASE"),
+    )
+
+    window._render_bid_radar_workspace_handoff(result)
+
+    assert window.navigation.currentRow() == 4
+    assert window.workspace_case_id.text() == "PL2600000001-00"
+    assert window.workspace_release_id.text() == ""
+    assert window._workspace_release_record_id is None
+    assert window._workspace_opened_case_id == "PL2600000001-00"
+    assert window._workspace_opened_release_id is None
+    assert "Chưa có IB exact revision" in window.workspace_status.text()
+
+
+def test_failed_workspace_handoff_keeps_radar_selection(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    window._render_bid_radar_result(_fake_result(review_state="CONFIRMED"))
+    window.bid_radar_table.selectRow(0)
+    selected_item = window._bid_radar_rows[0].item
+
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    window._worker_error(
+        window.bid_radar_workspace_button,
+        ValueError("latest persisted CONFIRMED review required"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert window.bid_radar_table.currentRow() == 0
+    assert window._bid_radar_rows[0].item is selected_item
 
 
 def test_review_requires_reviewer(window: QICrawlerWindow) -> None:
