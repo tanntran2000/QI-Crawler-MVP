@@ -15,13 +15,20 @@ LIVE_MAIN_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
 ACTIVE_PARENT_WP = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
 ACTIVE_MICRO_WP = NONE
 ACTIVE_BRANCH = gov/role-boot-prompt-continuity-01
-PARENT_STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PARENT_STATE = CANONICAL_AUTHORITY_CORRECTED_PENDING_INDEPENDENT_AUDIT
+CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
+FORMER_C_CHECKOUT = PHYSICALLY_REMOVED
+GOV_BOOT_D0 = PASS
+GOV_BOOT_D1 = PASS
+RETROSPECTIVE_RESULT = REMOTE_IMPLEMENTATION_PRESERVED_LOCAL_PROVENANCE_REVALIDATED
 PARENT_BASE = 0482af7b48291f488aee5820b29a10ce8dde883b
 PRODUCT_FRONTIER = Unified Tender Warehouse
 NEXT_PRODUCT_RETURN_DIRECTION = TEAM_BID_BASIC_CRAWLER
 GOVERNANCE_CANONICAL_FILE = docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md
 PRODUCT_CODE_CHANGED = NO
 FB_0028_IMPLEMENTATION = LOCAL_PENDING_INDEPENDENT_AUDIT
+FB_0024_CORRECTION = FORWARD_CORRECTED_BY_FB_0029_PENDING_AUDIT
+FM_010_RECLASSIFICATION = FORWARD_CORRECTED_PENDING_AUDIT
 DELTA_WRITE = NO
 MASTER_ROADMAP_WRITE = NO
 PROJECT_MEMORY_WRITE = NO_PRE_MERGE
@@ -62,8 +69,12 @@ authority and the Machine Verifier remains evidence-only.
 The supporting governance documents contain bounded references rather than a
 second copy of the contract. The Roadmap and Delta were read and remain
 aligned; no new Delta or Master Roadmap update was required. FB-0028 is not
-promoted to merged Project Memory before merge. No product code, tests,
-database, release or Team Bid pilot was changed or authorized.
+promoted to merged Project Memory before merge. The canonical checkout is the
+D: path above; the former C checkout was physically removed. FB-0024's generic
+identity gate remains valid while its checkout-location interpretation is
+forward-corrected by FB-0029, and FM-010 carries the corresponding pending
+reclassification. No product code, tests, database, release or Team Bid pilot
+was changed or authorized.
 
 This handoff records local implementation pending independent audit. It does
 not claim Reviewer PASS, remote checkpoint, PR, merge or hosted CI evidence.
