@@ -1,134 +1,63 @@
 # QI-Crawler Agent Handoff
 
-## HANDOFF_ID
-
-WP-TB-BASIC-CRAWLER-01 / POST-MERGE CLOSEOUT / PR #79
-
-## Status
-
-WP-TB-BASIC-CRAWLER-01 is merged and post-merge verified at `5e4c1ad...`.
-PR #79 delivered the bounded confirmed-opportunity to TenderCase workspace
-handoff. The hardening sequence remains closed; unrelated full-repository
-findings remain HOLD, and this closeout creates no release or Team Bid pilot
-authority.
-
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-TB-BASIC-CRAWLER-01 / POST-MERGE CLOSEOUT / PR #79
-HANDOFF_CAPTURE_BASE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
-BASE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
-APPROVED_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
-PARENT_APPROVED_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
+HANDOFF_ID = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01 / PRE
+HANDOFF_CAPTURE_BASE = 0482af7b48291f488aee5820b29a10ce8dde883b
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
-AUDIT_TARGET_CODE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
-BUILDER_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
-LAST_AUDITED_CODE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
-LAST_AUDITED_DOC_HEAD = 5e4c1ad682e62b29077f5a67954c65caf8d07746
-LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-LIVE_MAIN_HEAD = 5e4c1ad682e62b29077f5a67954c65caf8d07746
-ACTIVE_PARENT_WP = NONE
+ACTIVE_PARENT_WP = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = gov/team-bid-basic-crawler-01-post-merge-closeout
-LAST_COMPLETED_PARENT_WP = WP-TB-BASIC-CRAWLER-01
-LAST_COMPLETED_PARENT_STATE = MERGED_CLOSED_POST_MERGE_VERIFIED
-PARENT_STATE = MERGED_CLOSED_POST_MERGE_VERIFIED
+ACTIVE_BRANCH = gov/role-boot-prompt-continuity-01
+PARENT_STATE = AUTHORIZED_ACTIVE
+PARENT_BASE = 0482af7b48291f488aee5820b29a10ce8dde883b
 PRODUCT_FRONTIER = Unified Tender Warehouse
-ACTIVE_PRODUCT_PRIORITY = NONE_POST_MERGE
-ROADMAP_NODE = RD-0010
-TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF / MERGED
-TB_A = PASS
-TB_B = PASS
-TB_C = PASS
-SCHEMA_CHANGE = NO
-MIGRATION_CHANGE = NO
-PRODUCT_IMPLEMENTATION = MERGED_CLOSED_VERIFIED
-SOURCE_INTEGRITY_HARDENING = MERGED_CLOSED
-SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
-CURRENT_HARDENING_SEQUENCE = CLOSED
-NEXT_AUTHORITY = PLANNER_ARCHITECT
-PR_76_STATE = MERGED_CLOSED
-PR_76_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
-PR_77_STATE = MERGED_CLOSED
-PR77_AUDITED_HEAD = 1bf064100df91eccbc293f212e48a85ecc4b2c78
-PR77_MERGE = d6b2b01d056f0960e50a66988ee066b63366f151
-HISTORICAL_POST_MERGE_PYTHON_CI = 33243926937 / PASS
-HISTORICAL_POST_MERGE_CODEQL = 33243927032 / PASS
-POST_MERGE_WINDOWS = 703 PASSED / 1083.99s / 18m03s / BUDGET PASS
-FM_009_RECURRENCE = NO
-FM_014 = MERGED_RESOLVED
-FB_0026 = RESOLVED_PROMOTED
-WP_TB_BASIC_CRAWLER_01 = MERGED_CLOSED_POST_MERGE_VERIFIED
-PRODUCT_MERGE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
-PRODUCT_PR = 79
-AUDITED_FEATURE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
-POST_MERGE_PYTHON_CI = 33302244508 / PASS
-POST_MERGE_CODEQL = 33302244269 / PASS
-RD_0010_HANDOFF_INCREMENT = PROVEN_AND_MERGED
-NEXT_PARENT_CANDIDATE = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
 NEXT_PRODUCT_RETURN_DIRECTION = TEAM_BID_BASIC_CRAWLER
-CURRENT_SCHEMA_REVISION = 0019_add_source_child_lifecycle
-FM_002 = OPEN_RELEASE_BLOCKER
-FM_005 = OPEN_AUTHORITY_DEBT
-FM_006 = OPEN_API_HOLD
-FM_007 = RESOLVED_DO_NOT_LIST_AS_OPEN
-FM_008 = OPEN_TEST_DEBT_NONBLOCKING_FOR_CURRENT_ROUTE
-FM_010 = OPEN_CONTAINED_CHECKOUT_GOVERNANCE
-OPEN_OUT_OF_SCOPE_FINDINGS = FM_002; FM_005; FM_006; FM_008; FM_010
-HOSTED_CI_STATE = PASS_EXACT_MERGE_HEAD
-CI_PASS_CLAIMED = YES
-PENDING_RETRO_CI = YES
-OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
-TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_BUSINESS_DECISION
+OBJECTIVE = ROLE_BOOT_PROMPT_CONTINUITY_AND_THREE_POLE_MUTUAL_CHALLENGE
+LATEST_GOVERNED_UNIT = WP-TB-BASIC-CRAWLER-01 / TERMINAL_CLOSED
+LATEST_MERGED_HEAD = 0482af7b48291f488aee5820b29a10ce8dde883b
+LIVE_MAIN_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
+RELEVANT_DELTA_IDS = RD-0010; RD-0004; RD-0001; RD-0008; RD-0009
+DELTA_STATE = PASS
+SPINE_FRESHNESS = PASS
+CURRENT_FRESHNESS = PASS_SELF_REFERENTIAL_RECONCILIATION
+ROLE_AUTHORITY_DRIFT = NO
+NEXT_ALIGNMENT = PASS
+LATEST_WP_SPINE_SYNC_AUDIT = PASS
 RELEASE = NO
-FULL_REPO_AUDIT = HOLD
-FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
-NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER
-NEXT_WP_AUTHORIZED = NO
-WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
-WP_WH_RECOVERY_01 = PARKED_NOT_AUTHORIZED
-LAST_VERIFIED_COLLECTION = 730
-LAST_BUILDER_FULL_PYTEST = 730 passed / 665.89s
-SOURCE_CHILD_RECONCILIATION_TARGETED = 12 passed
-SOURCE_CHILD_MIGRATION_TARGETED = 25 passed
-RUFF = PASS
-PIP_CHECK = PASS
-DIFF_CHECK = PASS
-PUSH = NO
-PR = NO
-MERGE = NO
-EXACTLY_ONE_NEXT_ACTION = PLANNER_REVIEW_POST_MERGE_CLOSEOUT_AND_AUTHORIZE_NEXT_GOVERNANCE_ENTRY
-HANDOFF_READY = YES_FOR_INDEPENDENT_DOCS_AUDIT
+TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_DECISION
+HOSTED_CI_STATE = PASS_EXACT_MERGE_HEAD
+CI_PASS_CLAIMED = YES_FOR_MERGED_HEAD_ONLY
+PENDING_RETRO_CI = YES
+NEXT_STATE = BUILDER_EXECUTION
+EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_AUTHORIZED_GOVERNANCE_PARENT
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+HANDOFF_READY = YES_FOR_BUILDER_EXECUTION
 ```
 
-## Authority and scope
+## Parent PRE authority
 
-PR #76 merged source-child lifecycle reconciliation at merge commit
-`823e33dd34c43dccece8a2d70d248db12c9ee516`; PR #77 recorded its terminal
-governance closeout at `d6b2b01d056f0960e50a66988ee066b63366f151`. These are
-historical evidence. PR #79 merged the RD-0010 increment at
-`5e4c1ad682e62b29077f5a67954c65caf8d07746` from audited feature head
-`89259fcba223084eb4ef2651ce1e675b342ac15b`; live Git/GitHub remains the
-authority for volatile state.
+Human A0 approved Option B: promote FB-0028's role-boot, action-first prompt
+and three-pole mutual-challenge design into one canonical governance contract.
+This Parent changes governance orientation and continuity only; it does not
+authorize product implementation, a new crawler WP, release, Team Bid pilot,
+or premature promotion of FB-0028 into merged Project Memory.
 
-The merged increment proves a confirmed opportunity can open or create the
-safe TenderCase workspace handoff, including exact TBMT revision preservation,
-KHMT provisional PL context without fabricated IB identity, ambiguity
-fail-closed behavior, thin GUI-to-Application Backend delegation and
-restart/reopen. It does not prove package completeness, Vault/recovery/archive,
-deep HSMT, legacy GO/HOLD authority, API evolution, release or Team Bid pilot.
-`WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked, not cancelled.
+The latest governed product unit is WP-TB-BASIC-CRAWLER-01, now terminally
+closed at live main `0482af7b48291f488aee5820b29a10ce8dde883b`. Existing
+release safety, retro-CI debt, and historical PR evidence remain in the
+canonical history; volatile Git/GitHub state must be re-resolved at read-in.
 
-FM-002 remains a release blocker; FM-005 and FM-006 remain authority/API holds;
-FM-008 is non-blocking test debt for this route; FM-010 is contained checkout
-governance. `PENDING_RETRO_CI = YES` blocks official release but does not by
-itself block bounded product design. The post-merge lifecycle check applies
-the relevant Failure Memory, Feedback Ledger and Lessons triggers; `ALWAYS
-CHECK != ALWAYS MODIFY`.
+The Master Roadmap remains authoritative and unchanged. Its high-level
+Planning & Audit Pole is interpreted as a family containing independent
+Planner and Reviewer poles. The Delta remains aligned, with RD-0010 and the
+related Warehouse dependency nodes as the relevant context. `CHECK DELTA OFTEN
+!= WRITE DELTA OFTEN` remains in force.
 
-`LIVE_GIT_HEAD` and `LIVE_MAIN_HEAD` must be resolved from Git at read-in. This
-handoff records the merged PR #79 evidence; a later docs-only handoff commit
-must not be treated as a new code audit target or as a predicted future merge
-SHA. At the next governance entry, check the applicable Failure Memory,
-Feedback Ledger and Lessons triggers; `ALWAYS CHECK != ALWAYS MODIFY`.
+## Entry rule
+
+Before the next governed transition, resolve the canonical checkout, live Git
+and GitHub state, applicable Roadmap/Delta and Context Spine authorities, then
+the role and prompt gates. Material conflict is a hold and escalation, not a
+guess.
