@@ -4,6 +4,9 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased - 2026-08-22
 
+- Bid Radar confirmed opportunities now hand off safely to Tender Workspace,
+  preserving exact IB revisions and creating provisional PL cases without
+  fabricating IB identities.
 - Harden source integrity: preserve immutable raw HTML evidence, scope notice
   identity by source, and make parsed semantic change detection complete and
   deterministic.
