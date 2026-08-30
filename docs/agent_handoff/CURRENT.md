@@ -2,42 +2,45 @@
 
 ## HANDOFF_ID
 
-WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / POST-MERGE CLOSEOUT / PR #77 TERMINAL
+WP-TB-BASIC-CRAWLER-01 / PARENT PRE / TEAM BID DAILY WORKFLOW CLOSURE
 
 ## Status
 
-PR #77 was the terminal post-merge governance closeout and is merged on live
-`main` at the recorded merge commit. The hardening sequence is closed and the
-next decision is the Human review of the existing RD-0010 basic crawler route.
-Full-repository audit status remains HOLD for unrelated findings; no release,
-Team Bid pilot or implementation is authorized by this handoff.
+WP-TB-BASIC-CRAWLER-01 is Human-approved from the exact live-main base and is
+entering bounded implementation. The hardening sequence is closed; this
+Parent owns the confirmed-opportunity to TenderCase workspace handoff. Full
+repository audit status remains HOLD for unrelated findings, and release or
+Team Bid pilot authority is not created by this handoff.
 
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01 / POST-MERGE CLOSEOUT / PR #77 TERMINAL
-HANDOFF_CAPTURE_BASE = d6b2b01d056f0960e50a66988ee066b63366f151
+HANDOFF_ID = WP-TB-BASIC-CRAWLER-01 / PARENT PRE / TEAM BID DAILY WORKFLOW CLOSURE
+HANDOFF_CAPTURE_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
 BASE = c90e86d6b7a27ecb5a1fb681747bd4c3140de97d
 APPROVED_BASE = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
+PARENT_APPROVED_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
 AUDIT_TARGET_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
 LAST_AUDITED_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
 LAST_AUDITED_DOC_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-LIVE_MAIN_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-ACTIVE_PARENT_WP = NONE
+LIVE_MAIN_HEAD = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
+ACTIVE_PARENT_WP = WP-TB-BASIC-CRAWLER-01
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = main
+ACTIVE_BRANCH = feat/team-bid-basic-crawler-01
 LAST_COMPLETED_PARENT_WP = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
 LAST_COMPLETED_PARENT_STATE = MERGED_CLOSED_POST_MERGE_VERIFIED
-PARENT_STATE = MERGED_CLOSED
+PARENT_STATE = A0_APPROVED_ACTIVE
 PRODUCT_FRONTIER = Unified Tender Warehouse
 ACTIVE_PRODUCT_PRIORITY = RD-0010 / TEAM_BID_BASIC_CRAWLER_DAILY_WORKFLOW
 ROADMAP_NODE = RD-0010
+TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF
 SOURCE_INTEGRITY_HARDENING = MERGED_CLOSED
 SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
 CURRENT_HARDENING_SEQUENCE = CLOSED
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 PR_76_STATE = MERGED_CLOSED
 PR_76_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 PR_77_STATE = MERGED_CLOSED
@@ -77,27 +80,26 @@ SOURCE_CHILD_MIGRATION_TARGETED = 25 passed
 RUFF = PASS
 PIP_CHECK = PASS
 DIFF_CHECK = PASS
-EXACTLY_ONE_NEXT_ACTION = HUMAN_REVIEW_AND_APPROVE_WP_TB_BASIC_CRAWLER_01_DESIGN
-NEXT_AUTHORITY = HUMAN_AUTHORITY
-HANDOFF_READY = YES_FOR_PARENT_DESIGN_DECISION
+EXACTLY_ONE_NEXT_ACTION = EXECUTE_WP_TB_BASIC_CRAWLER_01_IMPLEMENTATION
+HANDOFF_READY = YES_FOR_BUILDER_IMPLEMENTATION
 ```
 
 ## Authority and scope
 
 PR #76 merged the source-child lifecycle reconciliation feature at merge
-commit `823e33dd34c43dccece8a2d70d248db12c9ee516`; its audited implementation
-and post-merge verification remain historical evidence. PR #77 then recorded
-the terminal governance closeout, with audited head
-`1bf064100df91eccbc293f212e48a85ecc4b2c78` and live `main` merge commit
-`d6b2b01d056f0960e50a66988ee066b63366f151`. Live Git/GitHub remains the
+commit `823e33dd34c43dccece8a2d70d248db12c9ee516`; PR #77 recorded its
+terminal governance closeout at live-main commit
+`d6b2b01d056f0960e50a66988ee066b63366f151`. Those remain historical evidence.
+The current Parent starts from exact live-main commit
+`bd8e42a6ba2e6914732c11fd013e0abe72b3b792`; live Git/GitHub remains the
 authority for volatile branch, merge and CI state.
 
-The next route is the existing RD-0010 decision: Human review and approval of
-the `WP-TB-BASIC-CRAWLER-01` design. It is not implementation authorization.
-The route is bounded away from source-crawler rewrite, broad GUI/API work,
-legacy GO/HOLD authority, package completeness, Vault/recovery, deep HSMT and
-release mechanics. `WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked,
-not cancelled.
+This approved Parent is bounded to the RD-0010 increment: a confirmed
+opportunity may open or create the safe TenderCase workspace handoff. The
+route is bounded away from source-crawler rewrite, broad GUI/API work, legacy
+GO/HOLD authority, package completeness, Vault/recovery, deep HSMT and release
+mechanics. `WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked, not
+cancelled.
 
 FM-002 remains a release blocker; FM-005 and FM-006 remain authority/API holds;
 FM-008 is non-blocking test debt for this route; FM-010 is contained checkout
