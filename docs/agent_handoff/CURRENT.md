@@ -3,61 +3,64 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01 / PRE
-HANDOFF_CAPTURE_BASE = 0482af7b48291f488aee5820b29a10ce8dde883b
+HANDOFF_ID = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01 / IMPLEMENTATION
+HANDOFF_CAPTURE_BASE = 70027bbc15bd4650751902e54356786fe31c5f27
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
 ACTIVE_PARENT_WP = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
 ACTIVE_MICRO_WP = NONE
 ACTIVE_BRANCH = gov/role-boot-prompt-continuity-01
-PARENT_STATE = AUTHORIZED_ACTIVE
+PARENT_STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
 PARENT_BASE = 0482af7b48291f488aee5820b29a10ce8dde883b
 PRODUCT_FRONTIER = Unified Tender Warehouse
 NEXT_PRODUCT_RETURN_DIRECTION = TEAM_BID_BASIC_CRAWLER
-OBJECTIVE = ROLE_BOOT_PROMPT_CONTINUITY_AND_THREE_POLE_MUTUAL_CHALLENGE
-LATEST_GOVERNED_UNIT = WP-TB-BASIC-CRAWLER-01 / TERMINAL_CLOSED
-LATEST_MERGED_HEAD = 0482af7b48291f488aee5820b29a10ce8dde883b
-LIVE_MAIN_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-RELEVANT_DELTA_IDS = RD-0010; RD-0004; RD-0001; RD-0008; RD-0009
-DELTA_STATE = PASS
-SPINE_FRESHNESS = PASS
-CURRENT_FRESHNESS = PASS_SELF_REFERENTIAL_RECONCILIATION
-ROLE_AUTHORITY_DRIFT = NO
-NEXT_ALIGNMENT = PASS
-LATEST_WP_SPINE_SYNC_AUDIT = PASS
+GOVERNANCE_CANONICAL_FILE = docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md
+PRODUCT_CODE_CHANGED = NO
+FB_0028_IMPLEMENTATION = LOCAL_PENDING_INDEPENDENT_AUDIT
+DELTA_WRITE = NO
+MASTER_ROADMAP_WRITE = NO
+PROJECT_MEMORY_WRITE = NO_PRE_MERGE
+FEEDBACK_WRITE = NO_PRE_MERGE
+FAILURE_MEMORY_WRITE = NO
+LESSONS_WRITE = NO
 RELEASE = NO
-TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_DECISION
-HOSTED_CI_STATE = PASS_EXACT_MERGE_HEAD
-CI_PASS_CLAIMED = YES_FOR_MERGED_HEAD_ONLY
+TEAM_BID_PILOT_ALLOWED = NO
+PUSH = NO
+PR = NO
+MERGE = NO
+HOSTED_CI_STATE = NOT_APPLICABLE_DOCS_ONLY
+CI_PASS_CLAIMED = NO
 PENDING_RETRO_CI = YES
-NEXT_STATE = BUILDER_EXECUTION
-EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_AUTHORIZED_GOVERNANCE_PARENT
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_BUILDER_EXECUTION
+ROLE_BOOT_SOURCE = CANONICAL_ROLE_BOOT_AND_PROMPT_PROFILES
+ROLE_CONTRACT_SOURCE = docs/agent/OPERATING_MODEL.md
+MASTER_ROADMAP_ALIGNMENT = ALIGNED_BY_GOVERNANCE_REFINEMENT
+ROADMAP_CONFLICT = NO
+RELEVANT_DELTA_IDS = RD-0010; RD-0004; RD-0001; RD-0008; RD-0009
+SPINE_IMPACT = GOVERNANCE + CURRENT + HISTORY
+SPINE_TARGET_FILES = AGENTS.md; docs/agent/OPERATING_MODEL.md; docs/agent/MEMORY_INDEX.md; docs/agent/HUMAN_COLLABORATION.md; docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md; docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_parent_pre_wp_gov_role_boot_prompt_continuity_01.md
+SPINE_SYNC_STATE = PASS
+EXACTLY_ONE_NEXT_ACTION = PLANNER_BUILDER_RESULT_REVIEW
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+HANDOFF_READY = YES_FOR_PLANNER_BUILDER_RESULT_REVIEW
 ```
 
-## Parent PRE authority
+## Implementation state
 
-Human A0 approved Option B: promote FB-0028's role-boot, action-first prompt
-and three-pole mutual-challenge design into one canonical governance contract.
-This Parent changes governance orientation and continuity only; it does not
-authorize product implementation, a new crawler WP, release, Team Bid pilot,
-or premature promotion of FB-0028 into merged Project Memory.
+The Role-Boot / Prompt-Continuity Parent is implemented locally as a
+governance-only change. `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` is the
+single detailed source for universal role boot, the Planner/Builder/Reviewer
+profiles, three-pole mutual challenge, action-first prompts, Delta cadence,
+Roadmap comparison, prompt quality and hold/escalation packets. `ROLE_CONTRACT`
+remains canonical in the Operating Model; Human A0 remains the top material
+authority and the Machine Verifier remains evidence-only.
 
-The latest governed product unit is WP-TB-BASIC-CRAWLER-01, now terminally
-closed at live main `0482af7b48291f488aee5820b29a10ce8dde883b`. Existing
-release safety, retro-CI debt, and historical PR evidence remain in the
-canonical history; volatile Git/GitHub state must be re-resolved at read-in.
+The supporting governance documents contain bounded references rather than a
+second copy of the contract. The Roadmap and Delta were read and remain
+aligned; no new Delta or Master Roadmap update was required. FB-0028 is not
+promoted to merged Project Memory before merge. No product code, tests,
+database, release or Team Bid pilot was changed or authorized.
 
-The Master Roadmap remains authoritative and unchanged. Its high-level
-Planning & Audit Pole is interpreted as a family containing independent
-Planner and Reviewer poles. The Delta remains aligned, with RD-0010 and the
-related Warehouse dependency nodes as the relevant context. `CHECK DELTA OFTEN
-!= WRITE DELTA OFTEN` remains in force.
-
-## Entry rule
-
-Before the next governed transition, resolve the canonical checkout, live Git
-and GitHub state, applicable Roadmap/Delta and Context Spine authorities, then
-the role and prompt gates. Material conflict is a hold and escalation, not a
-guess.
+This handoff records local implementation pending independent audit. It does
+not claim Reviewer PASS, remote checkpoint, PR, merge or hosted CI evidence.
+The next governed action is exactly `PLANNER_BUILDER_RESULT_REVIEW` under
+`PLANNER_ARCHITECT` authority.
