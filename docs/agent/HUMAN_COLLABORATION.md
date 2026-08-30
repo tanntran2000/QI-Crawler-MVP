@@ -96,6 +96,14 @@ prescribing a verdict. A `LARGE_BOUNDED_BATCH` may group coherent stages under
 one Approval Lease, but it does not erase stage verification, semantic commit
 boundaries or independent review.
 
+The detailed role-boot and action-first standard is canonical in
+`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. Material prompts are
+ACTION-FIRST and must orient the assigned role before requesting execution.
+Planner, Builder and Reviewer are independent execution-control poles beneath
+Human A0; mutual challenge is evidence and escalation, not voting, and
+`challenge != override`. The receiving agent should not need to ask what action
+is wanted when the prompt satisfies the quality gate.
+
 `CURRENT.md` remains conditionally writable only by the active
 `BUILDER_SINGLE_WRITER` when it is in the approved scope and a governed
 transition trigger with evidence exists. The Builder may record facts and

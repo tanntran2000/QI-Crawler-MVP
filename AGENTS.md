@@ -137,6 +137,19 @@ Historical tags and releases must never be silently moved.
     decision, and must independently reconcile Reviewer evidence before
     recommending merge or next work.
 
+### ROLE BOOT / ACTION-FIRST / MUTUAL CHALLENGE
+
+The canonical detailed boot and prompt contract is
+`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. It orients the independent
+`PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER` and `REVIEWER_AUDITOR` execution-
+control poles beneath Human A0; the Machine Verifier remains evidence-only.
+At relevant new-agent, takeover, Parent and material governance transitions,
+role boot and the prompt quality gate are required after Roadmap/Delta
+reconciliation. Any pole may and must HOLD on a material prompt, authority,
+scope or evidence conflict. Challenge is evidence and escalation, not override
+or a voting mechanism. Delta reconciliation follows the cadence in the
+canonical file (`CHECK DELTA OFTEN != WRITE DELTA OFTEN`).
+
 ### Canonical Context Spine routing
 
 Route accepted or verified material knowledge to the narrowest authority:
