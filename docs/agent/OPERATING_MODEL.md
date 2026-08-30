@@ -54,6 +54,28 @@ SPINE_RESPONSIBILITY
 `ROLE > MODEL NAME`. A role is assigned by `WORK_ORDER`, `CURRENT` and
 `HUMAN_AUTHORITY`, not by ChatGPT, Codex, CI, a tool name or model identity.
 
+## Role boot and action-first prompt orientation
+
+`ROLE_CONTRACT` above remains the canonical role-definition authority.
+`ROLE_BOOT_PROFILE` is the execution-entry orientation built on that contract;
+the detailed profiles, action-first prompt standard and cross-pole challenge
+protocol live in `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`.
+
+When a new agent, Parent, takeover or material governance transition triggers
+boot orientation, the flow is:
+
+```text
+READ MODE → ROADMAP / DELTA → ROLE_BOOT_PROFILE → ROLE_ENTRY_GATE
+→ PROMPT_CONTRACT_CHECK → READY / HOLD
+```
+
+Builder Work Orders and Reviewer Challenge profiles must reference the
+canonical Action-First Prompt Standard and Cross-Pole Challenge Gate.
+Planner, Builder and Reviewer remain independent beneath Human A0; Reviewer
+independence and Human material authority are not collapsed. The Roadmap's
+high-level “Planning & Audit Pole” is a responsibility family, decomposed here
+into independent Planner and Reviewer poles.
+
 ## CANONICAL_CHECKOUT_IDENTITY_GATE
 
 Repository and object conclusions are valid only after the active Builder or

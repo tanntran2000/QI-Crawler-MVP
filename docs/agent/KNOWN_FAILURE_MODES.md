@@ -49,6 +49,29 @@ PREVENTION = WRONG_CHECKOUT is an ENTRY_HOLD and is not baseline drift,
   COMMIT_ABSENT or AUDIT_OBJECT_ABSENT.
 ```
 
+### FM-010 — Forward correction / canonical authority reclassification (GOV-BOOT-D3)
+
+```text
+CORRECTION_FOR = FM-010
+CORRECTION_STATE = FORWARD_CORRECTED_PENDING_AUDIT
+CORRECTION_AUTHORITY = HUMAN_A0 / GOV-BOOT-D
+CORRECTED_ROOT_CAUSE = Canonical checkout authority regression caused by
+  confusing local Git-object availability with Human/governed checkout authority.
+HISTORICAL_SYMPTOM = D lacked an object that existed in C.
+INCORRECT_HISTORICAL_INFERENCE = D therefore must be the wrong/secondary checkout.
+CORRECT_INTERPRETATION = D was canonical but stale.
+REQUIRED_RESPONSE = sync D from origin + controlled exact-object transfer for
+  unpushed history + re-audit on D; never promote C to canonical.
+PERMANENT_PREVENTION = CANONICAL_AUTHORITY = HUMAN / GOVERNED HANDOFF AUTHORITY;
+  CANONICAL_AUTHORITY != FRESHEST_CHECKOUT;
+  NEWEST_OBJECT_LOCATION != CANONICAL_AUTHORITY;
+  OBJECT_MISSING_ON_CANONICAL → HOLD / SYNC / CONTROLLED TRANSFER.
+RECOVERY_EVIDENCE = D0 PASS; D1 PASS; PR72–PR80 REVALIDATED_ON_D;
+  PRODUCT_DEFECT NONE; REMOTE_EVIDENCE PRESERVED;
+  FORMER_C_CHECKOUT PHYSICALLY_REMOVED.
+HISTORY_PRESERVED = YES; Lesson 12 remains valid and unchanged.
+```
+
 When an open failure intersects the active Work Package's capability or layer,
 the Reviewer must revalidate `CURRENT_EVIDENCE` against the exact active/audit
 Git objects before using the entry as blocker, closure evidence or proof.

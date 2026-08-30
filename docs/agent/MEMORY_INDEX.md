@@ -13,22 +13,25 @@ frontier; it does not authorize implementation scope by itself.
 
 1. `AGENTS.md` — durable laws and workspace safety.
 2. `docs/agent/OPERATING_MODEL.md` — roles, authority, and handoff protocol.
-3. `docs/agent/HUMAN_COLLABORATION.md` — Human-facing collaboration
+3. `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` — canonical role boot,
+   action-first prompt and mutual-challenge contract when the transition
+   requires it.
+4. `docs/agent/HUMAN_COLLABORATION.md` — Human-facing collaboration
    preferences and context contract.
-4. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
+5. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
    independent-audit, Parent Integration, and CI-waiver procedure.
-5. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
-6. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
+6. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
+7. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
    README, strategic capability map, and dependencies.
-7. `docs/agent/MASTER_ROADMAP_DELTA.md` — active unresolved product and
+8. `docs/agent/MASTER_ROADMAP_DELTA.md` — active unresolved product and
    architecture evolution companion; mandatory alongside the Master Roadmap.
-8. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
-9. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
-10. Live GitHub state when the Work Package involves a branch, PR, remote
+9. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
+10. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
+11. Live GitHub state when the Work Package involves a branch, PR, remote
    checkpoint, or CI.
-11. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
-12. Relevant entries in `docs/agent/LESSONS.md`.
-13. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+12. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
+13. Relevant entries in `docs/agent/LESSONS.md`.
+14. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
 
 ## Checkout identity gate
 
@@ -55,6 +58,13 @@ before `READY`, `PROMPT_READY`, `START_IMPLEMENTATION` or `START_AUDIT` for
 new-agent/Parent entry, takeover, reassignment or material authority change.
 `ROLE_ENTRY_GATE` and `ROADMAP_ENTRY_GATE` are separate; a role or model name
 does not satisfy the other gate.
+
+When a new Parent, takeover or material governance transition triggers role
+orientation, read the applicable profile in
+`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` and resolve its Action-First
+prompt gate. The canonical Delta cadence remains
+`CHECK DELTA OFTEN != WRITE DELTA OFTEN`; retain `FULL`, `DELTA` and
+`NO_RE_READ` semantics for context depth.
 
 ## Read-in mode selection
 
