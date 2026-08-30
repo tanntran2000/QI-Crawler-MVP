@@ -767,3 +767,36 @@ Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_MASTER_ROADMAP_DELTA
 Promoted to: docs/agent_handoff/CURRENT.md;
   docs/agent/MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0028 — Role Boot, Prompt Continuity & Three-Pole Mutual Challenge
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: GOVERNANCE / PROCESS / HANDOFF
+WP: POST-WP-TB-BASIC-CRAWLER-01 GOVERNANCE FOLLOW-UP
+Observation: Human approved Option B: create one canonical
+docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md in a later bounded governance WP.
+A newly assigned Planner, Builder or Reviewer must resolve ROLE, PHASE,
+FIRST_ACTION, mandatory reads, authority, scope, stop conditions, return packet
+and next authority. Prompt construction is ACTION-FIRST and role-specific.
+Long/material WPs reread and reconcile the Delta at material boundaries, while
+ALWAYS CHECK != ALWAYS MODIFY; every material Delta update is compared with
+MASTER_ROADMAP and a conflict is HOLD → Planner/Human. Planner, Builder and
+Reviewer are three execution-control poles beneath Human A0. Any pole may/must
+HOLD on a material error in another pole's prompt, Work Order, audit, scope,
+baseline, authority, evidence, Delta interpretation, Roadmap interpretation or
+invariant. RIGHT_TO_CHALLENGE != RIGHT_TO_OVERRIDE and
+RIGHT_TO_HOLD != RIGHT_TO_REWRITE_AUTHORITY. Human A0 remains top authority.
+Builder may challenge Planner but may not write a Work Order; Reviewer may HOLD
+but may not edit implementation; Planner may challenge Reviewer evidence but
+may not rewrite independent Reviewer history; unresolved material authority
+conflict escalates to Human.
+Impact: Prevent prompt/context drift and make role takeover executable without
+relying on chat memory.
+Disposition: ACCEPTED / QUEUED_FOR WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
+Promoted to: FEEDBACK_LEDGER now; durable governance files only after the
+later governance WP is implemented, independently audited and merged.
+```

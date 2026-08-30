@@ -413,6 +413,26 @@ Do not add RD-0011 as implemented memory.
   and `RELEASE = NO` / `TEAM_BID_PILOT = NO` remain in force.
 - **Last verified:** `823e33dd34c43dccece8a2d70d248db12c9ee516`.
 
+## MEM-022 — Team Bid confirmed-opportunity workspace handoff
+
+- **State:** ACTIVE
+- **Since main commit:** `5e4c1ad682e62b29077f5a67954c65caf8d07746`.
+- **Contract:** WP-TB-BASIC-CRAWLER-01 merged PR #79 and the bounded
+  confirmed-opportunity to TenderCase workspace handoff. Persisted latest
+  Human review is the handoff authority; a cached GUI confirmation cannot
+  override a later persisted `REJECTED` or `NEEDS_REVIEW` state. TBMT
+  handoff preserves the exact IB revision identity without collapsing
+  revisions. KHMT may open a provisional PL-context TenderCase but never
+  fabricates IB identity. Ambiguous mapping fails closed without mutation.
+- **Delivery:** The path remains thin GUI → Application Backend, and
+  restart/reopen behavior is proven for the handoff.
+- **Evidence:** Independent audit PASS; PR-head CI PASS; post-merge Python CI
+  `33302244508` PASS; post-merge CodeQL `33302244269` PASS.
+- **Boundary:** This does not prove package completeness, Vault/recovery/
+  archive, deep HSMT, legacy GO/HOLD authority, API evolution, release, Team
+  Bid pilot, or the entire Unified Tender Warehouse complete.
+- **Last verified:** `5e4c1ad682e62b29077f5a67954c65caf8d07746`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
