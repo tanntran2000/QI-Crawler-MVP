@@ -800,3 +800,34 @@ Disposition: ACCEPTED / QUEUED_FOR WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
 Promoted to: FEEDBACK_LEDGER now; durable governance files only after the
 later governance WP is implemented, independently audited and merged.
 ```
+
+### FB-0029 — Canonical Checkout Authority Correction
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: GOVERNANCE / CORRECTION / CHECKOUT_AUTHORITY
+WP: WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01 / GOV-BOOT-D3
+Corrects: FB-0024 CHECKOUT-LOCATION INTERPRETATION ONLY
+Observation: A newer Git object being available in a non-canonical checkout
+  did not transfer canonical authority to that checkout. The Human-established
+  canonical checkout was and remains D:\QI Technology\QI Crawler\egp-crawler-python.
+Evidence: GOV-BOOT-D0 transferred exact 9493fb17... to D with Git bundle SHA/tree
+  identity preserved; GOV-BOOT-D1 revalidated PR #72–#80 on D; no product
+  implementation defect was found; remote merge/CI evidence was preserved; the
+  former C checkout was physically removed after decommission gates; D full
+  pytest had 730 passed; Ruff, diff check and fsck passed; tracked tree was clean.
+Impact: Object freshness and object availability must not be used to silently
+  reassign the governed canonical checkout.
+Required laws: NEWEST_OBJECT_LOCATION != CANONICAL_AUTHORITY;
+  OBJECT_PRESENT_ON_NONCANONICAL != AUTHORITY_TRANSFER;
+  OBJECT_MISSING_ON_CANONICAL → HOLD → SYNC / CONTROLLED EXACT-OBJECT TRANSFER;
+  never silently reassign canonical authority.
+Response: Preserve FB-0024's generic repository identity gate as valid while
+  forward-correcting only its checkout-location interpretation.
+Disposition: ACCEPTED / FORWARD_CORRECTION_OF_FB_0024_CHECKOUT_INTERPRETATION
+Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent/KNOWN_FAILURE_MODES.md;
+  docs/agent_handoff/CURRENT.md
+```
