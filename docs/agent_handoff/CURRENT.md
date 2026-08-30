@@ -2,49 +2,48 @@
 
 ## HANDOFF_ID
 
-WP-TB-BASIC-CRAWLER-01 / ACTIVE IMPLEMENTATION / TEAM BID DAILY WORKFLOW CLOSURE
+WP-TB-BASIC-CRAWLER-01 / POST-MERGE CLOSEOUT / PR #79
 
 ## Status
 
-WP-TB-BASIC-CRAWLER-01 is Human-approved from the exact live-main base and its
-bounded implementation is complete locally, pending independent audit. The
-hardening sequence is closed; this Parent owns the confirmed-opportunity to
-TenderCase workspace handoff. Full repository audit status remains HOLD for
-unrelated findings, and release or Team Bid pilot authority is not created by
-this handoff.
+WP-TB-BASIC-CRAWLER-01 is merged and post-merge verified at `5e4c1ad...`.
+PR #79 delivered the bounded confirmed-opportunity to TenderCase workspace
+handoff. The hardening sequence remains closed; unrelated full-repository
+findings remain HOLD, and this closeout creates no release or Team Bid pilot
+authority.
 
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-TB-BASIC-CRAWLER-01 / ACTIVE IMPLEMENTATION / TEAM BID DAILY WORKFLOW CLOSURE
-HANDOFF_CAPTURE_BASE = cdd189c53c401326ea227769496be8bad4826b78
-BASE = c90e86d6b7a27ecb5a1fb681747bd4c3140de97d
+HANDOFF_ID = WP-TB-BASIC-CRAWLER-01 / POST-MERGE CLOSEOUT / PR #79
+HANDOFF_CAPTURE_BASE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
+BASE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
 APPROVED_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
 PARENT_APPROVED_BASE = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
-AUDIT_TARGET_CODE_HEAD = 1aa88469c0088a6ea527df1124852044ac1b8889
-BUILDER_HEAD = 1aa88469c0088a6ea527df1124852044ac1b8889
-LAST_AUDITED_CODE_HEAD = 1020ad2b7ab706e586ad3983cd8f7703185f992c
-LAST_AUDITED_DOC_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
+AUDIT_TARGET_CODE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
+BUILDER_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
+LAST_AUDITED_CODE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
+LAST_AUDITED_DOC_HEAD = 5e4c1ad682e62b29077f5a67954c65caf8d07746
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-LIVE_MAIN_HEAD = bd8e42a6ba2e6914732c11fd013e0abe72b3b792
-ACTIVE_PARENT_WP = WP-TB-BASIC-CRAWLER-01
+LIVE_MAIN_HEAD = 5e4c1ad682e62b29077f5a67954c65caf8d07746
+ACTIVE_PARENT_WP = NONE
 ACTIVE_MICRO_WP = NONE
-ACTIVE_BRANCH = feat/team-bid-basic-crawler-01
-LAST_COMPLETED_PARENT_WP = WP-HARDEN-SOURCE-CHILD-RECONCILIATION-01
+ACTIVE_BRANCH = gov/team-bid-basic-crawler-01-post-merge-closeout
+LAST_COMPLETED_PARENT_WP = WP-TB-BASIC-CRAWLER-01
 LAST_COMPLETED_PARENT_STATE = MERGED_CLOSED_POST_MERGE_VERIFIED
-PARENT_STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PARENT_STATE = MERGED_CLOSED_POST_MERGE_VERIFIED
 PRODUCT_FRONTIER = Unified Tender Warehouse
-ACTIVE_PRODUCT_PRIORITY = RD-0010 / TEAM_BID_BASIC_CRAWLER_DAILY_WORKFLOW
+ACTIVE_PRODUCT_PRIORITY = NONE_POST_MERGE
 ROADMAP_NODE = RD-0010
-TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF
+TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF / MERGED
 TB_A = PASS
 TB_B = PASS
 TB_C = PASS
 SCHEMA_CHANGE = NO
 MIGRATION_CHANGE = NO
-PRODUCT_IMPLEMENTATION = YES_BOUNDED
+PRODUCT_IMPLEMENTATION = MERGED_CLOSED_VERIFIED
 SOURCE_INTEGRITY_HARDENING = MERGED_CLOSED
 SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
 CURRENT_HARDENING_SEQUENCE = CLOSED
@@ -54,30 +53,38 @@ PR_76_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 PR_77_STATE = MERGED_CLOSED
 PR77_AUDITED_HEAD = 1bf064100df91eccbc293f212e48a85ecc4b2c78
 PR77_MERGE = d6b2b01d056f0960e50a66988ee066b63366f151
-POST_MERGE_PYTHON_CI = 33243926937 / PASS
-POST_MERGE_CODEQL = 33243927032 / PASS
+HISTORICAL_POST_MERGE_PYTHON_CI = 33243926937 / PASS
+HISTORICAL_POST_MERGE_CODEQL = 33243927032 / PASS
 POST_MERGE_WINDOWS = 703 PASSED / 1083.99s / 18m03s / BUDGET PASS
 FM_009_RECURRENCE = NO
 FM_014 = MERGED_RESOLVED
 FB_0026 = RESOLVED_PROMOTED
+WP_TB_BASIC_CRAWLER_01 = MERGED_CLOSED_POST_MERGE_VERIFIED
+PRODUCT_MERGE = 5e4c1ad682e62b29077f5a67954c65caf8d07746
+PRODUCT_PR = 79
+AUDITED_FEATURE_HEAD = 89259fcba223084eb4ef2651ce1e675b342ac15b
+POST_MERGE_PYTHON_CI = 33302244508 / PASS
+POST_MERGE_CODEQL = 33302244269 / PASS
+RD_0010_HANDOFF_INCREMENT = PROVEN_AND_MERGED
+NEXT_PARENT_CANDIDATE = WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
+NEXT_PRODUCT_RETURN_DIRECTION = TEAM_BID_BASIC_CRAWLER
 CURRENT_SCHEMA_REVISION = 0019_add_source_child_lifecycle
 FM_002 = OPEN_RELEASE_BLOCKER
-FM_005 = OPEN_AUTHORITY_DEBT_NOT_QUARANTINED
+FM_005 = OPEN_AUTHORITY_DEBT
 FM_006 = OPEN_API_HOLD
 FM_007 = RESOLVED_DO_NOT_LIST_AS_OPEN
 FM_008 = OPEN_TEST_DEBT_NONBLOCKING_FOR_CURRENT_ROUTE
 FM_010 = OPEN_CONTAINED_CHECKOUT_GOVERNANCE
 OPEN_OUT_OF_SCOPE_FINDINGS = FM_002; FM_005; FM_006; FM_008; FM_010
-HOSTED_CI_STATE = NOT_RUN_FOR_CURRENT_IMPLEMENTATION
-CI_PASS_CLAIMED = NO
+HOSTED_CI_STATE = PASS_EXACT_MERGE_HEAD
+CI_PASS_CLAIMED = YES
 PENDING_RETRO_CI = YES
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED_PENDING_RETRO_CI
 TEAM_BID_PILOT_ALLOWED = NO_PENDING_HUMAN_BUSINESS_DECISION
 RELEASE = NO
 FULL_REPO_AUDIT = HOLD
 FULL_REPO_AUDIT_DIRECT_02B_BLOCKERS = NONE
-NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER_UPDATE
-NEXT_PARENT_CANDIDATE = WP-TB-BASIC-CRAWLER-01
+NEXT_PRODUCT_DIRECTION = TEAM_BID_BASIC_CRAWLER
 NEXT_WP_AUTHORIZED = NO
 WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
 WP_WH_RECOVERY_01 = PARKED_NOT_AUTHORIZED
@@ -91,29 +98,27 @@ DIFF_CHECK = PASS
 PUSH = NO
 PR = NO
 MERGE = NO
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_AUDIT_OF_WP_TB_BASIC_CRAWLER_01
-HANDOFF_READY = NO_PENDING_INDEPENDENT_AUDIT
+EXACTLY_ONE_NEXT_ACTION = PLANNER_REVIEW_POST_MERGE_CLOSEOUT_AND_AUTHORIZE_NEXT_GOVERNANCE_ENTRY
+HANDOFF_READY = YES_FOR_INDEPENDENT_DOCS_AUDIT
 ```
 
 ## Authority and scope
 
-PR #76 merged the source-child lifecycle reconciliation feature at merge
-commit `823e33dd34c43dccece8a2d70d248db12c9ee516`; PR #77 recorded its
-terminal governance closeout at live-main commit
-`d6b2b01d056f0960e50a66988ee066b63366f151`. Those remain historical evidence.
-The current Parent starts from exact live-main commit
-`bd8e42a6ba2e6914732c11fd013e0abe72b3b792`; live Git/GitHub remains the
-authority for volatile branch, merge and CI state.
+PR #76 merged source-child lifecycle reconciliation at merge commit
+`823e33dd34c43dccece8a2d70d248db12c9ee516`; PR #77 recorded its terminal
+governance closeout at `d6b2b01d056f0960e50a66988ee066b63366f151`. These are
+historical evidence. PR #79 merged the RD-0010 increment at
+`5e4c1ad682e62b29077f5a67954c65caf8d07746` from audited feature head
+`89259fcba223084eb4ef2651ce1e675b342ac15b`; live Git/GitHub remains the
+authority for volatile state.
 
-This approved Parent is bounded to the RD-0010 increment: a confirmed
-opportunity may open or create the safe TenderCase workspace handoff. The
-bounded implementation is complete locally at builder code head
-`1aa88469c0088a6ea527df1124852044ac1b8889`; it has not yet received an
-independent audit or current-branch hosted CI result. The route is bounded
-away from source-crawler rewrite, broad GUI/API work, legacy GO/HOLD
-authority, package completeness, Vault/recovery, deep HSMT and release
-mechanics. `WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked, not
-cancelled.
+The merged increment proves a confirmed opportunity can open or create the
+safe TenderCase workspace handoff, including exact TBMT revision preservation,
+KHMT provisional PL context without fabricated IB identity, ambiguity
+fail-closed behavior, thin GUI-to-Application Backend delegation and
+restart/reopen. It does not prove package completeness, Vault/recovery/archive,
+deep HSMT, legacy GO/HOLD authority, API evolution, release or Team Bid pilot.
+`WP-WH-COMPLETE-01` and `WP-WH-RECOVERY-01` remain parked, not cancelled.
 
 FM-002 remains a release blocker; FM-005 and FM-006 remain authority/API holds;
 FM-008 is non-blocking test debt for this route; FM-010 is contained checkout
@@ -123,5 +128,7 @@ the relevant Failure Memory, Feedback Ledger and Lessons triggers; `ALWAYS
 CHECK != ALWAYS MODIFY`.
 
 `LIVE_GIT_HEAD` and `LIVE_MAIN_HEAD` must be resolved from Git at read-in. This
-handoff records historical PR #77 evidence and does not predict a future docs
-branch merge SHA.
+handoff records the merged PR #79 evidence; a later docs-only handoff commit
+must not be treated as a new code audit target or as a predicted future merge
+SHA. At the next governance entry, check the applicable Failure Memory,
+Feedback Ledger and Lessons triggers; `ALWAYS CHECK != ALWAYS MODIFY`.
