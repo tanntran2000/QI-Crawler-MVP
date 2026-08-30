@@ -480,7 +480,6 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_import_button,
             self.bid_radar_export_button,
             self.bid_radar_legal_button,
-            self.bid_radar_workspace_button,
             self.login_button,
             self.document_import_button,
             self.document_web_button,
