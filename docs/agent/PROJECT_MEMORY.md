@@ -476,8 +476,14 @@ Do not add RD-0011 as implemented memory.
   recovery/archive or deep HSMT.
 - **Evidence:** Micro-A and the separate real PDF document lane were
   independently exercised against the merged Minimum Safe Warehouse
-  behavior; Micro-C closure remains pending independent audit.
-- **Last verified:** `b74540e0907282b664e6df31881d5aee4ad73981`.
+  behavior; Micro-C closure was independently audited and merged with Parent
+  02. PR #82 merged at `54a0c53fdb5d38e208c4fd66d126b20e971f00f5` from audited
+  head `03056fe147c3263cf8fb2ea39e63dc239e35fffe`.
+- **Post-merge verification:** Python CI run `33384009634 / PASS` and CodeQL
+  run `33384009691 / PASS` are recorded for the merged main state.
+- **Parent-03 boundary:** Revision transition and controlled folder intake are
+  Human-approved design only; no Parent-03 implementation is promoted here.
+- **Last verified:** `54a0c53fdb5d38e208c4fd66d126b20e971f00f5`.
 
 ## Explicitly not promoted
 

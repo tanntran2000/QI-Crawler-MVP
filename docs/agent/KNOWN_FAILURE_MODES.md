@@ -319,10 +319,16 @@ WHY_EXISTING_TESTS_MISSED_IT = Functional correctness tests detect assertion fai
 CI_IMPLICATION = A repeated timeout or cancellation is not PASS and is not automatically a product regression. Preserve exact-run timing evidence, compare healthy and degraded executions, perform bounded attribution, and only then alter a runtime budget. Hosted CI waiver is not justified while hosted CI itself is functioning.
 FIX = Raise only the Windows 3.12 hard job ceiling from 25 to 35 minutes after root-cause-class investigation; retain full regression and runtime attribution unchanged.
 FIX_HEAD = db19f42985030f2b154804f959fca615c523a06e
-REGRESSION_GUARD = The full Windows 3.12 required gate remains mandatory. A future execution that exceeds the 35-minute ceiling must HOLD and reopen runtime/test-harness investigation instead of recursively increasing the timeout.
+REGRESSION_GUARD = The full Windows 3.12 required gate remains mandatory. A future execution that exceeds the 45-minute ceiling must HOLD and reopen runtime/test-harness investigation instead of recursively increasing the timeout.
 INDEPENDENT_AUDIT = PASS
 CURRENT_EVIDENCE = PR #64 merged feature head db19f42985030f2b154804f959fca615c523a06e; merge commit d10445fc2ffc92e810f0d6258160151efc1c846f; exact-head local 628 passed in 253.40s; exact merged-head Python CI run 32987119489 passed all four required jobs with no CI waiver; Windows 3.12 passed under the bounded 35-minute ceiling. Earlier evidence remains: exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; healthy hosted Windows 628 PASS in approximately 709s; two hosted executions reached 620 PASS in approximately 1404-1425s before cancellation without assertion failure; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally.
-PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement.
+FORWARD_CORRECTION = PR #82 changed only the Windows 3.12 timeout from 35 to 45 minutes after the two reproduced 35-minute cancellations; product and test behavior were unchanged.
+FORWARD_CORRECTION_HEAD = 03056fe147c3263cf8fb2ea39e63dc239e35fffe
+EXACT_HEAD_PYTHON_CI = 33381474192 / PASS
+POST_MERGE_MAIN_PYTHON_CI = 33384009634 / PASS
+POST_MERGE_MAIN_CODEQL = 33384009691 / PASS
+CURRENT_WINDOWS_CEILING = 45_MINUTES
+PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement. Another material breach of the 45-minute ceiling requires renewed attribution and HOLD; do not recursively inflate the timeout.
 ```
 
 ## FM-011 — Mutable URL-keyed raw HTML evidence
