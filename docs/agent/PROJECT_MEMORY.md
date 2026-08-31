@@ -433,6 +433,25 @@ Do not add RD-0011 as implemented memory.
   Bid pilot, or the entire Unified Tender Warehouse complete.
 - **Last verified:** `5e4c1ad682e62b29077f5a67954c65caf8d07746`.
 
+## MEM-023 — Role Boot, Prompt Continuity & Canonical Checkout Recovery
+
+- **State:** ACTIVE
+- **Since main commit:** 2826f8c6735fcf68f405a01386d6ab4e63476e57.
+- **Contract:** PR #81 merged the canonical Role Boot / Prompt Continuity
+  governance contract. It defines Action-First role prompts, Planner/Builder/
+  Reviewer mutual challenge, mandatory Roadmap/Delta reconciliation cadence,
+  and canonical checkout authority independent of Git-object freshness.
+- **Canonical checkout:** D:\QI Technology\QI Crawler\egp-crawler-python;
+  the former C checkout was physically removed.
+- **Evidence:** Audited head 41b7a1056b9bb2d69922a60282bba9846e7e2128;
+  merge commit 2826f8c6735fcf68f405a01386d6ab4e63476e57; canonical-D
+  retrospective and D4 forward-correction audits PASS; PR #72–#80 were
+  revalidated on D; post-merge Python CI run 33322155713 and CodeQL passed.
+- **Boundary:** FB-0024's generic checkout identity law remains valid;
+  FB-0029 corrects only its C/D authority interpretation. No product
+  capability, release or Team Bid pilot authority is promoted by this memory.
+- **Last verified:** 2826f8c6735fcf68f405a01386d6ab4e63476e57.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

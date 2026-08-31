@@ -771,7 +771,7 @@ Promoted to: docs/agent_handoff/CURRENT.md;
 ### FB-0028 — Role Boot, Prompt Continuity & Three-Pole Mutual Challenge
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 Authority: A0 HUMAN_DECISION
@@ -796,15 +796,16 @@ may not rewrite independent Reviewer history; unresolved material authority
 conflict escalates to Human.
 Impact: Prevent prompt/context drift and make role takeover executable without
 relying on chat memory.
-Disposition: ACCEPTED / QUEUED_FOR WP-GOV-ROLE-BOOT-PROMPT-CONTINUITY-01
-Promoted to: FEEDBACK_LEDGER now; durable governance files only after the
-later governance WP is implemented, independently audited and merged.
+Disposition: PROMOTED / MERGED_DURABLE_GOVERNANCE_STATE
+Promoted to: AGENTS.md; docs/agent/OPERATING_MODEL.md;
+  docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md; docs/agent/MEMORY_INDEX.md;
+  docs/agent/HUMAN_COLLABORATION.md; docs/agent/PROJECT_MEMORY.md / MEM-023
 ```
 
 ### FB-0029 — Canonical Checkout Authority Correction
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 Authority: A0 HUMAN_DECISION
@@ -819,6 +820,8 @@ Evidence: GOV-BOOT-D0 transferred exact 9493fb17... to D with Git bundle SHA/tre
   implementation defect was found; remote merge/CI evidence was preserved; the
   former C checkout was physically removed after decommission gates; D full
   pytest had 730 passed; Ruff, diff check and fsck passed; tracked tree was clean.
+Merge evidence: PR #81 merged at 2826f8c6735fcf68f405a01386d6ab4e63476e57;
+  GOV-BOOT-D4 independent audit PASS.
 Impact: Object freshness and object availability must not be used to silently
   reassign the governed canonical checkout.
 Required laws: NEWEST_OBJECT_LOCATION != CANONICAL_AUTHORITY;
@@ -827,7 +830,7 @@ Required laws: NEWEST_OBJECT_LOCATION != CANONICAL_AUTHORITY;
   never silently reassign canonical authority.
 Response: Preserve FB-0024's generic repository identity gate as valid while
   forward-correcting only its checkout-location interpretation.
-Disposition: ACCEPTED / FORWARD_CORRECTION_OF_FB_0024_CHECKOUT_INTERPRETATION
+Disposition: PROMOTED / MERGED_DURABLE_GOVERNANCE_STATE
 Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent/KNOWN_FAILURE_MODES.md;
-  docs/agent_handoff/CURRENT.md
+  docs/agent/PROJECT_MEMORY.md / MEM-023; docs/agent_handoff/CURRENT.md
 ```
