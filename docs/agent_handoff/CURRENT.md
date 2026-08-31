@@ -3,8 +3,8 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-TB-BASIC-CRAWLER-02 / MICRO-C
-HANDOFF_CAPTURE_BASE = b74540e0907282b664e6df31881d5aee4ad73981
+HANDOFF_ID = WP-TB-BASIC-CRAWLER-02 / PARENT-TERMINAL-CLOSEOUT
+HANDOFF_CAPTURE_BASE = 6dc5468a45dd6a2fb5155a623218e41d57618b63
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
 AUDIT_TARGET_CODE_HEAD = N/A_DOCS_ONLY
@@ -14,15 +14,17 @@ LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
 LIVE_MAIN_HEAD = 2826f8c6735fcf68f405a01386d6ab4e63476e57
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 ACTIVE_PARENT_WP = WP-TB-BASIC-CRAWLER-02
-ACTIVE_MICRO_WP = MICRO-C_VERTICAL_OPERATIONAL_CLOSURE
+ACTIVE_MICRO_WP = NONE_PARENT_TERMINAL
 ACTIVE_BRANCH = tb/basic-crawler-02-operational-closure
 PARENT_BASE = 2826f8c6735fcf68f405a01386d6ab4e63476e57
+PARENT_HEAD = REVERIFY_FROM_GIT_AFTER_COMMIT
 PRODUCT_FRONTIER = Unified Tender Warehouse
 PRIMARY_DELTA = RD-0010
-PARENT_STATE = MICRO_C_CLOSURE_PENDING_INDEPENDENT_AUDIT
+PARENT_STATE = CLOSED_PENDING_HUMAN_PUSH_PR_AUTHORITY
+PARENT_IMPLEMENTATION_STATE = OPERATIONAL_ACCEPTANCE_CLOSED
 MICRO_A = GATE_A_PASS
 MICRO_B = SKIPPED_NO_MATERIAL_BLOCKER
-MICRO_C = COMPLETE_PENDING_INDEPENDENT_AUDIT
+MICRO_C = INDEPENDENT_CLOSURE_AUDIT_PASS
 GROUND_TRUTH_HANDOFF = PROVEN
 DOCUMENT_PDF_LIFECYCLE = PROVEN
 CROSS_TENDER_ISOLATION = PROVEN
@@ -39,53 +41,58 @@ LIVE_DATA_MUTATED = NO
 STORAGE_LAYOUT_NAMING = manual_upload/unlinked
 MINIMUM_SAFE_WAREHOUSE = PROVEN
 MASTER_ROADMAP_ALIGNMENT = ALIGNED
+PROJECT_MEMORY_ALIGNMENT = ALIGNED
 PRODUCT_HOUSE_ALIGNMENT = PASS
 ROADMAP_CONFLICT = NO
+RD_0010_TERMINAL_RECONCILIATION = YES
+PROJECT_MEMORY_WRITE_REQUIRED = NO
+MEM_024_UNCHANGED = YES
 RELEASE = NO
 TEAM_BID_PILOT_ALLOWED = NO
 DELTA_WRITE = YES
 MASTER_ROADMAP_WRITE = NO
-PROJECT_MEMORY_WRITE = YES
 FEEDBACK_WRITE = NO
 FAILURE_MEMORY_WRITE = NO
 LESSONS_WRITE = NO
 HOSTED_CI_STATE = PASS_EXACT_MAIN_BASELINE
 CI_PASS_CLAIMED = YES_FOR_MAIN_BASELINE_ONLY
 PENDING_RETRO_CI = YES
-SPINE_IMPACT = MULTIPLE
-SPINE_TARGET_FILES = docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md; docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_post_wp_tb_basic_crawler_02_micro_c.md
+SPINE_IMPACT = DELTA_AND_HANDOFF
+SPINE_TARGET_FILES = docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_parent_close_wp_tb_basic_crawler_02.md
 SPINE_SYNC_STATE = PASS
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_MICRO_C_CLOSURE_AUDIT
-NEXT_AUTHORITY = REVIEWER_AUDITOR
-HANDOFF_READY = YES_FOR_INDEPENDENT_MICRO_C_CLOSURE_AUDIT
+EXACTLY_ONE_NEXT_ACTION = HUMAN_A0_PUSH_PR_DECISION
+NEXT_STATE = HUMAN_A0_PUSH_PR_DECISION
+NEXT_AUTHORITY = HUMAN_A0
+HANDOFF_READY = YES_FOR_HUMAN_PUSH_PR_DECISION
 PUSH = NO
 PR = NO
 MERGE = NO
 ```
 
-## Implementation state
+## Parent terminal state
 
-WP-TB-BASIC-CRAWLER-02 is in its documentation-only Micro-C closure lane.
-Micro-A Gate-A is independently proven for the Ground Truth case
+WP-TB-BASIC-CRAWLER-02 is locally closed after the independently audited
+Micro-C closure. Micro-A Gate-A is proven for the Ground Truth case
 `IB2600462391-00`: source-backed observation, persisted Human confirmation,
 fresh re-read, exact IB handoff, stale-confirmation fail-closed behavior and
 restart/search/reopen. Micro-B was skipped because no material blocker was
-proven.
+proven. Micro-C is independently audited PASS.
 
-The separate document lane for `IB2500585490-00` independently proves genuine
-PDF intake, exact release membership, `SOURCE_E_HSMT` authority,
-managed-copy survival after disposable-input deletion, SHA/byte identity,
-restart/search/reopen, controlled isolated export and zero cross-tender
-contamination. `manual_upload/unlinked` is storage-layout naming only; the
-database membership and workspace zone remain authoritative.
+The separate document lane for `IB2500585490-00` proves genuine PDF intake,
+exact release membership, `SOURCE_E_HSMT` authority, managed-copy survival
+after disposable-input deletion, SHA/byte identity, restart/search/reopen,
+controlled isolated export and zero cross-tender contamination.
+`manual_upload/unlinked` is storage-layout naming only; database membership
+and workspace zone remain authoritative.
 
 Residual evidence gaps remain explicit and are not promoted to PASS:
-DOCX role/authority, reference-authority separation, multi-revision
-operational proof and same-package end-to-end proof. This transition adds no
-product code, tests, schema, migration or live-data change. The isolated
-acceptance database and document roots are disposable evidence only.
+same-package end-to-end proof, DOCX role/authority, reference-authority
+separation and multi-revision operational proof. MEM-024 already contains the
+durable Micro-C facts, so this terminal reconciliation creates no new memory.
+It adds no product code, tests, schema, migration or live-data change.
 
-The next governed action is exactly
-`INDEPENDENT_MICRO_C_CLOSURE_AUDIT` under `REVIEWER_AUDITOR` authority.
-`CURRENT.md` is an actionable handoff, not a diary, roadmap, review report or
-chat transcript.
+The parent is closed locally but still awaits Human A0 push/PR authority.
+No future PR number, merge SHA, release or pilot authorization is predicted.
+The next governed action is exactly `HUMAN_A0_PUSH_PR_DECISION` under
+`HUMAN_A0` authority. `CURRENT.md` is an actionable handoff, not a diary,
+roadmap, review report or chat transcript.
