@@ -452,6 +452,33 @@ Do not add RD-0011 as implemented memory.
   capability, release or Team Bid pilot authority is promoted by this memory.
 - **Last verified:** 2826f8c6735fcf68f405a01386d6ab4e63476e57.
 
+## MEM-024 — Basic Crawler Real Operational Acceptance
+
+- **State:** ACTIVE
+- **Since main commit:** `2826f8c6735fcf68f405a01386d6ab4e63476e57`.
+- **Contract:** WP-TB-BASIC-CRAWLER-02 Micro-A Gate-A independently proves
+  the Ground Truth case `IB2600462391-00`: a source-backed observation
+  persists a Human `CONFIRMED` decision, survives a fresh re-read, and
+  hands off to the exact IB TenderCase/release; a newer persisted
+  `REJECTED` decision blocks a stale confirmation. The separate document
+  lane for `IB2500585490-00` proves genuine PDF intake, exact release
+  membership, `SOURCE_E_HSMT` authority, managed-copy survival after
+  disposable-input deletion, SHA/byte identity, restart/search/reopen and
+  isolated controlled export; observed cross-tender contamination is zero.
+- **Storage boundary:** `manual_upload/unlinked` is storage-layout naming,
+  not package-membership authority. Database membership and workspace zone
+  remain authoritative. Live data is untouched; acceptance writes use an
+  isolated database and document root.
+- **Micro-C boundary:** Micro-B was skipped because no material blocker was
+  proven. DOCX role/authority, reference-authority separation, multi-revision
+  operational proof and same-package end-to-end proof remain
+  `NOT_PROVEN`; this memory does not promote release, pilot, completeness,
+  recovery/archive or deep HSMT.
+- **Evidence:** Micro-A and the separate real PDF document lane were
+  independently exercised against the merged Minimum Safe Warehouse
+  behavior; Micro-C closure remains pending independent audit.
+- **Last verified:** `b74540e0907282b664e6df31881d5aee4ad73981`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
