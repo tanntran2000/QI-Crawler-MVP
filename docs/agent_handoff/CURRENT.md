@@ -25,10 +25,12 @@ PARENT_STATE = ACTIVE_MICRO_A_INDEPENDENT_AUDIT_PASS_PENDING_MICRO_B_AUTHORIZATI
 DESIGN_APPROVAL = HUMAN_A0_APPROVED
 MICRO_A = INDEPENDENT_AUDIT_PASS
 MICRO_A_AUDITED_HEAD = 818945f2d7f4dce6b3791c94ca6dfe8c5ebd96d2
-START_PRODUCT_IMPLEMENTATION = NO_MICRO_A_EVIDENCE_FIRST
+START_PRODUCT_IMPLEMENTATION = NO_PENDING_MICRO_A_POST_SPINE_AUDIT
 MICRO_B = CONDITIONAL_NOT_AUTHORIZED
 MICRO_B1 = CONTROLLED_FOLDER_INTAKE_AND_PACKAGE_SCOPED_NAMING
+MICRO_B1_STATE = PLANNER_SELECTED_PENDING_SPINE_AUDIT
 MICRO_B2 = OPERATIONAL_REVISION_TRANSITION_AND_ADJACENT_DIFF
+MICRO_B2_STATE = PLANNED_NOT_STARTED
 MICRO_C = NOT_STARTED
 RD_0008 = PARKED_NOT_AUTHORIZED
 RD_0009 = PARKED_NOT_AUTHORIZED
@@ -72,17 +74,18 @@ TEAM_BID_PILOT_ALLOWED = NO
 PUSH = NO
 PR = NO
 MERGE = NO
-SPINE_SYNC_STATE = PASS
-EXACTLY_ONE_NEXT_ACTION = PLANNER_MICRO_B1_ENTRY_REVIEW
-NEXT_STATE = PLANNER_MICRO_B1_ENTRY_REVIEW
-NEXT_AUTHORITY = PLANNER_ARCHITECT
-HANDOFF_READY = YES_FOR_PLANNER_MICRO_B1_ENTRY_REVIEW
+SPINE_SYNC_STATE = PENDING_INDEPENDENT_MICRO_A_POST_AUDIT
+EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_MICRO_A_POST_SPINE_AUDIT
+NEXT_STATE = INDEPENDENT_MICRO_A_POST_SPINE_AUDIT
+NEXT_AUTHORITY = REVIEWER_AUDITOR
+HANDOFF_READY = NO
 ```
 
 ## Micro-A evidence state
 
-Micro-A has passed independent evidence review and is pending Planner
-authorization for the bounded Micro-B1/Micro-B2 corrections. No Parent-03 product
+Micro-A has passed its evidence review, but its post-Spine authority audit is
+still pending. Micro-B1 is planner-selected pending that audit; Micro-B2 remains
+planned and not started. No Parent-03 product
 implementation was started. The bounded local source search found one real
 source-backed lineage, `IB2600462391-00`, in the existing workbook
 `D:\QI Technology\QI Crawler\business-data\TBMT_19_8_2026.xlsx` (sheet
@@ -108,6 +111,6 @@ does not repair it; any fix requires a separately authorized Micro-B scope.
 Existing targeted evidence is green: `tests/test_tender_workspace.py` passed
 6 tests and the bounded workspace/case/persistence/bundle/intake suite passed
 55 tests. Ruff and the documentation diff check pass. The exactly-one next
-action is `PLANNER_MICRO_B1_ENTRY_REVIEW` under `PLANNER_ARCHITECT` authority.
-This file is an actionable handoff, not a diary, roadmap, review report or chat
-transcript.
+action is `INDEPENDENT_MICRO_A_POST_SPINE_AUDIT` under `REVIEWER_AUDITOR`
+authority. This file is an actionable handoff, not a diary, roadmap, review
+report or chat transcript.
