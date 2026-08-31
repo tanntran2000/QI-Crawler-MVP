@@ -433,6 +433,52 @@ Do not add RD-0011 as implemented memory.
   Bid pilot, or the entire Unified Tender Warehouse complete.
 - **Last verified:** `5e4c1ad682e62b29077f5a67954c65caf8d07746`.
 
+## MEM-023 — Role Boot, Prompt Continuity & Canonical Checkout Recovery
+
+- **State:** ACTIVE
+- **Since main commit:** 2826f8c6735fcf68f405a01386d6ab4e63476e57.
+- **Contract:** PR #81 merged the canonical Role Boot / Prompt Continuity
+  governance contract. It defines Action-First role prompts, Planner/Builder/
+  Reviewer mutual challenge, mandatory Roadmap/Delta reconciliation cadence,
+  and canonical checkout authority independent of Git-object freshness.
+- **Canonical checkout:** D:\QI Technology\QI Crawler\egp-crawler-python;
+  the former C checkout was physically removed.
+- **Evidence:** Audited head 41b7a1056b9bb2d69922a60282bba9846e7e2128;
+  merge commit 2826f8c6735fcf68f405a01386d6ab4e63476e57; canonical-D
+  retrospective and D4 forward-correction audits PASS; PR #72–#80 were
+  revalidated on D; post-merge Python CI run 33322155713 and CodeQL passed.
+- **Boundary:** FB-0024's generic checkout identity law remains valid;
+  FB-0029 corrects only its C/D authority interpretation. No product
+  capability, release or Team Bid pilot authority is promoted by this memory.
+- **Last verified:** 2826f8c6735fcf68f405a01386d6ab4e63476e57.
+
+## MEM-024 — Basic Crawler Real Operational Acceptance
+
+- **State:** ACTIVE
+- **Since main commit:** `2826f8c6735fcf68f405a01386d6ab4e63476e57`.
+- **Contract:** WP-TB-BASIC-CRAWLER-02 Micro-A Gate-A independently proves
+  the Ground Truth case `IB2600462391-00`: a source-backed observation
+  persists a Human `CONFIRMED` decision, survives a fresh re-read, and
+  hands off to the exact IB TenderCase/release; a newer persisted
+  `REJECTED` decision blocks a stale confirmation. The separate document
+  lane for `IB2500585490-00` proves genuine PDF intake, exact release
+  membership, `SOURCE_E_HSMT` authority, managed-copy survival after
+  disposable-input deletion, SHA/byte identity, restart/search/reopen and
+  isolated controlled export; observed cross-tender contamination is zero.
+- **Storage boundary:** `manual_upload/unlinked` is storage-layout naming,
+  not package-membership authority. Database membership and workspace zone
+  remain authoritative. Live data is untouched; acceptance writes use an
+  isolated database and document root.
+- **Micro-C boundary:** Micro-B was skipped because no material blocker was
+  proven. DOCX role/authority, reference-authority separation, multi-revision
+  operational proof and same-package end-to-end proof remain
+  `NOT_PROVEN`; this memory does not promote release, pilot, completeness,
+  recovery/archive or deep HSMT.
+- **Evidence:** Micro-A and the separate real PDF document lane were
+  independently exercised against the merged Minimum Safe Warehouse
+  behavior; Micro-C closure remains pending independent audit.
+- **Last verified:** `b74540e0907282b664e6df31881d5aee4ad73981`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

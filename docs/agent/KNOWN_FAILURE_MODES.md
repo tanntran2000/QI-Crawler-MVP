@@ -29,9 +29,9 @@ release contract explicitly makes it a gate.
 ```text
 ID = FM-010
 TITLE = Secondary checkout caused false exact-object audit failure
-STATE = OPEN
+STATE = MERGED
 SEVERITY = IMPORTANT
-DISPOSITION = CONTAINED_PENDING_SECONDARY_REPOSITORY_DECISION
+DISPOSITION = RESOLVED_BY_FORWARD_CANONICAL_AUTHORITY_CORRECTION
 DETECTED_BY = WP-WH-OPS-01 independent audit
 BASELINE = post-PR71 / WP-WH-OPS-01 local audit
 LAYER = ENGINEERING TOOLBOX / GOVERNANCE / GIT PROVENANCE
@@ -41,19 +41,27 @@ ROOT_CAUSE = The prior one-checkout rule named a repository but did not require
   absolute path, git-common-dir or origin identity proof. Existing tests did not
   cover cross-checkout governance provenance.
 CI_IMPLICATION = NONE_DIRECT
-FIX_HEAD = NOT_FIXED
+FIX_HEAD = 41b7a1056b9bb2d69922a60282bba9846e7e2128
 FIX = Require the canonical checkout identity gate before object conclusions;
   the Work Order declares WHERE and Builder/Reviewer independently prove WHERE
   plus WHAT.
 PREVENTION = WRONG_CHECKOUT is an ENTRY_HOLD and is not baseline drift,
   COMMIT_ABSENT or AUDIT_OBJECT_ABSENT.
+AUTHORITATIVE_CORRECTION = D was Human-authorized canonical but stale.
+MERGE_EVIDENCE = 2826f8c6735fcf68f405a01386d6ab4e63476e57
+INDEPENDENT_AUDIT = GOV-BOOT-D4 PASS
+CANONICAL_AUTHORITY = HUMAN / GOVERNED HANDOFF AUTHORITY
+CANONICAL_AUTHORITY != FRESHEST_CHECKOUT
+NEWEST_OBJECT_LOCATION != CANONICAL_AUTHORITY
+FORMER_C_CHECKOUT = PHYSICALLY_REMOVED
+LESSON_12 = UNCHANGED
 ```
 
-### FM-010 — Forward correction / canonical authority reclassification (GOV-BOOT-D3)
+### Forward correction for FM-010 — canonical authority reclassification (GOV-BOOT-D3)
 
 ```text
 CORRECTION_FOR = FM-010
-CORRECTION_STATE = FORWARD_CORRECTED_PENDING_AUDIT
+CORRECTION_STATE = MERGED
 CORRECTION_AUTHORITY = HUMAN_A0 / GOV-BOOT-D
 CORRECTED_ROOT_CAUSE = Canonical checkout authority regression caused by
   confusing local Git-object availability with Human/governed checkout authority.
@@ -69,6 +77,7 @@ PERMANENT_PREVENTION = CANONICAL_AUTHORITY = HUMAN / GOVERNED HANDOFF AUTHORITY;
 RECOVERY_EVIDENCE = D0 PASS; D1 PASS; PR72–PR80 REVALIDATED_ON_D;
   PRODUCT_DEFECT NONE; REMOTE_EVIDENCE PRESERVED;
   FORMER_C_CHECKOUT PHYSICALLY_REMOVED.
+MERGE_EVIDENCE = PR #81 / 2826f8c6735fcf68f405a01386d6ab4e63476e57
 HISTORY_PRESERVED = YES; Lesson 12 remains valid and unchanged.
 ```
 
