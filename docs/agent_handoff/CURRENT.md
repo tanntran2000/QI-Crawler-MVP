@@ -3,88 +3,106 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-TB-BASIC-CRAWLER-03 / PARENT-PRE
-HANDOFF_CAPTURE_BASE = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
+HANDOFF_ID = WP-TB-BASIC-CRAWLER-03 / MICRO-A
+HANDOFF_CAPTURE_BASE = 3c3b277a5828175f0a43148fb48aabcc0ac9d310
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = 38d94877f67818a8ddbc33e7e6b0b05e1f9f59a6
-AUDIT_TARGET_CODE_HEAD = N/A_DOCS_ONLY
-LAST_AUDITED_CODE_HEAD = N/A_DOCS_ONLY
-LAST_AUDITED_DOC_HEAD = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
+AUDIT_TARGET_CODE_HEAD = N/A_MICRO_A_EVIDENCE_ONLY
+LAST_AUDITED_CODE_HEAD = N/A_MICRO_A_EVIDENCE_ONLY
+LAST_AUDITED_DOC_HEAD = 3c3b277a5828175f0a43148fb48aabcc0ac9d310
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
 LIVE_MAIN_HEAD = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 ACTIVE_PARENT_WP = WP-TB-BASIC-CRAWLER-03
-ACTIVE_MICRO_WP = NONE_PARENT_PRE
+ACTIVE_MICRO_WP = MICRO-A_REAL_REVISION_ACCEPTANCE_AND_BLOCKER_DISCOVERY
 ACTIVE_BRANCH = tb/basic-crawler-03-revision-intake
 PARENT_BASE = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
 PRODUCT_FRONTIER = Unified Tender Warehouse
 PRIMARY_DELTA = RD-0010
 SUPPORTING_DELTA = RD-0001
 SEQUENCING_DELTA = RD-0004
-PARENT_STATE = PREPARED_PENDING_INDEPENDENT_AUDIT
+PARENT_STATE = ACTIVE_MICRO_A_EVIDENCE_COMPLETE_PENDING_PLANNER_REVIEW
 DESIGN_APPROVAL = HUMAN_A0_APPROVED
-CURRENT_VERIFIED_PRODUCT_GAP = REAL_REVISION_TRANSITION_AND_HUMAN_CONTROLLED_FOLDER_INTAKE
-MICRO_A = NOT_STARTED_PENDING_PRE_AUDIT
+MICRO_A = EVIDENCE_COMPLETE_PENDING_PLANNER_REVIEW
+START_PRODUCT_IMPLEMENTATION = NO_MICRO_A_EVIDENCE_FIRST
 MICRO_B = CONDITIONAL_NOT_AUTHORIZED
 MICRO_C = NOT_STARTED
-START_PRODUCT_IMPLEMENTATION = NO_PENDING_PRE_AUDIT
 RD_0008 = PARKED_NOT_AUTHORIZED
 RD_0009 = PARKED_NOT_AUTHORIZED
 DEEP_HSMT = NOT_AUTHORIZED
 API_EVOLUTION = HOLD
-MEM_024 = FORWARD_RECONCILED
-FB_0030 = ACCEPTED_ROUTED_TO_RD_0010_AND_PARENT_03_DESIGN
-FM_009 = FORWARD_RECONCILED
-MASTER_ROADMAP_ALIGNMENT = ALIGNED
-PRODUCT_HOUSE_ALIGNMENT = PASS
-ROADMAP_CONFLICT = NO
-SPINE_SYNC_STATE = PENDING_INDEPENDENT_PRE_AUDIT
-PROJECT_MEMORY_WRITE = YES_MEM_024_FORWARD_RECONCILIATION
-FEEDBACK_WRITE = YES_FB_0030
-FAILURE_MEMORY_WRITE = YES_FM_009_RECONCILIATION
+REAL_LINEAGE = IB2600462391 / SINGLE_REVISION_ONLY
+REAL_REVISIONS = IB2600462391-00 ONLY; NO SECOND REVISION FOUND
+REAL_SOURCE_PROVENANCE = D:\QI Technology\QI Crawler\business-data\TBMT_19_8_2026.xlsx; sheet Bản tin điện tử; row 38; source-backed metadata only
+FOLDER_DISCOVERY_BEHAVIOR = READ_ENUMERATION_THEN_AUTO_INTAKE_AND_MEMBERSHIP
+FOLDER_DISCOVERY_REPRODUCTION = PASS_ISOLATED_TEMP_DB; 2 MEMBERSHIPS AND 2 WORKSPACE_ENTRIES BEFORE CONFIRMATION
+HUMAN_CONFIRMATION_BOUNDARY = ABSENT
+LATEST_OPERATIONAL_REVISION = ABSENT
+NO_DOWNGRADE = ABSENT
+REVISION_MISMATCH_HOLD = PARTIAL_SOURCE_REPLACEMENT_GUARD_ONLY
+PREVIOUS_LATEST_COMPARE = ABSENT
+OLD_REVISION_PRESERVATION = PROVEN_STRUCTURALLY_APPEND_ONLY_EXACT_RELEASES
+DOCX_ROLE_AUTHORITY = PARTIAL
+REFERENCE_AUTHORITY_SEPARATION = PARTIAL_EXPLICIT_REFERENCE_ONLY_GUARD
+MANAGED_SHORT_NAMING = ABSENT
+MATERIAL_BLOCKERS = AUTO_FOLDER_INTAKE_BYPASSES_HUMAN_CONFIRMATION
+EVIDENCE_GAPS = REAL_MULTI_REVISION_EVIDENCE; LATEST_OPERATIONAL_REVISION; PREVIOUS_LATEST_COMPARE; DOCX_ROLE_AUTHORITY_REAL_EVIDENCE; MANAGED_SHORT_NAMING
+ALREADY_PROVEN = EXACT_RELEASE_IDENTITY; OLD_REVISION_APPEND_ONLY_PRESERVATION; EXPLICIT_REFERENCE_ONLY_GUARD
+PRODUCT_CODE_CHANGED = NO
+TEST_CODE_CHANGED = NO
+SCHEMA_CHANGED = NO
+LIVE_DB_WRITE = NO
+LIVE_TEAM_BID_DATA_MUTATION = NO
+TARGETED_TESTS = tests/test_tender_workspace.py -q: 6 passed; workspace/case/persistence/bundle/intake suite: 55 passed
+ISOLATED_RUNTIME_REPRODUCTION = PASS
+RUFF = PASS
+DIFF_CHECK = PASS
 MASTER_ROADMAP_WRITE = NO
-LESSONS_WRITE = NO
-HOSTED_CI_STATE = PASS_EXACT_MAIN_BASELINE
-CI_PASS_CLAIMED = YES_FOR_MAIN_BASELINE_ONLY
+PROJECT_MEMORY_WRITE = NO_MICRO_A_NOT_MERGED
+FEEDBACK_WRITE = NO
+FAILURE_MEMORY_WRITE = NO
+HOSTED_CI_STATE = NOT_RUN_MICRO_A_READ_ONLY
+CI_PASS_CLAIMED = NO
 PENDING_RETRO_CI = YES
 RELEASE = NO
 TEAM_BID_PILOT_ALLOWED = NO
 PUSH = NO
 PR = NO
 MERGE = NO
-SPINE_TARGET_FILES = docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md; docs/agent/FEEDBACK_LEDGER.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_parent_pre_wp_tb_basic_crawler_03.md; docs/superpowers/specs/2026-08-31-basic-crawler-03-design.md
-EXACTLY_ONE_NEXT_ACTION = INDEPENDENT_PARENT_PRE_AUDIT
-NEXT_STATE = INDEPENDENT_PARENT_PRE_AUDIT
-NEXT_AUTHORITY = REVIEWER_AUDITOR
-HANDOFF_READY = YES_FOR_INDEPENDENT_PARENT_PRE_AUDIT
+SPINE_SYNC_STATE = PENDING_PLANNER_MICRO_A_REVIEW
+EXACTLY_ONE_NEXT_ACTION = PLANNER_MICRO_A_RESULT_REVIEW
+NEXT_STATE = PLANNER_MICRO_A_RESULT_REVIEW
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+HANDOFF_READY = YES_FOR_PLANNER_MICRO_A_RESULT_REVIEW
 ```
 
-## Parent PRE state
+## Micro-A evidence state
 
-WP-TB-BASIC-CRAWLER-03 is a Human-approved design and parent-PRE entry for
-real revision transition and controlled folder intake. No Parent-03 product
-implementation has started. The exact main baseline is
-`54a0c53fdb5d38e208c4fd66d126b20e971f00f5`; this branch contains only the
-bounded Spine reconciliation, feedback/failure-memory updates, handoff and
-design specification.
+Micro-A is evidence-complete and pending Planner review. No Parent-03 product
+implementation was started. The bounded local source search found one real
+source-backed lineage, `IB2600462391-00`, in the existing workbook
+`D:\QI Technology\QI Crawler\business-data\TBMT_19_8_2026.xlsx` (sheet
+`Bản tin điện tử`, row 38); no second published revision for that base was
+found in the approved local/project roots. This is an evidence gap, not a
+fabricated revision or a product failure.
 
-The durable Parent-02 facts remain in MEM-024: PR #82 merged from audited head
-`03056fe147c3263cf8fb2ea39e63dc239e35fffe` at
-`54a0c53fdb5d38e208c4fd66d126b20e971f00f5`, with post-merge Python CI
-`33384009634` and CodeQL `33384009691` passing. FM-009 records the historical
-25→35-minute evidence and the bounded 35→45 correction; another 45-minute
-breach requires renewed attribution and HOLD.
+CodeGraph and source inspection show exact `(base_id, revision)` release
+identity and append-only release records, with explicit `REFERENCE_ONLY`
+classification guards. They do not establish a latest-operational revision,
+no-downgrade gate, previous/latest comparison, or a package-scoped short
+naming contract. DOCX role authority remains only partial without genuine
+package evidence.
 
-Parent-03 design authority is explicit: source revision is the CĐT/e-GP
-published package revision, the crawler never invents it, newer accepted
-revisions advance without downgrade, and mismatches hold for Team Bid
-confirmation. Folder scanning is read-only and one-shot with manual rescan;
-discovered files require Human confirmation before Warehouse membership.
-Package identity, membership and business authority remain in the governed
-domain/backend/persistence layers, not filenames or folders.
+The material blocker is `AUTO_FOLDER_INTAKE_BYPASSES_HUMAN_CONFIRMATION`:
+`TenderWorkspaceService.add_path_to_zone()` recursively enumerates supported
+files and immediately calls intake, membership persistence and zone assignment.
+An isolated temporary SQLite reproduction produced two memberships and two
+workspace entries before any Human confirmation. Micro-A records this fact and
+does not repair it; any fix requires a separately authorized Micro-B scope.
 
-RD-0008 and RD-0009 remain parked and no implementation, release or Team Bid
-pilot is authorized. The exactly-one next action is
-`INDEPENDENT_PARENT_PRE_AUDIT` under `REVIEWER_AUDITOR` authority.
-`CURRENT.md` is an actionable handoff, not a diary, roadmap, review report or
-chat transcript.
+Existing targeted evidence is green: `tests/test_tender_workspace.py` passed
+6 tests and the bounded workspace/case/persistence/bundle/intake suite passed
+55 tests. Ruff and the documentation diff check pass. The exactly-one next
+action is `PLANNER_MICRO_A_RESULT_REVIEW` under `PLANNER_ARCHITECT` authority.
+This file is an actionable handoff, not a diary, roadmap, review report or chat
+transcript.
