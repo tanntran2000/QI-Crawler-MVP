@@ -46,7 +46,7 @@ def test_0016_creates_dedicated_tender_tables(tmp_path: Path) -> None:
         }.issubset(tables)
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0019_add_source_child_lifecycle"
+                "0020_add_tender_operational_revision_events"
             )
     finally:
         engine.dispose()
