@@ -4,6 +4,14 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased - 2026-08-22
 
+- WP-TB-BASIC-CRAWLER-03 merged controlled folder intake and operational
+  revision transition: folder discovery is read-only until explicit Human
+  confirmation; managed short names preserve original filenames/bytes; newer
+  accepted revisions remain pending until adjacent previous/latest comparison
+  and explicit activation; downgrade is forbidden and prior revisions remain
+  readable. Real same-package PDF/DOCX restart/reopen and controlled export
+  passed; genuine second-revision and foreign-reference evidence remain
+  explicit gaps. No Team Bid release or pilot is implied.
 - Bid Radar confirmed opportunities now hand off safely to Tender Workspace,
   preserving exact IB revisions and creating provisional PL cases without
   fabricating IB identities.
