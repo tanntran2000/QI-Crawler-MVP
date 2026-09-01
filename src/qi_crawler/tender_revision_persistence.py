@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import select
 
@@ -36,6 +37,13 @@ class PersistedRevisionEvent:
     reason: str
     evidence: str
     created_at: datetime
+    from_release_id: int | None = None
+    comparison_schema_version: str | None = None
+    comparison_payload: str | None = None
+    source_observation_complete: bool | None = None
+    completeness_evidence: str | None = None
+    accepted_at: datetime | None = None
+    activated_at: datetime | None = None
 
     @property
     def base_id(self) -> str:
@@ -48,6 +56,14 @@ class PersistedRevisionEvent:
 
 class TenderRevisionPersistence:
     """SQLAlchemy adapter for append-only operational revision events."""
+
+    _DECISIONS: ClassVar[frozenset[str]] = frozenset({
+        "ACCEPTED",
+        "REJECTED",
+        "ACCEPTED_PENDING",
+        "TRANSITION_ACTIVATED",
+        "COMPARISON",
+    })
 
     def __init__(self, database: Database):
         self.database = database
@@ -81,10 +97,17 @@ class TenderRevisionPersistence:
         actor: str,
         reason: str,
         evidence: str,
+        from_release_id: int | None = None,
+        comparison_schema_version: str | None = None,
+        comparison_payload: str | None = None,
+        source_observation_complete: bool | None = None,
+        completeness_evidence: str | None = None,
+        accepted_at: datetime | None = None,
+        activated_at: datetime | None = None,
     ) -> PersistedRevisionEvent:
         normalized_decision = str(decision or "").strip().upper()
-        if normalized_decision not in {"ACCEPTED", "REJECTED"}:
-            raise TenderRevisionPersistenceError("decision must be ACCEPTED or REJECTED")
+        if normalized_decision not in self._DECISIONS:
+            raise TenderRevisionPersistenceError("unsupported revision event")
         if not str(actor or "").strip():
             raise TenderRevisionPersistenceError("actor is required")
         if not str(reason or "").strip():
@@ -98,12 +121,23 @@ class TenderRevisionPersistence:
                 raise TenderRevisionPersistenceError("release not found")
             if release.case_id != case.id:
                 raise TenderRevisionPersistenceError("release does not belong to case")
+            if from_release_id is not None:
+                from_release = session.get(TenderReleaseRecord, from_release_id)
+                if from_release is None or from_release.case_id != case.id:
+                    raise TenderRevisionPersistenceError("from release does not belong to case")
             record = TenderOperationalRevisionEventRecord(
                 case_id=case.id,
                 release_id=release.id,
                 base_id=release.base_id,
                 revision=release.revision,
                 decision=normalized_decision,
+                from_release_id=from_release_id,
+                comparison_schema_version=comparison_schema_version,
+                comparison_payload=comparison_payload,
+                source_observation_complete=source_observation_complete,
+                completeness_evidence=completeness_evidence,
+                accepted_at=accepted_at,
+                activated_at=activated_at,
                 actor=str(actor).strip(),
                 reason=str(reason).strip(),
                 evidence=str(evidence).strip(),
@@ -111,6 +145,34 @@ class TenderRevisionPersistence:
             session.add(record)
             session.flush()
             return self._event(record, case.case_key)
+
+    def record_comparison(
+        self,
+        case_id: str,
+        previous_release_id: int,
+        latest_release_id: int,
+        *,
+        payload: str,
+        schema_version: str,
+        actor: str,
+        reason: str,
+        evidence: str,
+        source_observation_complete: bool | None = None,
+        completeness_evidence: str | None = None,
+    ) -> PersistedRevisionEvent:
+        return self.record_event(
+            case_id,
+            latest_release_id,
+            "COMPARISON",
+            actor=actor,
+            reason=reason,
+            evidence=evidence,
+            from_release_id=previous_release_id,
+            comparison_schema_version=schema_version,
+            comparison_payload=payload,
+            source_observation_complete=source_observation_complete,
+            completeness_evidence=completeness_evidence,
+        )
 
     def events_for_case(self, case_id: str) -> tuple[PersistedRevisionEvent, ...]:
         with self.database.session() as session:
@@ -135,11 +197,44 @@ class TenderRevisionPersistence:
                 select(TenderOperationalRevisionEventRecord)
                 .where(
                     TenderOperationalRevisionEventRecord.case_id == case.id,
-                    TenderOperationalRevisionEventRecord.decision == "ACCEPTED",
+                    TenderOperationalRevisionEventRecord.decision.in_(
+                        {"ACCEPTED", "TRANSITION_ACTIVATED"}
+                    ),
                 )
                 .order_by(TenderOperationalRevisionEventRecord.id.desc())
             )
             return self._event(record, case.case_key) if record is not None else None
+
+    def latest_pending(self, case_id: str) -> PersistedRevisionEvent | None:
+        pending: PersistedRevisionEvent | None = None
+        for event in self.events_for_case(case_id):
+            if event.decision == "ACCEPTED_PENDING":
+                if pending is not None and pending.release_id != event.release_id:
+                    raise TenderRevisionPersistenceError("conflicting pending transitions")
+                pending = event
+            elif pending is not None and event.release_id == pending.release_id and event.decision in {
+                "TRANSITION_ACTIVATED",
+                "REJECTED",
+            }:
+                pending = None
+        return pending
+
+    pending_transition = latest_pending
+
+    def latest_comparison(
+        self, case_id: str, previous_release_id: int, latest_release_id: int
+    ) -> PersistedRevisionEvent | None:
+        matches = [
+            event
+            for event in self.events_for_case(case_id)
+            if event.decision == "COMPARISON"
+            and event.from_release_id == previous_release_id
+            and event.release_id == latest_release_id
+        ]
+        return matches[-1] if matches else None
+
+    def operational_latest(self, case_id: str) -> PersistedRevisionEvent | None:
+        return self.latest_accepted(case_id)
 
     def document_snapshot(self, case_id: str, release_id: int) -> dict[str, str]:
         """Return a bounded slot-to-SHA snapshot for one exact release."""
@@ -180,6 +275,13 @@ class TenderRevisionPersistence:
             reason=record.reason,
             evidence=record.evidence,
             created_at=record.created_at,
+            from_release_id=record.from_release_id,
+            comparison_schema_version=record.comparison_schema_version,
+            comparison_payload=record.comparison_payload,
+            source_observation_complete=record.source_observation_complete,
+            completeness_evidence=record.completeness_evidence,
+            accepted_at=record.accepted_at,
+            activated_at=record.activated_at,
         )
 
 

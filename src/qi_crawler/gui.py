@@ -103,6 +103,11 @@ from .gui_services import (
     run_search,
     run_single_crawl,
     run_tender_document_workspace,
+    run_tender_revision_accept,
+    run_tender_revision_activate,
+    run_tender_revision_compare,
+    run_tender_revision_reject,
+    run_tender_revision_status,
     run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
@@ -1500,6 +1505,16 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_source_correction_button = QPushButton("SỬA SOURCE")
         self.workspace_source_correction_button.clicked.connect(self.start_tender_workspace_source_correction)
         self.workspace_manifest_button = QPushButton("TẢI LẠI MANIFEST")
+        self.workspace_revision_status_button = QPushButton("TRẠNG THÁI REVISION")
+        self.workspace_revision_status_button.clicked.connect(self.start_revision_status)
+        self.workspace_revision_accept_button = QPushButton("XÁC NHẬN REVISION")
+        self.workspace_revision_accept_button.clicked.connect(self.start_revision_accept)
+        self.workspace_revision_reject_button = QPushButton("TỪ CHỐI REVISION")
+        self.workspace_revision_reject_button.clicked.connect(self.start_revision_reject)
+        self.workspace_revision_compare_button = QPushButton("SO SÁNH REVISION")
+        self.workspace_revision_compare_button.clicked.connect(self.start_revision_compare)
+        self.workspace_revision_activate_button = QPushButton("ĐẶT LÀM REVISION VẬN HÀNH")
+        self.workspace_revision_activate_button.clicked.connect(self.start_revision_activate)
         self.workspace_manifest_button.clicked.connect(self.start_tender_workspace_manifest)
         workspace_actions.addWidget(self.workspace_open_button)
         workspace_actions.addWidget(self.workspace_search_button)
@@ -1508,6 +1523,11 @@ class QICrawlerWindow(QMainWindow):
         workspace_actions.addWidget(self.workspace_replace_button)
         workspace_actions.addWidget(self.workspace_source_correction_button)
         workspace_actions.addWidget(self.workspace_manifest_button)
+        workspace_actions.addWidget(self.workspace_revision_status_button)
+        workspace_actions.addWidget(self.workspace_revision_accept_button)
+        workspace_actions.addWidget(self.workspace_revision_reject_button)
+        workspace_actions.addWidget(self.workspace_revision_compare_button)
+        workspace_actions.addWidget(self.workspace_revision_activate_button)
         workspace_actions.addStretch()
         workspace_layout.addLayout(workspace_actions)
 
@@ -1668,6 +1688,106 @@ class QICrawlerWindow(QMainWindow):
         if selected:
             self.workspace_path.setText(selected)
 
+    def _revision_ids(self) -> tuple[str, int] | None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thao tác revision.")
+            return None
+        return values[0], self._workspace_release_record_id
+
+    def start_revision_status(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_status, self.config, ids[0], ids[1],
+            on_success=lambda result: self.workspace_status.setText(
+                f"Revision {result.opened_revision}: {result.relation}; "
+                f"latest={getattr(result.operational_latest, 'revision', 'NONE')}; "
+                f"pending={getattr(result.pending_transition, 'revision', 'NONE')}"
+            ),
+            button=self.workspace_revision_status_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_status",
+            long_operation=False,
+        )
+
+    def start_revision_accept(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_accept, self.config, ids[0], ids[1],
+            "Team Bid", "GUI human acceptance", "GUI evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Human accept: {result.outcome.value}; latest remains "
+                f"{getattr(result.latest, 'revision', 'NONE')}"
+            ),
+            button=self.workspace_revision_accept_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_accept",
+            long_operation=False,
+        )
+
+    def start_revision_reject(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_reject, self.config, ids[0], ids[1],
+            "Team Bid", "GUI human rejection", "GUI evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Human reject: {result.outcome.value}",
+            ),
+            button=self.workspace_revision_reject_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_reject",
+            long_operation=False,
+        )
+
+    def start_revision_compare(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        if ids[1] <= 1:
+            self.workspace_status.setText("Không có revision trước để so sánh.")
+            return
+        self._submit(
+            run_tender_revision_compare,
+            self.config,
+            ids[0],
+            ids[1] - 1,
+            ids[1],
+            on_success=lambda result: self.workspace_status.setText(
+                "Đã lưu bounded adjacent comparison: "
+                + ", ".join(f"{item.key}={item.state.value}" for item in result.changes)
+            ),
+            button=self.workspace_revision_compare_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_compare",
+            long_operation=False,
+        )
+
+    def start_revision_activate(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_activate, self.config, ids[0], ids[1],
+            "Team Bid", "GUI explicit activation", "GUI comparison evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Activation: {result.outcome.value}",
+            ),
+            button=self.workspace_revision_activate_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_activate",
+            long_operation=False,
+        )
     def _choose_workspace_folder(self) -> None:
         selected = QFileDialog.getExistingDirectory(
             self,
@@ -1867,6 +1987,11 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_status.setText("Đang ghi source correction append-only...")
         self._submit(
             run_tender_workspace_source_correction,
+    run_tender_revision_status,
+    run_tender_revision_accept,
+    run_tender_revision_reject,
+    run_tender_revision_compare,
+    run_tender_revision_activate,
             self.config,
             case_id,
             self._workspace_release_record_id,

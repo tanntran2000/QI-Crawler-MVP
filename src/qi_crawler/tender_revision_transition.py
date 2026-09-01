@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from .market_intelligence.opportunity_contract import OpportunityIdentity
@@ -27,6 +29,7 @@ class RevisionDecision(StrEnum):
 
 class RevisionTransitionOutcome(StrEnum):
     INITIAL_ACCEPTED = "INITIAL_ACCEPTED"
+    ACCEPTED_PENDING = "ACCEPTED_PENDING"
     ADVANCED = "ADVANCED"
     REJECTED = "REJECTED"
     NO_DOWNGRADE = "NO_DOWNGRADE"
@@ -92,6 +95,7 @@ class RevisionTransitionResult:
     previous: OperationalRevision | None
     latest: OperationalRevision | None
     event: PersistedRevisionEvent | None = None
+    pending: PersistedRevisionEvent | None = None
 
 
 class TenderRevisionTransitionService:
@@ -102,6 +106,9 @@ class TenderRevisionTransitionService:
 
     def operational_latest(self, case_id: str) -> OperationalRevision | None:
         return self._operational(self.persistence.latest_accepted(case_id))
+
+    def pending_transition(self, case_id: str) -> PersistedRevisionEvent | None:
+        return self.persistence.latest_pending(case_id)
 
     def transition(
         self,
@@ -119,46 +126,75 @@ class TenderRevisionTransitionService:
             raise RevisionTransitionError("decision is required") from exc
         try:
             release = self.persistence.release_record(case_id, release_id)
+            current_event = self.persistence.latest_accepted(case_id)
+            pending = self.persistence.latest_pending(case_id)
         except TenderRevisionPersistenceError as exc:
             raise RevisionTransitionError(str(exc)) from exc
         identity = OpportunityIdentity.from_raw(release.raw_id)
-        current = self.operational_latest(case_id)
-        previous = self._operational(self.persistence.latest_accepted(case_id))
+        current = self._operational(current_event)
+        previous = current
         if current is not None and identity.base_id != current.base_id:
             return RevisionTransitionResult(
-                RevisionTransitionOutcome.HOLD, previous, current
+                RevisionTransitionOutcome.HOLD, previous, current, pending=pending
             )
         if current is not None:
             current_number = self._revision_number(current.revision)
             incoming_number = self._revision_number(identity.revision)
             if normalized is RevisionDecision.ACCEPTED and incoming_number < current_number:
                 return RevisionTransitionResult(
-                    RevisionTransitionOutcome.NO_DOWNGRADE, previous, current
+                    RevisionTransitionOutcome.NO_DOWNGRADE, previous, current, pending=pending
                 )
             if normalized is RevisionDecision.ACCEPTED and incoming_number == current_number:
                 event = self._record(
-                    case_id, release_id, normalized, actor=actor, reason=reason, evidence=evidence
+                    case_id, release_id, "ACCEPTED", actor=actor, reason=reason, evidence=evidence
                 )
                 return RevisionTransitionResult(
-                    RevisionTransitionOutcome.NO_CHANGE, previous, current, event
+                    RevisionTransitionOutcome.NO_CHANGE, previous, current, event, pending
+                )
+            if normalized is RevisionDecision.ACCEPTED and incoming_number > current_number:
+                if pending is not None and pending.release_id != release_id:
+                    return RevisionTransitionResult(
+                        RevisionTransitionOutcome.HOLD, previous, current, pending=pending
+                    )
+                if pending is not None and pending.release_id == release_id:
+                    return RevisionTransitionResult(
+                        RevisionTransitionOutcome.ACCEPTED_PENDING,
+                        previous,
+                        current,
+                        pending,
+                        pending,
+                    )
+                event = self._record(
+                    case_id,
+                    release_id,
+                    "ACCEPTED_PENDING",
+                    actor=actor,
+                    reason=reason,
+                    evidence=evidence,
+                    from_release_id=current.release_id,
+                    accepted_at=datetime.now(UTC),
+                )
+                return RevisionTransitionResult(
+                    RevisionTransitionOutcome.ACCEPTED_PENDING, previous, current, event, event
                 )
         try:
             event = self._record(
-                case_id, release_id, normalized, actor=actor, reason=reason, evidence=evidence
+                case_id,
+                release_id,
+                normalized.value,
+                actor=actor,
+                reason=reason,
+                evidence=evidence,
             )
         except TenderRevisionPersistenceError as exc:
             raise RevisionTransitionError(str(exc)) from exc
-        latest = (
-            self._operational(event) if normalized is RevisionDecision.ACCEPTED else current
-        )
+        latest = self._operational(event) if normalized is RevisionDecision.ACCEPTED else current
         outcome = (
             RevisionTransitionOutcome.INITIAL_ACCEPTED
             if normalized is RevisionDecision.ACCEPTED and current is None
-            else RevisionTransitionOutcome.ADVANCED
-            if normalized is RevisionDecision.ACCEPTED
             else RevisionTransitionOutcome.REJECTED
         )
-        return RevisionTransitionResult(outcome, previous, latest, event)
+        return RevisionTransitionResult(outcome, previous, latest, event, pending)
 
     def accept_revision(self, case_id: str, release_id: int, **kwargs) -> RevisionTransitionResult:
         return self.transition(case_id, release_id, decision=RevisionDecision.ACCEPTED, **kwargs)
@@ -169,6 +205,56 @@ class TenderRevisionTransitionService:
     record_transition = transition
     apply_decision = transition
 
+    def activate_revision(
+        self,
+        case_id: str,
+        release_id: int,
+        *,
+        actor: str,
+        reason: str,
+        evidence: str,
+    ) -> RevisionTransitionResult:
+        try:
+            current_event = self.persistence.latest_accepted(case_id)
+            pending = self.persistence.latest_pending(case_id)
+            candidate = self.persistence.release_record(case_id, release_id)
+        except TenderRevisionPersistenceError as exc:
+            raise RevisionTransitionError(str(exc)) from exc
+        current = self._operational(current_event)
+        if pending is None or pending.release_id != release_id or current is None:
+            return RevisionTransitionResult(RevisionTransitionOutcome.HOLD, current, current, pending=pending)
+        candidate_identity = OpportunityIdentity.from_raw(candidate.raw_id)
+        if candidate_identity.base_id != current.base_id:
+            return RevisionTransitionResult(RevisionTransitionOutcome.HOLD, current, current, pending=pending)
+        if self._revision_number(candidate_identity.revision) <= self._revision_number(current.revision):
+            return RevisionTransitionResult(RevisionTransitionOutcome.HOLD, current, current, pending=pending)
+        comparison = self.persistence.latest_comparison(
+            case_id, pending.from_release_id or current.release_id, release_id
+        )
+        if comparison is None:
+            return RevisionTransitionResult(RevisionTransitionOutcome.HOLD, current, current, pending=pending)
+        event = self._record(
+            case_id,
+            release_id,
+            "TRANSITION_ACTIVATED",
+            actor=actor,
+            reason=reason,
+            evidence=evidence,
+            from_release_id=pending.from_release_id,
+            comparison_schema_version=comparison.comparison_schema_version,
+            comparison_payload=comparison.comparison_payload,
+            activated_at=datetime.now(UTC),
+        )
+        return RevisionTransitionResult(
+            RevisionTransitionOutcome.ADVANCED,
+            current,
+            self._operational(event),
+            event,
+            None,
+        )
+
+    activate_pending_transition = activate_revision
+
     def compare_adjacent_revisions(
         self,
         case_id: str,
@@ -177,6 +263,12 @@ class TenderRevisionTransitionService:
         *,
         previous_snapshot: Mapping[str, str] | None = None,
         latest_snapshot: Mapping[str, str] | None = None,
+        new_source_observation_complete: bool = False,
+        completeness_evidence: str | None = None,
+        persist: bool = True,
+        actor: str = "system",
+        reason: str = "adjacent revision comparison",
+        evidence: str = "bounded adjacent comparison",
     ) -> AdjacentRevisionDiff:
         try:
             previous = self.persistence.release_record(case_id, previous_release_id)
@@ -206,30 +298,57 @@ class TenderRevisionTransitionService:
             if before is None:
                 state = SourceDiffState.ADDED
             elif after is None:
-                state = SourceDiffState.REMOVED_FROM_NEW_REVISION
+                state = (
+                    SourceDiffState.REMOVED_FROM_NEW_REVISION
+                    if new_source_observation_complete and str(completeness_evidence or "").strip()
+                    else SourceDiffState.UNKNOWN_RELATION
+                )
             elif self._sha(before) == self._sha(after):
                 state = SourceDiffState.UNCHANGED
             else:
                 state = SourceDiffState.CHANGED
             changes.append(RevisionDiff(key, state, before, after))
-        return AdjacentRevisionDiff(tuple(changes))
+        diff = AdjacentRevisionDiff(tuple(changes))
+        if persist:
+            payload = json.dumps(
+                {
+                    "previous_release_id": previous_release_id,
+                    "latest_release_id": latest_release_id,
+                    "changes": [
+                        {
+                            "key": item.key,
+                            "state": item.state.value,
+                            "previous_sha256": item.previous_sha256,
+                            "latest_sha256": item.latest_sha256,
+                        }
+                        for item in diff.changes
+                    ],
+                },
+                sort_keys=True,
+            )
+            self.persistence.record_comparison(
+                case_id,
+                previous_release_id,
+                latest_release_id,
+                payload=payload,
+                schema_version="adjacent-v1",
+                actor=actor,
+                reason=reason,
+                evidence=evidence,
+                source_observation_complete=new_source_observation_complete,
+                completeness_evidence=completeness_evidence,
+            )
+        return diff
 
     compare_previous_latest = compare_adjacent_revisions
     adjacent_diff = compare_adjacent_revisions
 
-
-    def _record(
-        self,
-        case_id: str,
-        release_id: int,
-        decision: RevisionDecision,
-        *,
-        actor: str,
-        reason: str,
-        evidence: str,
-    ) -> PersistedRevisionEvent:
+    def _record(self, case_id: str, release_id: int, decision: str, **kwargs) -> PersistedRevisionEvent:
         return self.persistence.record_event(
-            case_id, release_id, decision.value, actor=actor, reason=reason, evidence=evidence
+            case_id,
+            release_id,
+            decision,
+            **kwargs,
         )
 
     @staticmethod

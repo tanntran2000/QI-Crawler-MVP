@@ -242,7 +242,9 @@ class TenderReleaseRecord(Base):
         back_populates="release", cascade="all, delete-orphan"
     )
     operational_revision_events: Mapped[list[TenderOperationalRevisionEventRecord]] = relationship(
-        back_populates="release", cascade="all, delete-orphan"
+        back_populates="release",
+        cascade="all, delete-orphan",
+        foreign_keys="TenderOperationalRevisionEventRecord.release_id",
     )
 
 
@@ -260,14 +262,24 @@ class TenderOperationalRevisionEventRecord(Base):
     )
     base_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     revision: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    decision: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    decision: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    from_release_id: Mapped[int | None] = mapped_column(ForeignKey("tender_releases.id", ondelete="SET NULL"), index=True)
+    comparison_schema_version: Mapped[str | None] = mapped_column(String(32))
+    comparison_payload: Mapped[str | None] = mapped_column(Text)
+    source_observation_complete: Mapped[bool | None] = mapped_column(Boolean)
+    completeness_evidence: Mapped[str | None] = mapped_column(Text)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     actor: Mapped[str] = mapped_column(String(255), nullable=False)
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     evidence: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     case: Mapped[TenderCaseRecord] = relationship(back_populates="operational_revision_events")
-    release: Mapped[TenderReleaseRecord] = relationship(back_populates="operational_revision_events")
+    release: Mapped[TenderReleaseRecord] = relationship(
+        back_populates="operational_revision_events",
+        foreign_keys="TenderOperationalRevisionEventRecord.release_id",
+    )
 
 
 class TenderDocumentMembershipRecord(Base):

@@ -608,3 +608,22 @@ def test_runtime_requires_explicit_alembic_upgrade(tmp_path: Path, monkeypatch) 
 
     upgrade_database(database.url, backup_dir=tmp_path / "backups")
     database.require_current_schema()
+
+
+def test_operational_revision_event_schema_persists_transition_metadata(tmp_path: Path) -> None:
+    database_path = tmp_path / "revision-schema.db"
+    upgrade_database(f"sqlite:///{database_path}", backup_dir=tmp_path / "backups")
+    engine = create_engine(f"sqlite:///{database_path}")
+    columns = {column["name"] for column in inspect(engine).get_columns(
+        "tender_operational_revision_events"
+    )}
+    assert {
+        "from_release_id",
+        "comparison_schema_version",
+        "comparison_payload",
+        "source_observation_complete",
+        "completeness_evidence",
+        "accepted_at",
+        "activated_at",
+    }.issubset(columns)
+    engine.dispose()

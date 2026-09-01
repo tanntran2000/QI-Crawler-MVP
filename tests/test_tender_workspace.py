@@ -170,3 +170,22 @@ def test_zip_is_supported_as_one_explicit_workspace_entry(workspace, tmp_path: P
     )
     assert len(entries) == 1
     assert workspace.manifest("case-1").for_zone(TeamBidZone.EVIDENCE_ARCHIVE)[0].filename == "bundle.zip"
+
+
+def test_revision_workspace_exposes_latest_relation_and_pending(workspace) -> None:
+    first = _release(workspace, "case-revision-workspace")
+    second = workspace.add_release("case-revision-workspace", "IB2600000100-01")
+    first_result = workspace.accept_revision(
+        "case-revision-workspace", first.release_id,
+        actor="Team Bid", reason="initial", evidence="human review",
+    )
+    assert first_result.outcome.value == "INITIAL_ACCEPTED"
+    pending_result = workspace.accept_revision(
+        "case-revision-workspace", second.release_id,
+        actor="Team Bid", reason="new publication", evidence="human review",
+    )
+    assert pending_result.outcome.value == "ACCEPTED_PENDING"
+    status = workspace.revision_status("case-revision-workspace", second.release_id)
+    assert status.relation == "NEWER"
+    assert status.operational_latest.revision == "00"
+    assert status.pending_transition.revision == "01"

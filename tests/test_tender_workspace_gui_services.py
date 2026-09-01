@@ -10,6 +10,8 @@ from qi_crawler.config import AppConfig
 from qi_crawler.db import Database
 from qi_crawler.gui_services import (
     run_bid_radar_workspace_handoff,
+    run_tender_revision_accept,
+    run_tender_revision_status,
     run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
@@ -242,3 +244,19 @@ def test_bid_radar_workspace_handoff_adapter_rejects_newer_persisted_rejection(
 
     with pytest.raises(ValueError, match="latest persisted CONFIRMED"):
         run_bid_radar_workspace_handoff(config, item)
+
+def test_gui_revision_adapters_read_and_accept_pending(tmp_path: Path) -> None:
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'gui-revision.db'}"
+    config.storage.document_dir = tmp_path / "managed"
+    first = run_tender_workspace_open_or_create(config, "case-revision-gui", "IB2600000300-00")
+    second = run_tender_workspace_open_or_create(config, "case-revision-gui", "IB2600000300-01")
+    run_tender_revision_accept(config, "case-revision-gui", first, "Reviewer", "initial", "review")
+    result = run_tender_revision_accept(
+        config, "case-revision-gui", second, "Reviewer", "new release", "review"
+    )
+    assert result.outcome.value == "ACCEPTED_PENDING"
+    status = run_tender_revision_status(config, "case-revision-gui", second)
+    assert status.relation == "NEWER"
+    assert status.operational_latest.revision == "00"
+    assert status.pending_transition.revision == "01"

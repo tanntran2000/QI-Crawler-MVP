@@ -41,7 +41,14 @@ def upgrade() -> None:
             ),
             sa.Column("base_id", sa.String(length=255), nullable=False),
             sa.Column("revision", sa.String(length=64), nullable=False),
-            sa.Column("decision", sa.String(length=16), nullable=False),
+            sa.Column("decision", sa.String(length=32), nullable=False),
+            sa.Column("from_release_id", sa.Integer(), sa.ForeignKey("tender_releases.id", ondelete="SET NULL"), nullable=True),
+            sa.Column("comparison_schema_version", sa.String(length=32), nullable=True),
+            sa.Column("comparison_payload", sa.Text(), nullable=True),
+            sa.Column("source_observation_complete", sa.Boolean(), nullable=True),
+            sa.Column("completeness_evidence", sa.Text(), nullable=True),
+            sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("activated_at", sa.DateTime(timezone=True), nullable=True),
             sa.Column("actor", sa.String(length=255), nullable=False),
             sa.Column("reason", sa.Text(), nullable=False),
             sa.Column("evidence", sa.Text(), nullable=False),
@@ -56,6 +63,7 @@ def upgrade() -> None:
         ("ix_tender_operational_revision_events_base_id", "base_id"),
         ("ix_tender_operational_revision_events_revision", "revision"),
         ("ix_tender_operational_revision_events_decision", "decision"),
+        ("ix_tender_operational_revision_events_from_release_id", "from_release_id"),
     ):
         if name not in indexes:
             op.create_index(name, "tender_operational_revision_events", [column])

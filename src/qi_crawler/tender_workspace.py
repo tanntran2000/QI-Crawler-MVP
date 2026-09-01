@@ -33,6 +33,12 @@ from .models import (
 )
 from .tender_case import AuthorityClass, TenderCase
 from .tender_case_service import TenderCaseService, TenderCaseServiceError
+from .tender_revision_persistence import PersistedRevisionEvent, TenderRevisionPersistence
+from .tender_revision_transition import (
+    AdjacentRevisionDiff,
+    RevisionTransitionResult,
+    TenderRevisionTransitionService,
+)
 from .workspace_candidate_intake import (
     ROLE_CODES,
     ConfirmedWorkspaceCandidate,
@@ -189,13 +195,69 @@ class TenderWorkspaceDashboard:
     claims: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class RevisionWorkspaceStatus:
+    case_id: str
+    opened_release_id: int
+    opened_revision: str
+    operational_latest: object | None
+    relation: str
+    pending_transition: PersistedRevisionEvent | None
+
 class TenderWorkspaceService:
     """Thin operational facade; TenderCase remains the identity authority."""
 
     def __init__(self, database: Database, document_root: Path):
         self.database = database
         self.case_service = TenderCaseService(database, document_root)
+        self.revision_persistence = TenderRevisionPersistence(database)
+        self.revision_service = TenderRevisionTransitionService(self.revision_persistence)
 
+    def revision_status(self, case_id: str, release_id: int) -> RevisionWorkspaceStatus:
+        """Read operational latest and candidate relation without mutating state."""
+        release = self.revision_persistence.release_record(case_id, release_id)
+        latest = self.revision_service.operational_latest(case_id)
+        pending = self.revision_service.pending_transition(case_id)
+        if latest is None:
+            relation = "NO_OPERATIONAL_LATEST"
+        elif latest.base_id != release.base_id:
+            relation = "DIFFERENT_LINEAGE"
+        else:
+            current_number = int(latest.revision)
+            incoming_number = int(release.revision)
+            relation = (
+                "CURRENT" if incoming_number == current_number
+                else "NEWER" if incoming_number > current_number
+                else "OLDER"
+            )
+        return RevisionWorkspaceStatus(
+            case_id=case_id,
+            opened_release_id=release_id,
+            opened_revision=release.revision,
+            operational_latest=latest,
+            relation=relation,
+            pending_transition=pending,
+        )
+
+    def accept_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.accept_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
+
+    def reject_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.reject_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
+
+    def compare_revisions(self, case_id: str, previous_release_id: int, latest_release_id: int, **kwargs) -> AdjacentRevisionDiff:
+        return self.revision_service.compare_adjacent_revisions(
+            case_id, previous_release_id, latest_release_id, **kwargs
+        )
+
+    def activate_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.activate_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
     def create_case(self, case_id: str, *, plan_context=None) -> TenderCase:
         return self.case_service.create_case(case_id, plan_context=plan_context)
 
