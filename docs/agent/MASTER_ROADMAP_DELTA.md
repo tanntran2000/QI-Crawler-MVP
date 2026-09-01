@@ -223,7 +223,7 @@ WHY_IT_MATTERS = PL and IB are separate namespaces; one TenderCase may link
   remain distinguishable or the system can contaminate source truth and later
   analysis.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-TB-BASIC-CRAWLER-03 / PARENT PRE
+RELEVANT_CURRENT_WP = NONE_POST_MERGE_PARENT03
 TARGET_STATE = A stage-aware TenderCase / Warehouse Shelf with explicit PL→IB
   relation, `base_id` lineage, exact `(base_id, revision)` identity, retained
   revision history and a logical Team Bid workspace with seven SOP zones:
@@ -236,9 +236,10 @@ PROMOTION_CONDITION = The broader TenderCase/lifecycle model, authority classes,
   audited and proven against real Team Bid package evidence.
 COMPLETION_EVIDENCE = Merged WP-WH-MIN-01 evidence proves the minimum
   TenderCase / exact revision / membership / seven-zone shelf semantics.
-  Remaining source-backed PL→IB relation tests; revision-preservation
-  regressions; source-vs-working-vs-final-vs-reference authority tests; real
-  package acceptance showing reopen/retrieve behavior without identity loss.
+  Parent-03 adds merged controlled folder intake and operational revision
+  transition evidence while genuine multi-revision and foreign-reference
+  operational evidence remain explicit gaps. Remaining source-backed PL→IB
+  relation, broader lifecycle and authority-class evidence determine promotion.
 REMOVE_FROM_DELTA_WHEN = Promoted to MASTER_ROADMAP and no active TenderCase /
   lifecycle / shelf semantic gap remains.
 PLANNER_NOTES = Preserve `PL != IB`; `base_id = lineage`; `(base_id, revision)`
@@ -294,8 +295,8 @@ RELIABILITY_INTERLUDE = CLOSED
 SOURCE_CHILD_RECONCILIATION = MERGED_CLOSED
 SOURCE_CHILD_RECONCILIATION_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 POST_MERGE_CI = PASS
-ACTIVE_PRODUCT_PRIORITY = NONE_POST_MERGE
-NEXT_PARENT_CANDIDATE = WP-TB-BASIC-CRAWLER-03
+ACTIVE_PRODUCT_PRIORITY = NONE_POST_MERGE_PARENT03
+NEXT_PARENT_CANDIDATE = HUMAN_DECISION_REQUIRED
 NEXT_WP_AUTHORIZED = NO
 HUMAN_PRIORITY_AFTER_RELIABILITY_INTERLUDE = RETURN_TO_TEAM_BID_BASIC_CRAWLER_UPDATE
 WP-WH-COMPLETE-01 = PARKED_NOT_AUTHORIZED
@@ -305,23 +306,26 @@ CRAWLER_VALUE = CRITICAL
 PRODUCT_AREA = Capability sequencing, Team Bid basic usability and HSMT maturity
 PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
   INFRASTRUCTURE / PERSISTENCE; DELIVERY SURFACE; EVIDENCE; EXTRACTION
-OBSERVATION = Near-term priority is a Minimum Safe Warehouse that can reliably
-  intake, preserve, identify, organize, reopen and retrieve real Team Bid PDF,
-  DOCX and XLSX tender documents before deep HSMT analysis. Existing working
-  samples and extraction code do not prove stable complete HSMT intelligence.
+OBSERVATION = Near-term priority established a Minimum Safe Warehouse that can
+  reliably intake, preserve, identify, organize, reopen and retrieve real Team
+  Bid PDF, DOCX and XLSX tender documents before deep HSMT analysis. Parent-03
+  now also proves bounded controlled-folder intake and operational revision
+  transition mechanics without promoting deep HSMT maturity.
 WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
   extraction needs trustworthy package/revision/source boundaries before it can
   be treated as evidence for deeper reasoning. Building every Warehouse feature
-  before pilot use delays operational feedback; jumping directly to HSMT risks
+  before operational evidence delays feedback; jumping directly to HSMT risks
   analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = WP-TB-BASIC-CRAWLER-03 / PARENT PRE
+RELEVANT_CURRENT_WP = NONE_POST_MERGE_PARENT03
 WP_WH_OPS_01_STATE = MERGED_CLOSED
 WP_WH_OPS_01_MERGED_FEATURE_HEAD = 196a693e4765be0bcde7460a27685d031553c92d
 WP_WH_OPS_01_MERGE_COMMIT = fcb394a6ee0926c1a355c486a72dc001e07d0096
 WP_WH_OPS_01_PR = 72
 WP_WH_OPS_01_HOSTED_CI = PASS_EXACT_HEAD
 WP_WH_OPS_01_MAIN_POST_MERGE_CI = PASS / 33156777447
+WP_TB_BASIC_CRAWLER_03_STATE = MERGED_CLOSED
+WP_TB_BASIC_CRAWLER_03_MERGE = 3ebea845589fedf860afb94f69959413a819b176
 CURRENT_PRODUCT_FRONTIER = Unified Tender Warehouse
 WP_OBJECTIVE = Make existing TenderCase and exact tender revisions safely searchable,
   inspectable, maintainable and exportable for normal Team Bid operations while
@@ -347,21 +351,21 @@ PROMOTION_CONDITION = Roadmap maturity and dependency text reflects the staged
   vertical strategy and real Team Bid acceptance demonstrates safe Warehouse
   usability without claiming deep HSMT analysis DONE.
 COMPLETION_EVIDENCE = Real-package acceptance with PDF/DOCX/XLSX intake,
-  restart persistence, retrieval and SHA preservation; later completeness
-  accounting and bounded extraction regressions for HSMT maturity.
+  restart persistence, retrieval and SHA preservation; Parent-03 adds controlled
+  folder intake, same-package DOCX/restart/export proof and revision-transition
+  mechanism evidence. Later completeness accounting and bounded extraction
+  regressions remain required for HSMT maturity.
 REMOVE_FROM_DELTA_WHEN = Promoted to roadmap and the maturity gap is tracked by
   concrete approved capability WPs with verified advancement.
 FUTURE_MATURITY_SEQUENCE_AFTER_HUMAN_REACTIVATION = `WP-WH-OPS-01 →
   WP-WH-COMPLETE-01 → WP-WH-RECOVERY-01 → Tender Package & HSMT Intelligence`
-PLANNER_NOTES = The future maturity sequence is planning context, not the
-  current execution sequence or implementation authority. The current route is
-  the Human-prioritized RD-0010 basic crawler/workspace decision. Minimum
-  support targets the currently proven modern formats PDF/DOCX/XLSX (plus
-  existing ZIP intake); legacy `.doc` is not silently assumed in the minimum
-  contract and requires a later explicit need/evidence decision. Do not call
-  deep HSMT analysis DONE merely because current samples parse.
+PLANNER_NOTES = The future maturity sequence is planning context, not current
+  implementation authority. Minimum support targets the currently proven
+  modern formats PDF/DOCX/XLSX (plus existing ZIP intake); legacy `.doc` is not
+  silently assumed. Do not call deep HSMT analysis DONE merely because current
+  samples parse. Human must select the next product priority after Parent-03.
 SOURCE_CHILD_RECONCILIATION_BOUNDARY = SOURCE_CHILD_RECONCILIATION != TENDER_PACKAGE_COMPLETENESS_RECONCILIATION
-NEXT_PRODUCT_CANDIDATE = TEAM_BID_BASIC_CRAWLER_UPDATE
+NEXT_PRODUCT_CANDIDATE = HUMAN_DECISION_REQUIRED
 WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
 WP_WH_RECOVERY_01 = PARKED_NOT_AUTHORIZED
 NEXT_WP_AUTHORIZED = NO
@@ -528,14 +532,22 @@ WP_TB_BASIC_CRAWLER_02_MERGE = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
 WP_TB_BASIC_CRAWLER_02_POST_MERGE_CI = 33384009634 / PASS
 WP_TB_BASIC_CRAWLER_02_POST_MERGE_CODEQL = 33384009691 / PASS
 WP_TB_BASIC_CRAWLER_02_TITLE = REAL TEAM BID WORKING-PACKAGE OPERATIONAL CLOSURE
-ACTIVE_PARENT_WP = NONE_WP_TB_BASIC_CRAWLER_03_CLOSED_PENDING_POST_SPINE_AUDIT
+ACTIVE_PARENT_WP = NONE_POST_MERGE_PARENT03
 MINIMUM_SAFE_WORKSPACE = PROVEN
 BASIC_WAREHOUSE_OPERATIONS = PROVEN
-WP_TB_BASIC_CRAWLER_03 = CLOSED_INDEPENDENT_AUDIT_PASS_WITH_PRESERVED_EVIDENCE_GAPS
+WP_TB_BASIC_CRAWLER_03 = MERGED_CLOSED_WITH_PRESERVED_EVIDENCE_GAPS
 WP_TB_BASIC_CRAWLER_03_TITLE = REAL REVISION TRANSITION & CONTROLLED FOLDER INTAKE
 WP_TB_BASIC_CRAWLER_03_MAP = MICRO-A_REAL_REVISION_ACCEPTANCE → MICRO-B1_CONTROLLED_INTAKE_AND_NAMING → MICRO-B2_REVISION_TRANSITION_AND_DIFF → MICRO-C_OPERATIONAL_CLOSURE
-PARENT_03_AUDITED_HEAD = d7a2cfdeb68f08a558a1f4cc165d0a8ad7b0ab34
+WP_TB_BASIC_CRAWLER_03_PR = 83
+WP_TB_BASIC_CRAWLER_03_AUDITED_CODE_HEAD = d7a2cfdeb68f08a558a1f4cc165d0a8ad7b0ab34
+WP_TB_BASIC_CRAWLER_03_FINAL_AUDITED_HEAD = 0d48abc87693643fb668fd8900c970d7b3315620
+WP_TB_BASIC_CRAWLER_03_MERGE = 3ebea845589fedf860afb94f69959413a819b176
+WP_TB_BASIC_CRAWLER_03_PR_HEAD_CI = 33495936550 / PASS_4_OF_4
+WP_TB_BASIC_CRAWLER_03_POST_MERGE_CI = 33498316251 / READ_LIVE_GITHUB_FINAL_STATE
+WP_TB_BASIC_CRAWLER_03_POST_MERGE_CODEQL = 33498315904 / PASS
 CURRENT_VERIFIED_PRODUCT_GAP = REAL_MULTI_REVISION_OPERATIONAL_PROOF; REAL_REFERENCE_OPERATIONAL_EVIDENCE
+ROADMAP_MATURITY_STATE = UNIFIED_TENDER_WAREHOUSE_PARTIAL_UNCHANGED
+MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED_QUALITATIVE_STATE_UNCHANGED
 DESIGN_APPROVAL = HUMAN_A0_APPROVED
 SOURCE_REVISION = CĐT_EGP_PUBLISHED_PACKAGE_REVISION
 IB_00 = FIRST_CDT_EGP_PUBLISHED_REVISION
@@ -573,8 +585,8 @@ DOCUMENT_ROLE != PACKAGE_MEMBERSHIP
 TARGET_INCREMENT = HUMAN_CONFIRMED_OPPORTUNITY → SAFE_TENDERCASE_WORKSPACE_HANDOFF
 IB_RULE = EXACT_IB_REVISION_ONLY
 PL_RULE = PL_CONTEXT_MAY_CREATE_OR_OPEN_PROVISIONAL_CASE BUT MUST_NOT_FABRICATE_IB
-NEXT_PARENT_CANDIDATE = NONE_PARENT_03_CLOSED
-NEXT_PARENT = NONE_PARENT_03_CLOSED
+NEXT_PARENT_CANDIDATE = HUMAN_DECISION_REQUIRED
+NEXT_PARENT = NONE
 NEXT_WP_AUTHORIZED = NO
 WP_MAP = MICRO-A_REAL_REVISION_ACCEPTANCE → MICRO-B1_CONTROLLED_INTAKE_AND_NAMING → MICRO-B2_REVISION_TRANSITION_AND_DIFF → MICRO-C_OPERATIONAL_CLOSURE
 MICRO_A = INDEPENDENT_AUDIT_PASS
@@ -639,7 +651,7 @@ MICRO_A_DEFAULT = NO PRODUCT CODE CHANGE
 MICRO_A_FLOW = CONFIRMED OPPORTUNITY → EXACT TENDERCASE / REVISION → REAL PDF/DOCX/XLSX → AUTHORITY + ZONE → MANAGED COPY → RESTART → SEARCH / REOPEN → RETRIEVE / SHA VERIFY → CONTROLLED EXPORT
 MICRO_A_EXIT = BLOCKER EVIDENCE OR EXPLICIT NO-BLOCKER EVIDENCE
 MICRO_B = CONDITIONAL_NOT_AUTHORIZED
-MICRO_B_ENTRY = MATERIAL BLOCKER PROVEN BY MICRO-A AND PLANNER AUTHORIZATION
+MICRO_B_ENTRY = MATERIAL BLOCKER PROVEN BY MICRO_A_AND_PLANNER_AUTHORIZATION
 MICRO_B1 = CONTROLLED_FOLDER_INTAKE_AND_PACKAGE_SCOPED_NAMING
 MICRO_B1_TARGET_BLOCKERS = BC03-B01; BC03-B05
 MICRO_B1_STATE = INDEPENDENT_AUDIT_PASS
@@ -680,27 +692,25 @@ MICRO_B2_TDD_EVIDENCE_REQUIREMENT = EACH_BEHAVIOR_MUST_RECORD_RED_COMMAND_EXPECT
 BOUNDARIES = NOT_SOURCE_CRAWLER_REWRITE; NOT_BROAD_GUI_REDESIGN;
   NOT_API_EVOLUTION; NOT_LEGACY_GO_HOLD_AUTHORITY; NOT_PACKAGE_COMPLETENESS;
   NOT_VAULT_RECOVERY; NOT_DEEP_HSMT; NOT_RELEASE
-OBSERVATION = The merged Minimum Safe Warehouse proves the minimum Team Bid
-  workspace portion: TenderCase intake, restart/reopen, retrieval and seven
-  logical zones with controlled derived export. Team Bid needs to start real work
-  before every future Warehouse
-  automation is complete. The existing PySide6 document workspace already has
-  manual workspace creation, file/folder intake and manifest-oriented views,
-  while the Human operational model uses seven standard zones covering source
-  E-HSMT through final submission and evidence archive.
+OBSERVATION = The merged Warehouse and Basic Crawler slices now prove the
+  minimum Team Bid workspace portion plus controlled folder intake and bounded
+  revision-transition mechanics. Team Bid still needs Human authority at intake
+  and revision activation, and broader Warehouse automation is incomplete.
 WHY_IT_MATTERS = A technically correct storage backend that cannot be used in
   daily Team Bid flow delays defect discovery and operational value. Conversely,
   encoding business rules only in GUI folders would make the frontend the
-  authority. The system therefore needs a thin SOP workspace backed by Core and
-  Backend contracts.
+  authority. The system therefore keeps the thin SOP workspace backed by Core
+  and Backend contracts.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = WP-TB-BASIC-CRAWLER-03 / MICRO-A POST-SPINE RECONCILIATION
+RELEVANT_CURRENT_WP = NONE_POST_MERGE_PARENT03
 MINIMUM_SAFE_WAREHOUSE_PORTION = PROVEN_AND_MERGED
 DAILY_HANDOFF_INCREMENT = PROVEN_AND_MERGED
 CONFIRMED_OPPORTUNITY_TO_WORKSPACE = PROVEN
 IB_EXACT_REVISION_HANDOFF = PROVEN
 KHMT_PROVISIONAL_PL_NO_FABRICATED_IB = PROVEN
 AMBIGUOUS_MAPPING = FAIL_CLOSED_PROVEN
+CONTROLLED_FOLDER_INTAKE = PROVEN_AND_MERGED
+OPERATIONAL_REVISION_TRANSITION = PROVEN_AND_MERGED
 TARGET_STATE = A Team Bid user can create/open a TenderCase, add PDF/DOCX/XLSX
   files or a supported folder, see package/revision/document state, close and
   reopen the app, find the same case, retrieve/export immutable originals and
@@ -713,17 +723,16 @@ PROMOTION_CONDITION = The remaining SOP workspace behavior is implemented and
   independently verified through real operational acceptance.
 COMPLETION_EVIDENCE = Merged Bài 2 real TenderCase acceptance proves intake,
  restart, search/reopen, stable package/revision identity, retrieve originals
- with unchanged SHA and the minimum seven-zone workspace. Micro-C closure
- evidence adds the separate real PDF lane: exact release membership,
- SOURCE_E_HSMT authority, managed-copy survival after disposable-input
- deletion, SHA/byte identity, restart/search/reopen, controlled isolated
- export and zero cross-tender contamination. Same-package end-to-end, DOCX
- role/authority, restart/reopen and controlled export are proven. Genuine
- multi-revision operational proof and foreign-reference operational evidence
- remain EVIDENCE_GAP and require no speculative fixture.
- STORAGE_LAYOUT_NAMING = manual_upload/unlinked
+ with unchanged SHA and the minimum seven-zone workspace. Parent-03 adds
+ controlled folder intake, same-package DOCX role/authority, restart/reopen,
+ controlled export, and audited synthetic mechanism proof for forward-only
+ revision transitions. Genuine multi-revision operational proof and foreign-
+ reference operational evidence remain EVIDENCE_GAP and require no speculative
+ fixture.
+STORAGE_LAYOUT_NAMING = manual_upload/unlinked
 REMOVE_FROM_DELTA_WHEN = Basic Team Bid Warehouse usability and the SOP
-  workspace model are promoted to the Roadmap with verified operational evidence.
+  workspace model are promoted to the Roadmap with verified operational evidence
+  sufficient to close the remaining material evidence gaps.
 PLANNER_NOTES = Seven folders are the canonical business/logical workspace
   view, not the database identity model and not necessarily the physical storage
   layout. `01_Source_E-HSMT` is source authority; `02_Requirement_Register` is a
@@ -732,6 +741,9 @@ PLANNER_NOTES = Seven folders are the canonical business/logical workspace
   `07_Evidence_Archive` is post-bid evidence, not a trash/cleanup target.
   Frontend collects commands and displays authoritative state; Domain Core and
   Application Backend own package/revision/membership/completeness semantics.
+  Parent-03 is merged, but RD-0010 stays active because genuine multi-revision
+  and foreign-reference operational evidence remain unresolved. No next WP is
+  authorized until Human selects priority.
 ```
 
 ### RD-0011 — Template-Driven Controlled Document Generation

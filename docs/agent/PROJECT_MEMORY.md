@@ -471,9 +471,8 @@ Do not add RD-0011 as implemented memory.
   isolated database and document root.
 - **Micro-C boundary:** Micro-B was skipped because no material blocker was
   proven. DOCX role/authority, reference-authority separation, multi-revision
-  operational proof and same-package end-to-end proof remain
-  `NOT_PROVEN`; this memory does not promote release, pilot, completeness,
-  recovery/archive or deep HSMT.
+  operational proof and same-package end-to-end proof remained `NOT_PROVEN`
+  at Parent-02 closure.
 - **Evidence:** Micro-A and the separate real PDF document lane were
   independently exercised against the merged Minimum Safe Warehouse
   behavior; Micro-C closure was independently audited and merged with Parent
@@ -481,9 +480,53 @@ Do not add RD-0011 as implemented memory.
   head `03056fe147c3263cf8fb2ea39e63dc239e35fffe`.
 - **Post-merge verification:** Python CI run `33384009634 / PASS` and CodeQL
   run `33384009691 / PASS` are recorded for the merged main state.
-- **Parent-03 boundary:** Revision transition and controlled folder intake are
-  Human-approved design only; no Parent-03 implementation is promoted here.
+- **Later status:** Parent-03 subsequently implemented the bounded revision
+  transition and controlled-folder capability; see MEM-025. This entry remains
+  the durable Parent-02 acceptance boundary.
 - **Last verified:** `54a0c53fdb5d38e208c4fd66d126b20e971f00f5`.
+
+## MEM-025 — Basic Crawler controlled folder and operational revision closure
+
+- **State:** ACTIVE
+- **Since main commit:** `3ebea845589fedf860afb94f69959413a819b176`.
+- **Contract:** WP-TB-BASIC-CRAWLER-03 adds recursive read-only folder
+  candidate discovery, explicit Human confirmation before intake, TOCTOU
+  SHA revalidation, exact package/revision guards and package-scoped short
+  managed naming while preserving original filenames and bytes. Operational
+  revision transitions are append-only through Alembic
+  `0020_add_tender_operational_revision_events`: Human acceptance creates a
+  persisted pending transition rather than advancing latest; explicit
+  activation requires the exact pending newer revision plus an adjacent
+  previous/latest comparison; downgrade is forbidden; older revisions remain
+  readable; membership and Human review do not inherit across revisions.
+- **Diff boundary:** Adjacent comparison reports `UNCHANGED`, `CHANGED`,
+  `ADDED`, `UNKNOWN_RELATION`, and only reports
+  `REMOVED_FROM_NEW_REVISION` when completeness evidence supports removal.
+  Source diff is evidence and potential work impact is not a Team Bid business
+  decision.
+- **Real operational evidence:** For `IB2500585490-00`, same-package PDF/DOCX
+  intake, source authority, managed-copy identity, restart/reopen, exact-release
+  retrieval and controlled export were proven with zero false-safe results,
+  zero fabricated identity and zero cross-tender source contamination.
+- **Preserved evidence gaps:** `REAL_MULTI_REVISION_EVIDENCE = EVIDENCE_GAP`
+  and `REAL_REFERENCE_OPERATIONAL_EVIDENCE = EVIDENCE_GAP`. No genuine second
+  revision or genuine foreign reference asset was substituted with synthetic
+  authority; `EVIDENCE_GAP != PRODUCT_DEFECT`.
+- **Evidence:** PR #83 exact audited head
+  `0d48abc87693643fb668fd8900c970d7b3315620`, independently audited code head
+  `d7a2cfdeb68f08a558a1f4cc165d0a8ad7b0ab34`, merge commit
+  `3ebea845589fedf860afb94f69959413a819b176`, PR-head Python CI
+  `33495936550 / PASS 4/4`, and post-merge CodeQL
+  `33498315904 / PASS`. Post-merge Python CI `33498316251` was running at the
+  initial reconciliation capture and must be read from live GitHub for final
+  state.
+- **Boundary:** Unified Tender Warehouse remains `PARTIAL`. Package
+  completeness/reconciliation, Vault/recovery/archive, deep HSMT, API
+  evolution, Team Bid pilot and release publication remain unauthorized. The
+  approved Team Bid release remains `0.8.0`; Parent-03 is an Unreleased
+  capability and would have MINOR version impact if later included in an
+  approved release.
+- **Last verified:** `3ebea845589fedf860afb94f69959413a819b176`.
 
 ## Explicitly not promoted
 
