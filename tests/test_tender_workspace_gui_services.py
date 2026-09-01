@@ -10,11 +10,13 @@ from qi_crawler.config import AppConfig
 from qi_crawler.db import Database
 from qi_crawler.gui_services import (
     run_bid_radar_workspace_handoff,
+    run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
     run_tender_workspace_export,
     run_tender_workspace_manifest,
     run_tender_workspace_open_or_create,
+    run_tender_workspace_scan_folder,
     run_tender_workspace_search,
 )
 from qi_crawler.market_intelligence.opportunity_contract import (
@@ -32,6 +34,7 @@ from qi_crawler.migrations import upgrade_database
 from qi_crawler.opportunity_review_persistence import SqlAlchemyOpportunityReviewRepository
 from qi_crawler.tender_case import AuthorityClass
 from qi_crawler.tender_workspace import TeamBidZone, TenderWorkspaceService
+from qi_crawler.workspace_candidate_intake import ConfirmedWorkspaceCandidate
 
 
 def _radar_item() -> OpportunityRadarItem:
@@ -139,6 +142,40 @@ def test_gui_service_adapters_open_create_and_assign_explicit_zone(tmp_path: Pat
         "IB2600000201-00",
     )
     assert reopened_release_id == release_id
+    assert entries[0].zone is TeamBidZone.REQUIREMENT_REGISTER
+
+
+def test_gui_service_adapters_scan_and_add_confirmed_candidates(tmp_path: Path) -> None:
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'gui-confirmed.db'}"
+    config.storage.document_dir = tmp_path / "managed"
+    source = tmp_path / "requirements.docx"
+    source.write_bytes(b"requirements")
+
+    release_id = run_tender_workspace_open_or_create(
+        config,
+        "case-confirmed",
+        "IB2600000203-00",
+    )
+    candidates = run_tender_workspace_scan_folder(config, tmp_path)
+    candidate = next(item for item in candidates if item.original_filename == source.name)
+    entries = run_tender_workspace_add_confirmed_candidates(
+        config,
+        "case-confirmed",
+        release_id,
+        (
+            ConfirmedWorkspaceCandidate(
+                candidate=candidate,
+                role="OTH",
+                zone=TeamBidZone.REQUIREMENT_REGISTER,
+                authority=AuthorityClass.DERIVED_REQUIREMENT,
+                evidence="Team Bid confirmation",
+                uploaded_by="Reviewer",
+            ),
+        ),
+    )
+
+    assert entries[0].filename == source.name
     assert entries[0].zone is TeamBidZone.REQUIREMENT_REGISTER
 
 

@@ -81,6 +81,7 @@ from .tender_workspace import (
     WorkspaceExportResult,
 )
 from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
+from .workspace_candidate_intake import ConfirmedWorkspaceCandidate, WorkspaceCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -683,6 +684,32 @@ def run_tender_workspace_add_path(
         evidence=evidence,
         uploaded_by=uploaded_by,
     )
+
+
+def run_tender_workspace_scan_folder(
+    config: AppConfig,
+    input_path: Path,
+) -> tuple[WorkspaceCandidate, ...]:
+    """Scan a folder read-only; no candidate is persisted by this adapter."""
+
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).scan_folder(input_path)
+
+
+def run_tender_workspace_add_confirmed_candidates(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    confirmed_candidates: tuple[ConfirmedWorkspaceCandidate, ...],
+) -> tuple[WorkspaceEntry, ...]:
+    """Persist only candidates carrying an explicit Human confirmation."""
+
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(
+        database, config.storage.document_dir
+    ).add_confirmed_candidates(case_id, release_id, confirmed_candidates)
 
 
 def run_tender_workspace_export(
