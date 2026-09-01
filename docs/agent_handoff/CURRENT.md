@@ -26,7 +26,10 @@ PARENT_03_FINAL_AUDITED_HEAD = 0d48abc87693643fb668fd8900c970d7b3315620
 PARENT_03_MERGE_COMMIT = 3ebea845589fedf860afb94f69959413a819b176
 PARENT_03_PR = 83 / MERGED
 PR_EXACT_HEAD_CI = 33495936550 / PASS_4_OF_4
-POST_MERGE_PYTHON_CI_RUN = 33498316251 / FINAL_STATE_REVERIFY_LIVE_GITHUB
+POST_MERGE_PYTHON_CI_RUN = 33498316251 / CANCELLED_WINDOWS_45M_CEILING
+POST_MERGE_REQUIRED_JOBS = 3_SUCCESS_1_WINDOWS_CANCELLED
+POST_MERGE_WINDOWS_JOB = 99825528311 / 394_PASSED / 2609.54S / CANCELLED
+FM_009_RECURRENCE = OPEN_REQUIRES_RUNTIME_ATTRIBUTION
 POST_MERGE_CODEQL = 33498315904 / PASS
 MINIMUM_SAFE_WORKSPACE = PROVEN
 BASIC_WAREHOUSE_OPERATIONS = PROVEN
@@ -61,7 +64,7 @@ CURRENT_APPROVED_TEAM_BID_RELEASE = 0.8.0
 RELEASE = NO
 TEAM_BID_PILOT = NO
 CI_WAIVER = INACTIVE_FOR_PARENT_03
-PENDING_RETRO_CI = NO_FOR_PARENT_03
+PENDING_RETRO_CI = YES_FM_009_RUNTIME_ATTRIBUTION
 MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED_QUALITATIVE_STATE_UNCHANGED
 PROJECT_MEMORY_WRITE = MEM_025
 MASTER_ROADMAP_DELTA_WRITE = RD_0001_RD_0004_RD_0010_RECONCILED
@@ -69,12 +72,12 @@ CHANGELOG_WRITE = UNRELEASED_UPDATED
 FAILURE_MEMORY_WRITE = NO_CHANGE_REQUIRED
 LESSONS_WRITE = NO_CHANGE_REQUIRED
 FEEDBACK_WRITE = NO_CHANGE_REQUIRED
-SPINE_SYNC_STATE = PASS_FOR_POST_MERGE_FACT_ROUTING
+SPINE_SYNC_STATE = PENDING_INDEPENDENT_AUDIT
 NEXT_PARENT_CANDIDATE = HUMAN_DECISION_REQUIRED
 NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = HUMAN_SELECT_NEXT_PRODUCT_PRIORITY
-NEXT_AUTHORITY = HUMAN_AUTHORITY
-HANDOFF_READY = YES_FOR_PLANNING_AFTER_RECONCILIATION_INTEGRATION
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_INDEPENDENT_LOCAL_AUDIT
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+HANDOFF_READY = NO_PENDING_INDEPENDENT_AUDIT
 IMPLEMENTATION_READY = NO_UNTIL_NEW_HUMAN_APPROVED_WORK_ORDER
 ```
 
@@ -92,8 +95,16 @@ verified for the accepted real lineage, and no genuine foreign reference asset
 was available for an operational reference-only run. These gaps do not become
 product defects and must not be closed using synthetic authority.
 
+Post-merge Python CI run `33498316251` is not a pass: Code Quality, Ubuntu
+3.12 and Ubuntu 3.11 succeeded, while Windows 3.12 job `99825528311` was
+cancelled at the 45-minute ceiling after 394 passed in 2609.54 seconds with
+KeyboardInterrupt / operation cancelled and no assertion failure observed
+before cancellation. This is an FM-009 recurrence requiring bounded runtime
+attribution; no recursive timeout increase or product-failure claim is made.
+
 The Product Frontier remains Unified Tender Warehouse and its qualitative
 Roadmap state remains PARTIAL. No new Parent WP, release, Team Bid pilot,
 package-completeness work, recovery work, deep HSMT work or API evolution is
-authorized by this handoff. The next local agent must first sync and prove the
-canonical D checkout against live `main` before interpreting local Git state.
+authorized by this handoff. The current Spine state is pending independent
+local audit, and the next action is `STOP_FOR_INDEPENDENT_LOCAL_AUDIT` under
+Planner/Architect authority.

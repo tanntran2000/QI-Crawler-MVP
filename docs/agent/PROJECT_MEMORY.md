@@ -517,9 +517,12 @@ Do not add RD-0011 as implemented memory.
   `d7a2cfdeb68f08a558a1f4cc165d0a8ad7b0ab34`, merge commit
   `3ebea845589fedf860afb94f69959413a819b176`, PR-head Python CI
   `33495936550 / PASS 4/4`, and post-merge CodeQL
-  `33498315904 / PASS`. Post-merge Python CI `33498316251` was running at the
-  initial reconciliation capture and must be read from live GitHub for final
-  state.
+  `33498315904 / PASS`. Post-merge Python CI `33498316251` completed with
+  Code Quality, Ubuntu 3.12 and Ubuntu 3.11 successful, while Windows 3.12
+  job `99825528311` was cancelled at the 45-minute ceiling after 394 passed
+  in 2609.54 seconds (`KeyboardInterrupt / operation cancelled`) with no
+  assertion failure observed before cancellation. This is an FM-009 recurrence
+  requiring bounded runtime attribution, not a product-failure claim.
 - **Boundary:** Unified Tender Warehouse remains `PARTIAL`. Package
   completeness/reconciliation, Vault/recovery/archive, deep HSMT, API
   evolution, Team Bid pilot and release publication remain unauthorized. The
