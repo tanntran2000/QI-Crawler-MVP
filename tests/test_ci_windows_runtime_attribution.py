@@ -130,4 +130,3 @@ def test_hooks_are_observer_only():
     assert attribution.pytest_runtest_logstart("tests/test.py::test", ("tests/test.py", 1, "test")) is None
     assert attribution.pytest_runtest_logreport(_report("tests/test.py::test", "call", 0.1)) is None
     assert attribution.pytest_sessionfinish(0) is None
-
