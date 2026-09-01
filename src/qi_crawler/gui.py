@@ -103,12 +103,19 @@ from .gui_services import (
     run_search,
     run_single_crawl,
     run_tender_document_workspace,
+    run_tender_revision_accept,
+    run_tender_revision_activate,
+    run_tender_revision_compare,
+    run_tender_revision_reject,
+    run_tender_revision_status,
+    run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
     run_tender_workspace_export,
     run_tender_workspace_manifest,
     run_tender_workspace_open_or_create,
     run_tender_workspace_replace,
+    run_tender_workspace_scan_folder,
     run_tender_workspace_search,
     run_tender_workspace_source_correction,
     run_web_document_intake,
@@ -136,6 +143,7 @@ from .standalone_smoke import run_standalone_smoke
 from .tender_case import AuthorityClass
 from .tender_workspace import TEAM_BID_ZONES, TenderWorkspaceError
 from .web_document_intake import WebDocumentIntakeSummary
+from .workspace_candidate_intake import ConfirmedWorkspaceCandidate, WorkspaceCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -321,6 +329,7 @@ class QICrawlerWindow(QMainWindow):
         self._workspace_release_record_id: int | None = None
         self._workspace_opened_case_id: str | None = None
         self._workspace_opened_release_id: str | None = None
+        self._workspace_candidates: tuple[WorkspaceCandidate, ...] = ()
         self._login_ready: threading.Event | None = None
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
@@ -1457,10 +1466,15 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_authority = QComboBox()
         for authority in AuthorityClass:
             self.workspace_authority.addItem(authority.value, authority.value)
+        self.workspace_role = QComboBox()
+        for role in ("C3", "C5", "PL", "REF", "OTH"):
+            self.workspace_role.addItem(role, role)
+        self.workspace_role.currentIndexChanged.connect(self._update_workspace_confirmed_role)
         self.workspace_evidence = QLineEdit()
         self.workspace_evidence.setPlaceholderText("Evidence bắt buộc cho membership")
         workspace_form.addRow("Team Bid zone:", self.workspace_zone)
         workspace_form.addRow("Authority class:", self.workspace_authority)
+        workspace_form.addRow("Human role:", self.workspace_role)
         workspace_form.addRow("Evidence:", self.workspace_evidence)
         workspace_layout.addLayout(workspace_form)
 
@@ -1491,6 +1505,16 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_source_correction_button = QPushButton("SỬA SOURCE")
         self.workspace_source_correction_button.clicked.connect(self.start_tender_workspace_source_correction)
         self.workspace_manifest_button = QPushButton("TẢI LẠI MANIFEST")
+        self.workspace_revision_status_button = QPushButton("TRẠNG THÁI REVISION")
+        self.workspace_revision_status_button.clicked.connect(self.start_revision_status)
+        self.workspace_revision_accept_button = QPushButton("XÁC NHẬN REVISION")
+        self.workspace_revision_accept_button.clicked.connect(self.start_revision_accept)
+        self.workspace_revision_reject_button = QPushButton("TỪ CHỐI REVISION")
+        self.workspace_revision_reject_button.clicked.connect(self.start_revision_reject)
+        self.workspace_revision_compare_button = QPushButton("SO SÁNH REVISION")
+        self.workspace_revision_compare_button.clicked.connect(self.start_revision_compare)
+        self.workspace_revision_activate_button = QPushButton("ĐẶT LÀM REVISION VẬN HÀNH")
+        self.workspace_revision_activate_button.clicked.connect(self.start_revision_activate)
         self.workspace_manifest_button.clicked.connect(self.start_tender_workspace_manifest)
         workspace_actions.addWidget(self.workspace_open_button)
         workspace_actions.addWidget(self.workspace_search_button)
@@ -1499,8 +1523,47 @@ class QICrawlerWindow(QMainWindow):
         workspace_actions.addWidget(self.workspace_replace_button)
         workspace_actions.addWidget(self.workspace_source_correction_button)
         workspace_actions.addWidget(self.workspace_manifest_button)
+        workspace_actions.addWidget(self.workspace_revision_status_button)
+        workspace_actions.addWidget(self.workspace_revision_accept_button)
+        workspace_actions.addWidget(self.workspace_revision_reject_button)
+        workspace_actions.addWidget(self.workspace_revision_compare_button)
+        workspace_actions.addWidget(self.workspace_revision_activate_button)
         workspace_actions.addStretch()
         workspace_layout.addLayout(workspace_actions)
+
+        workspace_scan_actions = QHBoxLayout()
+        self.workspace_scan_button = QPushButton("QUÉT THƯ MỤC")
+        self.workspace_scan_button.clicked.connect(self.start_tender_workspace_scan_folder)
+        self.workspace_rescan_button = QPushButton("QUÉT LẠI")
+        self.workspace_rescan_button.clicked.connect(self.start_tender_workspace_scan_folder)
+        self.workspace_add_confirmed_button = self._primary_button("THÊM FILE ĐÃ CHỌN")
+        self.workspace_add_confirmed_button.clicked.connect(
+            self.start_tender_workspace_add_confirmed
+        )
+        workspace_scan_actions.addWidget(self.workspace_scan_button)
+        workspace_scan_actions.addWidget(self.workspace_rescan_button)
+        workspace_scan_actions.addWidget(self.workspace_add_confirmed_button)
+        workspace_scan_actions.addStretch()
+        workspace_layout.addLayout(workspace_scan_actions)
+
+        self.workspace_candidate_table = QTableWidget(0, 8)
+        self.workspace_candidate_table.setHorizontalHeaderLabels(
+            (
+                "Chọn",
+                "Tên file",
+                "Định dạng",
+                "SHA",
+                "Package/revision",
+                "Role gợi ý",
+                "Role xác nhận",
+                "Identity",
+            )
+        )
+        self.workspace_candidate_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
+        self.workspace_candidate_table.horizontalHeader().setStretchLastSection(True)
+        workspace_layout.addWidget(self.workspace_candidate_table)
 
         export_row = QHBoxLayout()
         self.workspace_export_path = QLineEdit()
@@ -1625,6 +1688,106 @@ class QICrawlerWindow(QMainWindow):
         if selected:
             self.workspace_path.setText(selected)
 
+    def _revision_ids(self) -> tuple[str, int] | None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thao tác revision.")
+            return None
+        return values[0], self._workspace_release_record_id
+
+    def start_revision_status(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_status, self.config, ids[0], ids[1],
+            on_success=lambda result: self.workspace_status.setText(
+                f"Revision {result.opened_revision}: {result.relation}; "
+                f"latest={getattr(result.operational_latest, 'revision', 'NONE')}; "
+                f"pending={getattr(result.pending_transition, 'revision', 'NONE')}"
+            ),
+            button=self.workspace_revision_status_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_status",
+            long_operation=False,
+        )
+
+    def start_revision_accept(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_accept, self.config, ids[0], ids[1],
+            "Team Bid", "GUI human acceptance", "GUI evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Human accept: {result.outcome.value}; latest remains "
+                f"{getattr(result.latest, 'revision', 'NONE')}"
+            ),
+            button=self.workspace_revision_accept_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_accept",
+            long_operation=False,
+        )
+
+    def start_revision_reject(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_reject, self.config, ids[0], ids[1],
+            "Team Bid", "GUI human rejection", "GUI evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Human reject: {result.outcome.value}",
+            ),
+            button=self.workspace_revision_reject_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_reject",
+            long_operation=False,
+        )
+
+    def start_revision_compare(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        if ids[1] <= 1:
+            self.workspace_status.setText("Không có revision trước để so sánh.")
+            return
+        self._submit(
+            run_tender_revision_compare,
+            self.config,
+            ids[0],
+            ids[1] - 1,
+            ids[1],
+            on_success=lambda result: self.workspace_status.setText(
+                "Đã lưu bounded adjacent comparison: "
+                + ", ".join(f"{item.key}={item.state.value}" for item in result.changes)
+            ),
+            button=self.workspace_revision_compare_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_compare",
+            long_operation=False,
+        )
+
+    def start_revision_activate(self) -> None:
+        ids = self._revision_ids()
+        if ids is None:
+            return
+        self._submit(
+            run_tender_revision_activate, self.config, ids[0], ids[1],
+            "Team Bid", "GUI explicit activation", "GUI comparison evidence",
+            on_success=lambda result: self.workspace_status.setText(
+                f"Activation: {result.outcome.value}",
+            ),
+            button=self.workspace_revision_activate_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="revision_activate",
+            long_operation=False,
+        )
     def _choose_workspace_folder(self) -> None:
         selected = QFileDialog.getExistingDirectory(
             self,
@@ -1633,6 +1796,7 @@ class QICrawlerWindow(QMainWindow):
         )
         if selected:
             self.workspace_path.setText(selected)
+            self.start_tender_workspace_scan_folder()
 
     def _choose_workspace_export_folder(self) -> None:
         selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục export mới")
@@ -1649,6 +1813,61 @@ class QICrawlerWindow(QMainWindow):
             self.workspace_status.setText("Vui lòng nhập mã IB có revision chính xác.")
             return None
         return case_id, release_id
+
+    @Slot()
+    def start_tender_workspace_scan_folder(self) -> None:
+        source_text = self.workspace_path.text().strip()
+        if not source_text:
+            self.workspace_status.setText("Vui lòng chọn thư mục Team Bid để quét.")
+            return
+        source = Path(source_text)
+        if not source.is_dir():
+            self.workspace_status.setText("Đường dẫn hiện tại không phải thư mục Team Bid.")
+            return
+        self.workspace_status.setText("Đang quét thư mục ở chế độ chỉ đọc...")
+        self._submit(
+            run_tender_workspace_scan_folder,
+            self.config,
+            source,
+            on_success=self._render_tender_workspace_candidates,
+            button=self.workspace_scan_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_scan_folder",
+            long_operation=False,
+        )
+
+    def _render_tender_workspace_candidates(
+        self, candidates: tuple[WorkspaceCandidate, ...]
+    ) -> None:
+        self._workspace_candidates = tuple(candidates)
+        self.workspace_candidate_table.setRowCount(0)
+        for row, candidate in enumerate(self._workspace_candidates):
+            self.workspace_candidate_table.insertRow(row)
+            choice = QTableWidgetItem()
+            choice.setCheckState(Qt.CheckState.Unchecked)
+            self.workspace_candidate_table.setItem(row, 0, choice)
+            self.workspace_candidate_table.setItem(
+                row, 1, QTableWidgetItem(candidate.original_filename)
+            )
+            self.workspace_candidate_table.setItem(row, 2, QTableWidgetItem(candidate.extension))
+            self.workspace_candidate_table.setItem(row, 3, QTableWidgetItem(candidate.short_sha256))
+            package_revision = candidate.detected_raw_id or "—"
+            self.workspace_candidate_table.setItem(row, 4, QTableWidgetItem(package_revision))
+            self.workspace_candidate_table.setItem(row, 5, QTableWidgetItem(candidate.suggested_role))
+            self.workspace_candidate_table.setItem(row, 6, QTableWidgetItem("—"))
+            self.workspace_candidate_table.setItem(row, 7, QTableWidgetItem(candidate.identity_status))
+        self.workspace_status.setText(
+            f"Đã quét {len(self._workspace_candidates)} file. "
+            "Hãy chọn file, khai báo role/zone/authority rồi bấm THÊM FILE ĐÃ CHỌN."
+        )
+
+    def _update_workspace_confirmed_role(self) -> None:
+        role = str(self.workspace_role.currentData() or "—")
+        for row in range(self.workspace_candidate_table.rowCount()):
+            item = self.workspace_candidate_table.item(row, 6)
+            if item is not None:
+                item.setText(role)
 
     @Slot()
     def start_tender_workspace_search(self) -> None:
@@ -1768,6 +1987,11 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_status.setText("Đang ghi source correction append-only...")
         self._submit(
             run_tender_workspace_source_correction,
+    run_tender_revision_status,
+    run_tender_revision_accept,
+    run_tender_revision_reject,
+    run_tender_revision_compare,
+    run_tender_revision_activate,
             self.config,
             case_id,
             self._workspace_release_record_id,
@@ -1835,6 +2059,11 @@ class QICrawlerWindow(QMainWindow):
         if not source_text:
             self.workspace_status.setText("Vui lòng chọn file hoặc thư mục Team Bid.")
             return
+        if Path(source_text).is_dir():
+            self.workspace_status.setText(
+                "Thư mục chỉ được thêm qua quét và xác nhận từng candidate."
+            )
+            return
         if not evidence:
             self.workspace_status.setText("Evidence là bắt buộc cho mỗi membership.")
             return
@@ -1853,6 +2082,65 @@ class QICrawlerWindow(QMainWindow):
             progress=self.document_progress,
             status=self.workspace_status,
             task_name="tender_workspace_add",
+            long_operation=True,
+        )
+
+    @Slot()
+    def start_tender_workspace_add_confirmed(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thêm file đã chọn.")
+            return
+        case_id, release_text = values
+        if (
+            case_id != self._workspace_opened_case_id
+            or release_text != self._workspace_opened_release_id
+        ):
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm."
+            )
+            return
+        evidence = self.workspace_evidence.text().strip()
+        if not evidence:
+            self.workspace_status.setText("Evidence là bắt buộc cho mỗi candidate.")
+            return
+        selected = [
+            self._workspace_candidates[row]
+            for row in range(self.workspace_candidate_table.rowCount())
+            if (
+                self.workspace_candidate_table.item(row, 0) is not None
+                and self.workspace_candidate_table.item(row, 0).checkState()
+                is Qt.CheckState.Checked
+            )
+        ]
+        if not selected:
+            self.workspace_status.setText("Hãy chọn ít nhất một candidate đã quét.")
+            return
+        confirmations = tuple(
+            ConfirmedWorkspaceCandidate(
+                candidate=candidate,
+                role=self.workspace_role.currentData(),
+                zone=self.workspace_zone.currentData(),
+                authority=self.workspace_authority.currentData(),
+                evidence=evidence,
+                uploaded_by=self.workspace_operator.text().strip() or "Team Bid",
+            )
+            for candidate in selected
+        )
+        self.workspace_status.setText(
+            "Đang kiểm tra lại SHA và lưu các candidate đã Human xác nhận..."
+        )
+        self._submit(
+            run_tender_workspace_add_confirmed_candidates,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            confirmations,
+            on_success=self._render_tender_workspace_added,
+            button=self.workspace_add_confirmed_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_add_confirmed",
             long_operation=True,
         )
 

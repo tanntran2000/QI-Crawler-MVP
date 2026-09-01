@@ -834,3 +834,30 @@ Disposition: PROMOTED / MERGED_DURABLE_GOVERNANCE_STATE
 Promoted to: docs/agent/FEEDBACK_LEDGER.md; docs/agent/KNOWN_FAILURE_MODES.md;
   docs/agent/PROJECT_MEMORY.md / MEM-023; docs/agent_handoff/CURRENT.md
 ```
+
+### FB-0030 — Revision Transition & Human-Controlled Folder Intake
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: PRODUCT / WORKFLOW / REVISION_CONTROL
+WP: WP-TB-BASIC-CRAWLER-03 Parent PRE
+Decision: IB suffix 00/01/02/... is the CĐT/e-GP published package revision;
+  the crawler recognizes the revision and never invents one. Team Bid normally
+  supplies the newest package known to them. A revision mismatch holds intake
+  and asks Human whether to continue. The operational latest never downgrades;
+  prior revisions remain preserved and only previous ↔ latest comparison is
+  required. Folder selection performs one automatic recursive read-only scan;
+  manual rescan is allowed and no realtime watcher is used. Every discovered
+  candidate file requires Team Bid confirmation before Warehouse intake. Names
+  such as Chapter III/Chapter V do not prove package membership across tenders.
+  The managed package folder carries exact revision identity; short child names
+  such as C3_01, C5_01, PL_01, REF_01 and OTH_01 are presentation metadata while
+  original user filenames remain preserved. The crawler may surface potential
+  work impact but Team Bid decides rework.
+Disposition: ACCEPTED / ROUTED_TO_RD-0010_AND_WP-TB-BASIC-CRAWLER-03-DESIGN
+Promoted to: docs/agent/MASTER_ROADMAP_DELTA.md / RD-0010;
+  docs/agent_handoff/CURRENT.md
+```

@@ -161,7 +161,7 @@ def test_blank_database_upgrade_creates_complete_core_schema(tmp_path: Path) -> 
     assert ("notice_id", "source_url") in attachment_constraints
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0019_add_source_child_lifecycle"
+            "0020_add_tender_operational_revision_events"
         )
 
 
@@ -203,7 +203,7 @@ def test_source_child_lifecycle_migration_from_0018_preserves_rows(tmp_path: Pat
         assert connection.scalar(text("SELECT source_active FROM tender_items")) == 1
         assert connection.scalar(text("SELECT product_name FROM tender_items")) == "Legacy product"
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0019_add_source_child_lifecycle"
+            "0020_add_tender_operational_revision_events"
         )
     upgraded.dispose()
 
@@ -283,7 +283,7 @@ def test_workspace_transition_migration_preserves_existing_entries(tmp_path: Pat
         ) == "legacy-entry-1"
         assert connection.scalar(
             text("SELECT version_num FROM alembic_version")
-        ) == "0019_add_source_child_lifecycle"
+        ) == "0020_add_tender_operational_revision_events"
     upgraded.dispose()
 
 
@@ -308,7 +308,7 @@ def test_candidate_review_migration_downgrades_and_reupgrades_cleanly(
     assert "candidate_review_events" in inspect(upgraded).get_table_names()
     with upgraded.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0019_add_source_child_lifecycle"
+            "0020_add_tender_operational_revision_events"
         )
     upgraded.dispose()
 
@@ -368,7 +368,7 @@ def test_opportunity_review_migration_preserves_legacy_candidate_reviews(
             "mi-3-v1",
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0019_add_source_child_lifecycle"
+            "0020_add_tender_operational_revision_events"
         )
     upgraded.dispose()
 
@@ -479,7 +479,7 @@ def test_taxonomy_migration_preserves_wp1_document_and_file_format(
         ).one()
         assert tuple(row) == ("OTHER", "PDF", "UNKNOWN", "legacy.pdf", "c" * 64)
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0019_add_source_child_lifecycle"
+                "0020_add_tender_operational_revision_events"
         )
     upgraded.dispose()
 
@@ -525,7 +525,7 @@ def test_manual_workspace_migration_preserves_current_native_extraction(
         assert connection.scalar(text("SELECT COUNT(*) FROM document_extractions")) == 1
         assert "ground_truth_reviews" in inspect(engine).get_table_names()
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0019_add_source_child_lifecycle"
+                "0020_add_tender_operational_revision_events"
         )
     engine.dispose()
 
@@ -579,7 +579,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
     )
 
     assert result.adopted_legacy_database is True
-    assert result.revision == "0019_add_source_child_lifecycle"
+    assert result.revision == "0020_add_tender_operational_revision_events"
     assert result.backup_path is not None
     assert result.backup_path.exists()
     upgraded_engine = create_engine(f"sqlite:///{database}")
@@ -593,7 +593,7 @@ def test_adopt_pre_alembic_database_with_existing_crawl_tasks(tmp_path: Path) ->
             "Notice created before Alembic"
         )
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0019_add_source_child_lifecycle"
+            "0020_add_tender_operational_revision_events"
         )
     upgraded_engine.dispose()
 
@@ -608,3 +608,22 @@ def test_runtime_requires_explicit_alembic_upgrade(tmp_path: Path, monkeypatch) 
 
     upgrade_database(database.url, backup_dir=tmp_path / "backups")
     database.require_current_schema()
+
+
+def test_operational_revision_event_schema_persists_transition_metadata(tmp_path: Path) -> None:
+    database_path = tmp_path / "revision-schema.db"
+    upgrade_database(f"sqlite:///{database_path}", backup_dir=tmp_path / "backups")
+    engine = create_engine(f"sqlite:///{database_path}")
+    columns = {column["name"] for column in inspect(engine).get_columns(
+        "tender_operational_revision_events"
+    )}
+    assert {
+        "from_release_id",
+        "comparison_schema_version",
+        "comparison_payload",
+        "source_observation_complete",
+        "completeness_evidence",
+        "accepted_at",
+        "activated_at",
+    }.issubset(columns)
+    engine.dispose()

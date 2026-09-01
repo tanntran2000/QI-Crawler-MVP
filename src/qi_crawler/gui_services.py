@@ -74,6 +74,7 @@ from .opportunity_workspace_handoff import (
 )
 from .source_filter import active_source_domains, active_source_names
 from .tender_workspace import (
+    RevisionWorkspaceStatus,
     TeamBidZone,
     TenderWorkspaceManifest,
     TenderWorkspaceService,
@@ -81,6 +82,7 @@ from .tender_workspace import (
     WorkspaceExportResult,
 )
 from .web_document_intake import TenderWebDocumentService, WebDocumentIntakeSummary
+from .workspace_candidate_intake import ConfirmedWorkspaceCandidate, WorkspaceCandidate
 
 logger = logging.getLogger(__name__)
 
@@ -684,6 +686,97 @@ def run_tender_workspace_add_path(
         uploaded_by=uploaded_by,
     )
 
+
+def run_tender_workspace_scan_folder(
+    config: AppConfig,
+    input_path: Path,
+) -> tuple[WorkspaceCandidate, ...]:
+    """Scan a folder read-only; no candidate is persisted by this adapter."""
+
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).scan_folder(input_path)
+
+
+def run_tender_workspace_add_confirmed_candidates(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    confirmed_candidates: tuple[ConfirmedWorkspaceCandidate, ...],
+) -> tuple[WorkspaceEntry, ...]:
+    """Persist only candidates carrying an explicit Human confirmation."""
+
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(
+        database, config.storage.document_dir
+    ).add_confirmed_candidates(case_id, release_id, confirmed_candidates)
+
+
+def run_tender_revision_status(
+    config: AppConfig, case_id: str, release_id: int
+) -> RevisionWorkspaceStatus:
+    """Read latest/pending revision state through the workspace facade."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).revision_status(
+        case_id, release_id
+    )
+
+
+def run_tender_revision_accept(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    actor: str,
+    reason: str,
+    evidence: str,
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).accept_revision(
+        case_id, release_id, actor=actor, reason=reason, evidence=evidence
+    )
+
+
+def run_tender_revision_reject(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    actor: str,
+    reason: str,
+    evidence: str,
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).reject_revision(
+        case_id, release_id, actor=actor, reason=reason, evidence=evidence
+    )
+
+
+def run_tender_revision_compare(
+    config: AppConfig, case_id: str, previous_release_id: int, latest_release_id: int, **kwargs
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).compare_revisions(
+        case_id, previous_release_id, latest_release_id, **kwargs
+    )
+
+
+def run_tender_revision_activate(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    actor: str,
+    reason: str,
+    evidence: str,
+):
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderWorkspaceService(database, config.storage.document_dir).activate_revision(
+        case_id, release_id, actor=actor, reason=reason, evidence=evidence
+    )
 
 def run_tender_workspace_export(
     config: AppConfig,

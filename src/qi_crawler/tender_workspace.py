@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import tempfile
 import unicodedata
@@ -32,6 +33,19 @@ from .models import (
 )
 from .tender_case import AuthorityClass, TenderCase
 from .tender_case_service import TenderCaseService, TenderCaseServiceError
+from .tender_revision_persistence import PersistedRevisionEvent, TenderRevisionPersistence
+from .tender_revision_transition import (
+    AdjacentRevisionDiff,
+    RevisionTransitionResult,
+    TenderRevisionTransitionService,
+)
+from .workspace_candidate_intake import (
+    ROLE_CODES,
+    ConfirmedWorkspaceCandidate,
+    WorkspaceCandidate,
+    WorkspaceCandidateError,
+    scan_folder,
+)
 
 
 class TenderWorkspaceError(TenderCaseServiceError):
@@ -181,13 +195,69 @@ class TenderWorkspaceDashboard:
     claims: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class RevisionWorkspaceStatus:
+    case_id: str
+    opened_release_id: int
+    opened_revision: str
+    operational_latest: object | None
+    relation: str
+    pending_transition: PersistedRevisionEvent | None
+
 class TenderWorkspaceService:
     """Thin operational facade; TenderCase remains the identity authority."""
 
     def __init__(self, database: Database, document_root: Path):
         self.database = database
         self.case_service = TenderCaseService(database, document_root)
+        self.revision_persistence = TenderRevisionPersistence(database)
+        self.revision_service = TenderRevisionTransitionService(self.revision_persistence)
 
+    def revision_status(self, case_id: str, release_id: int) -> RevisionWorkspaceStatus:
+        """Read operational latest and candidate relation without mutating state."""
+        release = self.revision_persistence.release_record(case_id, release_id)
+        latest = self.revision_service.operational_latest(case_id)
+        pending = self.revision_service.pending_transition(case_id)
+        if latest is None:
+            relation = "NO_OPERATIONAL_LATEST"
+        elif latest.base_id != release.base_id:
+            relation = "DIFFERENT_LINEAGE"
+        else:
+            current_number = int(latest.revision)
+            incoming_number = int(release.revision)
+            relation = (
+                "CURRENT" if incoming_number == current_number
+                else "NEWER" if incoming_number > current_number
+                else "OLDER"
+            )
+        return RevisionWorkspaceStatus(
+            case_id=case_id,
+            opened_release_id=release_id,
+            opened_revision=release.revision,
+            operational_latest=latest,
+            relation=relation,
+            pending_transition=pending,
+        )
+
+    def accept_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.accept_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
+
+    def reject_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.reject_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
+
+    def compare_revisions(self, case_id: str, previous_release_id: int, latest_release_id: int, **kwargs) -> AdjacentRevisionDiff:
+        return self.revision_service.compare_adjacent_revisions(
+            case_id, previous_release_id, latest_release_id, **kwargs
+        )
+
+    def activate_revision(self, case_id: str, release_id: int, *, actor: str, reason: str, evidence: str) -> RevisionTransitionResult:
+        return self.revision_service.activate_revision(
+            case_id, release_id, actor=actor, reason=reason, evidence=evidence
+        )
     def create_case(self, case_id: str, *, plan_context=None) -> TenderCase:
         return self.case_service.create_case(case_id, plan_context=plan_context)
 
@@ -251,6 +321,63 @@ class TenderWorkspaceService:
                         )
         return tuple(results)
 
+    def scan_folder(self, input_path: Path) -> tuple[WorkspaceCandidate, ...]:
+        """Discover supported files without creating Warehouse state."""
+
+        try:
+            with self.database.session() as session:
+                duplicate_shas = tuple(session.scalars(select(Document.sha256)))
+            return scan_folder(input_path, duplicate_shas=duplicate_shas)
+        except WorkspaceCandidateError as exc:
+            raise TenderWorkspaceError(str(exc)) from exc
+
+    def add_confirmed_candidates(
+        self,
+        case_id: str,
+        release_id: int,
+        confirmed_candidates: tuple[ConfirmedWorkspaceCandidate, ...]
+        | list[ConfirmedWorkspaceCandidate],
+    ) -> tuple[WorkspaceEntry, ...]:
+        """Ingest only candidates explicitly confirmed by a Human."""
+
+        self._validate_release(case_id, release_id)
+        created: list[tuple[int, int, bool]] = []
+        entries: list[WorkspaceEntry] = []
+        for confirmed in confirmed_candidates:
+            if not isinstance(confirmed, ConfirmedWorkspaceCandidate):
+                raise TenderWorkspaceError("confirmed candidate is invalid")
+            normalized_authority = self._authority(confirmed.authority)
+            normalized_zone = self._zone(confirmed.zone)
+            self._validate_zone_authority(normalized_zone, normalized_authority)
+            role = str(confirmed.role or "").strip().upper()
+            if role not in ROLE_CODES:
+                raise TenderWorkspaceError("unsupported managed role")
+            if role == "REF" and normalized_authority is not AuthorityClass.REFERENCE_ONLY:
+                raise TenderWorkspaceError("REF role requires REFERENCE_ONLY authority")
+            if normalized_authority is AuthorityClass.REFERENCE_ONLY and role != "REF":
+                raise TenderWorkspaceError("REFERENCE_ONLY requires REF role")
+            candidate = confirmed.candidate
+            digest = self._hash_candidate(candidate)
+            existing_document_ids = self._document_ids_by_sha(digest)
+            try:
+                self._validate_candidate_identity(release_id, candidate, normalized_authority)
+                membership = self.case_service.add_document(
+                    case_id,
+                    release_id,
+                    candidate.source_path,
+                    authority=normalized_authority,
+                    evidence=confirmed.evidence,
+                    uploaded_by=confirmed.uploaded_by,
+                )
+                created.append((membership.id, membership.document_id, not existing_document_ids))
+                slot_key = self._next_managed_slot(release_id, role)
+                entries.append(self.assign_membership(membership.id, normalized_zone, slot_key=slot_key))
+            except Exception:
+                self._cleanup_created(created)
+                self._cleanup_new_documents(digest, existing_document_ids)
+                raise
+        return tuple(entries)
+
     def add_path_to_zone(
         self,
         case_id: str,
@@ -268,18 +395,10 @@ class TenderWorkspaceService:
         self._validate_release(case_id, release_id)
         path = Path(input_path).expanduser()
         if path.is_dir():
-            candidates = tuple(
-                sorted(
-                    candidate
-                    for candidate in path.rglob("*")
-                    if candidate.is_file()
-                    and candidate.suffix.lower() in {".pdf", ".docx", ".xlsx", ".zip"}
-                )
+            raise TenderWorkspaceError(
+                "Folder intake requires scan and explicit candidate confirmation."
             )
-            if not candidates:
-                raise TenderWorkspaceError("Thư mục không có PDF, DOCX, XLSX hoặc ZIP.")
-        else:
-            candidates = (path,)
+        candidates = (path,)
         created: list[tuple[int, int, bool]] = []
         entries: list[WorkspaceEntry] = []
         for candidate in candidates:
@@ -940,6 +1059,63 @@ class TenderWorkspaceService:
                 session.scalars(select(Document.id).where(Document.sha256 == sha256))
             )
 
+    def _hash_candidate(self, candidate: WorkspaceCandidate) -> str:
+        path = Path(candidate.source_path).expanduser().resolve()
+        if not path.is_file():
+            raise TenderWorkspaceError("CANDIDATE_CHANGED_SINCE_SCAN")
+        digest = self._hash_path(path)
+        if digest.casefold() != candidate.sha256.casefold():
+            raise TenderWorkspaceError("CANDIDATE_CHANGED_SINCE_SCAN")
+        return digest
+
+    def _validate_candidate_identity(
+        self,
+        release_id: int,
+        candidate: WorkspaceCandidate,
+        authority: AuthorityClass,
+    ) -> None:
+        if authority is not AuthorityClass.SOURCE_E_HSMT:
+            return
+        if candidate.identity_status == "AMBIGUOUS":
+            raise TenderWorkspaceError("PACKAGE_MISMATCH")
+        if not candidate.detected_raw_id:
+            return
+        try:
+            detected = OpportunityIdentity.from_raw(candidate.detected_raw_id)
+            with self.database.session() as session:
+                release = session.get(TenderReleaseRecord, release_id)
+            if release is None:
+                raise TenderWorkspaceError("release not found")
+            expected = OpportunityIdentity.from_raw(release.raw_id)
+        except (ValueError, TenderWorkspaceError) as exc:
+            if isinstance(exc, TenderWorkspaceError):
+                raise
+            raise TenderWorkspaceError("PACKAGE_MISMATCH") from exc
+        if detected.base_id != expected.base_id:
+            raise TenderWorkspaceError("PACKAGE_MISMATCH")
+        if detected.revision != expected.revision:
+            raise TenderWorkspaceError("REVISION_TRANSITION_REQUIRED")
+
+    def _next_managed_slot(self, release_id: int, role: str) -> str:
+        with self.database.session() as session:
+            release = session.get(TenderReleaseRecord, release_id)
+            if release is None:
+                raise TenderWorkspaceError("release not found")
+            prefix = f"pkg:{release.raw_id}|role:{role}|seq:"
+            values = tuple(
+                session.scalars(
+                    select(TenderWorkspaceEntryRecord.slot_key).where(
+                        TenderWorkspaceEntryRecord.slot_key.like(f"{prefix}%")
+                    )
+                )
+            )
+        numbers = []
+        for value in values:
+            match = re.fullmatch(re.escape(prefix) + r"(\d+)", value or "")
+            if match:
+                numbers.append(int(match.group(1)))
+        return f"{prefix}{max(numbers, default=0) + 1:02d}"
+
     @staticmethod
     def _hash_path(path: Path) -> str:
         digest = hashlib.sha256()
@@ -1021,7 +1197,9 @@ class TenderWorkspaceService:
 
     @classmethod
     def _export_names(cls, entries: tuple[WorkspaceEntry, ...]) -> dict[int, str]:
-        candidates = {entry.id: sanitize_filename(entry.filename) for entry in entries}
+        candidates = {
+            entry.id: cls._managed_export_name(entry) for entry in entries
+        }
         groups: dict[str, list[WorkspaceEntry]] = {}
         for entry in entries:
             groups.setdefault(cls._collision_key(candidates[entry.id]), []).append(entry)
@@ -1035,6 +1213,17 @@ class TenderWorkspaceService:
                 stem = candidate[: -len(suffix)] if suffix else candidate
                 names[entry.id] = f"{stem}__e{entry.id}_{entry.sha256[:8]}{suffix}"
         return names
+
+    @staticmethod
+    def _managed_export_name(entry: WorkspaceEntry) -> str:
+        match = re.fullmatch(
+            r"pkg:.+\|role:(?P<role>[A-Z0-9]+)\|seq:(?P<seq>\d+)",
+            entry.slot_key,
+        )
+        if match:
+            suffix = Path(entry.filename).suffix.lower()
+            return f"{match.group('role')}_{int(match.group('seq')):02d}{suffix}"
+        return sanitize_filename(entry.filename)
 
 
 __all__ = [

@@ -13,6 +13,7 @@ from qi_crawler.tender_workspace import (
     TenderWorkspaceError,
     TenderWorkspaceService,
 )
+from qi_crawler.workspace_candidate_intake import ConfirmedWorkspaceCandidate
 
 
 @pytest.fixture
@@ -48,22 +49,37 @@ def test_folder_intake_assigns_explicit_zones_and_reopens(workspace, tmp_path: P
     first.write_bytes(b"source bytes")
     second.write_bytes(b"working requirements")
 
-    entries = workspace.add_path_to_zone(
+    candidates = workspace.scan_folder(folder)
+    entries = workspace.add_confirmed_candidates(
         "case-1",
         release.release_id,
-        folder,
-        zone=TeamBidZone.SOURCE_E_HSMT,
-        authority=AuthorityClass.SOURCE_E_HSMT,
-        evidence="Team Bid supplied source folder",
+        (
+            ConfirmedWorkspaceCandidate(
+                candidate=candidates[0],
+                role="C3",
+                zone=TeamBidZone.SOURCE_E_HSMT,
+                authority=AuthorityClass.SOURCE_E_HSMT,
+                evidence="Team Bid confirmed source document",
+                uploaded_by="Team Bid",
+            ),
+            ConfirmedWorkspaceCandidate(
+                candidate=candidates[1],
+                role="OTH",
+                zone=TeamBidZone.REQUIREMENT_REGISTER,
+                authority=AuthorityClass.DERIVED_REQUIREMENT,
+                evidence="Team Bid confirmed requirement document",
+                uploaded_by="Team Bid",
+            ),
+        ),
     )
     assert len(entries) == 2
     manifest = workspace.manifest("case-1")
-    assert len(manifest.for_zone(TeamBidZone.SOURCE_E_HSMT)) == 2
-    assert manifest.for_zone(TeamBidZone.REQUIREMENT_REGISTER) == ()
+    assert len(manifest.for_zone(TeamBidZone.SOURCE_E_HSMT)) == 1
+    assert len(manifest.for_zone(TeamBidZone.REQUIREMENT_REGISTER)) == 1
 
     reopened_database = Database(f"sqlite:///{tmp_path / 'workspace.db'}")
     reopened = TenderWorkspaceService(reopened_database, tmp_path / "managed")
-    assert len(reopened.manifest("case-1").for_zone(TeamBidZone.SOURCE_E_HSMT)) == 2
+    assert len(reopened.manifest("case-1").for_zone(TeamBidZone.SOURCE_E_HSMT)) == 1
 
 
 def test_controlled_export_is_zone_layout_with_manifest_and_no_source_mutation(
@@ -154,3 +170,22 @@ def test_zip_is_supported_as_one_explicit_workspace_entry(workspace, tmp_path: P
     )
     assert len(entries) == 1
     assert workspace.manifest("case-1").for_zone(TeamBidZone.EVIDENCE_ARCHIVE)[0].filename == "bundle.zip"
+
+
+def test_revision_workspace_exposes_latest_relation_and_pending(workspace) -> None:
+    first = _release(workspace, "case-revision-workspace")
+    second = workspace.add_release("case-revision-workspace", "IB2600000100-01")
+    first_result = workspace.accept_revision(
+        "case-revision-workspace", first.release_id,
+        actor="Team Bid", reason="initial", evidence="human review",
+    )
+    assert first_result.outcome.value == "INITIAL_ACCEPTED"
+    pending_result = workspace.accept_revision(
+        "case-revision-workspace", second.release_id,
+        actor="Team Bid", reason="new publication", evidence="human review",
+    )
+    assert pending_result.outcome.value == "ACCEPTED_PENDING"
+    status = workspace.revision_status("case-revision-workspace", second.release_id)
+    assert status.relation == "NEWER"
+    assert status.operational_latest.revision == "00"
+    assert status.pending_transition.revision == "01"
