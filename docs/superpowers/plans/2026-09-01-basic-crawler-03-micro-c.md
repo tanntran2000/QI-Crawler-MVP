@@ -25,7 +25,8 @@ Status: authorized in progress; evidence-only acceptance.
 5. Dispose the DB/service completely, create a fresh instance, and verify the same release, memberships, authority classes, logical names, original filenames, and hashes.
 6. Run a bounded local search for genuine `QuyetDinh_PL2600263838.pdf`; if absent record `REAL_REFERENCE_OPERATIONAL_EVIDENCE=EVIDENCE_GAP` and do not substitute a file.
 7. Run a bounded local search for genuine `IB2500585490-01/-02`; if absent record `REAL_MULTI_REVISION_EVIDENCE=EVIDENCE_GAP` and do not synthesize a revision. At most one official-source retrieval pass is allowed by the Work Order.
-8. Run targeted B1+B2 regression, full pytest, Ruff, pip check, and diff-check. Keep temporary logs/scripts outside tracked repository paths.
+8. Perform exactly one bounded official-source retrieval pass with query `IB2500585490` to look for a genuine second exact source revision. Record the retrieval outcome as `BLOCKED` when the public official-source query returns no verifiable result; preserve `REAL_MULTI_REVISION_EVIDENCE=EVIDENCE_GAP` and do not retry, bypass access controls, or synthesize `-01/-02`.
+9. Run targeted B1+B2 regression, full pytest, Ruff, pip check, and diff-check. Keep temporary logs/scripts outside tracked repository paths.
 
 ## Stop conditions
 
