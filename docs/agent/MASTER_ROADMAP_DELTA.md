@@ -270,7 +270,7 @@ OBSERVATION = ONE ROOT CAUSE = ONE CANONICAL FAILURE RECORD; many occurrences
 WHY_IT_MATTERS = Dynamic filename/package/page/path/timestamp values must not
   fragment one systemic failure or hide recurrence.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = WP-CI-FM009-RUNTIME-ATTRIBUTION-01 / CLOSEOUT
+RELEVANT_CURRENT_WP = NONE_POST_MERGE_FM009_CLOSEOUT
 TARGET_STATE = Fingerprint on layer + capability + symptom class + root-cause
   class + affected contract; reopen the canonical record on recurrence.
 ONE_ROOT_CAUSE = ONE_CANONICAL_FAILURE_RECORD
@@ -281,8 +281,11 @@ PROMOTION_TARGET = FAILURE_MEMORY
 PROMOTION_CONDITION = Planner accepts the fingerprint and recurrence contract
   and routes it to KNOWN_FAILURE_MODES.
 COMPLETION_EVIDENCE = Micro-A attribution, Micro-B test-harness root-cause
-  correction, and 3-of-3 same-head Windows robustness evidence update the
-  canonical FM-009 occurrence without creating a duplicate root-cause record.
+  correction, 3-of-3 same-head Windows robustness evidence, and PR #85
+  post-merge Python CI 33586520758 / SUCCESS_4_OF_4 plus CodeQL 33586520695 /
+  SUCCESS update the canonical FM-009 occurrence without creating a duplicate
+  root-cause record.
+PROMOTION_STATE = VERIFIED_IN_FAILURE_MEMORY
 REMOVE_FROM_DELTA_WHEN = Failure-memory contract is promoted and verified.
 PLANNER_NOTES = Same symptom with unresolved root cause remains
   REQUIRES_VERIFICATION; no implementation is authorized here.
@@ -550,7 +553,11 @@ WP_TB_BASIC_CRAWLER_03_MERGE = 3ebea845589fedf860afb94f69959413a819b176
 WP_TB_BASIC_CRAWLER_03_PR_HEAD_CI = 33495936550 / PASS_4_OF_4
 WP_TB_BASIC_CRAWLER_03_POST_MERGE_CI = 33498316251 / 3_SUCCESS_1_WINDOWS_CANCELLED_AT_45M_CEILING
 WP_TB_BASIC_CRAWLER_03_POST_MERGE_WINDOWS_JOB = 99825528311 / 394_PASSED / 2609.54S / CANCELLED
-FM_009_RECURRENCE = OPEN_REQUIRES_RUNTIME_ATTRIBUTION
+FM_009_RECURRENCE = MERGED_RESOLVED_BY_TEST_HARNESS_CORRECTION
+WP_CI_FM009_RUNTIME_ATTRIBUTION = MERGED_RESOLVED
+WP_CI_FM009_MERGE = c4e08558f54274cf6115f0bf4e966c44edcdff33
+WP_CI_FM009_POST_MERGE_CI = 33586520758 / SUCCESS_4_OF_4
+WP_CI_FM009_POST_MERGE_CODEQL = 33586520695 / SUCCESS
 WP_TB_BASIC_CRAWLER_03_POST_MERGE_CODEQL = 33498315904 / PASS
 CURRENT_VERIFIED_PRODUCT_GAP = REAL_MULTI_REVISION_OPERATIONAL_PROOF; REAL_REFERENCE_OPERATIONAL_EVIDENCE
 ROADMAP_MATURITY_STATE = UNIFIED_TENDER_WAREHOUSE_PARTIAL_UNCHANGED
