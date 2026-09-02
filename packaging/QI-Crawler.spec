@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import importlib.util
 import os
 from pathlib import Path
 
@@ -21,6 +22,38 @@ if not BROWSER_ROOT.is_dir():
     )
 
 playwright_datas, playwright_binaries, playwright_hidden = collect_all("playwright")
+
+def _active_pyside6_root() -> Path:
+    module_spec = importlib.util.find_spec("PySide6")
+    locations = module_spec.submodule_search_locations if module_spec else None
+    if not locations:
+        raise SystemExit("Khong xac dinh duoc PySide6 package root")
+    return Path(next(iter(locations))).resolve()
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def filter_foreign_unversioned_icu_binaries(binaries, pyside_root: Path):
+    """Keep ICU binaries owned by PySide6; drop foreign unversioned copies."""
+    icu_names = {"icuuc.dll", "icuin.dll", "icudt.dll"}
+    filtered = []
+    for binary in binaries:
+        destination, source, *_ = binary
+        name = Path(destination).name.lower()
+        is_unversioned_icu = name in icu_names or name.startswith(("icuin", "icudt"))
+        if is_unversioned_icu and not _is_within(Path(source).resolve(), pyside_root):
+            continue
+        filtered.append(binary)
+    return filtered
+
+
+PYSIDE6_ROOT = _active_pyside6_root()
 
 datas = [
     (str(ROOT / "templates"), "templates"),
@@ -47,6 +80,7 @@ analysis = Analysis(
     noarchive=False,
     optimize=1,
 )
+analysis.binaries = filter_foreign_unversioned_icu_binaries(analysis.binaries, PYSIDE6_ROOT)
 
 pyz = PYZ(analysis.pure)
 

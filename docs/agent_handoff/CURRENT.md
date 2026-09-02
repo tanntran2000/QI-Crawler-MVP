@@ -3,61 +3,48 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / REL-A
-HANDOFF_CAPTURE_BASE = 9537b508d1d0361b7b3113da020c0366e1b6cd70
-ROADMAP_REVISION = 1.3
-LIVE_MAIN_HEAD = 9537b508d1d0361b7b3113da020c0366e1b6cd70
+HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / FM-015-CORRECTION
+HANDOFF_CAPTURE_BASE = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
+LIVE_MAIN_HEAD = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
-REL_A_IMPLEMENTATION_HEAD = 7dd12791d8eb71be00e4e7409069d8edca0e0f9f
-PR = 87 / OPEN_DRAFT
-PR_BASE = 9537b508d1d0361b7b3113da020c0366e1b6cd70
+REL_A_MERGE_COMMIT = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
+REL_A_POST_MERGE_PYTHON_CI = 33604333004 / SUCCESS_4_OF_4
+REL_A_POST_MERGE_CODEQL = 33604332143 / SUCCESS
 ACTIVE_PRODUCT_WP = NONE
-ACTIVE_ENGINEERING_WP = WP-REL-0.9.0-INPLACE-UPGRADE-01
-PRODUCT_FRONTIER = Unified Tender Warehouse
+ACTIVE_ENGINEERING_WP = WP-REL-0.9.0-FM015-CORRECTION-01
 TARGET_RELEASE = 0.9.0
-RELEASE_PREP = AUTHORIZED_IN_PROGRESS
-REL_A_TECHNICAL_AUDIT = PASS
-REL_A_OVERALL_AUDIT = HOLD_PENDING_FORWARD_CORRECTION_AUDIT
-FM_002 = IMPLEMENTED_PENDING_REL_A_FINAL_ACCEPTANCE
+RELEASE_PREP = COMPLETE_PENDING_FM015_AUDIT
+FM_002 = CLOSED
+FM_008 = OPEN_TEST_DEBT
+FM_015 = RESOLVED_LOCAL_PENDING_INDEPENDENT_AUDIT
 RUNTIME_SCHEMA = 0020_add_tender_operational_revision_events
 ALEMBIC_HEAD = 0020_add_tender_operational_revision_events
-REL_A_PYTHON_CI = 33595658273 / SUCCESS_4_OF_4
-REL_A_CODEQL = 100138574028 / SUCCESS
-FM_008 = OPEN_TEST_DEBT
-TARGET_INSTALL_FOLDER = D:\QI-Crawler
-UPGRADE_MODE = IN_PLACE
-TARGET_INSTALL_FOLDER_MODIFIED = NO
-CREATE_NEW_INSTALL_FOLDER = NO
+REL_B = HOLD_PENDING_FM015_AUDIT_MERGE_POSTMERGE_ACCEPTANCE
+REL_C = NO
 RELEASE = NO
 TEAM_BID_PILOT = NO
+TARGET_INSTALL_FOLDER = D:\QI-Crawler
+TARGET_INSTALL_FOLDER_MODIFIED = NO
 OFFICIAL_TEAM_BID_RELEASE = BLOCKED
 REL_B_AUTHORIZED = NO
 REL_C_AUTHORIZED = NO
 WP_WH_COMPLETE_01 = PARKED_PENDING_NOTEBOOKLM_REDESIGN
 NOTEBOOKLM_DESIGN = AFTER_V0.9.0_STABLE
 NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_TARGETED_INDEPENDENT_REL_A_CORRECTION_AUDIT
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_INDEPENDENT_FM015_CORRECTION_AUDIT
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 PROJECT_MEMORY_WRITE = NO_CHANGE_REQUIRED
 MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED
-CHANGELOG_WRITE = REL_A_0.9.0_RELEASE_SECTION
-LESSONS_WRITE = NO_CHANGE_REQUIRED
+CHANGELOG_WRITE = NO_CHANGE_REQUIRED_TEST_INFRA_ONLY
+LESSONS_WRITE = NO_CHANGE_REQUIRED_LESSON11_SUFFICIENT
 FEEDBACK_WRITE = NO_CHANGE_REQUIRED
-SPINE_SYNC_STATE = PENDING_TARGETED_REL_A_CORRECTION_AUDIT
+SPINE_SYNC_STATE = PENDING_INDEPENDENT_FM015_CORRECTION_AUDIT
 HANDOFF_READY = NO_PENDING_AUDIT
-PARENT_STATE = WP_REL_0.9.0_REL_A_HOLD_CORRECTION_AUDIT
+PARENT_STATE = WP_REL_0.9.0_FM015_CORRECTION_PENDING_INDEPENDENT_AUDIT
 ```
 
-## REL-A current disposition
+## FM-015 current disposition
 
-Human A0 authorized v0.9.0 Release Prep before any future Warehouse work.
-REL-A implementation is recorded at `7dd12791d8eb71be00e4e7409069d8edca0e0f9f`.
-The technical independent audit passed the release/version, schema-contract,
-publisher fail-closed, and installer-boundary checks. The overall Reviewer
-verdict is HOLD pending this bounded active-handoff correction and isolated
-BUILD_INFO mismatch coverage.
+Human A0 authorized a bounded release correction for the proven frozen Qt ICU collision and false-positive smoke gate. The implementation filters foreign unversioned ICU binaries at the PyInstaller ownership boundary and binds frozen document smoke to an explicit 120-second child-process wait and exit code. FM-002 is closed from the merged REL-A contract. FM-015 remains pending independent audit.
 
-The target `D:\QI-Crawler` has not been modified. Release publication, REL-B,
-REL-C, and Team Bid pilot remain unauthorized. `WP-WH-COMPLETE-01` remains
-parked pending NotebookLM redesign. The next governed step is the targeted
-independent REL-A correction audit.
+The target `D:\QI-Crawler` has not been modified. REL-B remains on hold pending FM-015 audit and merge/post-merge acceptance; REL-C, release publication, and Team Bid pilot remain unauthorized. `WP-WH-COMPLETE-01` remains parked pending NotebookLM redesign. The next governed step is the independent FM-015 correction audit.

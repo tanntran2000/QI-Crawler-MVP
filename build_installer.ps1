@@ -118,11 +118,26 @@ if (-not (Test-Path -LiteralPath $installerOutput)) {
 
 $smokeData = Join-Path $env:TEMP ("qi-crawler-installer-smoke-" + [guid]::NewGuid().ToString("N"))
 $previousDataRoot = $env:QI_CRAWLER_DATA_DIR
+$smokeProcess = $null
 try {
     $env:QI_CRAWLER_DATA_DIR = $smokeData
-    & $bundle --smoke-test-documents
-    if ($LASTEXITCODE -ne 0) {
-        throw "Standalone smoke test that bai voi exit code $LASTEXITCODE"
+    $smokeProcess = Start-Process `
+        -FilePath $bundle `
+        -ArgumentList @("--smoke-test-documents") `
+        -WorkingDirectory $projectRoot `
+        -PassThru `
+        -WindowStyle Hidden
+    if (-not $smokeProcess.WaitForExit(120000)) {
+        try {
+            $smokeProcess.Kill()
+        } catch {
+            Write-Warning "Khong the dung frozen smoke process sau timeout: $($_.Exception.Message)"
+        }
+        throw "Standalone smoke test timeout sau 120000 ms"
+    }
+    $smokeExitCode = $smokeProcess.ExitCode
+    if ($smokeExitCode -ne 0) {
+        throw "Standalone smoke test that bai voi exit code $smokeExitCode"
     }
 } finally {
     if ($previousDataRoot) { $env:QI_CRAWLER_DATA_DIR = $previousDataRoot }
