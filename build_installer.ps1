@@ -66,12 +66,30 @@ function Get-AlembicHead {
     return $heads[0]
 }
 
+function Get-RuntimeSchemaRevision {
+    Push-Location $projectRoot
+    try {
+        $value = (& $python -c "import sys; sys.path.insert(0, 'src'); from qi_crawler.db import CURRENT_SCHEMA_REVISION; print(CURRENT_SCHEMA_REVISION)").Trim()
+        $exitCode = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    if ($exitCode -ne 0 -or [string]::IsNullOrWhiteSpace($value)) {
+        throw "Khong doc duoc runtime schema revision tu qi_crawler.db.CURRENT_SCHEMA_REVISION"
+    }
+    return $value
+}
+
 function Get-Sha256([string]$PathValue) {
     return (Get-FileHash -LiteralPath $PathValue -Algorithm SHA256).Hash.ToUpperInvariant()
 }
 
 $version = Get-CanonicalVersion
+$runtimeSchema = Get-RuntimeSchemaRevision
 $alembicHead = Get-AlembicHead
+if ($runtimeSchema -ne $alembicHead) {
+    throw "Runtime schema ($runtimeSchema) khong khop Alembic single head ($alembicHead)"
+}
 $installerOutput = Join-Path $projectRoot "dist\installer\QI-Crawler-Setup-v$version.exe"
 
 & $standaloneBuild
@@ -154,7 +172,7 @@ $manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $candi
 
 if ($Publish) {
     try {
-        & $publishScript -Publish -RepoRoot $projectRoot -CandidateRoot $candidateRoot -Version $version
+        & $publishScript -Publish -RepoRoot $projectRoot -CandidateRoot $candidateRoot -Version $version -ExpectedAlembicHead $alembicHead
         if ($LASTEXITCODE -ne 0) {
             throw "Publish that bai voi exit code $LASTEXITCODE"
         }

@@ -785,6 +785,16 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
+## Co gi moi trong 0.9.0
+
+- Bid Radar co hoi da xac nhan co the chuyen an toan sang Tender Workspace,
+  giu dung IB revision va tao provisional PL case khi can thiet.
+- Quy trinh tiep nhan HSMT co kiem soat ho tro xac nhan tung tai lieu, giu
+  lich su revision va mo lai dung goi sau khi khoi dong lai.
+- Tender Workspace Team Bid ho tro quan ly ban sao da kiem tra, phan tach
+  vung lam viec va xuat goi co kiem soat, khong tu dong coi thu muc xuat la
+  nguon du lieu chinh.
+
 ## Co gi moi trong 0.8.0
 
 - Dong bo version ung dung, giao dien va goi Windows theo mot nguon version canonical.
