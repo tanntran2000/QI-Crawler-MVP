@@ -270,17 +270,19 @@ OBSERVATION = ONE ROOT CAUSE = ONE CANONICAL FAILURE RECORD; many occurrences
 WHY_IT_MATTERS = Dynamic filename/package/page/path/timestamp values must not
   fragment one systemic failure or hide recurrence.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = NONE
+RELEVANT_CURRENT_WP = WP-CI-FM009-RUNTIME-ATTRIBUTION-01 / CLOSEOUT
 TARGET_STATE = Fingerprint on layer + capability + symptom class + root-cause
   class + affected contract; reopen the canonical record on recurrence.
 ONE_ROOT_CAUSE = ONE_CANONICAL_FAILURE_RECORD
+FM009_RECURRENCE = REOPENED_AND_CORRECTED_IN_EXISTING_FM_009
 RECURRENCE = ROUTE_TO_FM_009
 NEW_FAILURE_RECORD = NO
 PROMOTION_TARGET = FAILURE_MEMORY
 PROMOTION_CONDITION = Planner accepts the fingerprint and recurrence contract
   and routes it to KNOWN_FAILURE_MODES.
-COMPLETION_EVIDENCE = Canonical FM occurrence updates and recurrence regression
-  evidence without duplicate root-cause records.
+COMPLETION_EVIDENCE = Micro-A attribution, Micro-B test-harness root-cause
+  correction, and 3-of-3 same-head Windows robustness evidence update the
+  canonical FM-009 occurrence without creating a duplicate root-cause record.
 REMOVE_FROM_DELTA_WHEN = Failure-memory contract is promoted and verified.
 PLANNER_NOTES = Same symptom with unresolved root cause remains
   REQUIRES_VERIFICATION; no implementation is authorized here.

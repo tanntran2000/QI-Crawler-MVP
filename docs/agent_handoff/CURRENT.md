@@ -3,108 +3,63 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-TB-BASIC-CRAWLER-03 / POST-MERGE RECONCILIATION
-HANDOFF_CAPTURE_BASE = 3ebea845589fedf860afb94f69959413a819b176
+HANDOFF_ID = WP-CI-FM009-RUNTIME-ATTRIBUTION-01 / PRE-MERGE CLOSEOUT
+HANDOFF_CAPTURE_BASE = 5732684ec5959093854bd29ae8ce1c52024b8a5b
 ROADMAP_REVISION = 1.3
 LIVE_GIT_HEAD = REVERIFY_FROM_GIT_AT_READ_IN
-LIVE_MAIN_HEAD = REVERIFY_FROM_GITHUB_AT_READ_IN
-PARENT_03_MERGED_MAIN_HEAD = 3ebea845589fedf860afb94f69959413a819b176
+LIVE_MAIN_HEAD = 73727897a9c60c21aa8874ca21057ed6992b3390
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
-LOCAL_CANONICAL_CHECKOUT_SYNC = REQUIRED_AT_NEXT_LOCAL_ENTRY
-ACTIVE_PARENT_WP = NONE
-ACTIVE_MICRO_WP = NONE
-ACTIVE_PRODUCT_BRANCH = NONE
-PRODUCT_FRONTIER = Unified Tender Warehouse
-UNIFIED_TENDER_WAREHOUSE = PARTIAL
-PRIMARY_DELTA = RD-0010
-SUPPORTING_DELTA = RD-0001
-SEQUENCING_DELTA = RD-0004
-PARENT_STATE = WP_TB_BASIC_CRAWLER_03_MERGED_CLOSED
-PARENT_BASE = 54a0c53fdb5d38e208c4fd66d126b20e971f00f5
-PARENT_03_AUDITED_CODE_HEAD = d7a2cfdeb68f08a558a1f4cc165d0a8ad7b0ab34
-PARENT_03_FINAL_AUDITED_HEAD = 0d48abc87693643fb668fd8900c970d7b3315620
-PARENT_03_MERGE_COMMIT = 3ebea845589fedf860afb94f69959413a819b176
-PARENT_03_PR = 83 / MERGED
-PR_EXACT_HEAD_CI = 33495936550 / PASS_4_OF_4
-POST_MERGE_PYTHON_CI_RUN = 33498316251 / CANCELLED_WINDOWS_45M_CEILING
-POST_MERGE_REQUIRED_JOBS = 3_SUCCESS_1_WINDOWS_CANCELLED
-POST_MERGE_WINDOWS_JOB = 99825528311 / 394_PASSED / 2609.54S / CANCELLED
-FM_009_RECURRENCE = OPEN_REQUIRES_RUNTIME_ATTRIBUTION
-POST_MERGE_CODEQL = 33498315904 / PASS
-MINIMUM_SAFE_WORKSPACE = PROVEN
-BASIC_WAREHOUSE_OPERATIONS = PROVEN
-CONTROLLED_FOLDER_SCAN = PROVEN_READ_ONLY
-HUMAN_CONFIRMATION_BEFORE_INTAKE = PROVEN
-PACKAGE_SCOPED_SHORT_NAMING = PROVEN
-OPERATIONAL_REVISION_TRANSITION = PROVEN
-PENDING_ACCEPTANCE_NE_ACTIVATION = PROVEN
-NO_DOWNGRADE = PROVEN
-ADJACENT_PREVIOUS_LATEST_DIFF = PROVEN
-PREVIOUS_REVISION_PRESERVATION = PROVEN
-SAME_PACKAGE_END_TO_END = PROVEN
-REAL_DOCX_AUTHORITY_EVIDENCE = PROVEN
-REAL_RESTART_REOPEN = PROVEN
-REAL_CONTROLLED_EXPORT = PROVEN
-REAL_MULTI_REVISION_EVIDENCE = EVIDENCE_GAP
-REAL_REFERENCE_OPERATIONAL_EVIDENCE = EVIDENCE_GAP
-NO_GENUINE_SECOND_REVISION_VERIFIED != NO_SECOND_REVISION_EXISTS
-EVIDENCE_GAP != PRODUCT_DEFECT
-FALSE_SAFE = 0
-FABRICATED_IDENTITY = 0
-CROSS_TENDER_SOURCE_CONTAMINATION = 0
-RD_0008 = PARKED_NOT_AUTHORIZED
-RD_0009 = PARKED_NOT_AUTHORIZED
-DEEP_HSMT = NOT_AUTHORIZED
-API_EVOLUTION = HOLD
-PACKAGE_COMPLETENESS = NOT_AUTHORIZED
-VAULT_RECOVERY = NOT_AUTHORIZED
-RELEASE_IMPACT = YES
-VERSION_IMPACT = MINOR_IF_LATER_RELEASED
-CURRENT_APPROVED_TEAM_BID_RELEASE = 0.8.0
+ACTIVE_PRODUCT_WP = NONE
+ACTIVE_ENGINEERING_WP = WP-CI-FM009-RUNTIME-ATTRIBUTION-01
+PR = 85 / OPEN_DRAFT
+BASE_MAIN = 73727897a9c60c21aa8874ca21057ed6992b3390
+AUDITED_CODE_HEAD = 5732684ec5959093854bd29ae8ce1c52024b8a5b
+MICRO_A = AUDITED_PASS
+MICRO_B = AUDITED_PASS
+WINDOWS_ROBUSTNESS = 3_OF_3_PASS
+WINDOWS_RUNTIME_RANGE = 6m30s_TO_8m07s_JOB
+WINDOWS_TEST_COUNT = 787_EACH
+FM_009 = AUDITED_RESOLVED_PENDING_MERGE
+FM_008 = OPEN_TEST_DEBT
+PRODUCT_REGRESSION = NONE_OBSERVED
+TIMEOUT_CHANGE = NO
+CURRENT_WINDOWS_CEILING = 45_MINUTES
 RELEASE = NO
 TEAM_BID_PILOT = NO
-CI_WAIVER = INACTIVE_FOR_PARENT_03
-PENDING_RETRO_CI = YES_FM_009_RUNTIME_ATTRIBUTION
-MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED_QUALITATIVE_STATE_UNCHANGED
-PROJECT_MEMORY_WRITE = MEM_025
-MASTER_ROADMAP_DELTA_WRITE = RD_0001_RD_0004_RD_0010_RECONCILED
-CHANGELOG_WRITE = UNRELEASED_UPDATED
-FAILURE_MEMORY_WRITE = NO_CHANGE_REQUIRED
-LESSONS_WRITE = NO_CHANGE_REQUIRED
-FEEDBACK_WRITE = NO_CHANGE_REQUIRED
-SPINE_SYNC_STATE = PENDING_INDEPENDENT_AUDIT
-NEXT_PARENT_CANDIDATE = HUMAN_DECISION_REQUIRED
+RELEASE_PREP = PARKED_UNTIL_THIS_WP_MERGED_AND_POSTMERGE_VERIFIED
+PENDING_RETRO_CI = YES_UNTIL_POST_MERGE_VERIFICATION
 NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_INDEPENDENT_LOCAL_AUDIT
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_INDEPENDENT_CLOSEOUT_AUDIT
 NEXT_AUTHORITY = PLANNER_ARCHITECT
-HANDOFF_READY = NO_PENDING_INDEPENDENT_AUDIT
-IMPLEMENTATION_READY = NO_UNTIL_NEW_HUMAN_APPROVED_WORK_ORDER
+FAILURE_MEMORY_WRITE = FM008_FM009_RECONCILED
+MASTER_ROADMAP_DELTA_WRITE = RD0003_RECONCILED
+PROJECT_MEMORY_WRITE = NO_CHANGE_REQUIRED
+MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED
+CHANGELOG_WRITE = NO_CHANGE_REQUIRED_TEST_INFRA_ONLY
+LESSONS_WRITE = NO_CHANGE_REQUIRED_LESSON11_SUFFICIENT
+FEEDBACK_WRITE = NO_CHANGE_REQUIRED
+SPINE_SYNC_STATE = PASS
+HANDOFF_READY = YES_FOR_INDEPENDENT_CLOSEOUT_AUDIT
 ```
 
-## Post-merge disposition
+## Pre-merge closeout disposition
 
-WP-TB-BASIC-CRAWLER-03 is merged and closed. The merged capability adds
-controlled read-only folder discovery with explicit Human confirmation,
-package-scoped managed naming, and a forward-only operational revision
-transition with adjacent previous/latest comparison. Real acceptance proves the
-same-package PDF/DOCX lifecycle, restart/reopen and controlled export without
-false-safe, fabricated identity or cross-tender source contamination.
+Micro-A and Micro-B are independently audited PASS at code head
+`5732684ec5959093854bd29ae8ce1c52024b8a5b`. Three same-head Windows
+robustness samples (run `33581232930`) each completed 787 tests below the
+35-minute watch threshold: 8m07 in `northcentralus`, 6m47 in `eastus`, and
+6m30 in `westcentralus`. The measured pytest runtimes were 413.62s, 336.21s,
+and 322.40s respectively; no assertion or product failure was observed.
 
-Two evidence gaps remain deliberately open: no genuine second revision was
-verified for the accepted real lineage, and no genuine foreign reference asset
-was available for an operational reference-only run. These gaps do not become
-product defects and must not be closed using synthetic authority.
+FM-009 is therefore `AUDITED_RESOLVED_PENDING_MERGE`. The primary runtime
+driver was repeated full Alembic execution through the autouse
+`Database.require_current_schema` test shim; hosted-runner variance remains a
+secondary observed factor and is not claimed to be zero. The 45-minute hard
+ceiling remains unchanged, and any future breach requires renewed attribution
+before considering a budget change. FM-008 remains OPEN test-debt for the
+legacy `Database.create_all` compatibility seam; it is not closed by the
+FM-009 correction.
 
-Post-merge Python CI run `33498316251` is not a pass: Code Quality, Ubuntu
-3.12 and Ubuntu 3.11 succeeded, while Windows 3.12 job `99825528311` was
-cancelled at the 45-minute ceiling after 394 passed in 2609.54 seconds with
-KeyboardInterrupt / operation cancelled and no assertion failure observed
-before cancellation. This is an FM-009 recurrence requiring bounded runtime
-attribution; no recursive timeout increase or product-failure claim is made.
-
-The Product Frontier remains Unified Tender Warehouse and its qualitative
-Roadmap state remains PARTIAL. No new Parent WP, release, Team Bid pilot,
-package-completeness work, recovery work, deep HSMT work or API evolution is
-authorized by this handoff. The current Spine state is pending independent
-local audit, and the next action is `STOP_FOR_INDEPENDENT_LOCAL_AUDIT` under
-Planner/Architect authority.
+PR #85 remains OPEN and Draft against `main`. No merge, release, Team Bid
+pilot, or product implementation is authorized by this handoff. The next
+governed action is an independent closeout audit of this docs transition.

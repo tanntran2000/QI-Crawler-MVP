@@ -298,7 +298,7 @@ FIX = inventory callers and either remove the obsolete test seam or add an expli
 FIX_HEAD = NOT_FIXED
 REGRESSION_GUARD = test that production startup/migration does not depend on the shim
 INDEPENDENT_AUDIT = FULL_REPO_AUDIT finding; no shim removal claimed
-CURRENT_EVIDENCE = tests/conftest.py:11-22 monkeypatches require_current_schema and Database.create_all
+CURRENT_EVIDENCE = tests/conftest.py:11-22 retains the Database.create_all compatibility shim while Micro-B prepares a per-session real-Alembic template and copy-per-test file-backed databases; production Database still has no create_all lifecycle method
 PERMANENT_PREVENTION = keep production lifecycle tests separate from compatibility fixtures and audit shim reachability
 ```
 
@@ -307,21 +307,22 @@ PERMANENT_PREVENTION = keep production lifecycle tests separate from compatibili
 ```text
 ID = FM-009
 TITLE = Windows hosted CI runtime amplification exceeds required-gate budget
-STATE = OPEN_REOPENED
+STATE = AUDITED
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = RUNTIME_ATTRIBUTION_REQUIRED
+DISPOSITION = RESOLVED_BY_TEST_HARNESS_CORRECTION_PENDING_MERGE
 DETECTED_BY = PR #64 exact-head hosted CI / bounded root-cause triage
 AFFECTED_BASELINE = 269a6d19539091eab5b903e2684b66ebdf9116ae
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / CI / TEST INFRASTRUCTURE
 SYMPTOM = Windows 3.12 had a healthy hosted execution of 628 tests in about 709 seconds, while two later equivalent executions reached only 620 passed after about 1404-1425 seconds and were cancelled at the 25-minute job boundary without an assertion failure.
-ROOT_CAUSE = Verified root-cause class is material GitHub-hosted Windows runner performance variance across otherwise equivalent executions. The exact underlying host resource mechanism (CPU scheduling, disk I/O, VM contention or equivalent) is REQUIRES_VERIFICATION because available GitHub telemetry does not expose it directly. Filesystem, temporary SQLite and repeated Alembic test lifecycle work are demonstrated runtime amplifiers, not proven production defects.
+ROOT_CAUSE = Primary root cause is normal application tests repeatedly executing full Alembic upgrade chains through the autouse Database.require_current_schema test shim. The correction prepares one real-Alembic migrated SQLite template per pytest session, copies a fresh file-backed database per test, and retains a real migration fallback for existing, legacy, non-file and sidecar cases. Filesystem and hosted-runner variance remain bounded execution factors, not production defects.
+HOSTED_RUNNER_VARIANCE = OBSERVED_SECONDARY_VARIABILITY_NOT_PRIMARY_RUNTIME_DRIVER
 WHY_EXISTING_TESTS_MISSED_IT = Functional correctness tests detect assertion failures but do not prove a stable hosted-runner runtime envelope. The test suite can remain correct while infrastructure/runtime variance exhausts the CI job budget.
 CI_IMPLICATION = A repeated timeout or cancellation is not PASS and is not automatically a product regression. Preserve exact-run timing evidence, compare healthy and degraded executions, perform bounded attribution, and only then alter a runtime budget. Hosted CI waiver is not justified while hosted CI itself is functioning.
-FIX = Raise only the Windows 3.12 hard job ceiling from 25 to 35 minutes after root-cause-class investigation; retain full regression and runtime attribution unchanged.
-FIX_HEAD = db19f42985030f2b154804f959fca615c523a06e
+FIX = Micro-A adds phase-aware Windows runtime attribution. Micro-B adds one real-Alembic migrated SQLite template per pytest session, copy-per-fresh-file-backed SQLite DB, a per-test prepared DB registry, real migration fallback for existing/legacy/non-file/sidecar cases, and preserves original require_current_schema verification.
+FIX_HEAD = 5732684ec5959093854bd29ae8ce1c52024b8a5b
 REGRESSION_GUARD = The full Windows 3.12 required gate remains mandatory. A future execution that exceeds the 45-minute ceiling must HOLD and reopen runtime/test-harness investigation instead of recursively increasing the timeout.
 INDEPENDENT_AUDIT = PASS
-CURRENT_EVIDENCE = PR #64 merged feature head db19f42985030f2b154804f959fca615c523a06e; merge commit d10445fc2ffc92e810f0d6258160151efc1c846f; exact-head local 628 passed in 253.40s; exact merged-head Python CI run 32987119489 passed all four required jobs with no CI waiver; Windows 3.12 passed under the bounded 35-minute ceiling. Earlier evidence remains: exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; healthy hosted Windows 628 PASS in approximately 709s; two hosted executions reached 620 PASS in approximately 1404-1425s before cancellation without assertion failure; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally.
+CURRENT_EVIDENCE = PR #64 merged feature head db19f42985030f2b154804f959fca615c523a06e; merge commit d10445fc2ffc92e810f0d6258160151efc1c846f; exact merged-head Python CI run 32987119489 passed all four required jobs with no CI waiver. Earlier timeout evidence remains: exact investigated head 269a6d19539091eab5b903e2684b66ebdf9116ae; healthy hosted Windows 628 PASS in approximately 709s; two equivalent executions reached 620 PASS in approximately 1404-1425s before cancellation without assertion failure; migration benchmark showed fresh upgrade_database() median approximately 0.8973s versus current-schema verification approximately 0.0018s; no process leak or real-network dependency was reproduced locally. Micro-A/B audited PASS and same-head robustness run 33581232930 produced three Windows PASS samples with 787 tests each.
 FORWARD_CORRECTION = PR #82 changed only the Windows 3.12 timeout from 35 to 45 minutes after the two reproduced 35-minute cancellations; product and test behavior were unchanged.
 FORWARD_CORRECTION_HEAD = 03056fe147c3263cf8fb2ea39e63dc239e35fffe
 EXACT_HEAD_PYTHON_CI = 33381474192 / PASS
@@ -337,8 +338,15 @@ ASSERTION_FAILURE_OBSERVED_BEFORE_CANCEL = NO
 OTHER_REQUIRED_JOBS = 3_OF_3_SUCCESS
 HISTORICAL_TIMEOUT_PROGRESSION = 25_MINUTES → 35_MINUTES → 45_MINUTES
 DO_NOT_RECURSIVELY_INCREASE_TIMEOUT = YES
-RECURRENCE_STATUS = OPEN_REQUIRES_RUNTIME_ATTRIBUTION
-PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until runtime attribution is complete. Retain this failure together with FM-008 and systemic lessons as evidence for future test-harness and CI architecture improvement. Another material breach of the 45-minute ceiling requires renewed attribution and HOLD; do not recursively inflate the timeout.
+ROBUSTNESS_RUN = 33581232930
+ROBUSTNESS_SAMPLE_1 = ATTEMPT_1 / WINDOWS_JOB_100095769552 / NORTHCENTRALUS / 787_PASSED / PYTEST_413.62S / JOB_8M07S / PASS
+ROBUSTNESS_SAMPLE_2 = ATTEMPT_2 / WINDOWS_JOB_100102238045 / EASTUS / 787_PASSED / PYTEST_336.21S / JOB_6M47S / PASS
+ROBUSTNESS_SAMPLE_3 = ATTEMPT_3 / WINDOWS_JOB_100103941651 / WESTCENTRALUS / 787_PASSED / PYTEST_322.40S / JOB_6M30S / PASS
+ROBUSTNESS = 3_OF_3_PASS
+ROBUSTNESS_THRESHOLD = 35_MINUTES
+CURRENT_WINDOWS_HARD_CEILING = 45_MINUTES
+RECURRENCE_STATUS = AUDITED_RESOLVED_PENDING_MERGE
+PERMANENT_PREVENTION = Treat timeout boundaries as symptoms until bounded attribution is complete. Retain phase-aware attribution and per-session database preparation with the full regression guard. Another material breach of the 45-minute ceiling requires renewed attribution and HOLD; do not recursively inflate the timeout.
 ```
 
 ## FM-011 — Mutable URL-keyed raw HTML evidence
