@@ -39,7 +39,8 @@ NEXT_PARENT_CANDIDATE = WP-WH-COMPLETE-01 / CANDIDATE_ONLY
 EXACTLY_ONE_NEXT_ACTION = PLANNER_PREPARE_NEXT_GOVERNED_WORK_ORDER
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 FAILURE_MEMORY_WRITE = FM009_MERGED_RESOLVED
-MASTER_ROADMAP_DELTA_WRITE = RD0003_RECONCILED_POST_MERGE
+MASTER_ROADMAP_DELTA_WRITE = RD0003_RETIRED_AFTER_FAILURE_MEMORY_PROMOTION
+RD_0003 = RETIRED_FROM_ACTIVE_DELTA
 PROJECT_MEMORY_WRITE = NO_CHANGE_REQUIRED
 MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED
 CHANGELOG_WRITE = NO_CHANGE_REQUIRED_TEST_INFRA_ONLY
@@ -65,8 +66,8 @@ secondary observed factor. The 45-minute hard ceiling remains unchanged, and
 any future breach requires renewed bounded attribution. FM-008 remains OPEN
 test debt for the legacy `Database.create_all` compatibility seam.
 
-RD-0003 reconciles the existing FM-009 record without creating a duplicate;
-the durable failure-memory promotion is recorded in the canonical failure
-entry. No product implementation, release, or Team Bid pilot is authorized by
-this handoff. The next governed action is for the Planner to prepare the next
+RD-0003 is retired from the active Delta after the existing FM-009 record was
+promoted to durable failure memory; no duplicate failure record was created.
+No product implementation, release, or Team Bid pilot is authorized by this
+handoff. The next governed action is for the Planner to prepare the next
 bounded work order.

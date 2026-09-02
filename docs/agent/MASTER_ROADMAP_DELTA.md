@@ -255,42 +255,6 @@ PLANNER_NOTES = Preserve `PL != IB`; `base_id = lineage`; `(base_id, revision)`
   No implementation is authorized by this Delta alone.
 ```
 
-### RD-0003 — Canonical failure deduplication
-
-```text
-ID = RD-0003
-TITLE = CANONICAL FAILURE DEDUPLICATION
-STATUS = APPROVED_ACTIVE
-SOURCE = Human / failure-memory design decision
-CRAWLER_VALUE = HIGH
-PRODUCT_AREA = Failure classification and prevention
-PRODUCT_HOUSE_LAYERS = GOVERNANCE; INFRASTRUCTURE; VERIFICATION
-OBSERVATION = ONE ROOT CAUSE = ONE CANONICAL FAILURE RECORD; many occurrences
-  do not create many records.
-WHY_IT_MATTERS = Dynamic filename/package/page/path/timestamp values must not
-  fragment one systemic failure or hide recurrence.
-ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
-RELEVANT_CURRENT_WP = NONE_POST_MERGE_FM009_CLOSEOUT
-TARGET_STATE = Fingerprint on layer + capability + symptom class + root-cause
-  class + affected contract; reopen the canonical record on recurrence.
-ONE_ROOT_CAUSE = ONE_CANONICAL_FAILURE_RECORD
-FM009_RECURRENCE = REOPENED_AND_CORRECTED_IN_EXISTING_FM_009
-RECURRENCE = ROUTE_TO_FM_009
-NEW_FAILURE_RECORD = NO
-PROMOTION_TARGET = FAILURE_MEMORY
-PROMOTION_CONDITION = Planner accepts the fingerprint and recurrence contract
-  and routes it to KNOWN_FAILURE_MODES.
-COMPLETION_EVIDENCE = Micro-A attribution, Micro-B test-harness root-cause
-  correction, 3-of-3 same-head Windows robustness evidence, and PR #85
-  post-merge Python CI 33586520758 / SUCCESS_4_OF_4 plus CodeQL 33586520695 /
-  SUCCESS update the canonical FM-009 occurrence without creating a duplicate
-  root-cause record.
-PROMOTION_STATE = VERIFIED_IN_FAILURE_MEMORY
-REMOVE_FROM_DELTA_WHEN = Failure-memory contract is promoted and verified.
-PLANNER_NOTES = Same symptom with unresolved root cause remains
-  REQUIRES_VERIFICATION; no implementation is authorized here.
-```
-
 ### RD-0004 — Basic Crawler first / real HSMT maturity
 
 ```text
@@ -886,7 +850,7 @@ ARCHITECTURE_OPTION = B_DOMAIN_FIRST_TENDERCASE
 PRIMARY_DELTA_IDS = RD-0001; RD-0004; RD-0010
 PRIMARY_PARTIAL_DELTA_IDS = RD-0008
 BOUNDARY_ONLY_DELTA_IDS = RD-0009
-OUT_OF_PARENT_DELTA_IDS = RD-0003; RD-0007
+OUT_OF_PARENT_DELTA_IDS = RD-0007
 EXECUTION_MODEL = 2_LARGE_BOUNDED_BATCHES
 
 BATCH_A = CORE
