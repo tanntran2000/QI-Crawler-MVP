@@ -145,9 +145,9 @@ PERMANENT_PREVENTION = keep coherent SQLite backup tests and never replace them 
 ```text
 ID = FM-002
 TITLE = Windows publisher schema revision drift
-STATE = OPEN
+STATE = MERGED
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = RELEASE_BLOCKER
+DISPOSITION = RESOLVED
 DETECTED_BY = FULL_REPO_AUDIT
 AFFECTED_BASELINE = main at detection: d199e3203c172e525e20d86bddab7c23f830c7b4
 PRODUCT_HOUSE_LAYER = INFRASTRUCTURE / DELIVERY
@@ -156,10 +156,10 @@ ROOT_CAUSE = scripts/publish_windows_release.ps1:56-57,69 pins 0013 while src/qi
 WHY_EXISTING_TESTS_MISSED_IT = release mechanics were not part of the 02B product integration gate
 CI_IMPLICATION = release candidate must be blocked until publisher, manifest and installer checks agree with current schema
 FIX = reconcile release publisher and tests in a bounded release Work Package
-FIX_HEAD = NOT_FIXED
+FIX_HEAD = 628d19004f1c4d3bc14652424cba92ec09742ef3
 REGRESSION_GUARD = tests/test_windows_installer.py:163,179,236 must assert the current head after repair
-INDEPENDENT_AUDIT = FULL_REPO_AUDIT finding; not independently resolved here
-CURRENT_EVIDENCE = scripts/publish_windows_release.ps1:56-70 and tests/test_windows_installer.py:163-236 reference 0013
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = PR #87 merged audited head 628d19004f1c4d3bc14652424cba92ec09742ef3; merge commit 6a16eaca9ac84ea568a104e4e0594c0e77db07f1; post-merge Python CI 33604333004 / SUCCESS_4_OF_4; post-merge CodeQL 33604332143 / SUCCESS
 PERMANENT_PREVENTION = derive or verify release schema metadata from the canonical migration head
 ```
 
@@ -439,6 +439,28 @@ CURRENT_EVIDENCE = PR #76; merged feature head ad25adf2939fd54f36d4411a1dff526c2
 PERMANENT_PREVENTION = authoritative current snapshots must reconcile active membership explicitly; historical row/evidence retention must remain separate from current source membership.
 ```
 
+## FM-015 — Windows frozen Qt ICU collision and release smoke false-positive
+
+```text
+ID = FM-015
+TITLE = Windows frozen Qt ICU collision and release smoke false-positive
+STATE = RESOLVED_LOCAL
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+DETECTED_BY = REL-B fresh Windows candidate build + bounded Phase-3 loader diagnosis
+AFFECTED_BASELINE = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
+PRODUCT_HOUSE_LAYER = DELIVERY / PACKAGING / RELEASE ENGINEERING
+SYMPTOM = Frozen QI-Crawler failed importing PySide6.QtCore with "The specified procedure could not be found"; prior release smoke could still allow candidate metadata creation despite the frozen process failure.
+ROOT_CAUSE = Two proven release-boundary defects: A) PyInstaller collected a foreign Poppler ICU 78 icuuc.dll whose exports were incompatible with the unversioned ICU imports required by Qt6Core.dll. B) build_installer.ps1 did not reliably bind candidate acceptance to the actual frozen child process exit result.
+WHY_EXISTING_TESTS_MISSED_IT = Installer tests asserted release-script structure but did not guard native-binary ownership/collision or prove timeout + real child ExitCode semantics.
+CI_IMPLICATION = Windows release candidate is blocked until corrected frozen Qt startup and actual-process smoke are independently audited.
+FIX = Filter foreign unversioned ICU binaries at PyInstaller packaging ownership boundary; use explicit bounded process wait and actual child ExitCode for standalone smoke.
+FIX_HEAD = PENDING_IMPLEMENTATION_COMMIT
+REGRESSION_GUARD = tests/test_windows_installer.py ICU ownership/exclusion contract + explicit process wait/timeout/nonzero-exit release-gate tests + contaminated-host frozen build proof.
+INDEPENDENT_AUDIT = PENDING
+CURRENT_EVIDENCE = Phase-3 diagnosis proved source PySide6 Qt 6.11.2 imports successfully; frozen core binaries were hash-identical; foreign Poppler ICU 78 exported suffixed *_78 symbols while Qt6Core required unversioned ICU symbols; single-variable system-ICU preload restored QtCore import; implementation RED/GREEN tests executed locally pending exact-head audit.
+PERMANENT_PREVENTION = Native dependencies with colliding names must be admitted according to package ownership rather than host discovery accident; candidate acceptance must depend on the real frozen process exit result.
+```
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

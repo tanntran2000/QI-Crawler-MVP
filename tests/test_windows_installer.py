@@ -1,3 +1,4 @@
+import ast
 import hashlib
 import json
 import shutil
@@ -17,6 +18,70 @@ BUILD_WINDOWS = ROOT / "build_windows.ps1"
 PUBLISH_SCRIPT = ROOT / "scripts" / "publish_windows_release.ps1"
 VERSION = __version__
 EXPECTED_SCHEMA_HEAD = CURRENT_SCHEMA_REVISION
+
+def _load_spec_helpers() -> dict[str, object]:
+    """Load only pure helper functions from the PyInstaller spec."""
+    tree = ast.parse((ROOT / "packaging" / "QI-Crawler.spec").read_text(encoding="utf-8"))
+    helper_nodes = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name in {"_is_within", "filter_foreign_unversioned_icu_binaries"}
+    ]
+    namespace: dict[str, object] = {"Path": Path}
+    exec(  # noqa: S102
+        compile(ast.Module(body=helper_nodes, type_ignores=[]), "QI-Crawler.spec", "exec"),
+        namespace,
+    )
+    return namespace
+
+
+def test_spec_filters_foreign_unversioned_icu_by_source_ownership(tmp_path: Path) -> None:
+    """Foreign ICU binaries must not shadow PySide6-owned runtime dependencies."""
+    script = (ROOT / "packaging" / "QI-Crawler.spec").read_text(encoding="utf-8")
+    for dll_name in ("icuuc.dll", "icuin.dll", "icudt.dll"):
+        assert dll_name in script.lower()
+    assert "find_spec(\"pyside6\")" in script.lower()
+    assert "c:\\users\\admin" not in script.lower()
+    assert "codex-runtimes" not in script.lower()
+    assert "poppler" not in script.lower()
+
+    helpers = _load_spec_helpers()
+    filter_binaries = helpers["filter_foreign_unversioned_icu_binaries"]
+    pyside_root = tmp_path / "site-packages" / "PySide6"
+    foreign_root = tmp_path / "native" / "poppler"
+    binaries = [
+        ("icuuc.dll", str(foreign_root / "icuuc.dll"), "BINARY"),
+        ("icuin.dll", str(foreign_root / "icuin.dll"), "BINARY"),
+        ("icudt78.dll", str(foreign_root / "icudt78.dll"), "BINARY"),
+        ("Qt6Core.dll", str(foreign_root / "Qt6Core.dll"), "BINARY"),
+        ("icuuc.dll", str(pyside_root / "icuuc.dll"), "BINARY"),
+    ]
+    filtered = filter_binaries(binaries, pyside_root)  # type: ignore[operator]
+    assert ("Qt6Core.dll", str(foreign_root / "Qt6Core.dll"), "BINARY") in filtered
+    assert ("icuuc.dll", str(pyside_root / "icuuc.dll"), "BINARY") in filtered
+    assert all(
+        Path(item[0]).name.lower() not in {"icuuc.dll", "icuin.dll", "icudt78.dll"}
+        or Path(item[1]).is_relative_to(pyside_root)
+        for item in filtered
+    )
+
+
+def test_frozen_smoke_gate_waits_for_process_and_fails_closed() -> None:
+    """The candidate must be created only after a real child-process result."""
+    script = BUILD_SCRIPT.read_text(encoding="utf-8")
+    smoke_start = script.index("$smokeProcess = Start-Process")
+    candidate_start = script.index(
+        "New-Item -ItemType Directory -Path (Join-Path $candidateRoot", smoke_start
+    )
+    gate = script[smoke_start:candidate_start]
+    assert "Start-Process" in gate
+    assert "-PassThru" in gate
+    assert "WaitForExit(120000)" in gate
+    assert ".ExitCode" in gate
+    assert "Kill()" in gate
+    assert "throw" in gate
+    assert "QI_CRAWLER_DATA_DIR" in gate
 
 
 def test_installer_is_per_user_and_preserves_bid_data() -> None:
