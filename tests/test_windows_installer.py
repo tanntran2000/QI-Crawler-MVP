@@ -79,7 +79,10 @@ def test_frozen_smoke_gate_waits_for_process_and_fails_closed() -> None:
     assert "-PassThru" in gate
     assert "WaitForExit(120000)" in gate
     assert ".ExitCode" in gate
+    assert "if ($smokeExitCode -ne 0)" in gate
+    assert gate.index("$smokeProcess.ExitCode") < gate.index("$smokeExitCode -ne 0")
     assert "Kill()" in gate
+    assert "if (-not $smokeProcess.WaitForExit(120000))" in gate
     assert "throw" in gate
     assert "QI_CRAWLER_DATA_DIR" in gate
 
