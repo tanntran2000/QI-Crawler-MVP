@@ -2,7 +2,9 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
-## Unreleased - 2026-08-22
+## Unreleased
+
+## 0.9.0 - 2026-09-02
 
 - WP-TB-BASIC-CRAWLER-03 merged controlled folder intake and operational
   revision transition: folder discovery is read-only until explicit Human

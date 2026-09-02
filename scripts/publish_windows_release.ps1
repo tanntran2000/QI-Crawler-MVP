@@ -5,7 +5,8 @@ param(
     [string]$PublishRoot,
     [string]$CandidateRoot,
     [Parameter(Mandatory = $true)]
-    [string]$Version
+    [string]$Version,
+    [string]$ExpectedAlembicHead
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,7 +36,7 @@ function Assert-RepositoryReady([string]$Root) {
     }
 }
 
-function Assert-Candidate([string]$Root, [string]$ReleaseVersion) {
+function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$ExpectedHead) {
     $bundle = Join-Path $Root "QI-Crawler"
     $exe = Join-Path $bundle "QI-Crawler.exe"
     $installer = Join-Path $Root "QI-Crawler-Setup-v$ReleaseVersion.exe"
@@ -53,8 +54,8 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion) {
     if ($manifest.product -ne "QI-Crawler" -or $manifest.version -ne $ReleaseVersion) {
         throw "Release manifest khong khop version/product"
     }
-    if ($manifest.alembic_head -ne "0013_add_candidate_review_events") {
-        throw "Release manifest thieu Alembic head 0013_add_candidate_review_events"
+    if ($manifest.alembic_head -ne $ExpectedHead) {
+        throw "Release manifest khong khop Alembic head ky vong: $ExpectedHead"
     }
     if ($manifest.portable_exe_sha256 -ne (Get-Sha256 $exe)) {
         throw "Hash portable EXE khong khop release manifest"
@@ -66,7 +67,7 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion) {
     foreach ($required in @(
         "product=QI-Crawler",
         "version=$ReleaseVersion",
-        "alembic_head=0013_add_candidate_review_events",
+        "alembic_head=$ExpectedHead",
         "portable_exe_sha256=$($manifest.portable_exe_sha256)",
         "installer_sha256=$($manifest.installer_sha256)"
     )) {
@@ -88,6 +89,10 @@ if (-not $Publish) {
     exit 0
 }
 
+if ([string]::IsNullOrWhiteSpace($ExpectedAlembicHead)) {
+    throw "ExpectedAlembicHead la bat buoc khi publish"
+}
+
 $repo = Resolve-ExistingPath $RepoRoot "Repository"
 Assert-RepositoryReady $repo
 
@@ -102,7 +107,7 @@ if (-not $CandidateRoot) {
     throw "Can -CandidateRoot den mot thu muc candidate da duoc build va smoke-test"
 }
 $candidate = Resolve-ExistingPath $CandidateRoot "Candidate"
-$candidateParts = Assert-Candidate $candidate $Version
+$candidateParts = Assert-Candidate $candidate $Version $ExpectedAlembicHead
 
 $publishStage = Join-Path $publishParent ("Crawler tool.publish-" + [guid]::NewGuid().ToString("N"))
 $rotationStage = Join-Path $publishParent ("Crawler tool.rotate-" + [guid]::NewGuid().ToString("N"))

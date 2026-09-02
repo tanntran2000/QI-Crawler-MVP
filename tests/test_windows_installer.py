@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from qi_crawler import __version__
+from qi_crawler.db import CURRENT_SCHEMA_REVISION
 
 ROOT = Path(__file__).parent.parent
 INSTALLER = ROOT / "packaging" / "QI-Crawler.iss"
@@ -15,6 +16,7 @@ BUILD_SCRIPT = ROOT / "build_installer.ps1"
 BUILD_WINDOWS = ROOT / "build_windows.ps1"
 PUBLISH_SCRIPT = ROOT / "scripts" / "publish_windows_release.ps1"
 VERSION = __version__
+EXPECTED_SCHEMA_HEAD = CURRENT_SCHEMA_REVISION
 
 
 def test_installer_is_per_user_and_preserves_bid_data() -> None:
@@ -140,7 +142,9 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
 
     publish_root = tmp_path / "Crawler tool"
 
-    def make_candidate(name: str, payload: bytes) -> Path:
+    def make_candidate(
+        name: str, payload: bytes, schema_head: str = EXPECTED_SCHEMA_HEAD
+    ) -> Path:
         candidate = tmp_path / name
         bundle = candidate / "QI-Crawler"
         bundle.mkdir(parents=True)
@@ -160,7 +164,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
                     ).strip(),
                     "source_branch=main",
                     "build_timestamp_utc=2026-08-23T00:00:00Z",
-                    "alembic_head=0013_add_candidate_review_events",
+                    f"alembic_head={schema_head}",
                     f"portable_exe_sha256={exe_hash}",
                     f"installer_sha256={installer_hash}",
                 ]
@@ -176,7 +180,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
                         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
                     ).strip(),
                     "build_timestamp_utc": "2026-08-23T00:00:00Z",
-                    "alembic_head": "0013_add_candidate_review_events",
+                    "alembic_head": schema_head,
                     "release_channel": "team_bid_verified",
                     "portable_exe_sha256": exe_hash,
                     "installer_sha256": installer_hash,
@@ -186,7 +190,9 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
         )
         return candidate
 
-    def run_publish(candidate: Path) -> subprocess.CompletedProcess[str]:
+    def run_publish(
+        candidate: Path, expected_head: str | None = EXPECTED_SCHEMA_HEAD
+    ) -> subprocess.CompletedProcess[str]:
         args = [
             shell,
             "-NoProfile",
@@ -202,6 +208,8 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
             "-Version",
             VERSION,
         ]
+        if expected_head is not None:
+            args.extend(["-ExpectedAlembicHead", expected_head])
         if sys.platform == "win32" and Path(shell).name.lower() == "powershell.exe":
             args[1:1] = ["-ExecutionPolicy", "Bypass"]
         return subprocess.run(args, capture_output=True, text=True, check=False)
@@ -233,7 +241,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     )
     assert manifest["product"] == "QI-Crawler"
     assert manifest["version"] == VERSION
-    assert manifest["alembic_head"] == "0013_add_candidate_review_events"
+    assert manifest["alembic_head"] == EXPECTED_SCHEMA_HEAD
     assert manifest["release_channel"] == "team_bid_verified"
 
     incomplete = tmp_path / "candidate-incomplete"
@@ -241,4 +249,16 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     (incomplete / f"QI-Crawler-Setup-v{VERSION}.exe").write_bytes(b"bad")
     failed = run_publish(incomplete)
     assert failed.returncode != 0
+    assert current_exe.read_bytes() == b"two"
+
+    wrong_head = run_publish(
+        make_candidate("candidate-wrong-head", b"wrong", schema_head="wrong-head")
+    )
+    assert wrong_head.returncode != 0
+    assert current_exe.read_bytes() == b"two"
+
+    missing_expected_head = run_publish(
+        make_candidate("candidate-missing-expected-head", b"missing"), expected_head=None
+    )
+    assert missing_expected_head.returncode != 0
     assert current_exe.read_bytes() == b"two"
