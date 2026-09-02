@@ -257,6 +257,28 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     assert wrong_head.returncode != 0
     assert current_exe.read_bytes() == b"two"
 
+    build_info_only_mismatch = make_candidate(
+        "candidate-build-info-only-mismatch", b"build-info-mismatch"
+    )
+    build_info_path = build_info_only_mismatch / "BUILD_INFO.txt"
+    build_info_path.write_text(
+        build_info_path.read_text(encoding="utf-8").replace(
+            f"alembic_head={EXPECTED_SCHEMA_HEAD}",
+            "alembic_head=wrong-build-info-head",
+        ),
+        encoding="utf-8",
+    )
+    build_info_only_failed = run_publish(build_info_only_mismatch)
+    assert build_info_only_failed.returncode != 0
+    assert json.loads(
+        (build_info_only_mismatch / "release_manifest.json").read_text(encoding="utf-8")
+    )["alembic_head"] == EXPECTED_SCHEMA_HEAD
+    assert (
+        "alembic_head=wrong-build-info-head"
+        in build_info_path.read_text(encoding="utf-8")
+    )
+    assert current_exe.read_bytes() == b"two"
+
     missing_expected_head = run_publish(
         make_candidate("candidate-missing-expected-head", b"missing"), expected_head=None
     )
