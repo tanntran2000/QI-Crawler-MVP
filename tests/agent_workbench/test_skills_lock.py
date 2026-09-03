@@ -41,7 +41,8 @@ def _copy_workbench(tmp_path: Path) -> Path:
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
-    digest.update(path.read_bytes())
+    text = path.read_bytes().decode("utf-8")
+    digest.update(text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8"))
     return digest.hexdigest()
 
 
@@ -66,6 +67,7 @@ def test_canonical_lock_covers_every_approved_skill_and_reference() -> None:
     manifest = json.loads(LOCK.read_text(encoding="utf-8"))
     assert manifest["schema_version"] == 1
     assert manifest["algorithm"] == "sha256"
+    assert manifest["normalization"] == "utf8_text_lf"
     assert set(manifest["files"]) == EXPECTED_ARTIFACTS
     assert len(manifest["files"]) == 9
     for relative, expected_hash in manifest["files"].items():
@@ -80,6 +82,18 @@ def test_canonical_valid_lock_passes() -> None:
     assert "INTEGRITY PASS" in result.stdout
     assert "HUMAN_APPROVED" not in result.stdout
     assert "MERGE_AUTHORIZED" not in result.stdout
+
+
+def test_equivalent_lf_and_crlf_text_passes_same_integrity(tmp_path: Path) -> None:
+    workbench = _copy_workbench(tmp_path)
+    target = workbench / "references" / "context-map.md"
+    normalized = target.read_text(encoding="utf-8")
+    target.write_bytes(normalized.replace("\n", "\r\n").encode("utf-8"))
+
+    result = _run_verifier(workbench)
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "INTEGRITY PASS" in result.stdout
 
 
 def test_tampered_artifact_is_rejected_with_digest_mismatch(tmp_path: Path) -> None:

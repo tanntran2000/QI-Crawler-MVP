@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "algorithm": "sha256",
+  "normalization": "utf8_text_lf",
   "files": {
     "references/context-map.md": "287dcc319be8febe19be828d442447e7bbfa4223daa13c7acc1689e53219660d",
     "references/handoff-template.md": "3d0ef4c842c9461334dd00d602422ab1554e3efaa37939335c554db63fb380c6",

@@ -28,6 +28,7 @@ GOVERNANCE_BOUNDARIES = (
 )
 
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+_NORMALIZATION = "utf8_text_lf"
 
 
 class MalformedLock(ValueError):
@@ -45,6 +46,8 @@ def _read_manifest(lock_path: Path) -> dict[str, Any]:
         raise MalformedLock("unsupported schema_version")
     if raw.get("algorithm") != "sha256":
         raise MalformedLock("unsupported algorithm")
+    if raw.get("normalization") != _NORMALIZATION:
+        raise MalformedLock("unsupported normalization")
     files = raw.get("files")
     if not isinstance(files, dict) or not files:
         raise MalformedLock("files must be a non-empty object")
@@ -66,9 +69,10 @@ def _read_manifest(lock_path: Path) -> dict[str, Any]:
 
 def _digest(path: Path) -> str:
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    canonical = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    digest.update(canonical)
     return digest.hexdigest()
 
 
@@ -90,7 +94,11 @@ def verify(root: Path, lock_path: Path) -> int:
         if not candidate.is_file():
             print(f"missing locked artifact: {relative}", file=sys.stderr)
             return 2
-        actual = _digest(candidate)
+        try:
+            actual = _digest(candidate)
+        except (OSError, UnicodeError) as exc:
+            print(f"invalid UTF-8 artifact: {relative}: {exc}", file=sys.stderr)
+            return 3
         if actual.lower() != expected.lower():
             print(
                 f"digest mismatch: {relative} expected {expected} got {actual}",
