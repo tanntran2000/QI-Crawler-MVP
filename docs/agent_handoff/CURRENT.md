@@ -3,48 +3,46 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / FM-015-CORRECTION
-HANDOFF_CAPTURE_BASE = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
-LIVE_MAIN_HEAD = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
+HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / RELEASE-CLOSEOUT
+RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
-REL_A_MERGE_COMMIT = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
-REL_A_POST_MERGE_PYTHON_CI = 33604333004 / SUCCESS_4_OF_4
-REL_A_POST_MERGE_CODEQL = 33604332143 / SUCCESS
-ACTIVE_PRODUCT_WP = NONE
-ACTIVE_ENGINEERING_WP = WP-REL-0.9.0-FM015-CORRECTION-01
 TARGET_RELEASE = 0.9.0
-RELEASE_PREP = COMPLETE_PENDING_FM015_AUDIT
-FM_002 = CLOSED
-FM_008 = OPEN_TEST_DEBT
-FM_015 = RESOLVED_LOCAL_PENDING_INDEPENDENT_AUDIT
+DEPLOYED_VERSION = 0.9.0
+TARGET_INSTALL_FOLDER = D:\QI-Crawler
+OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
+REL_A = CLOSED
+FM_015 = MERGED_RESOLVED
+REL_B = AUDITED_PASS
+REL_C = AUDITED_PASS
 RUNTIME_SCHEMA = 0020_add_tender_operational_revision_events
 ALEMBIC_HEAD = 0020_add_tender_operational_revision_events
-REL_B = HOLD_PENDING_FM015_AUDIT_MERGE_POSTMERGE_ACCEPTANCE
-REL_C = NO
-RELEASE = NO
-TEAM_BID_PILOT = NO
-TARGET_INSTALL_FOLDER = D:\QI-Crawler
-TARGET_INSTALL_FOLDER_MODIFIED = NO
-OFFICIAL_TEAM_BID_RELEASE = BLOCKED
-REL_B_AUTHORIZED = NO
-REL_C_AUTHORIZED = NO
-WP_WH_COMPLETE_01 = PARKED_PENDING_NOTEBOOKLM_REDESIGN
-NOTEBOOKLM_DESIGN = AFTER_V0.9.0_STABLE
+POST_MERGE_PYTHON_CI = 33645881211 / SUCCESS_4_OF_4
+POST_MERGE_CODEQL = 33645880242 / SUCCESS
+DATA_PRESERVATION = PASS
+UNEXPLAINED_DATA_CHANGE = NO
+TAG_V0_9_0 = NO
+GITHUB_RELEASE_V0_9_0 = NO
+TEAM_BID_PILOT = NO_NOT_AUTHORIZED
+WP_WH_COMPLETE_01 = PARKED
+NOTEBOOKLM_DESIGN = PARKED_PENDING_HUMAN_NEW_IDEAS
+ACTIVE_PRODUCT_WP = NONE
+ACTIVE_ENGINEERING_WP = NONE
 NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_INDEPENDENT_FM015_CORRECTION_AUDIT
-NEXT_AUTHORITY = PLANNER_ARCHITECT
-PROJECT_MEMORY_WRITE = NO_CHANGE_REQUIRED
-MASTER_ROADMAP_WRITE = NO_CHANGE_REQUIRED
-CHANGELOG_WRITE = NO_CHANGE_REQUIRED_TEST_INFRA_ONLY
-LESSONS_WRITE = NO_CHANGE_REQUIRED_LESSON11_SUFFICIENT
-FEEDBACK_WRITE = NO_CHANGE_REQUIRED
-SPINE_SYNC_STATE = PENDING_INDEPENDENT_FM015_CORRECTION_AUDIT
-HANDOFF_READY = NO_PENDING_AUDIT
-PARENT_STATE = WP_REL_0.9.0_FM015_CORRECTION_PENDING_INDEPENDENT_AUDIT
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_NEW_IDEAS
+NEXT_AUTHORITY = HUMAN_A0
+HANDOFF_READY = YES
+PARENT_STATE = WP_REL_0.9.0_OPERATIONAL_RELEASE_ACCEPTED
 ```
 
-## FM-015 current disposition
+## Release closeout disposition
 
-Human A0 authorized a bounded release correction for the proven frozen Qt ICU collision and false-positive smoke gate. The implementation filters foreign unversioned ICU binaries at the PyInstaller ownership boundary and binds frozen document smoke to an explicit 120-second child-process wait and exit code. FM-002 is closed from the merged REL-A contract. FM-015 remains pending independent audit.
-
-The target `D:\QI-Crawler` has not been modified. REL-B remains on hold pending FM-015 audit and merge/post-merge acceptance; REL-C, release publication, and Team Bid pilot remain unauthorized. `WP-WH-COMPLETE-01` remains parked pending NotebookLM redesign. The next governed step is the independent FM-015 correction audit.
+Human A0 accepted QI-Crawler v0.9.0 operationally after the audited
+REL-B candidate and in-place REL-C acceptance at D:\QI-Crawler.
+The release source remains bf46dbce7501ddf0ae0a7115ddde28eb3b137f62;
+this closeout documentation does not become the release artifact or tag
+source. REL-A, FM-015, REL-B and REL-C are closed with the recorded
+post-merge CI/CodeQL and data-preservation evidence. D:\QI-Crawler
+remains the accepted in-place installation, while release publication,
+the v0.9.0 tag, Team Bid pilot expansion, Warehouse work and NotebookLM
+implementation remain unauthorized. The next action is to stop for Human
+A0's new ideas.

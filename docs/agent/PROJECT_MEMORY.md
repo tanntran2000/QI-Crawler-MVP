@@ -49,19 +49,24 @@ branches must remain in their Work Package handoff.
 ## MEM-005 — Windows publish boundary
 
 - **State:** ACTIVE
-- **Since main commit:** `e345256`
-- **Contract:** `dist` is a generated build workspace. The user-visible
-  `Crawler tool\Current` is the publish authority, updated only by an explicit
+- **Since main commit:** e345256
+- **Contract:** dist is a generated build workspace. The user-visible
+  Crawler tool\Current is the publish authority, updated only by an explicit
   clean-main publish after a verified candidate; failed candidates do not
-  replace Current. The approved Team Bid release is `0.8.0`.
-- **Release identity:** application/package `0.8.0`, source SHA
-  `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`, immutable annotated tag
-  `v0.8.0`, and GitHub Release `v0.8.0`. The release manifest, BUILD_INFO and
-  SHA256SUMS record the installer/EXE hashes. `Crawler tool\Current` and the
-  Team Bid Reference are derived from this same verified identity.
-- **Evidence:** merged Windows release mechanics, hosted CI, and the
-  published v0.8.0 release artifacts.
-- **Last verified:** `c1e9e16ffca3b3fd83ba7a150b16353445d7856e`.
+  replace Current. The historical GitHub release remains 0.8.0, while the
+  current operational Team Bid release is 0.9.0 at D:\QI-Crawler.
+- **Published GitHub release:** v0.8.0 remains the latest historical tag and
+  GitHub Release identity. Its application/package source SHA is
+  c1e9e16ffca3b3fd83ba7a150b16353445d7856e; its release manifest, BUILD_INFO
+  and SHA256SUMS record the historical installer/EXE hashes.
+- **Current operational release:** v0.9.0 is Human A0 accepted in-place at
+  D:\QI-Crawler from source
+  bf46dbce7501ddf0ae0a7115ddde28eb3b137f62. It has no v0.9.0 tag and no
+  GitHub Release. Operational acceptance and GitHub publication are distinct
+  states.
+- **Evidence:** merged Windows release mechanics, hosted CI, the published
+  v0.8.0 release artifacts, and the audited v0.9.0 REL-B/REL-C acceptance.
+- **Last verified:** bf46dbce7501ddf0ae0a7115ddde28eb3b137f62.
 
 ## MEM-006 — SA Excel source routing
 
@@ -530,7 +535,30 @@ Do not add RD-0011 as implemented memory.
   capability and would have MINOR version impact if later included in an
   approved release.
 - **Last verified:** `3ebea845589fedf860afb94f69959413a819b176`.
+- **Later status:** Current operational release status is superseded by the dedicated operational release memory entry below.
 
+## MEM-026 — QI-Crawler v0.9.0 Operational Release Acceptance
+
+- **State:** ACTIVE
+- **Release source:** bf46dbce7501ddf0ae0a7115ddde28eb3b137f62.
+- **Contract:** Human A0 accepted QI-Crawler v0.9.0 as the operational
+  release installed in-place at D:\QI-Crawler after REL-B artifact audit and
+  REL-C production-data acceptance.
+- **Artifact identity:** installer SHA256
+  3D99939420A4B3B582FE3CD2E883D44B17DE3223EA2F012B15CF0FC4F2053DD9; installed
+  EXE SHA256
+  0970FC2E0CAE7017CDD9508A2AAD64488E1CC363A175391D7758CA1BA609D026.
+- **Schema:** 0020_add_tender_operational_revision_events.
+- **Acceptance evidence:** SQLite integrity ok; all pre-existing business
+  records preserved; documents 2/2; managed files 2/2; representative hashes
+  unchanged; production launch PASS; restart PASS; isolated PDF/DOCX/XLSX
+  intake PASS; isolated export PASS; Qt 6.11.2 PASS; unexplained data change
+  = NO; rollback source available.
+- **Hosted evidence:** Python CI 33645881211 / SUCCESS_4_OF_4; CodeQL
+  33645880242 / SUCCESS.
+- **Boundary:** no v0.9.0 tag; no GitHub Release v0.9.0; no Team Bid pilot
+  expansion; Unified Tender Warehouse remains PARTIAL; RD/Warehouse/NotebookLM
+  next work is not authorized; next authority is Human A0.
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
