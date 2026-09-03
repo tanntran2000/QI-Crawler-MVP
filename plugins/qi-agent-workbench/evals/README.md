@@ -3,7 +3,7 @@
 This index consolidates the bounded, machine-checkable failure candidates for
 `WP-GOV-QI-WORKBENCH-01`. It is an evaluation aid, not governance authority.
 
-`EVALUATION_CORPUS != GOVERNANCE_AUTHORITY`  
+`EVALUATION_CORPUS != GOVERNANCE_AUTHORITY`
 `FAILURE_CANDIDATE != AUTOMATIC_RULE`
 
 ## Corpus mapping
@@ -44,9 +44,9 @@ local machine evidence; it does not promote QI BOOT into canonical Spine.
 | 06 | Stale CURRENT vs live Git | QI Boot reconciliation | live Git over stale CURRENT | reconcile before READY | PASS | `test_invalid_boot_state_mutant_is_rejected` |
 | 07 | Model name without role evidence | QI Boot role resolution | Human → Work Order → CURRENT only | `ENTRY_HOLD` | PASS | `test_model_name_fallback_mutant_is_rejected` |
 
-Manual pilot result: `7_OF_7_PASS`  
-Authority violations: `0`  
-Scope widening: `0`  
+Manual pilot result: `7_OF_7_PASS`
+Authority violations: `0`
+Scope widening: `0`
 Product mutation: `0`
 
 Limitations: the corpus is a deterministic local runner over existing tests;
