@@ -35,9 +35,12 @@ MICRO_D_STATE = AUDIT_ACCEPTED
 MICRO_D_FINAL_HEAD = 0a845a24f50e31cbfc98634b6a29e3a4678a0ba7
 MICRO_D_FINDING_WB_05 = MINOR_CARRY_TO_MICRO_E
 ACTIVE_MICRO_WP = MICRO-E
-MICRO_E_STATE = AUTHORIZED_NOT_STARTED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_MICRO_E
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+MICRO_E_STATE = PILOT_PASS_PENDING_HUMAN_PROMOTION
+MICRO_E_PILOT_RESULT = PASS
+MICRO_E_PILOT_SCENARIOS = 7_OF_7_PASS
+FINDING_WB_05 = RESOLVED
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_HUMAN_PROMOTION_REVIEW
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
 RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
@@ -51,11 +54,10 @@ NOTEBOOKLM_DESIGN = PARKED
 ## Current disposition
 
 Human A0 authorized `WP-GOV-QI-WORKBENCH-01` for controlled governance
-implementation. Micro-A was independently accepted after one remediation
-pass at `23892b45e8431004ff8d1531155865d0ea30d61b`; Micro-B was accepted at
-`7683b2478cb437f49806030465a87a1126dab1a0`. The superseded local
-`WP-GOV-QI-WORKBENCH-01A` state is preserved only in the non-normative
-history snapshot named above and is not active authority. Micro-B is
-closed and Micro-C is authorized but not started; no product, automation,
-MCP, release, or Team Bid changes are authorized. The next action is Builder
-execution of Micro-C under the approved bounded scope.
+implementation. Micro-A, Micro-B, and Micro-C were independently accepted;
+Micro-D integrity verification was accepted at `0a845a24f50e31cbfc98634b6a29e3a4678a0ba7`.
+Micro-E consolidated the evaluation corpus and completed all seven approved
+manual pilot scenarios with no authority violations, scope widening, or
+product mutation. QI BOOT promotion remains pending Planner/Human review;
+no product, automation, MCP, release, or Team Bid changes are authorized.
+The next action is Planner review for Human promotion, not Micro-F execution.
