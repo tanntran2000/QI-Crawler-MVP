@@ -3,46 +3,46 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / RELEASE-CLOSEOUT
-RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
+HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PRE
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
-TARGET_RELEASE = 0.9.0
+PARENT_WP = WP-GOV-QI-WORKBENCH-01
+CURRENT_PHASE = GOVERNANCE_WORKBENCH_IMPLEMENTATION
+ACTIVE_PRODUCT_WP = NONE
+ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
+ACTIVE_MICRO_WP = MICRO-A
+PARENT_STATE = AUTHORIZED_BY_HUMAN_A0
+PRODUCT_CHANGE = NO
+VERSION_IMPACT = NONE
+DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
+IMPLEMENTATION_PLAN = docs/superpowers/plans/2026-09-03-qi-agent-workbench.md
+AUTOMATION = NO
+SCHEDULER = NO
+MCP = NO
+EXTERNAL_CONNECTOR = NO
+AUTO_SPINE = NO
+AUTO_MERGE = NO
+AUTO_RELEASE = NO
+WP_GOV_QI_WORKBENCH_01A = SUPERSEDED_UNPROMOTED_LOCAL_DRAFT
+WP_GOV_QI_WORKBENCH_01A_HISTORY = docs/agent_handoff/history/CURRENT_unpromoted_local_wp_gov_qi_workbench_01a.md
+MICRO_A_STATE = AUTHORIZED_NOT_STARTED
+NEXT_WP_AUTHORIZED = YES_HUMAN_A0
+EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_MICRO_A
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
-TARGET_INSTALL_FOLDER = D:\QI-Crawler
+RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
 OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
-REL_A = CLOSED
-FM_015 = MERGED_RESOLVED
-REL_B = AUDITED_PASS
-REL_C = AUDITED_PASS
-RUNTIME_SCHEMA = 0020_add_tender_operational_revision_events
-ALEMBIC_HEAD = 0020_add_tender_operational_revision_events
-POST_MERGE_PYTHON_CI = 33645881211 / SUCCESS_4_OF_4
-POST_MERGE_CODEQL = 33645880242 / SUCCESS
-DATA_PRESERVATION = PASS
-UNEXPLAINED_DATA_CHANGE = NO
-TAG_V0_9_0 = NO
-GITHUB_RELEASE_V0_9_0 = NO
+RELEASE = NO
 TEAM_BID_PILOT = NO_NOT_AUTHORIZED
 WP_WH_COMPLETE_01 = PARKED
-NOTEBOOKLM_DESIGN = PARKED_PENDING_HUMAN_NEW_IDEAS
-ACTIVE_PRODUCT_WP = NONE
-ACTIVE_ENGINEERING_WP = NONE
-NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_NEW_IDEAS
-NEXT_AUTHORITY = HUMAN_A0
-HANDOFF_READY = YES
-PARENT_STATE = WP_REL_0.9.0_OPERATIONAL_RELEASE_ACCEPTED
+NOTEBOOKLM_DESIGN = PARKED
 ```
 
-## Release closeout disposition
+## Current disposition
 
-Human A0 accepted QI-Crawler v0.9.0 operationally after the audited
-REL-B candidate and in-place REL-C acceptance at D:\QI-Crawler.
-The release source remains bf46dbce7501ddf0ae0a7115ddde28eb3b137f62;
-this closeout documentation does not become the release artifact or tag
-source. REL-A, FM-015, REL-B and REL-C are closed with the recorded
-post-merge CI/CodeQL and data-preservation evidence. D:\QI-Crawler
-remains the accepted in-place installation, while release publication,
-the v0.9.0 tag, Team Bid pilot expansion, Warehouse work and NotebookLM
-implementation remain unauthorized. The next action is to stop for Human
-A0's new ideas.
+Human A0 authorized `WP-GOV-QI-WORKBENCH-01` for controlled governance
+implementation. The superseded local `WP-GOV-QI-WORKBENCH-01A` state is
+preserved only in the non-normative history snapshot named above and is not
+active authority. Micro-A is authorized but not started; no product,
+automation, MCP, release, or Team Bid changes are authorized. The next
+action is Builder execution of Micro-A under the approved bounded scope.
