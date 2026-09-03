@@ -1,0 +1,7 @@
+{
+  "id": "BOOT-NEG-001",
+  "CURRENT_HEAD": "OLD",
+  "LIVE_GIT_HEAD": "NEW",
+  "present_but_wrong": "CURRENT_ONLY -> READY",
+  "required": "ENTRY_HOLD"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "BOOT-NEG-002",
+  "HUMAN_ROLE": null,
+  "WORK_ORDER_ROLE": null,
+  "CURRENT_ROLE": null,
+  "RUNTIME_MODEL": "Codex",
+  "present_but_wrong": "Codex -> BUILDER_SINGLE_WRITER",
+  "required": "ENTRY_HOLD"
+}

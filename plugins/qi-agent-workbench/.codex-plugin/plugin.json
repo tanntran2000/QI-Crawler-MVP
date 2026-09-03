@@ -1,0 +1,16 @@
+{
+  "name": "qi-agent-workbench",
+  "version": "0.1.0",
+  "description": "Bounded QI governance guidance for delegated Codex work.",
+  "author": { "name": "QI Technology" },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "QI Agent Workbench",
+    "shortDescription": "Bounded governance workflow guidance",
+    "longDescription": "Internal candidate skills for safe, evidence-led QI agent work.",
+    "developerName": "QI Technology",
+    "category": "Productivity",
+    "capabilities": ["Guidance", "Read-only context boot"],
+    "defaultPrompt": ["Prepare a bounded QI work envelope with evidence gates."]
+  }
+}
