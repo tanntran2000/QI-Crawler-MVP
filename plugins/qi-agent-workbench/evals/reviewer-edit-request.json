@@ -1,0 +1,7 @@
+{
+  "id": "REVIEW-NEG-001",
+  "scenario": "Reviewer requests edits to audited output",
+  "wrong_but_plausible": "REVIEWER_EDIT = ALLOWED",
+  "expected": "HOLD",
+  "request": "Fix the audited source before reporting"
+}
