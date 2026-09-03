@@ -13,3 +13,8 @@ QI context boot resolution:
 `MEMORY_INDEX` → governance/read mode → `MASTER_ROADMAP` + `MASTER_ROADMAP_DELTA` → `CURRENT` → live Git/GitHub → role and scope reconciliation → `READY | ENTRY_HOLD`.
 
 This map is a reading aid, never a replacement for these sources or a second Spine.
+
+Task Envelope routing:
+
+- `qi-task-envelope` derives the subordinate `TASK_ENVELOPE` from the approved Work Order and read-only Boot.
+- The envelope has exactly ten fields and never widens scope or grants authority; mismatches are `ENTRY_HOLD`.

@@ -1,0 +1,14 @@
+{
+  "id": "ENVELOPE-NEG-002",
+  "scenario": "Migration task omits migration and data-safety context",
+  "task_family": "migration_schema",
+  "wrong_but_plausible": "generic Python route -> READY",
+  "expected": "ENTRY_HOLD",
+  "required_route": [
+    "qi-context-boot",
+    "qi-impact-map",
+    "canonical migration/data-safety contracts",
+    "qi-evidence-check",
+    "qi-review-handoff"
+  ]
+}
