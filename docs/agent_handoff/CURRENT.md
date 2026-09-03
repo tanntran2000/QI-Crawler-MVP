@@ -3,46 +3,67 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-REL-0.9.0-INPLACE-UPGRADE-01 / RELEASE-CLOSEOUT
-RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
+HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PARENT_CLOSEOUT_RECONCILIATION
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
-TARGET_RELEASE = 0.9.0
-DEPLOYED_VERSION = 0.9.0
-TARGET_INSTALL_FOLDER = D:\QI-Crawler
-OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
-REL_A = CLOSED
-FM_015 = MERGED_RESOLVED
-REL_B = AUDITED_PASS
-REL_C = AUDITED_PASS
-RUNTIME_SCHEMA = 0020_add_tender_operational_revision_events
-ALEMBIC_HEAD = 0020_add_tender_operational_revision_events
-POST_MERGE_PYTHON_CI = 33645881211 / SUCCESS_4_OF_4
-POST_MERGE_CODEQL = 33645880242 / SUCCESS
-DATA_PRESERVATION = PASS
-UNEXPLAINED_DATA_CHANGE = NO
-TAG_V0_9_0 = NO
-GITHUB_RELEASE_V0_9_0 = NO
-TEAM_BID_PILOT = NO_NOT_AUTHORIZED
-WP_WH_COMPLETE_01 = PARKED
-NOTEBOOKLM_DESIGN = PARKED_PENDING_HUMAN_NEW_IDEAS
+PARENT_WP = WP-GOV-QI-WORKBENCH-01
+CURRENT_PHASE = PARENT_CLOSEOUT_RECONCILIATION
 ACTIVE_PRODUCT_WP = NONE
-ACTIVE_ENGINEERING_WP = NONE
+ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
+PARENT_STATE = READY_FOR_INTEGRATION
+PRODUCT_CHANGE = NO
+VERSION_IMPACT = NONE
+DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
+IMPLEMENTATION_PLAN = docs/superpowers/plans/2026-09-03-qi-agent-workbench.md
+AUTOMATION = NO
+SCHEDULER = NO
+MCP = NO
+EXTERNAL_CONNECTOR = NO
+AUTO_SPINE = NO
+AUTO_MERGE = NO
+AUTO_RELEASE = NO
+WP_GOV_QI_WORKBENCH_01A = SUPERSEDED_UNPROMOTED_LOCAL_DRAFT
+WP_GOV_QI_WORKBENCH_01A_HISTORY = docs/agent_handoff/history/CURRENT_unpromoted_local_wp_gov_qi_workbench_01a.md
+MICRO_A_STATE = CLOSED
+MICRO_A_FINAL_HEAD = 23892b45e8431004ff8d1531155865d0ea30d61b
+MICRO_A_REMEDIATION_COUNT = 1
 NEXT_WP_AUTHORIZED = NO
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_NEW_IDEAS
+MICRO_B_STATE = CLOSED
+MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
+MICRO_C_STATE = CLOSED
+MICRO_C_FINAL_HEAD = 7ed24a13a08e9e7e63ce87bd0abb8dc25d06d2c0
+MICRO_D_STATE = CLOSED
+MICRO_D_FINAL_HEAD = 0a845a24f50e31cbfc98634b6a29e3a4678a0ba7
+MICRO_D_FINDING_WB_05 = MINOR_CARRY_TO_MICRO_E
+ACTIVE_MICRO_WP = NONE
+MICRO_E_STATE = AUDIT_ACCEPTED
+MICRO_E_PILOT_RESULT = PASS
+MICRO_E_PILOT_SCENARIOS = 7_OF_7_PASS
+MICRO_E_INDEPENDENT_AUDIT = PASS
+HUMAN_A0_GOVERNANCE_PROMOTION = APPROVED
+QI_AGENT_WORKBENCH = CANONICAL
+QI_BOOT = CANONICAL
+FINDING_WB_05 = RESOLVED
+WORKBENCH_TECHNICAL_STATE = COMPLETE
+INTEGRATION_STATE = LOCAL_BRANCH_NOT_YET_MERGED_TO_MAIN
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_INTEGRATION_DECISION
 NEXT_AUTHORITY = HUMAN_A0
 HANDOFF_READY = YES
-PARENT_STATE = WP_REL_0.9.0_OPERATIONAL_RELEASE_ACCEPTED
+DEPLOYED_VERSION = 0.9.0
+RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
+OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
+RELEASE = NO
+TEAM_BID_PILOT = NO_NOT_AUTHORIZED
+WP_WH_COMPLETE_01 = PARKED
+NOTEBOOKLM_DESIGN = PARKED
 ```
 
-## Release closeout disposition
+## Current disposition
 
-Human A0 accepted QI-Crawler v0.9.0 operationally after the audited
-REL-B candidate and in-place REL-C acceptance at D:\QI-Crawler.
-The release source remains bf46dbce7501ddf0ae0a7115ddde28eb3b137f62;
-this closeout documentation does not become the release artifact or tag
-source. REL-A, FM-015, REL-B and REL-C are closed with the recorded
-post-merge CI/CodeQL and data-preservation evidence. D:\QI-Crawler
-remains the accepted in-place installation, while release publication,
-the v0.9.0 tag, Team Bid pilot expansion, Warehouse work and NotebookLM
-implementation remain unauthorized. The next action is to stop for Human
-A0's new ideas.
+Human A0 approved promotion of the QI Agent Workbench and canonical QI BOOT;
+Micro-A through Micro-D are closed and Micro-E is independently audit-accepted
+after all seven approved manual pilot scenarios passed without authority
+violations, scope widening, or product mutation. The Workbench is technically
+complete and ready for Human integration into `main`; this local branch has
+not been merged. No product, automation, MCP, release, Team Bid, or next
+Work-Package changes are authorized. The next action is the Human integration
+decision, not Micro-F execution.

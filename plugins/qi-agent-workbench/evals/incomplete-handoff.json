@@ -1,0 +1,7 @@
+{
+  "id": "REVIEW-NEG-002",
+  "scenario": "Handoff omits exact object and evidence",
+  "wrong_but_plausible": "TESTS_GREEN -> READY",
+  "expected": "HOLD",
+  "missing": ["BASE_SHA", "HEAD_SHA", "VERIFICATION", "END OF HANDOFF"]
+}

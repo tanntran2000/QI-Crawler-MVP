@@ -884,4 +884,34 @@ Team Bid pilot expansion or any new product WP.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_PROJECT_MEMORY_CHANGELOG
 Promoted to: docs/agent_handoff/CURRENT.md;
   docs/agent/PROJECT_MEMORY.md / MEM-026; CHANGELOG.md
+
+### FB-0032 — QI Agent Workbench Parent Authorization
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: GOVERNANCE / AGENT_WORKBENCH / EXECUTION_ORDER
+WP: WP-GOV-QI-WORKBENCH-01
+Decision:
+QI_AGENT_WORKBENCH = AUTHORIZED
+PARENT_WP = WP-GOV-QI-WORKBENCH-01
+PURPOSE = Governed manual context boot, task routing, skill selection, evidence and handoff for QI agents.
+PRODUCT_CHANGE = NO
+VERSION_IMPACT = NONE
+AUTOMATION = NO
+SCHEDULER = NO
+MCP = NO
+EXTERNAL_CONNECTOR = NO
+AUTO_MERGE = NO
+AUTO_RELEASE = NO
+AUTO_SPINE = NO
+IMPLEMENTATION_MODE = CONTROLLED_MICRO_WP
+FIRST_IMPLEMENTATION_MICRO = MICRO-A
+Boundary: Authorization applies only to the approved QI Agent Workbench design and implementation plan. It does not authorize Warehouse, deep HSMT, NotebookLM, Team Bid expansion, autonomous Agent Office, product code changes, API/GUI expansion, merge or release.
+Superseded local state: WP-GOV-QI-WORKBENCH-01A is preserved as an unpromoted historical local draft and is not canonical authority.
+Disposition: ACCEPTED / ROUTED_TO_QI_AGENT_WORKBENCH_PARENT
+Promoted to: docs/agent_handoff/CURRENT.md
+```
 ```

@@ -1,0 +1,8 @@
+{
+  "id": "ENVELOPE-NEG-001",
+  "scenario": "Envelope widens scope beyond the canonical Work Order",
+  "wrong_but_plausible": "WIDENED_SCOPE -> READY",
+  "expected": "ENTRY_HOLD",
+  "work_order_scope": ["docs/agent_handoff/CURRENT.md"],
+  "envelope_scope": ["docs/agent_handoff/CURRENT.md", "src/qi_crawler/gui.py"]
+}
