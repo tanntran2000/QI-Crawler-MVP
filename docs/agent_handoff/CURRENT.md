@@ -3,13 +3,13 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PRE
+HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PARENT_CLOSEOUT_RECONCILIATION
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 PARENT_WP = WP-GOV-QI-WORKBENCH-01
-CURRENT_PHASE = CANONICAL_GOVERNANCE_PROMOTION
+CURRENT_PHASE = PARENT_CLOSEOUT_RECONCILIATION
 ACTIVE_PRODUCT_WP = NONE
 ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
-PARENT_STATE = AUTHORIZED_BY_HUMAN_A0
+PARENT_STATE = READY_FOR_INTEGRATION
 PRODUCT_CHANGE = NO
 VERSION_IMPACT = NONE
 DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
@@ -23,19 +23,19 @@ AUTO_MERGE = NO
 AUTO_RELEASE = NO
 WP_GOV_QI_WORKBENCH_01A = SUPERSEDED_UNPROMOTED_LOCAL_DRAFT
 WP_GOV_QI_WORKBENCH_01A_HISTORY = docs/agent_handoff/history/CURRENT_unpromoted_local_wp_gov_qi_workbench_01a.md
-MICRO_A_STATE = AUDIT_ACCEPTED
+MICRO_A_STATE = CLOSED
 MICRO_A_FINAL_HEAD = 23892b45e8431004ff8d1531155865d0ea30d61b
 MICRO_A_REMEDIATION_COUNT = 1
 NEXT_WP_AUTHORIZED = NO
-MICRO_B_STATE = AUDIT_ACCEPTED
+MICRO_B_STATE = CLOSED
 MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
-MICRO_C_STATE = AUDIT_ACCEPTED
+MICRO_C_STATE = CLOSED
 MICRO_C_FINAL_HEAD = 7ed24a13a08e9e7e63ce87bd0abb8dc25d06d2c0
-MICRO_D_STATE = AUDIT_ACCEPTED
+MICRO_D_STATE = CLOSED
 MICRO_D_FINAL_HEAD = 0a845a24f50e31cbfc98634b6a29e3a4678a0ba7
 MICRO_D_FINDING_WB_05 = MINOR_CARRY_TO_MICRO_E
-ACTIVE_MICRO_WP = MICRO-E
-MICRO_E_STATE = PROMOTION_IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+ACTIVE_MICRO_WP = NONE
+MICRO_E_STATE = AUDIT_ACCEPTED
 MICRO_E_PILOT_RESULT = PASS
 MICRO_E_PILOT_SCENARIOS = 7_OF_7_PASS
 MICRO_E_INDEPENDENT_AUDIT = PASS
@@ -43,8 +43,10 @@ HUMAN_A0_GOVERNANCE_PROMOTION = APPROVED
 QI_AGENT_WORKBENCH = CANONICAL
 QI_BOOT = CANONICAL
 FINDING_WB_05 = RESOLVED
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_PROMOTION_RESULT_REVIEW
-NEXT_AUTHORITY = PLANNER_ARCHITECT
+WORKBENCH_TECHNICAL_STATE = COMPLETE
+INTEGRATION_STATE = LOCAL_BRANCH_NOT_YET_MERGED_TO_MAIN
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_INTEGRATION_DECISION
+NEXT_AUTHORITY = HUMAN_A0
 HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
 RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
@@ -57,10 +59,11 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Human A0 approved promotion of the QI Agent Workbench and canonical QI BOOT
-after Micro-A through Micro-E were independently accepted; Micro-E completed
-all seven approved manual pilot scenarios with no authority violations, scope
-widening, or product mutation. The promotion is governance-only and remains
-pending exact-object independent audit. No product, automation, MCP, release,
-Team Bid, or next-Work-Package changes are authorized. The next action is
-Planner review of this promotion result, not Micro-F execution.
+Human A0 approved promotion of the QI Agent Workbench and canonical QI BOOT;
+Micro-A through Micro-D are closed and Micro-E is independently audit-accepted
+after all seven approved manual pilot scenarios passed without authority
+violations, scope widening, or product mutation. The Workbench is technically
+complete and ready for Human integration into `main`; this local branch has
+not been merged. No product, automation, MCP, release, Team Bid, or next
+Work-Package changes are authorized. The next action is the Human integration
+decision, not Micro-F execution.
