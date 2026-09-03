@@ -3,13 +3,13 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PARENT_CLOSEOUT_RECONCILIATION
+HANDOFF_ID = WP-BID-RADAR-HARDENING-01 / PRE_IMPLEMENTATION
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 PARENT_WP = WP-GOV-QI-WORKBENCH-01
-CURRENT_PHASE = PARENT_CLOSEOUT_RECONCILIATION
-ACTIVE_PRODUCT_WP = NONE
-ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
-PARENT_STATE = READY_FOR_INTEGRATION
+CURRENT_PHASE = POST_MERGE_SPINE_RECONCILIATION / PRE_IMPLEMENTATION
+ACTIVE_PRODUCT_WP = WP-BID-RADAR-HARDENING-01
+ACTIVE_ENGINEERING_WP = NONE
+PARENT_STATE = AUTHORIZED / PRE_IMPLEMENTATION
 PRODUCT_CHANGE = NO
 VERSION_IMPACT = NONE
 DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
@@ -23,10 +23,12 @@ AUTO_MERGE = NO
 AUTO_RELEASE = NO
 WP_GOV_QI_WORKBENCH_01A = SUPERSEDED_UNPROMOTED_LOCAL_DRAFT
 WP_GOV_QI_WORKBENCH_01A_HISTORY = docs/agent_handoff/history/CURRENT_unpromoted_local_wp_gov_qi_workbench_01a.md
+WORKBENCH_STATE = MERGED_CLOSED_POST_MERGE_RECONCILED
+WORKBENCH_MERGE_COMMIT = 174bdd8f57d15508de1b614f393356d699507f8b
 MICRO_A_STATE = CLOSED
 MICRO_A_FINAL_HEAD = 23892b45e8431004ff8d1531155865d0ea30d61b
 MICRO_A_REMEDIATION_COUNT = 1
-NEXT_WP_AUTHORIZED = NO
+NEXT_WP_AUTHORIZED = YES_HUMAN_A0
 MICRO_B_STATE = CLOSED
 MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
 MICRO_C_STATE = CLOSED
@@ -44,9 +46,14 @@ QI_AGENT_WORKBENCH = CANONICAL
 QI_BOOT = CANONICAL
 FINDING_WB_05 = RESOLVED
 WORKBENCH_TECHNICAL_STATE = COMPLETE
-INTEGRATION_STATE = LOCAL_BRANCH_NOT_YET_MERGED_TO_MAIN
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_INTEGRATION_DECISION
-NEXT_AUTHORITY = HUMAN_A0
+PRODUCT_AREA = OPPORTUNITY_INTELLIGENCE / DESKTOP_DELIVERY / BID_RADAR
+QI_BID_DESK = APPROVED_DESIGN_BASELINE
+UI_MODEL = SELECTION_DESK | ACTIVE_TENDER_CANVAS | SMART_INSPECTOR
+COGNITIVE_SAFETY = REQUIRED
+HSMT_UI_REDESIGN = PARKED_UNTIL_BID_RADAR_ACCEPTANCE
+INTEGRATION_STATE = MERGED_TO_MAIN
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_BID_RADAR_M0_AUDIT
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
 RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
@@ -59,11 +66,13 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Human A0 approved promotion of the QI Agent Workbench and canonical QI BOOT;
-Micro-A through Micro-D are closed and Micro-E is independently audit-accepted
-after all seven approved manual pilot scenarios passed without authority
-violations, scope widening, or product mutation. The Workbench is technically
-complete and ready for Human integration into `main`; this local branch has
-not been merged. No product, automation, MCP, release, Team Bid, or next
-Work-Package changes are authorized. The next action is the Human integration
-decision, not Micro-F execution.
+Human A0 approved Bid Radar as the next product priority under the Calm QI Bid
+Desk direction. The QI Agent Workbench is merged and post-merge reconciled at
+174bdd8f57d15508de1b614f393356d699507f8b; its technical state remains
+complete. Bid Radar is authorized only for pre-implementation planning/audit;
+no implementation has started. The UI baseline is Selection Desk, Active
+Tender Canvas and Smart Inspector with cognitive safety and progressive
+disclosure; HSMT UI redesign remains parked until Bid Radar acceptance. The
+Product frontier remains Unified Tender Warehouse, and no release, Team Bid
+pilot or other product WP is authorized. Next step is the Planner M0 audit
+before a Micro-A Work Order.
