@@ -444,9 +444,9 @@ PERMANENT_PREVENTION = authoritative current snapshots must reconcile active mem
 ```text
 ID = FM-015
 TITLE = Windows frozen Qt ICU collision and release smoke false-positive
-STATE = RESOLVED_LOCAL
+STATE = MERGED
 SEVERITY_AT_DETECTION = CRITICAL
-DISPOSITION = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+DISPOSITION = RESOLVED
 DETECTED_BY = REL-B fresh Windows candidate build + bounded Phase-3 loader diagnosis
 AFFECTED_BASELINE = 6a16eaca9ac84ea568a104e4e0594c0e77db07f1
 PRODUCT_HOUSE_LAYER = DELIVERY / PACKAGING / RELEASE ENGINEERING
@@ -455,10 +455,10 @@ ROOT_CAUSE = Two proven release-boundary defects: A) PyInstaller collected a for
 WHY_EXISTING_TESTS_MISSED_IT = Installer tests asserted release-script structure but did not guard native-binary ownership/collision or prove timeout + real child ExitCode semantics.
 CI_IMPLICATION = Windows release candidate is blocked until corrected frozen Qt startup and actual-process smoke are independently audited.
 FIX = Filter foreign unversioned ICU binaries at PyInstaller packaging ownership boundary; use explicit bounded process wait and actual child ExitCode for standalone smoke.
-FIX_HEAD = PENDING_IMPLEMENTATION_COMMIT
+FIX_HEAD = 4f8d4bb666622de4c4c372796ac114480a524d84
 REGRESSION_GUARD = tests/test_windows_installer.py ICU ownership/exclusion contract + explicit process wait/timeout/nonzero-exit release-gate tests + contaminated-host frozen build proof.
-INDEPENDENT_AUDIT = PENDING
-CURRENT_EVIDENCE = Phase-3 diagnosis proved source PySide6 Qt 6.11.2 imports successfully; frozen core binaries were hash-identical; foreign Poppler ICU 78 exported suffixed *_78 symbols while Qt6Core required unversioned ICU symbols; single-variable system-ICU preload restored QtCore import; implementation RED/GREEN tests executed locally pending exact-head audit.
+INDEPENDENT_AUDIT = PASS
+CURRENT_EVIDENCE = Correction audited head 4f8d4bb666622de4c4c372796ac114480a524d84; PR #88 merged; merge commit bf46dbce7501ddf0ae0a7115ddde28eb3b137f62; post-merge Python CI 33645881211 / SUCCESS_4_OF_4; post-merge CodeQL 33645880242 / SUCCESS; REL-B fresh candidate from main independently audited; foreign Poppler ICU absent; frozen Qt 6.11.2 PASS; real smoke ExitCode 0; REL-C installed the exact audited EXE into D:\QI-Crawler; clean second independent REL-C re-audit PASS; no unexplained production data change.
 PERMANENT_PREVENTION = Native dependencies with colliding names must be admitted according to package ownership rather than host discovery accident; candidate acceptance must depend on the real frozen process exit result.
 ```
 ## Routing

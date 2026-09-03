@@ -5,6 +5,13 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 ## Unreleased
 
 ## 0.9.0 - 2026-09-02
+- Human A0 operationally accepted v0.9.0 after exact-source release-candidate
+  audit and in-place acceptance at D:\QI-Crawler.
+- Exact release source: bf46dbce7501ddf0ae0a7115ddde28eb3b137f62; schema:
+  0020_add_tender_operational_revision_events; production-data preservation:
+  PASS.
+- A v0.9.0 tag and GitHub Release were intentionally not created at this
+  closeout, and no Team Bid pilot authorization is implied.
 
 - WP-TB-BASIC-CRAWLER-03 merged controlled folder intake and operational
   revision transition: folder discovery is read-only until explicit Human
