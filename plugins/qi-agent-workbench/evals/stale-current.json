@@ -1,7 +1,8 @@
 {
   "id": "BOOT-NEG-001",
+  "scenario": "stale CURRENT differs from live Git",
+  "wrong_but_plausible": "CURRENT_ONLY -> READY",
+  "expected": "ENTRY_HOLD",
   "CURRENT_HEAD": "OLD",
-  "LIVE_GIT_HEAD": "NEW",
-  "present_but_wrong": "CURRENT_ONLY -> READY",
-  "required": "ENTRY_HOLD"
+  "LIVE_GIT_HEAD": "NEW"
 }

@@ -1,9 +1,10 @@
 {
   "id": "BOOT-NEG-002",
+  "scenario": "runtime model presented without governed role evidence",
+  "wrong_but_plausible": "Codex -> BUILDER_SINGLE_WRITER",
+  "expected": "ENTRY_HOLD",
   "HUMAN_ROLE": null,
   "WORK_ORDER_ROLE": null,
   "CURRENT_ROLE": null,
-  "RUNTIME_MODEL": "Codex",
-  "present_but_wrong": "Codex -> BUILDER_SINGLE_WRITER",
-  "required": "ENTRY_HOLD"
+  "RUNTIME_MODEL": "Codex"
 }
