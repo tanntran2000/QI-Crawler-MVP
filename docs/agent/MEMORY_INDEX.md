@@ -11,27 +11,41 @@ frontier; it does not authorize implementation scope by itself.
 
 ## Read order
 
-1. `AGENTS.md` — durable laws and workspace safety.
-2. `docs/agent/OPERATING_MODEL.md` — roles, authority, and handoff protocol.
-3. `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` — canonical role boot,
+1. `docs/agent/MEMORY_INDEX.md` — universal entry point and canonical read
+   order.
+2. `AGENTS.md` — durable laws and workspace safety.
+3. `docs/agent/OPERATING_MODEL.md` — roles, authority, and handoff protocol.
+4. `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` — canonical role boot,
    action-first prompt and mutual-challenge contract when the transition
    requires it.
-4. `docs/agent/HUMAN_COLLABORATION.md` — Human-facing collaboration
+5. `docs/agent/HUMAN_COLLABORATION.md` — Human-facing collaboration
    preferences and context contract.
-5. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
+6. `docs/agent/LOCAL_STAGED_INTEGRATION.md` — active micro-WP, checkpoint,
    independent-audit, Parent Integration, and CI-waiver procedure.
-6. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
-7. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
+7. `docs/agent/PROJECT_MEMORY.md` — durable facts verified on `main` only.
+8. `docs/agent/MASTER_ROADMAP.md` — mandatory Product House / Architecture
    README, strategic capability map, and dependencies.
-8. `docs/agent/MASTER_ROADMAP_DELTA.md` — active unresolved product and
+9. `docs/agent/MASTER_ROADMAP_DELTA.md` — active unresolved product and
    architecture evolution companion; mandatory alongside the Master Roadmap.
-9. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
-10. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
-11. Live GitHub state when the Work Package involves a branch, PR, remote
+10. `docs/agent_handoff/CURRENT.md` — the single active handoff snapshot.
+11. Live Git state: branch, `HEAD`, status, upstream refs, and relevant history.
+12. Live GitHub state when the Work Package involves a branch, PR, remote
    checkpoint, or CI.
-12. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
-13. Relevant entries in `docs/agent/LESSONS.md`.
-14. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+13. Relevant entries in `docs/agent/KNOWN_FAILURE_MODES.md`.
+14. Relevant entries in `docs/agent/LESSONS.md`.
+15. Referenced entries in `docs/agent/FEEDBACK_LEDGER.md`.
+16. `CHANGELOG.md` when the work is release-relevant.
+
+## Canonical QI BOOT
+
+`QI BOOT` is the canonical, read-only entry protocol for resolving the
+governed QI-Crawler context before acting. It links to the operating details
+in `docs/agent/QI_AGENT_WORKBENCH.md` and uses the source order above; it is a
+router into the existing Spine, not a second Spine or an implementation grant.
+The Human-friendly alias `"đọc Spine + Memory"` invokes the same protocol.
+Boot resolves repository identity, role evidence, current state, scope and
+entry gates, then reports `READY` or `ENTRY_HOLD`. A `READY` result does not
+authorize edits, implementation, merge, release or any Human decision.
 
 ## Checkout identity gate
 

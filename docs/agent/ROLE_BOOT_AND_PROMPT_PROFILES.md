@@ -18,6 +18,77 @@ Human A0 is the top material authority. Planner, Builder and Reviewer are
 independent execution-control poles beneath Human A0. A Machine Verifier
 provides evidence and is not a fourth decision pole.
 
+### Canonical QI BOOT protocol
+
+`QI BOOT` is the canonical read-only protocol for resolving governed
+QI-Crawler context, role and entry state before action. The Human-friendly
+alias `"đọc Spine + Memory"` invokes the same protocol; it does not create a
+competing boot path. Detailed operating context is linked from
+`docs/agent/QI_AGENT_WORKBENCH.md`, while the canonical source order is:
+
+```text
+1. docs/agent/MEMORY_INDEX.md
+2. AGENTS.md
+3. docs/agent/OPERATING_MODEL.md
+4. docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md
+5. docs/agent/HUMAN_COLLABORATION.md
+6. docs/agent/LOCAL_STAGED_INTEGRATION.md
+7. docs/agent/PROJECT_MEMORY.md
+8. docs/agent/MASTER_ROADMAP.md
+9. docs/agent/MASTER_ROADMAP_DELTA.md
+10. docs/agent_handoff/CURRENT.md
+11. live Git
+12. live GitHub when required
+13. relevant KNOWN_FAILURE_MODES.md
+14. relevant LESSONS.md
+15. relevant FEEDBACK_LEDGER.md
+16. CHANGELOG.md when release-relevant
+```
+
+The protocol reports a `QI_BOOT_REPORT` with at least:
+
+```text
+ROLE =
+ROLE_SOURCE =
+READ_MODE =
+CANONICAL_CHECKOUT =
+REPOSITORY_IDENTITY =
+LIVE_BRANCH =
+LIVE_HEAD =
+ORIGIN_MAIN =
+CURRENT_PHASE =
+PRODUCT_FRONTIER =
+ROADMAP_NODE =
+ARCHITECTURE_LAYERS =
+RELEVANT_DELTA_IDS =
+CURRENT_FRESHNESS =
+SPINE_FRESHNESS =
+ROADMAP_ENTRY_GATE =
+ROLE_ENTRY_GATE =
+WHAT_I_AM_ALLOWED_TO_DO =
+WHAT_I_AM_NOT_ALLOWED_TO_DO =
+READY_STATE = READY | ENTRY_HOLD
+HOLD_REASON =
+EXACTLY_ONE_NEXT_ACTION =
+NEXT_AUTHORITY =
+```
+
+Role authority is explicit and governed:
+
+```text
+ROLE > MODEL NAME
+MODEL_NAME != AGENT_ROLE
+Codex != automatically BUILDER_SINGLE_WRITER
+Gemini != automatically REVIEWER_AUDITOR
+ChatGPT != automatically PLANNER_ARCHITECT
+```
+
+Missing or contradictory role evidence is `ENTRY_HOLD`; the runtime/model
+name must never be used to guess a role. `READY_STATE = READY` confirms only
+that context and entry checks are coherent enough for the next governed step.
+It does not authorize implementation, edits, merge, release or Human approval.
+`NEEDS_REPLAN` is an execution/replanning state, not a Boot readiness state.
+
 ## 2. Universal ROLE_BOOT_PROFILE
 
 Every boot profile consumes the canonical role contract from

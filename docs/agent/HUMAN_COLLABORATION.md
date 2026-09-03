@@ -104,6 +104,18 @@ Human A0; mutual challenge is evidence and escalation, not voting, and
 `challenge != override`. The receiving agent should not need to ask what action
 is wanted when the prompt satisfies the quality gate.
 
+### 4.1 Human shorthand: QI BOOT
+
+When the Human says `QI BOOT` or `đọc Spine + Memory`, the agent performs the
+same governed, read-only context boot: resolve canonical project identity and
+current state, resolve the assigned role from authority evidence, read the
+relevant Spine/Memory sources in the canonical order, verify live Git when
+needed, and report `READY` or `ENTRY_HOLD`. A successful boot does not begin
+implementation or grant edit, merge or release authority; the applicable
+Work Order and Human/Planner authority remain required. The canonical details
+are maintained in `docs/agent/QI_AGENT_WORKBENCH.md` and
+`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`.
+
 `CURRENT.md` remains conditionally writable only by the active
 `BUILDER_SINGLE_WRITER` when it is in the approved scope and a governed
 transition trigger with evidence exists. The Builder may record facts and

@@ -6,7 +6,7 @@
 HANDOFF_ID = WP-GOV-QI-WORKBENCH-01 / PRE
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 PARENT_WP = WP-GOV-QI-WORKBENCH-01
-CURRENT_PHASE = GOVERNANCE_WORKBENCH_IMPLEMENTATION
+CURRENT_PHASE = CANONICAL_GOVERNANCE_PROMOTION
 ACTIVE_PRODUCT_WP = NONE
 ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
 PARENT_STATE = AUTHORIZED_BY_HUMAN_A0
@@ -26,7 +26,7 @@ WP_GOV_QI_WORKBENCH_01A_HISTORY = docs/agent_handoff/history/CURRENT_unpromoted_
 MICRO_A_STATE = AUDIT_ACCEPTED
 MICRO_A_FINAL_HEAD = 23892b45e8431004ff8d1531155865d0ea30d61b
 MICRO_A_REMEDIATION_COUNT = 1
-NEXT_WP_AUTHORIZED = YES_HUMAN_A0
+NEXT_WP_AUTHORIZED = NO
 MICRO_B_STATE = AUDIT_ACCEPTED
 MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
 MICRO_C_STATE = AUDIT_ACCEPTED
@@ -35,11 +35,15 @@ MICRO_D_STATE = AUDIT_ACCEPTED
 MICRO_D_FINAL_HEAD = 0a845a24f50e31cbfc98634b6a29e3a4678a0ba7
 MICRO_D_FINDING_WB_05 = MINOR_CARRY_TO_MICRO_E
 ACTIVE_MICRO_WP = MICRO-E
-MICRO_E_STATE = PILOT_PASS_PENDING_HUMAN_PROMOTION
+MICRO_E_STATE = PROMOTION_IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
 MICRO_E_PILOT_RESULT = PASS
 MICRO_E_PILOT_SCENARIOS = 7_OF_7_PASS
+MICRO_E_INDEPENDENT_AUDIT = PASS
+HUMAN_A0_GOVERNANCE_PROMOTION = APPROVED
+QI_AGENT_WORKBENCH = CANONICAL
+QI_BOOT = CANONICAL
 FINDING_WB_05 = RESOLVED
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_HUMAN_PROMOTION_REVIEW
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_PROMOTION_RESULT_REVIEW
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
@@ -53,11 +57,10 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Human A0 authorized `WP-GOV-QI-WORKBENCH-01` for controlled governance
-implementation. Micro-A, Micro-B, and Micro-C were independently accepted;
-Micro-D integrity verification was accepted at `0a845a24f50e31cbfc98634b6a29e3a4678a0ba7`.
-Micro-E consolidated the evaluation corpus and completed all seven approved
-manual pilot scenarios with no authority violations, scope widening, or
-product mutation. QI BOOT promotion remains pending Planner/Human review;
-no product, automation, MCP, release, or Team Bid changes are authorized.
-The next action is Planner review for Human promotion, not Micro-F execution.
+Human A0 approved promotion of the QI Agent Workbench and canonical QI BOOT
+after Micro-A through Micro-E were independently accepted; Micro-E completed
+all seven approved manual pilot scenarios with no authority violations, scope
+widening, or product mutation. The promotion is governance-only and remains
+pending exact-object independent audit. No product, automation, MCP, release,
+Team Bid, or next-Work-Package changes are authorized. The next action is
+Planner review of this promotion result, not Micro-F execution.
