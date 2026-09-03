@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "algorithm": "sha256",
+  "files": {
+    "references/context-map.md": "287dcc319be8febe19be828d442447e7bbfa4223daa13c7acc1689e53219660d",
+    "references/handoff-template.md": "3d0ef4c842c9461334dd00d602422ab1554e3efaa37939335c554db63fb380c6",
+    "references/task-envelope-template.md": "0abe9188176a3c47248a897b0e63381a783032371f718ef19b40f177b1f102aa",
+    "skills/qi-context-boot/SKILL.md": "7db441a899471a8e4fef56c677fc51bb05e5df4e748d32ea351b2735e6b36081",
+    "skills/qi-evidence-check/SKILL.md": "356e298c046451febd0dde8f49f2ace41767717c6303240e8b8c38add067958f",
+    "skills/qi-impact-map/SKILL.md": "746bb5693ead50193fcf26c1388e6ec948eaa9ea599e2bd3fd9caea7061e0e99",
+    "skills/qi-python-change/SKILL.md": "2dcbe9b189a1ca4cb41b3080a0187de2cc5451a607293aad39e3c008884c5bd3",
+    "skills/qi-review-handoff/SKILL.md": "ea1775f9a8fe345e7c4ac0dda3b2aae9ab708dc0fcf17031615854567254b340",
+    "skills/qi-task-envelope/SKILL.md": "5ca6994a252981f5ebd55d884ddf8e3b3b012958d0a46c084adcc457c60da06b"
+  }
+}
