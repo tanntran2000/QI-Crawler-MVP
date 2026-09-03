@@ -9,7 +9,7 @@ PARENT_WP = WP-GOV-QI-WORKBENCH-01
 CURRENT_PHASE = GOVERNANCE_WORKBENCH_IMPLEMENTATION
 ACTIVE_PRODUCT_WP = NONE
 ACTIVE_ENGINEERING_WP = WP-GOV-QI-WORKBENCH-01
-ACTIVE_MICRO_WP = MICRO-B
+ACTIVE_MICRO_WP = MICRO-C
 PARENT_STATE = AUTHORIZED_BY_HUMAN_A0
 PRODUCT_CHANGE = NO
 VERSION_IMPACT = NONE
@@ -28,8 +28,10 @@ MICRO_A_STATE = AUDIT_ACCEPTED
 MICRO_A_FINAL_HEAD = 23892b45e8431004ff8d1531155865d0ea30d61b
 MICRO_A_REMEDIATION_COUNT = 1
 NEXT_WP_AUTHORIZED = YES_HUMAN_A0
-MICRO_B_STATE = AUTHORIZED_NOT_STARTED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_MICRO_B
+MICRO_B_STATE = AUDIT_ACCEPTED
+MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
+MICRO_C_STATE = AUTHORIZED_NOT_STARTED
+EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTE_MICRO_C
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 HANDOFF_READY = YES
 DEPLOYED_VERSION = 0.9.0
@@ -45,9 +47,10 @@ NOTEBOOKLM_DESIGN = PARKED
 
 Human A0 authorized `WP-GOV-QI-WORKBENCH-01` for controlled governance
 implementation. Micro-A was independently accepted after one remediation
-pass at `23892b45e8431004ff8d1531155865d0ea30d61b`. The superseded local
+pass at `23892b45e8431004ff8d1531155865d0ea30d61b`; Micro-B was accepted at
+`7683b2478cb437f49806030465a87a1126dab1a0`. The superseded local
 `WP-GOV-QI-WORKBENCH-01A` state is preserved only in the non-normative
 history snapshot named above and is not active authority. Micro-B is
-authorized but not started; no product, automation, MCP, release, or Team
-Bid changes are authorized. The next action is Builder execution of
-Micro-B under the approved bounded scope.
+closed and Micro-C is authorized but not started; no product, automation,
+MCP, release, or Team Bid changes are authorized. The next action is Builder
+execution of Micro-C under the approved bounded scope.
