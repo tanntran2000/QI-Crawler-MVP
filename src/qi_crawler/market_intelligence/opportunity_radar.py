@@ -23,6 +23,7 @@ from .opportunity_contract import (
     OpportunityIdentityNamespace,
     OpportunitySourceType,
 )
+from .selection_methods import normalize_selection_method
 
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 _EXPECTED_NAMESPACE = {
@@ -92,6 +93,7 @@ class OpportunityRadarItem:
     procuring_entity: str | None = None
     approval_content: str | None = None
     package_main_content: str | None = None
+    selection_method_raw: str | None = None
     selection_method: str | None = None
     procurement_method: str | None = None
     location_detail_raw: str | None = None
@@ -209,6 +211,7 @@ def radar_item_from_plan_package(package: PlanPackage) -> OpportunityRadarItem:
         funding_source=package.funding_source,
         investor=package.investor,
         approval_content=package.approval_content_raw,
+        selection_method_raw=package.selection_method_raw,
         selection_method=package.selection_method,
         location_detail_raw=package.location_detail_raw,
         province_city_code=package.province_city_code,
@@ -229,11 +232,14 @@ def radar_item_from_opportunity_candidate(
     batch = candidate.import_batch
     fields = candidate.raw_fields
     identity = candidate.identity
+    selection_method_raw = _text(fields.get("HÌNH THỨC LỰA CHỌN NHÀ THẦU"))
+    selection_method = normalize_selection_method(selection_method_raw)
     source_fields = {
         "procuring_entity": fields.get("BÊN MỜI THẦU"),
         "procuring_entity_address": fields.get("ĐỊA CHỈ BÊN MỜI THẦU"),
         "package_main_content": fields.get("NỘI DUNG CHÍNH CỦA GÓI THẦU"),
-        "selection_method": fields.get("HÌNH THỨC LỰA CHỌN NHÀ THẦU"),
+        "selection_method_raw": selection_method_raw,
+        "selection_method": selection_method,
         "procurement_method": fields.get("PHƯƠNG THỨC LỰA CHỌN NHÀ THẦU"),
         "location_detail_raw": candidate.location_detail_raw,
     }
@@ -259,7 +265,8 @@ def radar_item_from_opportunity_candidate(
         funding_source=candidate.funding_source,
         procuring_entity=_text(fields.get("BÊN MỜI THẦU")),
         package_main_content=_text(fields.get("NỘI DUNG CHÍNH CỦA GÓI THẦU")),
-        selection_method=_text(fields.get("HÌNH THỨC LỰA CHỌN NHÀ THẦU")),
+        selection_method_raw=selection_method_raw,
+        selection_method=selection_method,
         procurement_method=_text(fields.get("PHƯƠNG THỨC LỰA CHỌN NHÀ THẦU")),
         location_detail_raw=candidate.location_detail_raw,
         source_fields=source_fields,

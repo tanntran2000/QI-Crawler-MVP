@@ -166,6 +166,8 @@ def test_tbmt_candidate_projects_to_radar_item_with_ib_identity_and_semantics() 
     assert item.identity.revision == "00"
     assert item.procuring_entity == "Bên mời thầu TBMT"
     assert item.package_main_content == "Nội dung chính TBMT"
+    assert item.selection_method_raw == "Đấu thầu rộng rãi"
+    assert item.selection_method == "DAU_THAU_RONG_RAI"
 
 
 def test_pl_and_ib_remain_distinct() -> None:
@@ -193,7 +195,8 @@ def test_selection_method_and_procurement_method_remain_distinct() -> None:
     module = _radar_module()
     item = module.radar_item_from_opportunity_candidate(_tbmt_candidate())
 
-    assert item.selection_method == "Đấu thầu rộng rãi"
+    assert item.selection_method == "DAU_THAU_RONG_RAI"
+    assert item.selection_method_raw == "Đấu thầu rộng rãi"
     assert item.procurement_method == "Một giai đoạn một túi hồ sơ"
     assert item.selection_method != item.procurement_method
 

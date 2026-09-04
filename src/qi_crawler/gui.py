@@ -879,6 +879,7 @@ class QICrawlerWindow(QMainWindow):
 
     def _bid_radar_request(self) -> Any:
         from .market_intelligence.search import TargetedSearchRequest
+        from .market_intelligence.selection_methods import normalize_selection_method_filters
         from .market_intelligence.value_normalization import parse_optional_money_input
 
         return TargetedSearchRequest(
@@ -887,7 +888,7 @@ class QICrawlerWindow(QMainWindow):
             province_city_codes=frozenset(self._split_bid_radar_values(self.bid_radar_province.text())),
             include_keywords=self._split_bid_radar_values(self.bid_radar_include.text()),
             exclude_keywords=self._split_bid_radar_values(self.bid_radar_exclude.text()),
-            selection_methods=frozenset(
+            selection_methods=normalize_selection_method_filters(
                 self._split_bid_radar_values(self.bid_radar_selection_method.text())
             ),
         )

@@ -76,6 +76,8 @@ def test_tbmt_adapter_routes_real_workbook_through_source_neutral_backend(tmp_pa
 
     assert result.source_type is OpportunitySourceType.TBMT
     assert result.items[0].identity.namespace.value == "IB"
+    assert result.items[0].selection_method_raw == "Đấu thầu rộng rãi"
+    assert result.items[0].selection_method == "DAU_THAU_RONG_RAI"
     assert result.rows[0].item is result.items[0]
     assert result.rows[0].disposition == "MATCH"
 

@@ -8,16 +8,13 @@ from decimal import Decimal
 from typing import Any
 
 from qi_crawler.keywords import normalize_keyword
+from qi_crawler.market_intelligence.selection_methods import (
+    normalize_selection_method as _normalize_selection_method,
+)
 from qi_crawler.market_intelligence.value_normalization import normalize_money_value
 
 _PLAN_ID_PATTERN = re.compile(r"^(PL\d{10})(?:-(\d{2}))?$")
 
-_SELECTION_METHODS = {
-    "chi dinh thau": "CHI_DINH_THAU",
-    "chi dinh thau rut gon": "CHI_DINH_THAU_RUT_GON",
-    "chao hang canh tranh": "CHAO_HANG_CANH_TRANH",
-    "dau thau rong rai": "DAU_THAU_RONG_RAI",
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,11 +55,9 @@ def parse_package_price(value: Any) -> Decimal | None:
     return normalize_money_value(value)
 
 def normalize_selection_method(value: Any) -> str | None:
-    raw = compact_text(value)
-    if raw is None:
-        return None
-    first_component = raw.split(",", maxsplit=1)[0]
-    return _SELECTION_METHODS.get(normalize_keyword(first_component))
+    """Backward-compatible KHMT wrapper around the shared contract."""
+
+    return _normalize_selection_method(value)
 
 
 def normalize_search_value(value: Any) -> str:

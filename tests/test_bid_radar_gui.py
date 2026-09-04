@@ -152,6 +152,22 @@ def test_bid_radar_request_normalizes_grouped_money_inputs(window: QICrawlerWind
     assert request.min_budget == Decimal(500000000)
     assert request.max_budget == Decimal(1300000000)
 
+def test_bid_radar_request_normalizes_selection_method_labels(window: QICrawlerWindow) -> None:
+    window.bid_radar_selection_method.setText("Đấu thầu rộng rãi, CHAO_GIA_TRUC_TUYEN")
+
+    request = window._bid_radar_request()
+
+    assert request.selection_methods == frozenset(
+        {"DAU_THAU_RONG_RAI", "CHAO_GIA_TRUC_TUYEN"}
+    )
+
+
+def test_bid_radar_request_rejects_unknown_selection_method(window: QICrawlerWindow) -> None:
+    window.bid_radar_selection_method.setText("Phương thức tự do")
+
+    with pytest.raises(ValueError, match="selection method"):
+        window._bid_radar_request()
+
 
 def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
     window: QICrawlerWindow,
