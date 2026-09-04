@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from openpyxl import Workbook
 
+from qi_crawler import gui_services
 from qi_crawler.config import AppConfig
 from qi_crawler.gui_services import (
     run_bid_radar_import_search,
@@ -156,3 +158,38 @@ def test_tbmt_legal_docx_has_explicit_bounded_message(tmp_path: Path) -> None:
             source_path=source,
             expected_source_sha256=loaded.source_sha256,
         )
+
+
+def test_database_upgrade_adapter_uses_explicit_migration_and_verifies_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'unready.db'}"
+    config.storage.report_dir = tmp_path / "reports"
+    calls: list[tuple[str, Path]] = []
+
+    class FakeDatabase:
+        def __init__(self, url: str) -> None:
+            calls.append((url, Path("database-constructed")))
+
+        def require_current_schema(self) -> None:
+            calls.append(("verified", Path("database-verified")))
+
+    monkeypatch.setattr(gui_services, "Database", FakeDatabase)
+    monkeypatch.setattr(
+        gui_services,
+        "upgrade_database",
+        lambda url, backup_dir: SimpleNamespace(
+            revision="0020_add_tender_operational_revision_events",
+            backup_path=tmp_path / "backups" / "egp.db",
+        ),
+        raising=False,
+    )
+
+    result = gui_services.run_database_upgrade(config)
+
+    assert result.revision == "0020_add_tender_operational_revision_events"
+    assert result.database_path.name == "unready.db"
+    assert result.backup_path == tmp_path / "backups" / "egp.db"
+    assert calls[-1][0] == "verified"

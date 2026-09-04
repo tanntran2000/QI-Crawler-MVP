@@ -10,10 +10,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import QApplication, QTextEdit
+from PySide6.QtWidgets import QApplication, QLabel, QTextEdit
 
 from qi_crawler import gui
 from qi_crawler.config import AppConfig
+from qi_crawler.db import SchemaNotReady
 from qi_crawler.gui import QICrawlerWindow
 from qi_crawler.market_intelligence.khmt_importer import KHMTImportError, KHMTIssueCode
 from qi_crawler.market_intelligence.search import TargetedSearchValidationError
@@ -775,7 +776,7 @@ def test_bid_radar_context_is_neutral_until_a_filter_is_active(window: QICrawler
     assert "PHÙ HỢP" not in window.bid_radar_active_filter_context.text()
 
     window.bid_radar_min_budget.setText("1000000")
-    assert "1000000" in window.bid_radar_active_filter_context.text()
+    assert "1.000.000" in window.bid_radar_active_filter_context.text()
     assert "CHƯA LỌC" not in window.bid_radar_active_filter_context.text()
 
 
@@ -888,3 +889,205 @@ def test_bid_radar_compact_mode_applies_when_page_is_opened_after_resize(
     window.navigation.setCurrentRow(2)
     QApplication.processEvents()
     assert window.bid_radar_inspector.isHidden()
+
+
+def test_schema_not_ready_offers_explicit_upgrade_with_database_identity(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    prompts: list[str] = []
+    monkeypatch.setattr(
+        gui.QMessageBox,
+        "question",
+        lambda _parent, title, message, *args, **kwargs: prompts.append(
+            f"{title}\n{message}"
+        ) or gui.QMessageBox.StandardButton.Cancel,
+    )
+    upgrade_calls: list[object] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: upgrade_calls.append(function),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert prompts
+    assert "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP" in prompts[0]
+    assert "bid-radar.db" in prompts[0]
+    assert "NÂNG CẤP CSDL" in prompts[0]
+    assert upgrade_calls == []
+    assert "NÂNG CẤP" in window.bid_radar_status.text()
+
+
+def test_schema_not_ready_requires_confirmation_before_upgrade_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    answers = iter(
+        (
+            gui.QMessageBox.StandardButton.Yes,
+            gui.QMessageBox.StandardButton.Cancel,
+        )
+    )
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: next(answers))
+    submitted: list[tuple[object, tuple[object, ...], dict[str, object]]] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: submitted.append((function, args, kwargs)),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert submitted == []
+
+
+def test_database_upgrade_success_reports_verified_revision_backup_and_identity(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    result = gui.DatabaseReadinessResult(
+        database_path=tmp_path / "egp.db",
+        revision="0020_add_tender_operational_revision_events",
+        backup_path=tmp_path / "backups" / "egp-before.db",
+    )
+
+    window._render_database_upgrade_result(result)
+
+    status = window.bid_radar_status.text()
+    assert "Nâng cấp cơ sở dữ liệu hoàn tất" in status
+    assert str(result.database_path) in status
+    assert str(result.backup_path) in status
+    assert result.revision in status
+    assert "NHẬP / TÌM GÓI" in status
+
+
+def test_database_upgrade_failure_retains_created_backup_path(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    error = RuntimeError("migration failed")
+    error.backup_path = Path("backups/egp-before.db")
+    window._database_upgrade_in_progress = True
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        error,
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert str(error.backup_path) in window.bid_radar_status.text()
+
+def test_database_upgrade_failure_is_user_readable_and_does_not_claim_success(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    window._database_upgrade_in_progress = True
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        RuntimeError("backup failed"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    status = window.bid_radar_status.text()
+    assert "Nâng cấp cơ sở dữ liệu thất bại" in status
+    assert "backup failed" in status
+    assert "hoàn tất" not in status
+
+def test_schema_not_ready_confirmation_submits_existing_database_upgrade_seam(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    answers = iter(
+        (
+            gui.QMessageBox.StandardButton.Yes,
+            gui.QMessageBox.StandardButton.Yes,
+        )
+    )
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: next(answers))
+    submitted: list[tuple[object, tuple[object, ...], dict[str, object]]] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: submitted.append((function, args, kwargs)),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert len(submitted) == 1
+    function, args, kwargs = submitted[0]
+    assert function is gui.run_database_upgrade
+    assert args == (window.config,)
+    assert kwargs["long_operation"] is True
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    (
+        ("800000000", "800.000.000"),
+        ("800.000.000", "800.000.000"),
+        ("800,000,000", "800.000.000"),
+        ("800 000 000", "800.000.000"),
+        ("1000000000", "1.000.000.000"),
+    ),
+)
+def test_bid_radar_money_display_groups_existing_money_inputs(
+    window: QICrawlerWindow,
+    raw: str,
+    expected: str,
+) -> None:
+    window.bid_radar_min_budget.setText(raw)
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == expected
+    assert gui.format_vnd_amount(1000000000) == "1.000.000.000 VNĐ"
+
+
+def test_bid_radar_money_display_preserves_blank_and_invalid_inputs(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("")
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == ""
+    window.bid_radar_min_budget.setText("800.00.000")
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == "800.00.000"
+
+
+def test_bid_radar_money_summary_and_budget_rows_are_explicitly_labeled(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("800000000")
+    window.bid_radar_max_budget.setText("1000000000")
+    window.bid_radar_min_budget.editingFinished.emit()
+    window.bid_radar_max_budget.editingFinished.emit()
+    summary = window.bid_radar_active_filter_context.text()
+    assert "800.000.000" in summary
+    assert "1.000.000.000" in summary
+    assert "VNĐ" in summary
+    assert window.bid_radar_min_budget.minimumWidth() >= 140
+    assert window.bid_radar_max_budget.minimumWidth() >= 140
+    assert [label.text() for label in window.findChildren(QLabel)].count("VNĐ") >= 2

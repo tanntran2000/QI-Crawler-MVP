@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy import or_, select
+from sqlalchemy.engine import make_url
 
 from .authenticated_sources import (
     create_login_session,
@@ -60,6 +61,7 @@ from .market_intelligence.source_detection import (
 )
 from .market_intelligence.source_integrity import verify_source_integrity
 from .market_intelligence.source_type_review import SourceTypeReviewService
+from .migrations import upgrade_database
 from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
     SUPPORTED_FORMATS,
@@ -142,6 +144,37 @@ class WorkspaceDocumentIntakeResult:
     manifest: TenderDocumentManifest
     batch: DocumentBatchResult
 
+
+@dataclass(frozen=True)
+class DatabaseReadinessResult:
+    """Result of an explicit, operator-triggered database maintenance run."""
+
+    database_path: Path | None
+    revision: str
+    backup_path: Path | None
+
+
+def resolve_database_path(database_url: str) -> Path | None:
+    """Resolve the database identity shown to an operator without mutating it."""
+    url = make_url(database_url)
+    if not url.drivername.startswith("sqlite") or not url.database:
+        return None
+    if url.database == ":memory:":
+        return None
+    path = Path(url.database)
+    return path if path.is_absolute() else (Path.cwd() / path).resolve()
+
+
+def run_database_upgrade(config: AppConfig) -> DatabaseReadinessResult:
+    """Run the existing migration authority only after explicit human action."""
+    backup_dir = config.storage.report_dir.parent / "backups"
+    result = upgrade_database(config.storage.database_url, backup_dir=backup_dir)
+    Database(config.storage.database_url).require_current_schema()
+    return DatabaseReadinessResult(
+        database_path=resolve_database_path(config.storage.database_url),
+        revision=result.revision,
+        backup_path=result.backup_path,
+    )
 
 @dataclass(frozen=True)
 class BidRadarRow:

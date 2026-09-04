@@ -12,6 +12,7 @@ import traceback
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -84,15 +85,18 @@ from .document_taxonomy import (
 from .gui_services import (
     BidRadarResult,
     BidRadarRow,
+    DatabaseReadinessResult,
     DocumentExtractionInspection,
     HSMTFactDashboard,
     SearchRow,
+    resolve_database_path,
     run_bid_radar_export,
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
     run_bid_radar_review,
     run_bid_radar_workspace_handoff,
     run_create_manual_tender_workspace,
+    run_database_upgrade,
     run_document_classification_confirmation,
     run_document_extraction_inspection,
     run_document_intake,
@@ -132,6 +136,7 @@ from .market_intelligence.source_detection import (
     detect_source_type,
     resolve_source_type,
 )
+from .market_intelligence.value_normalization import parse_optional_money_input
 from .migrations import upgrade_database
 from .standalone import (
     StandaloneResourceError,
@@ -153,6 +158,21 @@ PREFERRED_WINDOW_SIZE = (1440, 900)
 MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
+
+
+def format_vnd_amount(value: Decimal | int | None) -> str:
+    """Format a whole VND amount for presentation without changing its value."""
+    if value is None:
+        return ""
+    try:
+        amount = Decimal(value)
+    except (ArithmeticError, TypeError, ValueError):
+        return ""
+    if not amount.is_finite():
+        return ""
+    if amount != amount.to_integral_value():
+        return f"{amount:,}".replace(",", ".") + " VNĐ"
+    return f"{int(amount):,}".replace(",", ".") + " VNĐ"
 
 _DIAGNOSTIC_SECRET_PATTERN = re.compile(
     r"(?i)\b(password|passphrase|pwd|otp|cookie|authorization|api[_ -]?key|"
@@ -334,6 +354,7 @@ class QICrawlerWindow(QMainWindow):
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
         self._active_long_operation: str | None = None
+        self._database_upgrade_in_progress = False
         self._diagnostic_events: list[DiagnosticEvent] = []
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
         self.setMinimumSize(*MINIMUM_WINDOW_SIZE)
@@ -737,12 +758,20 @@ class QICrawlerWindow(QMainWindow):
         filter_form = QFormLayout(self.bid_radar_filter_editor)
         self.bid_radar_min_budget = QLineEdit()
         self.bid_radar_min_budget.setPlaceholderText("Ví dụ: 1000000000")
+        self.bid_radar_min_budget.setMinimumWidth(150)
         self.bid_radar_max_budget = QLineEdit()
         self.bid_radar_max_budget.setPlaceholderText("Ví dụ: 50000000000")
-        budget_row = QHBoxLayout()
-        budget_row.addWidget(self.bid_radar_min_budget)
-        budget_row.addWidget(self.bid_radar_max_budget)
-        filter_form.addRow("Ngân sách tối thiểu / tối đa:", budget_row)
+        self.bid_radar_max_budget.setMinimumWidth(150)
+        min_budget_row = QHBoxLayout()
+        min_budget_row.addWidget(self.bid_radar_min_budget, 1)
+        min_budget_row.addWidget(QLabel("VNĐ"))
+        max_budget_row = QHBoxLayout()
+        max_budget_row.addWidget(self.bid_radar_max_budget, 1)
+        max_budget_row.addWidget(QLabel("VNĐ"))
+        self.bid_radar_min_budget.editingFinished.connect(lambda: self._format_bid_radar_budget_field(self.bid_radar_min_budget))
+        self.bid_radar_max_budget.editingFinished.connect(lambda: self._format_bid_radar_budget_field(self.bid_radar_max_budget))
+        filter_form.addRow("Ngân sách tối thiểu:", min_budget_row)
+        filter_form.addRow("Ngân sách tối đa:", max_budget_row)
         self.bid_radar_province = QLineEdit()
         self.bid_radar_province.setPlaceholderText("Mã tỉnh/thành, cách nhau bằng dấu phẩy")
         self.bid_radar_include = QLineEdit()
@@ -980,6 +1009,32 @@ class QICrawlerWindow(QMainWindow):
         )
         self._rebalance_bid_radar_splitter()
 
+    @staticmethod
+    def _budget_display_text(value: str) -> str:
+        raw = value.strip()
+        if not raw:
+            return "—"
+        try:
+            parsed = parse_optional_money_input(raw)
+        except ValueError:
+            return raw
+        if parsed is None:
+            return "—"
+        return format_vnd_amount(parsed).removesuffix(" VNĐ")
+
+    @staticmethod
+    def _format_bid_radar_budget_field(field: QLineEdit) -> None:
+        raw = field.text().strip()
+        if not raw:
+            field.clear()
+            return
+        try:
+            parsed = parse_optional_money_input(raw)
+        except ValueError:
+            return
+        if parsed is not None:
+            field.setText(format_vnd_amount(parsed).removesuffix(" VNĐ"))
+
     def _update_bid_radar_context(self) -> None:
         min_budget = self.bid_radar_min_budget.text().strip()
         max_budget = self.bid_radar_max_budget.text().strip()
@@ -989,7 +1044,10 @@ class QICrawlerWindow(QMainWindow):
         selection_method = self.bid_radar_selection_method.text().strip()
         criteria: list[str] = []
         if min_budget or max_budget:
-            criteria.append(f"Ngân sách: {min_budget or '—'} – {max_budget or '—'}")
+            criteria.append(
+                f"Ngân sách: {self._budget_display_text(min_budget)} – "
+                f"{self._budget_display_text(max_budget)} VNĐ"
+            )
         if province:
             criteria.append(f"Khu vực: {province}")
         if selection_method:
@@ -1027,7 +1085,7 @@ class QICrawlerWindow(QMainWindow):
             f"Mã cơ hội: {raw_id}",
             f"Mã dòng: {base_id}",
             f"Tên gói: {getattr(row, 'package_name', getattr(item, 'package_name', '—'))}",
-            f"Giá gói: {getattr(item, 'package_price', '—')}",
+            f"Giá gói: {format_vnd_amount(getattr(item, 'package_price', None)) or '—'}",
             f"Khu vực: {getattr(item, 'province_city_name', None) or '—'}",
             f"Revision: {revision}",
             f"Nguồn: {source_type}",
@@ -1256,7 +1314,7 @@ class QICrawlerWindow(QMainWindow):
                 item.identity.base_id,
                 item.identity.revision or "",
                 item.package_name,
-                str(item.package_price) if item.package_price is not None else "",
+                format_vnd_amount(item.package_price).removesuffix(" VNĐ") if item.package_price is not None else "",
                 item.province_city_name or "",
                 self._bid_radar_disposition_label(row.disposition),
                 self._bid_radar_review_label(row.review_state),
@@ -3084,6 +3142,8 @@ class QICrawlerWindow(QMainWindow):
             self._set_long_operation_controls_enabled(True)
             if hasattr(self, "bid_radar_table"):
                 self._on_bid_radar_selected()
+        if self._database_upgrade_in_progress and bridge.long_operation:
+            self._database_upgrade_in_progress = False
         bridge.release()
         bridge.deleteLater()
 
@@ -3125,6 +3185,66 @@ class QICrawlerWindow(QMainWindow):
             logger.exception("GUI success handler failed")
             self._worker_error(button, exc, progress, status)
 
+    def _offer_database_upgrade(self, status: QLabel | None) -> None:
+        database_path = resolve_database_path(self.config.storage.database_url)
+        identity = str(database_path) if database_path is not None else self.config.storage.database_url
+        message = (
+            "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP\n"
+            "Database chưa sẵn sàng cho Bid Radar.\n"
+            f"Database: {identity}\n\n"
+            "Chọn [HỦY] để giữ nguyên dữ liệu hoặc [NÂNG CẤP CSDL] "
+            "để mở bước sao lưu và nâng cấp có xác nhận."
+        )
+        if status is not None:
+            status.setText(message)
+        reply = QMessageBox.question(
+            self,
+            "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        confirmation = QMessageBox.question(
+            self,
+            "SAO LƯU VÀ NÂNG CẤP CSDL?",
+            (
+                "SAO LƯU VÀ NÂNG CẤP CSDL?\n"
+                f"Database: {identity}\n"
+                "QI-Crawler sẽ tạo bản sao lưu trước khi chạy Alembic. "
+                "Chỉ tiếp tục khi bạn xác nhận [SAO LƯU VÀ NÂNG CẤP]."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if confirmation != QMessageBox.StandardButton.Yes:
+            return
+        self._database_upgrade_in_progress = True
+        started = self._submit(
+            run_database_upgrade,
+            self.config,
+            on_success=self._render_database_upgrade_result,
+            button=self.bid_radar_import_button,
+            progress=self.bid_radar_progress,
+            status=self.bid_radar_status,
+            task_name="database_upgrade",
+            long_operation=True,
+        )
+        if not started:
+            self._database_upgrade_in_progress = False
+
+    def _render_database_upgrade_result(self, result: DatabaseReadinessResult) -> None:
+        database_path = str(result.database_path) if result.database_path is not None else self.config.storage.database_url
+        backup_path = str(result.backup_path) if result.backup_path is not None else "Không tạo (database mới hoặc không phải SQLite)"
+        self.bid_radar_status.setText(
+            "Nâng cấp cơ sở dữ liệu hoàn tất.\n"
+            f"Database: {database_path}\n"
+            f"Revision: {result.revision}\n"
+            f"Backup: {backup_path}\n"
+            "Hãy chạy lại NHẬP / TÌM GÓI."
+        )
+        self._database_upgrade_in_progress = False
     def _worker_error(
         self,
         button: QPushButton,
@@ -3161,7 +3281,15 @@ class QICrawlerWindow(QMainWindow):
                 status.setText("Cần người dùng xử lý trước khi chạy lại.")
             self.show_human_required(str(error))
             return
-        if status is self.bid_radar_status:
+        if isinstance(error, SchemaNotReady) and not self._database_upgrade_in_progress:
+            self._offer_database_upgrade(status)
+            return
+        if self._database_upgrade_in_progress:
+            message = f"Nâng cấp cơ sở dữ liệu thất bại: {error}"
+            backup_path = getattr(error, "backup_path", None)
+            if backup_path is not None:
+                message += f"\nBackup: {backup_path}"
+        elif status is self.bid_radar_status:
             if isinstance(error, KHMTImportError):
                 message = f"Không thể nhập KHMT: {error}"
             elif isinstance(error, TargetedSearchValidationError):
@@ -3176,8 +3304,6 @@ class QICrawlerWindow(QMainWindow):
                 message = "Không thể hoàn tất thao tác Bid Radar. Dữ liệu không bị ghi sai."
         elif status is self.workspace_status and isinstance(error, TenderWorkspaceError):
             message = f"Không thể hoàn tất workspace Team Bid: {error}"
-        elif isinstance(error, SchemaNotReady):
-            message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
         if status is not None:
@@ -3824,11 +3950,7 @@ def main() -> int:
             try:
                 database.require_current_schema()
             except SchemaNotReady:
-                upgrade_database(
-                    config.storage.database_url,
-                    backup_dir=paths.data_dir / "backups",
-                )
-                database.require_current_schema()
+                logger.info("Database requires explicit operator upgrade before Bid Radar operations")
         else:
             env = EnvSettings()
             configure_logging(env.log_level)
