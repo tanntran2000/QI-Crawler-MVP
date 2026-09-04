@@ -3,13 +3,13 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-BID-RADAR-HARDENING-01 / MICRO-A5
+HANDOFF_ID = WP-BID-RADAR-HARDENING-01 / MICRO-A5-C1
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 PARENT_WP = WP-GOV-QI-WORKBENCH-01
-CURRENT_PHASE = MICRO-A5_CALM_BID_DESK / IMPLEMENTATION
+CURRENT_PHASE = MICRO-A5-C1_RESPONSIVE_CORRECTION / IMPLEMENTATION
 ACTIVE_PRODUCT_WP = WP-BID-RADAR-HARDENING-01
-ACTIVE_ENGINEERING_WP = WP-BID-RADAR-HARDENING-01 / MICRO-A5
-PARENT_STATE = AUTHORIZED / MICRO-A5_IMPLEMENTED_PENDING_PLANNER_HUMAN_REVIEW
+ACTIVE_ENGINEERING_WP = WP-BID-RADAR-HARDENING-01 / MICRO-A5-C1
+PARENT_STATE = AUTHORIZED / MICRO-A5-C1_IMPLEMENTED_PENDING_HUMAN_VISUAL_ACCEPTANCE
 PRODUCT_CHANGE = NO
 VERSION_IMPACT = NONE
 DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
@@ -37,8 +37,12 @@ BID_RADAR_MICRO_A3_STATE = PASS
 BID_RADAR_MICRO_A3_BASE_HEAD = 587c872f01bd29e73e5c23d3854d32281e14e9ae
 BID_RADAR_MICRO_A4_STATE = PASS
 BID_RADAR_MICRO_A4_BASE_HEAD = f3ca0907bd1fdec0e000666d926bd249b9a02dd1
-BID_RADAR_MICRO_A5_STATE = IMPLEMENTED_PENDING_PLANNER_HUMAN_VISUAL_REVIEW
+BID_RADAR_MICRO_A5_STATE = MACHINE_PASS / HUMAN_VISUAL_CORRECTION_REQUIRED
 BID_RADAR_MICRO_A5_BASE_HEAD = d954cd16d5825f306aa001caf5028d5ed3240f25
+BID_RADAR_MICRO_A5_C1_STATE = IMPLEMENTED_PENDING_HUMAN_VISUAL_ACCEPTANCE
+HUMAN_APPROVED_DESIGN_CORRECTION = CENTER_DOMINANT_RESPONSIVE_COLLAPSE
+COGNITIVE_SAFETY_ADDITION = CONTENT_PRIORITY_OVER_PANEL_SYMMETRY
+
 UI_DESIGN = QI_BID_DESK_CALM_THREE_PANE
 
 MONEY_CONTRACT = SHARED
@@ -70,7 +74,7 @@ HSMT_UI_REDESIGN = PARKED_UNTIL_BID_RADAR_ACCEPTANCE
 INTEGRATION_STATE = MERGED_TO_MAIN
 EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_AND_HUMAN_VISUAL_REVIEW
 NEXT_AUTHORITY = PLANNER_ARCHITECT + HUMAN_A0
-HANDOFF_READY = NO_PENDING_PLANNER_HUMAN_VISUAL_REVIEW
+HANDOFF_READY = NO_PENDING_HUMAN_VISUAL_ACCEPTANCE
 DEPLOYED_VERSION = 0.9.0
 RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
 OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
@@ -82,4 +86,4 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Micro-A1 money normalization is preserved at f52a75dfbc6ccdfc6103a8eccbe5c2d89a693496, Micro-A2 selection-method normalization at 587c872f01bd29e73e5c23d3854d32281e14e9ae, Micro-A3 no-criteria safety at f3ca0907bd1fdec0e000666d926bd249b9a02dd1, and Micro-A4 structured filter explanations at d954cd16d5825f306aa001caf5028d5ed3240f25. Micro-A5 implements the presentation-only calm three-pane Bid Desk with progressive filter disclosure, active context/funnel summary, source-backed Inspector evidence, and preserved review/export/workspace seams. Planner review and Human A0 visual acceptance remain pending; no backend, persistence, database, or business-authority semantics changed.
+Micro-A1 money normalization is preserved at f52a75dfbc6ccdfc6103a8eccbe5c2d89a693496, Micro-A2 selection-method normalization at 587c872f01bd29e73e5c23d3854d32281e14e9ae, Micro-A3 no-criteria safety at f3ca0907bd1fdec0e000666d926bd249b9a02dd1, and Micro-A4 structured filter explanations at d954cd16d5825f306aa001caf5028d5ed3240f25. Micro-A5 established the calm three-pane Bid Desk; A5-C1 applies the Human-approved center-dominant responsive correction: the Smart Inspector collapses by default in compact workspace widths, side panes never horizontally scroll, and all existing selection/filter/evidence state remains intact. This remains presentation-only and is pending Human A0 visual acceptance; no backend, persistence, database, or business-authority semantics changed.

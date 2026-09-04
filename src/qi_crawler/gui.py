@@ -355,6 +355,11 @@ class QICrawlerWindow(QMainWindow):
         self._save_window_geometry()
         super().closeEvent(event)
 
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "bid_radar_splitter"):
+            self._apply_bid_radar_responsive_state()
+
     def _restore_window_geometry(self) -> None:
         geometry = self._settings.value("window/geometry", type=QByteArray)
         screen = QApplication.primaryScreen()
@@ -682,8 +687,10 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_selection_desk.setObjectName("bidRadarSelectionDesk")
         self.bid_radar_selection_desk.setMinimumWidth(260)
         selection_scroll = QScrollArea()
+        self.bid_radar_selection_scroll = selection_scroll
         selection_scroll.setWidgetResizable(True)
         selection_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        selection_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         selection_content = QWidget()
         selection_layout = QVBoxLayout(selection_content)
         selection_layout.setContentsMargins(2, 2, 8, 2)
@@ -831,8 +838,10 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_inspector.setObjectName("bidRadarInspector")
         self.bid_radar_inspector.setMinimumWidth(280)
         inspector_scroll = QScrollArea()
+        self.bid_radar_inspector_scroll = inspector_scroll
         inspector_scroll.setWidgetResizable(True)
         inspector_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inspector_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         inspector_content = QWidget()
         inspector_layout = QVBoxLayout(inspector_content)
         inspector_layout.setContentsMargins(2, 2, 2, 2)
@@ -842,6 +851,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_inspector_text = QTextEdit()
         self.bid_radar_inspector_text.setReadOnly(True)
         self.bid_radar_inspector_text.setObjectName("bidRadarInspectorText")
+        self.bid_radar_inspector_text.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         self.bid_radar_inspector_text.setMinimumHeight(170)
         inspector_layout.addWidget(self.bid_radar_inspector_text)
 
@@ -905,7 +915,9 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_splitter.setStretchFactor(0, 0)
         self.bid_radar_splitter.setStretchFactor(1, 1)
         self.bid_radar_splitter.setStretchFactor(2, 0)
-        self.bid_radar_splitter.setSizes([290, 640, 310])
+        self.bid_radar_splitter.setSizes([270, 650, 290])
+        self._bid_radar_inspector_user_toggled = False
+        self._bid_radar_responsive_compact = False
         page_layout.addWidget(self.bid_radar_splitter, 1)
 
         for field in (
@@ -920,6 +932,34 @@ class QICrawlerWindow(QMainWindow):
         self._update_bid_radar_context()
         self._render_bid_radar_inspector(None)
 
+    def _apply_bid_radar_responsive_state(self) -> None:
+        workspace_width = self.bid_radar_splitter.width()
+        if workspace_width <= 0:
+            return
+        compact = workspace_width < 980
+        if compact != self._bid_radar_responsive_compact:
+            self._bid_radar_responsive_compact = compact
+            if not self._bid_radar_inspector_user_toggled:
+                self.bid_radar_inspector.setVisible(not compact)
+                self.bid_radar_inspector_toggle.setText(
+                    "XEM CHI TIẾT" if compact else "ẨN CHI TIẾT"
+                )
+        self._rebalance_bid_radar_splitter()
+
+    def _rebalance_bid_radar_splitter(self) -> None:
+        workspace_width = self.bid_radar_splitter.width()
+        if workspace_width <= 0:
+            return
+        inspector_visible = not self.bid_radar_inspector.isHidden()
+        if not inspector_visible:
+            left = min(270, max(250, round(workspace_width * 0.28)))
+            self.bid_radar_splitter.setSizes([left, max(1, workspace_width - left), 0])
+            return
+        left = min(280, max(250, round(workspace_width * 0.24)))
+        right = min(300, max(280, round(workspace_width * 0.26)))
+        center = max(1, workspace_width - left - right)
+        self.bid_radar_splitter.setSizes([left, center, right])
+
     def _toggle_bid_radar_filter_editor(self) -> None:
         visible = self.bid_radar_filter_editor.isHidden()
         self.bid_radar_filter_editor.setVisible(visible)
@@ -933,8 +973,12 @@ class QICrawlerWindow(QMainWindow):
 
     def _toggle_bid_radar_inspector(self) -> None:
         visible = self.bid_radar_inspector.isHidden()
+        self._bid_radar_inspector_user_toggled = True
         self.bid_radar_inspector.setVisible(visible)
-        self.bid_radar_inspector_toggle.setText("ẨN CHI TIẾT" if visible else "HIỆN CHI TIẾT")
+        self.bid_radar_inspector_toggle.setText(
+            "ẨN CHI TIẾT" if visible else "XEM CHI TIẾT"
+        )
+        self._rebalance_bid_radar_splitter()
 
     def _update_bid_radar_context(self) -> None:
         min_budget = self.bid_radar_min_budget.text().strip()

@@ -9,8 +9,8 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import QApplication, QTextEdit
 
 from qi_crawler import gui
 from qi_crawler.config import AppConfig
@@ -757,11 +757,91 @@ def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawler
 
 
 def test_bid_radar_required_geometries_have_operable_regions(window: QICrawlerWindow) -> None:
+    window.navigation.setCurrentRow(2)
     for width, height in ((1180, 680), (1440, 900)):
         window.resize(width, height)
         window.show()
         QApplication.processEvents()
         assert window.bid_radar_splitter.width() > 0
-        assert all(size > 0 for size in window.bid_radar_splitter.sizes())
+        sizes = window.bid_radar_splitter.sizes()
+        assert sizes[0] > 0
+        assert sizes[1] > 0
+        if width >= 1400:
+            assert sizes[2] > 0
         assert window.bid_radar_table.viewport().width() > 0
         assert window.bid_radar_import_button.width() > 0
+
+
+
+def _show_bid_radar(window: QICrawlerWindow, width: int, height: int) -> None:
+    window.navigation.setCurrentRow(2)
+    window.resize(width, height)
+    window.show()
+    QApplication.processEvents()
+
+
+def test_bid_radar_compact_mode_collapses_inspector_and_expands_center(
+    window: QICrawlerWindow,
+) -> None:
+    _show_bid_radar(window, 1180, 680)
+
+    assert window.bid_radar_selection_desk.isVisible()
+    assert window.bid_radar_active_canvas.isVisible()
+    assert window.bid_radar_inspector.isHidden()
+    left, center, right = window.bid_radar_splitter.sizes()
+    assert right == 0
+    assert center > left
+    assert center > 400
+
+
+def test_bid_radar_compact_inspector_toggle_preserves_selection(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+    _show_bid_radar(window, 1180, 680)
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isVisible()
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+
+def test_bid_radar_side_panels_disable_horizontal_scrolling(window: QICrawlerWindow) -> None:
+    assert (
+        window.bid_radar_selection_scroll.horizontalScrollBarPolicy()
+        == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    )
+    assert (
+        window.bid_radar_inspector_scroll.horizontalScrollBarPolicy()
+        == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    )
+    assert window.bid_radar_source_summary.wordWrap()
+    assert window.bid_radar_inspector_text.lineWrapMode() != QTextEdit.LineWrapMode.NoWrap
+
+
+def test_bid_radar_compact_collapse_does_not_recreate_filter_or_evidence(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("500.000.000")
+    window._render_bid_radar_result(_a5_evidence_result())
+    window.bid_radar_table.selectRow(0)
+    before = window.bid_radar_inspector_text.toPlainText()
+
+    _show_bid_radar(window, 1180, 680)
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector_text.toPlainText() == before
+    assert window.bid_radar_min_budget.text() == "500.000.000"
+
+
+
+def test_bid_radar_compact_mode_applies_when_page_is_opened_after_resize(
+    window: QICrawlerWindow,
+) -> None:
+    window.resize(1180, 680)
+    window.show()
+    QApplication.processEvents()
+    window.navigation.setCurrentRow(2)
+    QApplication.processEvents()
+    assert window.bid_radar_inspector.isHidden()
