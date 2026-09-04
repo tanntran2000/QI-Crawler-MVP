@@ -205,6 +205,49 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
     assert "Work Package tiếp theo" not in window.bid_radar_status.text()
 
 
+
+def test_bid_radar_source_summary_is_compact_and_retains_identity_details(
+    window: QICrawlerWindow,
+) -> None:
+    detection = SourceTypeDetection(
+        original_filename="TBMT_3_9_2026.xlsx",
+        source_sha256="a" * 64,
+        filename_type=SourceType.TBMT,
+        content_type=SourceType.TBMT,
+        identity_namespace="IB",
+        identity_values=(
+            "IB2600488839-00",
+            "IB2600498410-00",
+            "IB2600489267-01",
+            "IB2600482068-01",
+            "IB2600413629-00",
+            "IB2600491729-00",
+        ),
+        identity_raw_values=(
+            "IB2600488839-00",
+            "IB2600498410-00",
+            "IB2600489267-01",
+            "IB2600482068-01",
+            "IB2600413629-00",
+            "IB2600491729-00",
+        ),
+        auto_type=SourceType.TBMT,
+        requires_human=False,
+        evidence=("TBMT headers",),
+        reasons=(),
+    )
+
+    window._render_bid_radar_source_detection(detection, SourceType.TBMT)
+
+    summary = window.bid_radar_source_summary.text()
+    assert "Tên file: TBMT_3_9_2026.xlsx" in summary
+    assert "Loại: TBMT" in summary
+    assert "Số thông báo: 6" in summary
+    assert "Revision:" in summary
+    assert "Identity:" not in summary
+    assert "(+5)" not in summary
+    assert "IB2600488839-00" in window.bid_radar_source_summary.toolTip()
+
 def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow) -> None:
     item = _fake_radar_item("IB2600463290-00")
     result = _fake_result(

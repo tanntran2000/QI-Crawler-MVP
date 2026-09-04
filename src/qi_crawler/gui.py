@@ -1099,20 +1099,33 @@ class QICrawlerWindow(QMainWindow):
         detection: SourceTypeDetection,
         resolved_type: SourceType | None = None,
     ) -> None:
-        identity_values = detection.identity_values
-        identity = ", ".join(identity_values[:5]) or "chưa thấy PL/IB"
-        if len(identity_values) > 5:
-            identity += f" (+{len(identity_values) - 5})"
+        identity_values = tuple(detection.identity_values)
+        revision_counts: dict[str, int] = {}
+        for identity_value in identity_values:
+            revision = identity_value.rsplit("-", 1)[-1] if "-" in identity_value else "—"
+            revision_counts[revision] = revision_counts.get(revision, 0) + 1
+        revision_summary = " · ".join(
+            f"{revision} ({count})" for revision, count in sorted(revision_counts.items())
+        ) or "—"
         conclusion = resolved_type.value if resolved_type else detection.auto_type.value
-        lines = [
-            f"Tên file: {detection.original_filename}",
+        detail_lines = [
             f"Gợi ý tên: {detection.filename_type.value} | Schema: {detection.content_type.value}",
-            f"Identity: {identity}",
+            "Identity: " + (", ".join(identity_values) or "chưa thấy PL/IB"),
             f"Kết luận: {conclusion}",
         ]
         if detection.requires_human and detection.reasons:
-            lines.append("Cần người xác nhận: " + "; ".join(detection.reasons))
-        self.bid_radar_source_summary.setText("\n".join(lines))
+            detail_lines.append("Cần người xác nhận: " + "; ".join(detection.reasons))
+        self.bid_radar_source_summary.setText(
+            "\n".join(
+                (
+                    f"Tên file: {detection.original_filename}",
+                    f"Loại: {conclusion}",
+                    f"Số thông báo: {len(identity_values)}",
+                    f"Revision: {revision_summary}",
+                )
+            )
+        )
+        self.bid_radar_source_summary.setToolTip("\n".join(detail_lines))
 
     def _bid_radar_export_ready(self, action: str) -> bool:
         current_text = self.bid_radar_path.text().strip()
