@@ -645,3 +645,123 @@ def test_expected_bid_radar_errors_are_user_readable(
 
     assert str(error) in window.bid_radar_status.text()
     assert "traceback" not in window.bid_radar_status.text().lower()
+
+
+
+def _a5_evidence_result() -> SimpleNamespace:
+    result = _fake_result(_fake_radar_item("IB2600462391-00"), source_type="TBMT")
+    result.rows = (
+        SimpleNamespace(
+            item=result.items[0],
+            disposition="MATCH",
+            reasons=("MATCH_BUDGET",),
+            review_state="UNREVIEWED",
+            criteria=(
+                SimpleNamespace(
+                    criterion="budget",
+                    outcome="PASS",
+                    reason_code="MATCH_BUDGET",
+                    evidence=(
+                        SimpleNamespace(
+                            field="package_price",
+                            observed_value="SUPPLIED-EVIDENCE-VALUE",
+                            expected_values=("100",),
+                            matched_terms=(),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    return result
+
+
+def test_bid_radar_has_calm_three_pane_desk_with_center_stretch(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.bid_radar_splitter.count() == 3
+    assert window.bid_radar_selection_desk.objectName() == "bidRadarSelectionDesk"
+    assert window.bid_radar_active_canvas.objectName() == "bidRadarActiveCanvas"
+    assert window.bid_radar_inspector.objectName() == "bidRadarInspector"
+    window.navigation.setCurrentRow(2)
+    window.resize(1440, 900)
+    window.show()
+    QApplication.processEvents()
+    left, center, right = window.bid_radar_splitter.sizes()
+    assert center > left
+    assert center > right
+
+
+def test_bid_radar_filter_studio_is_collapsed_and_preserves_values(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.bid_radar_filter_editor.isHidden()
+    window.bid_radar_min_budget.setText("500.000.000")
+    window.bid_radar_province.setText("HCM")
+
+    window.bid_radar_filter_toggle.click()
+    assert not window.bid_radar_filter_editor.isHidden()
+    window.bid_radar_filter_toggle.click()
+
+    assert window.bid_radar_filter_editor.isHidden()
+    assert window.bid_radar_min_budget.text() == "500.000.000"
+    assert window.bid_radar_province.text() == "HCM"
+
+
+def test_bid_radar_side_collapses_are_independent_and_preserve_selection(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_selection_toggle.click()
+    assert window.bid_radar_selection_desk.isHidden()
+    assert not window.bid_radar_inspector.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isHidden()
+    window.bid_radar_selection_toggle.click()
+    assert not window.bid_radar_selection_desk.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+
+def test_bid_radar_context_is_neutral_until_a_filter_is_active(window: QICrawlerWindow) -> None:
+    assert "CHƯA LỌC" in window.bid_radar_active_filter_context.text()
+    assert "PHÙ HỢP" not in window.bid_radar_active_filter_context.text()
+
+    window.bid_radar_min_budget.setText("1000000")
+    assert "1000000" in window.bid_radar_active_filter_context.text()
+    assert "CHƯA LỌC" not in window.bid_radar_active_filter_context.text()
+
+
+def test_bid_radar_inspector_projects_supplied_structured_evidence(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_a5_evidence_result())
+    window.bid_radar_table.selectRow(0)
+    text = window.bid_radar_inspector_text.toPlainText()
+
+    assert "IB2600462391-00" in text
+    assert "Gói thử nghiệm" in text
+    assert "ĐẠT" in text
+    assert "SUPPLIED-EVIDENCE-VALUE" in text
+    assert "MATCH_BUDGET" not in text
+
+
+def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_fake_result())
+    assert window.bid_radar_confirm_button.text() == "XÁC NHẬN"
+    assert window.bid_radar_export_button.isVisible() or not window.isVisible()
+    assert window.bid_radar_legal_button.isEnabled() is True
+    assert not window.bid_radar_workspace_button.isEnabled()
+
+
+def test_bid_radar_required_geometries_have_operable_regions(window: QICrawlerWindow) -> None:
+    for width, height in ((1180, 680), (1440, 900)):
+        window.resize(width, height)
+        window.show()
+        QApplication.processEvents()
+        assert window.bid_radar_splitter.width() > 0
+        assert all(size > 0 for size in window.bid_radar_splitter.sizes())
+        assert window.bid_radar_table.viewport().width() > 0
+        assert window.bid_radar_import_button.width() > 0

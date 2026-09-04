@@ -658,17 +658,44 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(self.search_table)
 
     def _build_bid_radar_page(self) -> None:
-        _page, layout = self._new_page(
+        self.bid_radar_page, page_layout = self._new_page(
             "Bid Radar",
-            "Nhập KHMT/TBMT, lọc cơ hội, sau đó xác nhận thủ công trước khi xuất hồ sơ.",
+            "Bàn làm việc bình tĩnh: khoanh vùng, xem nhanh và xác nhận thủ công.",
         )
-        source_box = QGroupBox("1. NHẬP NGUỒN CƠ HỘI")
+        page_layout.setSpacing(10)
+
+        side_actions = QHBoxLayout()
+        self.bid_radar_selection_toggle = QPushButton("ẨN BỘ LỌC")
+        self.bid_radar_selection_toggle.clicked.connect(self._toggle_bid_radar_selection_desk)
+        self.bid_radar_inspector_toggle = QPushButton("ẨN CHI TIẾT")
+        self.bid_radar_inspector_toggle.clicked.connect(self._toggle_bid_radar_inspector)
+        side_actions.addWidget(self.bid_radar_selection_toggle)
+        side_actions.addStretch()
+        side_actions.addWidget(self.bid_radar_inspector_toggle)
+        page_layout.addLayout(side_actions)
+
+        self.bid_radar_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.bid_radar_splitter.setObjectName("bidRadarSplitter")
+        self.bid_radar_splitter.setChildrenCollapsible(False)
+
+        self.bid_radar_selection_desk = QFrame()
+        self.bid_radar_selection_desk.setObjectName("bidRadarSelectionDesk")
+        self.bid_radar_selection_desk.setMinimumWidth(260)
+        selection_scroll = QScrollArea()
+        selection_scroll.setWidgetResizable(True)
+        selection_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        selection_content = QWidget()
+        selection_layout = QVBoxLayout(selection_content)
+        selection_layout.setContentsMargins(2, 2, 8, 2)
+        selection_layout.setSpacing(10)
+
+        source_box = QGroupBox("NGUỒN CƠ HỘI")
         source_layout = QFormLayout(source_box)
         source_row = QHBoxLayout()
         self.bid_radar_path = QLineEdit()
         self.bid_radar_path.setReadOnly(True)
         self.bid_radar_path.setPlaceholderText("Chọn file Excel nguồn")
-        choose_button = QPushButton("CHỌN FILE EXCEL")
+        choose_button = QPushButton("CHỌN FILE")
         choose_button.clicked.connect(self._choose_bid_radar_file)
         source_row.addWidget(self.bid_radar_path, 1)
         source_row.addWidget(choose_button)
@@ -681,10 +708,26 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_source_summary = QLabel("Chưa nhận dạng file nguồn.")
         self.bid_radar_source_summary.setWordWrap(True)
         source_layout.addRow("Nhận dạng:", self.bid_radar_source_summary)
-        layout.addWidget(source_box)
+        selection_layout.addWidget(source_box)
 
-        filter_box = QGroupBox("2. LỌC CƠ HỘI (KHÔNG TỰ XÁC NHẬN)")
-        filter_form = QFormLayout(filter_box)
+        filter_box = QGroupBox("KHOANH VÙNG")
+        filter_layout = QVBoxLayout(filter_box)
+        self.bid_radar_filter_summary = QLabel()
+        self.bid_radar_filter_summary.setWordWrap(True)
+        self.bid_radar_filter_summary.setObjectName("bidRadarFilterSummary")
+        filter_layout.addWidget(self.bid_radar_filter_summary)
+        self.bid_radar_keyword_summary = QLabel()
+        self.bid_radar_keyword_summary.setWordWrap(True)
+        self.bid_radar_keyword_summary.setObjectName("bidRadarKeywordSummary")
+        filter_layout.addWidget(self.bid_radar_keyword_summary)
+        self.bid_radar_filter_toggle = QPushButton("CHỈNH BỘ LỌC")
+        self.bid_radar_filter_toggle.setCheckable(True)
+        self.bid_radar_filter_toggle.clicked.connect(self._toggle_bid_radar_filter_editor)
+        filter_layout.addWidget(self.bid_radar_filter_toggle)
+
+        self.bid_radar_filter_editor = QWidget()
+        self.bid_radar_filter_editor.setObjectName("bidRadarFilterEditor")
+        filter_form = QFormLayout(self.bid_radar_filter_editor)
         self.bid_radar_min_budget = QLineEdit()
         self.bid_radar_min_budget.setPlaceholderText("Ví dụ: 1000000000")
         self.bid_radar_max_budget = QLineEdit()
@@ -700,36 +743,68 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_exclude = QLineEdit()
         self.bid_radar_exclude.setPlaceholderText("Từ khóa loại trừ, cách nhau bằng dấu phẩy")
         self.bid_radar_selection_method = QLineEdit()
-        self.bid_radar_selection_method.setPlaceholderText("Hình thức lựa chọn, cách nhau bằng dấu phẩy")
+        self.bid_radar_selection_method.setPlaceholderText(
+            "Hình thức lựa chọn, cách nhau bằng dấu phẩy"
+        )
         filter_form.addRow("Tỉnh / thành:", self.bid_radar_province)
         filter_form.addRow("Từ khóa gồm:", self.bid_radar_include)
         filter_form.addRow("Từ khóa loại:", self.bid_radar_exclude)
         filter_form.addRow("Hình thức lựa chọn:", self.bid_radar_selection_method)
-        layout.addWidget(filter_box)
+        filter_layout.addWidget(self.bid_radar_filter_editor)
+        self.bid_radar_filter_editor.hide()
+        selection_layout.addWidget(filter_box)
+        selection_layout.addStretch()
+        selection_content.setLayout(selection_layout)
+        selection_scroll.setWidget(selection_content)
+        selection_frame_layout = QVBoxLayout(self.bid_radar_selection_desk)
+        selection_frame_layout.setContentsMargins(0, 0, 0, 0)
+        selection_frame_layout.addWidget(selection_scroll)
 
-        actions = QHBoxLayout()
+        self.bid_radar_active_canvas = QFrame()
+        self.bid_radar_active_canvas.setObjectName("bidRadarActiveCanvas")
+        canvas_layout = QVBoxLayout(self.bid_radar_active_canvas)
+        canvas_layout.setContentsMargins(8, 0, 8, 0)
+        canvas_layout.setSpacing(10)
+
+        context_box = QGroupBox("NGỮ CẢNH ĐANG LỌC")
+        context_layout = QVBoxLayout(context_box)
+        self.bid_radar_active_filter_context = QLabel()
+        self.bid_radar_active_filter_context.setObjectName("bidRadarActiveFilterContext")
+        self.bid_radar_active_filter_context.setWordWrap(True)
+        context_layout.addWidget(self.bid_radar_active_filter_context)
+        self.bid_radar_funnel_label = QLabel("Luồng lọc: chưa chạy.")
+        self.bid_radar_funnel_label.setObjectName("bidRadarFunnel")
+        self.bid_radar_funnel_label.setWordWrap(True)
+        context_layout.addWidget(self.bid_radar_funnel_label)
+        canvas_layout.addWidget(context_box)
+
+        action_row = QHBoxLayout()
         self.bid_radar_import_button = self._primary_button("NHẬP & TÌM GÓI")
         self.bid_radar_import_button.clicked.connect(self.start_bid_radar_import)
-        actions.addWidget(self.bid_radar_import_button)
+        action_row.addWidget(self.bid_radar_import_button)
         self.bid_radar_progress = self._progress_bar()
-        actions.addWidget(self.bid_radar_progress)
-        actions.addStretch()
-        layout.addLayout(actions)
+        action_row.addWidget(self.bid_radar_progress, 1)
+        canvas_layout.addLayout(action_row)
+
+        self.bid_radar_result_summary = QLabel("Chưa có kết quả.")
+        self.bid_radar_result_summary.setWordWrap(True)
+        canvas_layout.addWidget(self.bid_radar_result_summary)
         self.bid_radar_status = QLabel("Chọn file Excel nguồn để bắt đầu.")
         self.bid_radar_status.setWordWrap(True)
-        layout.addWidget(self.bid_radar_status)
+        canvas_layout.addWidget(self.bid_radar_status)
 
         self.bid_radar_table = QTableWidget(0, 8)
+        self.bid_radar_table.setObjectName("bidRadarResultTable")
         self.bid_radar_table.setHorizontalHeaderLabels(
             [
-                "Gói tin",
+                "Mã",
                 "Mã gốc",
                 "Revision",
                 "Tên gói",
-                "Giá gói thầu",
-                "Tỉnh / thành",
+                "Giá gói",
+                "Khu vực",
                 "Kết quả lọc",
-                "Trạng thái review",
+                "Review",
             ]
         )
         header = self.bid_radar_table.horizontalHeader()
@@ -741,11 +816,36 @@ class QICrawlerWindow(QMainWindow):
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(7, QHeaderView.ResizeToContents)
-        self.bid_radar_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.bid_radar_table.setColumnHidden(1, True)
+        self.bid_radar_table.setColumnHidden(2, True)
+        self.bid_radar_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.bid_radar_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.bid_radar_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.bid_radar_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self.bid_radar_table.itemSelectionChanged.connect(self._on_bid_radar_selected)
-        layout.addWidget(self.bid_radar_table, 1)
+        canvas_layout.addWidget(self.bid_radar_table, 1)
 
-        review_box = QGroupBox("3. XÁC NHẬN THỦ CÔNG")
+        self.bid_radar_inspector = QFrame()
+        self.bid_radar_inspector.setObjectName("bidRadarInspector")
+        self.bid_radar_inspector.setMinimumWidth(280)
+        inspector_scroll = QScrollArea()
+        inspector_scroll.setWidgetResizable(True)
+        inspector_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inspector_content = QWidget()
+        inspector_layout = QVBoxLayout(inspector_content)
+        inspector_layout.setContentsMargins(2, 2, 2, 2)
+        inspector_title = QLabel("QUICK VIEW / SMART INSPECTOR")
+        inspector_title.setObjectName("bidRadarInspectorTitle")
+        inspector_layout.addWidget(inspector_title)
+        self.bid_radar_inspector_text = QTextEdit()
+        self.bid_radar_inspector_text.setReadOnly(True)
+        self.bid_radar_inspector_text.setObjectName("bidRadarInspectorText")
+        self.bid_radar_inspector_text.setMinimumHeight(170)
+        inspector_layout.addWidget(self.bid_radar_inspector_text)
+
+        review_box = QGroupBox("HUMAN REVIEW")
         review_layout = QVBoxLayout(review_box)
         reviewer_row = QHBoxLayout()
         self.bid_radar_reviewer = QLineEdit()
@@ -755,7 +855,7 @@ class QICrawlerWindow(QMainWindow):
         reviewer_row.addWidget(self.bid_radar_reviewer)
         reviewer_row.addWidget(self.bid_radar_note)
         review_layout.addLayout(reviewer_row)
-        review_actions = QHBoxLayout()
+        review_actions = QVBoxLayout()
         self.bid_radar_confirm_button = QPushButton("XÁC NHẬN")
         self.bid_radar_confirm_button.clicked.connect(
             lambda: self.start_bid_radar_review("CONFIRMED")
@@ -779,11 +879,11 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_workspace_button.setEnabled(False)
         self.bid_radar_workspace_button.clicked.connect(self.start_bid_radar_workspace_handoff)
         review_actions.addWidget(self.bid_radar_workspace_button)
-        review_actions.addStretch()
         review_layout.addLayout(review_actions)
-        layout.addWidget(review_box)
+        inspector_layout.addWidget(review_box)
 
-        output_actions = QHBoxLayout()
+        output_box = QGroupBox("ĐẦU RA PHỤ")
+        output_actions = QVBoxLayout(output_box)
         self.bid_radar_export_button = QPushButton("XUẤT GÓI ĐÃ XÁC NHẬN (XLSX)")
         self.bid_radar_export_button.clicked.connect(self.start_bid_radar_export)
         self.bid_radar_legal_button = QPushButton("TẠO LEGAL DOCX")
@@ -791,9 +891,135 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_legal_button.clicked.connect(self.start_bid_radar_legal_docx)
         output_actions.addWidget(self.bid_radar_export_button)
         output_actions.addWidget(self.bid_radar_legal_button)
-        output_actions.addStretch()
-        layout.addLayout(output_actions)
+        inspector_layout.addWidget(output_box)
+        inspector_layout.addStretch()
+        inspector_content.setLayout(inspector_layout)
+        inspector_scroll.setWidget(inspector_content)
+        inspector_frame_layout = QVBoxLayout(self.bid_radar_inspector)
+        inspector_frame_layout.setContentsMargins(0, 0, 0, 0)
+        inspector_frame_layout.addWidget(inspector_scroll)
 
+        self.bid_radar_splitter.addWidget(self.bid_radar_selection_desk)
+        self.bid_radar_splitter.addWidget(self.bid_radar_active_canvas)
+        self.bid_radar_splitter.addWidget(self.bid_radar_inspector)
+        self.bid_radar_splitter.setStretchFactor(0, 0)
+        self.bid_radar_splitter.setStretchFactor(1, 1)
+        self.bid_radar_splitter.setStretchFactor(2, 0)
+        self.bid_radar_splitter.setSizes([290, 640, 310])
+        page_layout.addWidget(self.bid_radar_splitter, 1)
+
+        for field in (
+            self.bid_radar_min_budget,
+            self.bid_radar_max_budget,
+            self.bid_radar_province,
+            self.bid_radar_include,
+            self.bid_radar_exclude,
+            self.bid_radar_selection_method,
+        ):
+            field.textChanged.connect(self._update_bid_radar_context)
+        self._update_bid_radar_context()
+        self._render_bid_radar_inspector(None)
+
+    def _toggle_bid_radar_filter_editor(self) -> None:
+        visible = self.bid_radar_filter_editor.isHidden()
+        self.bid_radar_filter_editor.setVisible(visible)
+        self.bid_radar_filter_toggle.setText("ẨN BỘ LỌC" if visible else "CHỈNH BỘ LỌC")
+        self._update_bid_radar_context()
+
+    def _toggle_bid_radar_selection_desk(self) -> None:
+        visible = self.bid_radar_selection_desk.isHidden()
+        self.bid_radar_selection_desk.setVisible(visible)
+        self.bid_radar_selection_toggle.setText("ẨN BỘ LỌC" if visible else "HIỆN BỘ LỌC")
+
+    def _toggle_bid_radar_inspector(self) -> None:
+        visible = self.bid_radar_inspector.isHidden()
+        self.bid_radar_inspector.setVisible(visible)
+        self.bid_radar_inspector_toggle.setText("ẨN CHI TIẾT" if visible else "HIỆN CHI TIẾT")
+
+    def _update_bid_radar_context(self) -> None:
+        min_budget = self.bid_radar_min_budget.text().strip()
+        max_budget = self.bid_radar_max_budget.text().strip()
+        province = self.bid_radar_province.text().strip()
+        include = self._split_bid_radar_values(self.bid_radar_include.text())
+        exclude = self._split_bid_radar_values(self.bid_radar_exclude.text())
+        selection_method = self.bid_radar_selection_method.text().strip()
+        criteria: list[str] = []
+        if min_budget or max_budget:
+            criteria.append(f"Ngân sách: {min_budget or '—'} – {max_budget or '—'}")
+        if province:
+            criteria.append(f"Khu vực: {province}")
+        if selection_method:
+            criteria.append(f"Hình thức: {selection_method}")
+        if criteria:
+            summary = " · ".join(criteria)
+            self.bid_radar_active_filter_context.setText(f"Hiệu lực: {summary}")
+            self.bid_radar_filter_summary.setText(summary)
+        else:
+            summary = "CHƯA LỌC · Chưa có điều kiện hiệu lực."
+            self.bid_radar_active_filter_context.setText(summary)
+            self.bid_radar_filter_summary.setText(summary)
+        keywords: list[str] = []
+        if include:
+            keywords.append(f"{len(include)} gồm: {', '.join(include)}")
+        if exclude:
+            keywords.append(f"{len(exclude)} loại: {', '.join(exclude)}")
+        self.bid_radar_keyword_summary.setText(
+            "Từ khóa: " + (" · ".join(keywords) if keywords else "chưa có")
+        )
+
+    def _render_bid_radar_inspector(self, row: Any | None) -> None:
+        if row is None:
+            self.bid_radar_inspector_text.setPlainText(
+                "Chưa chọn cơ hội. Chọn một dòng để xem Quick View và bằng chứng lọc."
+            )
+            return
+        item = row.item
+        identity = getattr(item, "identity", None)
+        raw_id = getattr(identity, "raw_id", "—")
+        base_id = getattr(identity, "base_id", "—")
+        revision = getattr(identity, "revision", None) or "—"
+        source_type = getattr(getattr(item, "source_type", None), "value", "—")
+        lines = [
+            f"Mã cơ hội: {raw_id}",
+            f"Mã dòng: {base_id}",
+            f"Tên gói: {getattr(row, 'package_name', getattr(item, 'package_name', '—'))}",
+            f"Giá gói: {getattr(item, 'package_price', '—')}",
+            f"Khu vực: {getattr(item, 'province_city_name', None) or '—'}",
+            f"Revision: {revision}",
+            f"Nguồn: {source_type}",
+            f"Kết quả lọc: {self._bid_radar_disposition_label(getattr(row, 'disposition', 'UNKNOWN'))}",
+            f"Human Review: {self._bid_radar_review_label(getattr(row, 'review_state', 'UNREVIEWED'))}",
+            "",
+            "Bằng chứng từ bộ lọc:",
+        ]
+        criteria = getattr(row, "criteria", ()) or ()
+        if not criteria:
+            lines.append("Chưa có tiêu chí hoạt động.")
+        else:
+            outcome_labels = {"PASS": "ĐẠT", "FAIL": "KHÔNG ĐẠT", "UNKNOWN": "CHƯA RÕ"}
+            reason_labels = {
+                "MATCH_BUDGET": "Ngân sách",
+                "BUDGET_MATCH": "Ngân sách",
+                "MATCH_PROVINCE": "Khu vực",
+                "LOCATION_MATCH": "Khu vực",
+                "MATCH_KEYWORD": "Từ khóa",
+                "INCLUDE_KEYWORD_MATCH": "Từ khóa gồm",
+                "MATCH_SELECTION_METHOD": "Hình thức lựa chọn",
+                "SELECTION_METHOD_MATCH": "Hình thức lựa chọn",
+            }
+            for criterion in criteria:
+                outcome = getattr(getattr(criterion, "outcome", None), "value", getattr(criterion, "outcome", "UNKNOWN"))
+                reason = getattr(getattr(criterion, "reason_code", None), "value", getattr(criterion, "reason_code", ""))
+                label = reason_labels.get(str(reason), "Tiêu chí lọc")
+                lines.append(f"- {label}: {outcome_labels.get(str(outcome), 'CHƯA RÕ')}")
+                for evidence in getattr(criterion, "evidence", ()) or ():
+                    field = getattr(evidence, "field", None) or "giá trị nguồn"
+                    observed = getattr(evidence, "observed_value", None) or "chưa có"
+                    lines.append(f"  {field}: {observed}")
+                    expected = tuple(getattr(evidence, "expected_values", ()) or ())
+                    if expected:
+                        lines.append(f"  Kỳ vọng: {', '.join(map(str, expected))}")
+        self.bid_radar_inspector_text.setPlainText("\n".join(lines))
     def _choose_bid_radar_file(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(
             self,
@@ -1000,7 +1226,17 @@ class QICrawlerWindow(QMainWindow):
             code = getattr(getattr(issue, "code", None), "value", getattr(issue, "code", "UNKNOWN"))
             row = f" dòng {issue.source_row}" if getattr(issue, "source_row", None) else ""
             status_lines.append(f"- {code}{row}: {issue.message}")
+        self.bid_radar_result_summary.setText(summary)
+        self.bid_radar_funnel_label.setText(
+            f"Luồng lọc: {getattr(result, 'total_examined', len(self._bid_radar_items))} nguồn"
+            f" → {len(self._bid_radar_rows)} kết quả"
+            f" → {getattr(result, 'matched_count', 0)} phù hợp"
+            f" · {getattr(result, 'indeterminate_count', 0)} cần kiểm tra."
+        )
+        self._update_bid_radar_context()
+        self.bid_radar_table.clearSelection()
         self.bid_radar_status.setText("\n".join(status_lines))
+        self._render_bid_radar_inspector(None)
 
     @staticmethod
     def _bid_radar_disposition_label(value: Any) -> str:
@@ -1025,6 +1261,9 @@ class QICrawlerWindow(QMainWindow):
             button.setEnabled(enabled)
         workspace_enabled = enabled and self._bid_radar_rows[selected].review_state == "CONFIRMED"
         self.bid_radar_workspace_button.setEnabled(workspace_enabled)
+        self._render_bid_radar_inspector(
+            self._bid_radar_rows[selected] if enabled else None
+        )
 
     def start_bid_radar_review(self, decision: str) -> None:
         selected = self.bid_radar_table.currentRow()
