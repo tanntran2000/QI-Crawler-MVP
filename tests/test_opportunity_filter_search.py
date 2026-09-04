@@ -292,11 +292,101 @@ def test_exclude_keyword_is_no_match_when_found() -> None:
     assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
 
 
-def test_empty_profile_matches() -> None:
+def test_empty_profile_is_unfiltered() -> None:
     evaluation = filter_engine.evaluate_opportunity(_item(), _profile())
 
-    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.UNFILTERED
     assert evaluation.criteria == ()
+    assert evaluation.matched_fields == ()
+
+
+def test_filter_profile_has_active_criteria_ignores_name_and_blank_keywords() -> None:
+    assert not _profile(
+        name="Saved profile",
+        include_keywords=("  ",),
+        exclude_keywords=("	",),
+    ).has_active_criteria
+    assert _profile(min_budget=Decimal(0)).has_active_criteria
+
+
+def test_empty_search_buckets_all_source_items_as_unfiltered() -> None:
+    items = (_item(source_row=1), _item(source_row=2), _item(source_row=3))
+
+    result = search.search_opportunities(items, search.TargetedSearchRequest())
+
+    assert result.total_examined == 3
+    assert result.matched_count == 0
+    assert result.indeterminate_count == 0
+    assert result.nonmatched_count == 0
+    assert result.unfiltered_count == 3
+    assert result.matches == ()
+    assert result.indeterminate == ()
+    assert result.nonmatches == ()
+    assert [item.item.source_row for item in result.unfiltered] == [1, 2, 3]
+    assert len(result.evaluated) == 3
+
+
+def test_name_only_request_is_unfiltered() -> None:
+    result = search.search_opportunities(
+        (_item(source_row=1),), search.TargetedSearchRequest(name="saved")
+    )
+
+    assert result.unfiltered_count == 1
+    assert result.matched_count == 0
+    assert (
+        result.evaluated[0].evaluation.disposition
+        is filter_engine.OpportunityFilterDisposition.UNFILTERED
+    )
+
+
+def test_whitespace_only_keywords_are_not_active_criteria() -> None:
+    result = search.search_opportunities(
+        (_item(source_row=1),),
+        search.TargetedSearchRequest(include_keywords=("  ",), exclude_keywords=("	",)),
+    )
+
+    assert result.unfiltered_count == 1
+    assert result.matched_count == 0
+
+
+def test_zero_min_budget_is_an_active_filter() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=Decimal(0)), _profile(min_budget=Decimal(0))
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert evaluation.criteria
+
+
+def test_result_counts_conserve_total_with_unfiltered_bucket() -> None:
+    items = (
+        _item(source_row=1),
+        _item(source_row=2, price=None),
+        _item(source_row=3, price=Decimal(900000000)),
+        _item(source_row=4),
+    )
+    result = search.search_opportunities(
+        items, search.TargetedSearchRequest(max_budget=Decimal(500000000))
+    )
+
+    assert (
+        result.matched_count
+        + result.indeterminate_count
+        + result.nonmatched_count
+        + result.unfiltered_count
+        == result.total_examined
+    )
+
+
+def test_zero_criteria_scale_does_not_mark_624_items_as_matches() -> None:
+    items = tuple(_item(source_row=index) for index in range(1, 625))
+
+    result = search.search_opportunities(items, search.TargetedSearchRequest())
+
+    assert result.total_examined == 624
+    assert result.unfiltered_count == 624
+    assert result.matched_count == 0
+    assert len(result.unfiltered) == 624
 
 
 def test_generic_search_returns_three_disposition_buckets_in_stable_order() -> None:
@@ -336,7 +426,7 @@ def test_generic_search_delegates_every_decision_to_filter_authority(
     result = search.search_opportunities(items, search.TargetedSearchRequest())
 
     assert calls == [4, 2]
-    assert result.matched_count == 2
+    assert result.unfiltered_count == 2
 
 
 def test_revisions_remain_distinct_generic_evaluations() -> None:
@@ -346,12 +436,12 @@ def test_revisions_remain_distinct_generic_evaluations() -> None:
     )
     result = search.search_opportunities(items, search.TargetedSearchRequest())
 
-    assert result.matched_count == 2
-    assert [item.item.identity.raw_id for item in result.matches] == [
+    assert result.unfiltered_count == 2
+    assert [item.item.identity.raw_id for item in result.unfiltered] == [
         "IB2600463290-00",
         "IB2600463290-01",
     ]
-    assert result.matches[0].item.identity != result.matches[1].item.identity
+    assert result.unfiltered[0].item.identity != result.unfiltered[1].item.identity
 
 
 def test_legacy_filter_and_search_facades_remain_available() -> None:

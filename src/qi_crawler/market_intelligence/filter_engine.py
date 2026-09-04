@@ -52,6 +52,7 @@ class OpportunityFilterDisposition(StrEnum):
     MATCH = "MATCH"
     NO_MATCH = "NO_MATCH"
     INDETERMINATE = "INDETERMINATE"
+    UNFILTERED = "UNFILTERED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +78,21 @@ class FilterProfile:
         )
         object.__setattr__(self, "include_keywords", tuple(self.include_keywords))
         object.__setattr__(self, "exclude_keywords", tuple(self.exclude_keywords))
+
+    @property
+    def has_active_criteria(self) -> bool:
+        """Return whether this profile contains at least one effective filter."""
+
+        return any(
+            (
+                self.min_budget is not None,
+                self.max_budget is not None,
+                bool(self.province_city_codes),
+                any(normalize_search_value(keyword) for keyword in self.include_keywords),
+                any(normalize_search_value(keyword) for keyword in self.exclude_keywords),
+                any(str(method).strip() for method in self.selection_methods),
+            )
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +183,16 @@ def evaluate_opportunity(
     item: OpportunityRadarItem, profile: FilterProfile
 ) -> OpportunityFilterEvaluation:
     """Evaluate one source-neutral opportunity without scoring or side effects."""
+
+    if not profile.has_active_criteria:
+        return OpportunityFilterEvaluation(
+            observation_key=item.observation_key,
+            identity=item.identity,
+            disposition=OpportunityFilterDisposition.UNFILTERED,
+            criteria=(),
+            matched_fields=(),
+            profile_name=profile.name,
+        )
 
     criteria: list[CriterionEvaluation] = []
     matched_fields: list[str] = []
@@ -410,7 +436,11 @@ def evaluate_plan_package(package: PlanPackage, profile: FilterProfile) -> Filte
     ]
     return FilterEvaluation(
         matched=(
-            generic.disposition is OpportunityFilterDisposition.MATCH
+            generic.disposition
+            in (
+                OpportunityFilterDisposition.MATCH,
+                OpportunityFilterDisposition.UNFILTERED,
+            )
             or (
                 generic.disposition is OpportunityFilterDisposition.INDETERMINATE
                 and legacy_exclude_unknown

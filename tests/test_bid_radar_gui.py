@@ -43,6 +43,7 @@ def _fake_result(
     matched_count: int = 1,
     indeterminate_count: int = 0,
     nonmatched_count: int = 0,
+    unfiltered_count: int = 0,
     review_state: str = "UNREVIEWED",
 ) -> SimpleNamespace:
     item = item or _fake_radar_item("PL260001-00")
@@ -69,6 +70,7 @@ def _fake_result(
         matched_count=matched_count,
         indeterminate_count=indeterminate_count,
         nonmatched_count=nonmatched_count,
+        unfiltered_count=unfiltered_count,
         total_examined=1,
     )
 
@@ -219,6 +221,25 @@ def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow
     assert window.bid_radar_table.item(0, 0).text() == "IB2600463290-00"
     assert window.bid_radar_table.item(0, 6).text() == "CẦN KIỂM TRA"
     assert not window.bid_radar_legal_button.isEnabled()
+
+
+def test_bid_radar_renders_unfiltered_without_suitability_claim(window: QICrawlerWindow) -> None:
+    item = _fake_radar_item("IB2600463290-00")
+    result = _fake_result(
+        item,
+        path=Path("tbmt.xlsx"),
+        source_type="TBMT",
+        disposition="UNFILTERED",
+        matched_count=0,
+        unfiltered_count=1,
+    )
+
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_table.item(0, 6).text() == "CHƯA LỌC"
+    status = window.bid_radar_status.text().lower()
+    assert "chưa áp dụng điều kiện lọc" in status
+    assert "phù hợp 1" not in status
 
 
 def test_unknown_source_requires_explicit_human_selection(

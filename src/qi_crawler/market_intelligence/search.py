@@ -114,9 +114,11 @@ class TargetedOpportunitySearchResult:
     matched_count: int
     indeterminate_count: int
     nonmatched_count: int
+    unfiltered_count: int
     matches: tuple[OpportunitySearchEvaluation, ...]
     indeterminate: tuple[OpportunitySearchEvaluation, ...]
     nonmatches: tuple[OpportunitySearchEvaluation, ...]
+    unfiltered: tuple[OpportunitySearchEvaluation, ...]
     evaluated: tuple[OpportunitySearchEvaluation, ...]
 
 
@@ -145,15 +147,22 @@ def search_opportunities(
         for result in evaluated
         if result.evaluation.disposition is OpportunityFilterDisposition.NO_MATCH
     )
+    unfiltered = tuple(
+        result
+        for result in evaluated
+        if result.evaluation.disposition is OpportunityFilterDisposition.UNFILTERED
+    )
     return TargetedOpportunitySearchResult(
         request=request,
         total_examined=len(evaluated),
         matched_count=len(matches),
         indeterminate_count=len(indeterminate),
         nonmatched_count=len(nonmatches),
+        unfiltered_count=len(unfiltered),
         matches=matches,
         indeterminate=indeterminate,
         nonmatches=nonmatches,
+        unfiltered=unfiltered,
         evaluated=evaluated,
     )
 

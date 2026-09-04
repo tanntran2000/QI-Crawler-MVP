@@ -980,14 +980,22 @@ class QICrawlerWindow(QMainWindow):
             )
             for column, value in enumerate(values):
                 self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
-        status_lines = [
-            (
+        unfiltered_count = getattr(result, "unfiltered_count", 0)
+        if unfiltered_count:
+            summary = (
+                f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"chưa áp dụng điều kiện lọc ({unfiltered_count}); "
+                f"cảnh báo {len(getattr(result, 'issues', ()))}. "
+                "Lọc không đồng nghĩa xác nhận."
+            )
+        else:
+            summary = (
                 f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
                 f"phù hợp {result.matched_count}; cần kiểm tra {result.indeterminate_count}; "
                 f"không phù hợp {result.nonmatched_count}; cảnh báo {len(getattr(result, 'issues', ()))}. "
                 "Lọc không đồng nghĩa xác nhận."
             )
-        ]
+        status_lines = [summary]
         for issue in getattr(result, "issues", ()):
             code = getattr(getattr(issue, "code", None), "value", getattr(issue, "code", "UNKNOWN"))
             row = f" dòng {issue.source_row}" if getattr(issue, "source_row", None) else ""
@@ -1000,6 +1008,7 @@ class QICrawlerWindow(QMainWindow):
             "MATCH": "PHÙ HỢP",
             "NO_MATCH": "KHÔNG PHÙ HỢP",
             "INDETERMINATE": "CẦN KIỂM TRA",
+            "UNFILTERED": "CHƯA LỌC",
         }.get(getattr(value, "value", value), "CẦN KIỂM TRA")
 
     def _on_bid_radar_selected(self) -> None:

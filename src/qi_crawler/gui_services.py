@@ -167,6 +167,7 @@ class BidRadarResult:
     matched_count: int
     indeterminate_count: int
     nonmatched_count: int
+    unfiltered_count: int
     total_examined: int
 
 
@@ -234,6 +235,7 @@ def run_bid_radar_import_search(
         matched_count=searched.matched_count,
         indeterminate_count=searched.indeterminate_count,
         nonmatched_count=searched.nonmatched_count,
+        unfiltered_count=searched.unfiltered_count,
         total_examined=searched.total_examined,
     )
 
