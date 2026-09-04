@@ -878,22 +878,12 @@ class QICrawlerWindow(QMainWindow):
         return tuple(item.strip() for item in value.split(",") if item.strip())
 
     def _bid_radar_request(self) -> Any:
-        from decimal import Decimal, InvalidOperation
-
-        def parse_budget(value: str) -> Decimal | None:
-            normalized = value.strip().replace(" ", "").replace(",", "")
-            if not normalized:
-                return None
-            try:
-                return Decimal(normalized)
-            except InvalidOperation as exc:
-                raise ValueError("Ngân sách phải là số hợp lệ.") from exc
-
         from .market_intelligence.search import TargetedSearchRequest
+        from .market_intelligence.value_normalization import parse_optional_money_input
 
         return TargetedSearchRequest(
-            min_budget=parse_budget(self.bid_radar_min_budget.text()),
-            max_budget=parse_budget(self.bid_radar_max_budget.text()),
+            min_budget=parse_optional_money_input(self.bid_radar_min_budget.text()),
+            max_budget=parse_optional_money_input(self.bid_radar_max_budget.text()),
             province_city_codes=frozenset(self._split_bid_radar_values(self.bid_radar_province.text())),
             include_keywords=self._split_bid_radar_values(self.bid_radar_include.text()),
             exclude_keywords=self._split_bid_radar_values(self.bid_radar_exclude.text()),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -140,6 +141,16 @@ def test_team_bid_workspace_open_delegates_to_service(
 def test_bid_radar_source_selector_defaults_to_automatic(window: QICrawlerWindow) -> None:
     assert window.bid_radar_source_type.currentData() is None
     assert window.bid_radar_source_type.currentText() == "TỰ ĐỘNG"
+
+
+def test_bid_radar_request_normalizes_grouped_money_inputs(window: QICrawlerWindow) -> None:
+    window.bid_radar_min_budget.setText("500.000.000")
+    window.bid_radar_max_budget.setText("1 300 000 000")
+
+    request = window._bid_radar_request()
+
+    assert request.min_budget == Decimal(500000000)
+    assert request.max_budget == Decimal(1300000000)
 
 
 def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(

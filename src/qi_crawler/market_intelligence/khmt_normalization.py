@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import math
 import re
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from qi_crawler.keywords import normalize_keyword
+from qi_crawler.market_intelligence.value_normalization import normalize_money_value
 
 _PLAN_ID_PATTERN = re.compile(r"^(PL\d{10})(?:-(\d{2}))?$")
-_GROUPED_INTEGER_PATTERN = re.compile(r"^\d{1,3}(?:([.,])\d{3})(?:\1\d{3})*$")
-_SPACE_GROUPED_INTEGER_PATTERN = re.compile(r"^\d{1,3}(?: \d{3})+$")
 
 _SELECTION_METHODS = {
     "chi dinh thau": "CHI_DINH_THAU",
@@ -57,32 +55,7 @@ def parse_plan_identity(value: Any) -> PlanIdentity | None:
 def parse_package_price(value: Any) -> Decimal | None:
     """Parse unambiguous integer currency amounts; never treat invalid as zero."""
 
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, Decimal):
-        return value if value.is_finite() else None
-    if isinstance(value, int):
-        return Decimal(value)
-    if isinstance(value, float):
-        return Decimal(str(value)) if math.isfinite(value) else None
-
-    raw = compact_text(value)
-    if raw is None:
-        return None
-    normalized = raw.replace("\u00a0", " ")
-    if normalized.isdigit():
-        return Decimal(normalized)
-    if _SPACE_GROUPED_INTEGER_PATTERN.fullmatch(normalized):
-        normalized = normalized.replace(" ", "")
-    elif _GROUPED_INTEGER_PATTERN.fullmatch(normalized):
-        normalized = normalized.replace(".", "").replace(",", "")
-    else:
-        return None
-    try:
-        return Decimal(normalized)
-    except InvalidOperation:
-        return None
-
+    return normalize_money_value(value)
 
 def normalize_selection_method(value: Any) -> str | None:
     raw = compact_text(value)
