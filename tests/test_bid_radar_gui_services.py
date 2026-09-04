@@ -83,6 +83,37 @@ def test_tbmt_adapter_routes_real_workbook_through_source_neutral_backend(tmp_pa
     assert result.unfiltered_count == 1
 
 
+def test_bid_radar_row_propagates_structured_filter_evidence(tmp_path: Path) -> None:
+    source = _write_tbmt(tmp_path / "TBMT-evidence.xlsx")
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'bid-radar-evidence.db'}"
+
+    result = run_bid_radar_import_search(
+        config,
+        source,
+        TargetedSearchRequest(include_keywords=("đơn vị",)),
+        source_type=SourceType.TBMT,
+    )
+
+    assert result.rows[0].criteria[0].evidence[0].field == "procuring_entity"
+    assert result.rows[0].criteria[0].evidence[0].matched_terms == ("don vi",)
+
+
+def test_filter_evidence_is_independent_of_human_review_state(tmp_path: Path) -> None:
+    source = _write_tbmt(tmp_path / "TBMT-review-evidence.xlsx")
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'bid-radar-review-evidence.db'}"
+    request = TargetedSearchRequest(include_keywords=("đơn vị",))
+
+    before = run_bid_radar_import_search(config, source, request, source_type=SourceType.TBMT)
+    run_bid_radar_review(config, before.items[0], "CONFIRMED", "Team Bid")
+    after = run_bid_radar_import_search(config, source, request, source_type=SourceType.TBMT)
+
+    assert before.rows[0].criteria == after.rows[0].criteria
+    assert before.rows[0].review_state == "UNREVIEWED"
+    assert after.rows[0].review_state == "CONFIRMED"
+
+
 def test_khmt_review_and_legal_docx_keep_existing_output_capability(tmp_path: Path) -> None:
     source = _write_khmt(tmp_path / "KHMT.xlsx")
     config = AppConfig()

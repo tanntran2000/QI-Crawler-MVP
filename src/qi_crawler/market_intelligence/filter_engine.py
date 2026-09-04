@@ -107,12 +107,22 @@ class FilterEvaluation:
 
 
 @dataclass(frozen=True, slots=True)
+class CriterionEvidence:
+    """One deterministic, source-neutral observation for a filter criterion."""
+
+    field: str | None
+    observed_value: str | None
+    expected_values: tuple[str, ...] = ()
+    matched_terms: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class CriterionEvaluation:
     criterion: str
     outcome: CriterionOutcome
     reason_code: FilterReasonCode
     matched_fields: tuple[str, ...] = ()
-    evidence: tuple[str, ...] = ()
+    evidence: tuple[CriterionEvidence, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,18 +174,109 @@ def _opportunity_keyword_fields(item: OpportunityRadarItem) -> dict[str, str | N
     return fields
 
 
+def _decimal_text(value: Decimal) -> str:
+    text = format(value, "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text or "0"
+
+
+def _budget_evidence(
+    profile: FilterProfile, price: Decimal | None
+) -> tuple[CriterionEvidence, ...]:
+    expected: list[str] = []
+    if profile.min_budget is not None:
+        expected.append(f"min={profile.min_budget}")
+    if profile.max_budget is not None:
+        expected.append(f"max={profile.max_budget}")
+    return (
+        CriterionEvidence(
+            field="package_price",
+            observed_value=_decimal_text(price) if price is not None else None,
+            expected_values=tuple(expected),
+        ),
+    )
+
+
+def _province_evidence(
+    item: OpportunityRadarItem, profile: FilterProfile
+) -> tuple[CriterionEvidence, ...]:
+    observed = _optional_text(item.province_city_code)
+    return (
+        CriterionEvidence(
+            field="province_city_code",
+            observed_value=observed.upper() if observed is not None else None,
+            expected_values=tuple(sorted(profile.province_city_codes)),
+        ),
+    )
+
+
+def _keyword_evidence(
+    fields: dict[str, str | None], terms: tuple[str, ...]
+) -> tuple[CriterionEvidence, ...]:
+    entries: list[CriterionEvidence] = []
+    for field, value in fields.items():
+        normalized = normalize_search_value(value) if value is not None else None
+        matched_terms = tuple(
+            term for term in terms if normalized is not None and term in normalized
+        )
+        if matched_terms or value is None:
+            entries.append(
+                CriterionEvidence(
+                    field=field,
+                    observed_value=value,
+                    expected_values=terms,
+                    matched_terms=matched_terms,
+                )
+            )
+    if not entries:
+        entries = [
+            CriterionEvidence(
+                field=field,
+                observed_value=value,
+                expected_values=terms,
+            )
+            for field, value in fields.items()
+        ]
+    return tuple(entries)
+
+
+def _selection_evidence(
+    item: OpportunityRadarItem, profile: FilterProfile, method: str | None
+) -> tuple[CriterionEvidence, ...]:
+    expected = tuple(sorted(profile.selection_methods))
+    if method is not None:
+        return (
+            CriterionEvidence(
+                field="selection_method",
+                observed_value=method.upper(),
+                expected_values=expected,
+            ),
+        )
+    raw = _optional_text(getattr(item, "selection_method_raw", None))
+    return (
+        CriterionEvidence(
+            field="selection_method_raw" if raw is not None else "selection_method",
+            observed_value=raw,
+            expected_values=expected,
+        ),
+    )
+
+
 def _criterion(
     name: str,
     outcome: CriterionOutcome,
     reason: FilterReasonCode,
     *,
     matched_fields: tuple[str, ...] = (),
+    evidence: tuple[CriterionEvidence, ...] = (),
 ) -> CriterionEvaluation:
     return CriterionEvaluation(
         criterion=name,
         outcome=outcome,
         reason_code=reason,
         matched_fields=matched_fields,
+        evidence=evidence,
     )
 
 
@@ -199,30 +300,53 @@ def evaluate_opportunity(
 
     if profile.min_budget is not None or profile.max_budget is not None:
         price = _finite_price(item.package_price)
+        budget_evidence = _budget_evidence(profile, price)
         if price is None:
             criteria.append(
-                _criterion("budget", CriterionOutcome.UNKNOWN, FilterReasonCode.BUDGET_UNKNOWN)
+                _criterion(
+                    "budget",
+                    CriterionOutcome.UNKNOWN,
+                    FilterReasonCode.BUDGET_UNKNOWN,
+                    evidence=budget_evidence,
+                )
             )
         elif profile.min_budget is not None and price < profile.min_budget:
             criteria.append(
-                _criterion("budget", CriterionOutcome.FAIL, FilterReasonCode.BUDGET_BELOW_MIN)
+                _criterion(
+                    "budget",
+                    CriterionOutcome.FAIL,
+                    FilterReasonCode.BUDGET_BELOW_MIN,
+                    evidence=budget_evidence,
+                )
             )
         elif profile.max_budget is not None and price > profile.max_budget:
             criteria.append(
-                _criterion("budget", CriterionOutcome.FAIL, FilterReasonCode.BUDGET_ABOVE_MAX)
+                _criterion(
+                    "budget",
+                    CriterionOutcome.FAIL,
+                    FilterReasonCode.BUDGET_ABOVE_MAX,
+                    evidence=budget_evidence,
+                )
             )
         else:
             criteria.append(
-                _criterion("budget", CriterionOutcome.PASS, FilterReasonCode.BUDGET_MATCH)
+                _criterion(
+                    "budget",
+                    CriterionOutcome.PASS,
+                    FilterReasonCode.BUDGET_MATCH,
+                    evidence=budget_evidence,
+                )
             )
 
     if profile.province_city_codes:
+        province_evidence = _province_evidence(item, profile)
         if item.province_city_status is ProvinceCityStatus.NEEDS_REVIEW:
             criteria.append(
                 _criterion(
                     "province_city",
                     CriterionOutcome.UNKNOWN,
                     FilterReasonCode.LOCATION_NEEDS_REVIEW,
+                    evidence=province_evidence,
                 )
             )
         elif not item.province_city_code:
@@ -231,11 +355,17 @@ def evaluate_opportunity(
                     "province_city",
                     CriterionOutcome.UNKNOWN,
                     FilterReasonCode.LOCATION_UNKNOWN,
+                    evidence=province_evidence,
                 )
             )
         elif item.province_city_code.upper() in profile.province_city_codes:
             criteria.append(
-                _criterion("province_city", CriterionOutcome.PASS, FilterReasonCode.LOCATION_MATCH)
+                _criterion(
+                    "province_city",
+                    CriterionOutcome.PASS,
+                    FilterReasonCode.LOCATION_MATCH,
+                    evidence=province_evidence,
+                )
             )
         else:
             criteria.append(
@@ -243,6 +373,7 @@ def evaluate_opportunity(
                     "province_city",
                     CriterionOutcome.FAIL,
                     FilterReasonCode.LOCATION_NOT_MATCHED,
+                    evidence=province_evidence,
                 )
             )
 
@@ -251,11 +382,11 @@ def evaluate_opportunity(
         term for keyword in profile.include_keywords if (term := normalize_search_value(keyword))
     )
     if include_terms:
+        include_evidence = _keyword_evidence(fields, include_terms)
         include_matches = tuple(
-            field
-            for field, value in fields.items()
-            if value is not None
-            and any(term in normalize_search_value(value) for term in include_terms)
+            entry.field
+            for entry in include_evidence
+            if entry.matched_terms and entry.field is not None
         )
         if include_matches:
             matched_fields.extend(include_matches)
@@ -265,6 +396,7 @@ def evaluate_opportunity(
                     CriterionOutcome.PASS,
                     FilterReasonCode.INCLUDE_KEYWORD_MATCH,
                     matched_fields=include_matches,
+                    evidence=include_evidence,
                 )
             )
         elif any(value is None for value in fields.values()):
@@ -273,6 +405,7 @@ def evaluate_opportunity(
                     "include_keywords",
                     CriterionOutcome.UNKNOWN,
                     FilterReasonCode.INCLUDE_KEYWORD_INDETERMINATE,
+                    evidence=include_evidence,
                 )
             )
         else:
@@ -281,6 +414,7 @@ def evaluate_opportunity(
                     "include_keywords",
                     CriterionOutcome.FAIL,
                     FilterReasonCode.INCLUDE_KEYWORD_NOT_FOUND,
+                    evidence=include_evidence,
                 )
             )
 
@@ -288,11 +422,11 @@ def evaluate_opportunity(
         term for keyword in profile.exclude_keywords if (term := normalize_search_value(keyword))
     )
     if exclude_terms:
+        exclude_evidence = _keyword_evidence(fields, exclude_terms)
         exclude_matches = tuple(
-            field
-            for field, value in fields.items()
-            if value is not None
-            and any(term in normalize_search_value(value) for term in exclude_terms)
+            entry.field
+            for entry in exclude_evidence
+            if entry.matched_terms and entry.field is not None
         )
         if exclude_matches:
             matched_fields.extend(exclude_matches)
@@ -302,6 +436,7 @@ def evaluate_opportunity(
                     CriterionOutcome.FAIL,
                     FilterReasonCode.EXCLUDE_KEYWORD_FOUND,
                     matched_fields=exclude_matches,
+                    evidence=exclude_evidence,
                 )
             )
         elif any(value is None for value in fields.values()):
@@ -310,6 +445,7 @@ def evaluate_opportunity(
                     "exclude_keywords",
                     CriterionOutcome.UNKNOWN,
                     FilterReasonCode.EXCLUDE_KEYWORD_INDETERMINATE,
+                    evidence=exclude_evidence,
                 )
             )
         else:
@@ -318,17 +454,20 @@ def evaluate_opportunity(
                     "exclude_keywords",
                     CriterionOutcome.PASS,
                     FilterReasonCode.EXCLUDE_KEYWORD_NOT_FOUND,
+                    evidence=exclude_evidence,
                 )
             )
 
     if profile.selection_methods:
         method = _optional_text(item.selection_method)
+        selection_evidence = _selection_evidence(item, profile, method)
         if method is None:
             criteria.append(
                 _criterion(
                     "selection_method",
                     CriterionOutcome.UNKNOWN,
                     FilterReasonCode.SELECTION_METHOD_UNKNOWN,
+                    evidence=selection_evidence,
                 )
             )
         elif method.upper() in profile.selection_methods:
@@ -337,6 +476,7 @@ def evaluate_opportunity(
                     "selection_method",
                     CriterionOutcome.PASS,
                     FilterReasonCode.SELECTION_METHOD_MATCH,
+                    evidence=selection_evidence,
                 )
             )
         else:
@@ -345,6 +485,7 @@ def evaluate_opportunity(
                     "selection_method",
                     CriterionOutcome.FAIL,
                     FilterReasonCode.SELECTION_METHOD_NOT_MATCHED,
+                    evidence=selection_evidence,
                 )
             )
 

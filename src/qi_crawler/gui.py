@@ -1066,6 +1066,7 @@ class QICrawlerWindow(QMainWindow):
                 disposition=row.disposition,
                 reasons=row.reasons,
                 review_state=decision,
+                criteria=getattr(row, "criteria", ()),
             ),
         ) + self._bid_radar_rows[row_index + 1 :]
         self.bid_radar_table.setItem(

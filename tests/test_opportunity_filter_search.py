@@ -309,6 +309,169 @@ def test_filter_profile_has_active_criteria_ignores_name_and_blank_keywords() ->
     assert _profile(min_budget=Decimal(0)).has_active_criteria
 
 
+def test_budget_pass_exposes_structured_observed_and_expected_evidence() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=Decimal(1181000000)),
+        _profile(min_budget=Decimal(500000000), max_budget=Decimal(1300000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    evidence = evaluation.criteria[0].evidence
+    assert evidence == (
+        filter_engine.CriterionEvidence(
+            field="package_price",
+            observed_value="1181000000",
+            expected_values=("min=500000000", "max=1300000000"),
+            matched_terms=(),
+        ),
+    )
+
+
+def test_budget_fail_evidence_preserves_actual_and_maximum() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=Decimal(1500000000)),
+        _profile(max_budget=Decimal(1300000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+    assert evaluation.criteria[0].reason_code is filter_engine.FilterReasonCode.BUDGET_ABOVE_MAX
+    assert evaluation.criteria[0].evidence[0].observed_value == "1500000000"
+    assert evaluation.criteria[0].evidence[0].expected_values == ("max=1300000000",)
+
+
+def test_budget_unknown_evidence_preserves_requested_bounds() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(price=None),
+        _profile(min_budget=Decimal(500000000), max_budget=Decimal(1300000000)),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert evaluation.criteria[0].reason_code is filter_engine.FilterReasonCode.BUDGET_UNKNOWN
+    assert evaluation.criteria[0].evidence[0].observed_value is None
+    assert evaluation.criteria[0].evidence[0].expected_values == (
+        "min=500000000",
+        "max=1300000000",
+    )
+
+
+def test_province_evidence_preserves_observed_and_requested_codes() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(province_code="HCM"),
+        _profile(province_city_codes=frozenset({"HN", "HCM"})),
+    )
+
+    evidence = evaluation.criteria[0].evidence[0]
+    assert evidence.field == "province_city_code"
+    assert evidence.observed_value == "HCM"
+    assert evidence.expected_values == ("HCM", "HN")
+
+
+def test_unknown_province_evidence_does_not_invent_a_location() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(province_code=None, province_status=ProvinceCityStatus.NEEDS_REVIEW),
+        _profile(province_city_codes=frozenset({"HCM"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert evaluation.criteria[0].evidence[0].observed_value is None
+    assert evaluation.criteria[0].evidence[0].expected_values == ("HCM",)
+
+
+def test_include_keyword_evidence_identifies_matching_field_and_term() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(package_name="Cung cấp và lắp đặt Core Switch"),
+        _profile(include_keywords=("switch",)),
+    )
+
+    evidence = evaluation.criteria[0].evidence
+    assert evidence[0].field == "package_name"
+    assert evidence[0].matched_terms == ("switch",)
+
+
+def test_multiple_keyword_fields_keep_declared_deterministic_order() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(package_name="switch", project="switch"),
+        _profile(include_keywords=("switch",)),
+    )
+
+    assert [entry.field for entry in evaluation.criteria[0].evidence] == [
+        "package_name",
+        "project",
+    ]
+
+
+def test_exclude_keyword_evidence_identifies_matching_field_and_term() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(package_name="Mua sắm restricted thiết bị"),
+        _profile(exclude_keywords=("restricted",)),
+    )
+
+    evidence = evaluation.criteria[0].evidence
+    assert evidence[0].field == "package_name"
+    assert evidence[0].matched_terms == ("restricted",)
+
+
+def test_selection_method_evidence_preserves_canonical_observed_and_expected_codes() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method="DAU_THAU_RONG_RAI"),
+        _profile(selection_methods=frozenset({"CHAO_HANG_CANH_TRANH", "DAU_THAU_RONG_RAI"})),
+    )
+
+    evidence = evaluation.criteria[0].evidence[0]
+    assert evidence.field == "selection_method"
+    assert evidence.observed_value == "DAU_THAU_RONG_RAI"
+    assert evidence.expected_values == ("CHAO_HANG_CANH_TRANH", "DAU_THAU_RONG_RAI")
+
+
+def test_unknown_selection_method_evidence_does_not_fabricate_a_code() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(selection_method=None),
+        _profile(selection_methods=frozenset({"DAU_THAU_RONG_RAI"})),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert evaluation.criteria[0].evidence[0].observed_value is None
+    assert evaluation.criteria[0].evidence[0].expected_values == ("DAU_THAU_RONG_RAI",)
+
+
+def test_identical_evaluations_have_identical_evidence_ordering() -> None:
+    profile = _profile(
+        min_budget=Decimal(500000000),
+        max_budget=Decimal(1300000000),
+        province_city_codes=frozenset({"HCM", "HN"}),
+        include_keywords=("switch", "mạng"),
+        exclude_keywords=("restricted",),
+        selection_methods=frozenset({"DAU_THAU_RONG_RAI", "CHAO_HANG_CANH_TRANH"}),
+    )
+    first = filter_engine.evaluate_opportunity(_item(), profile)
+    second = filter_engine.evaluate_opportunity(_item(), profile)
+
+    assert first == second
+    assert first.criteria == second.criteria
+
+
+def test_realistic_match_exposes_each_active_criterion() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _item(
+            package_name="Cung cấp, lắp đặt hệ thống Core Switch và thiết bị mạng",
+            price=Decimal(1181000000),
+            province_code="HCM",
+            selection_method="DAU_THAU_RONG_RAI",
+        ),
+        _profile(
+            min_budget=Decimal(500000000),
+            max_budget=Decimal(1300000000),
+            province_city_codes=frozenset({"HCM"}),
+            include_keywords=("switch", "mạng"),
+            selection_methods=frozenset({"DAU_THAU_RONG_RAI"}),
+        ),
+    )
+
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert len(evaluation.criteria) == 4
+    assert all(criterion.evidence for criterion in evaluation.criteria)
+
+
 def test_empty_search_buckets_all_source_items_as_unfiltered() -> None:
     items = (_item(source_row=1), _item(source_row=2), _item(source_row=3))
 

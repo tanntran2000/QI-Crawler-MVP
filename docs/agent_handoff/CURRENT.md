@@ -3,13 +3,13 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = WP-BID-RADAR-HARDENING-01 / MICRO-A3
+HANDOFF_ID = WP-BID-RADAR-HARDENING-01 / MICRO-A4
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 PARENT_WP = WP-GOV-QI-WORKBENCH-01
-CURRENT_PHASE = MICRO-A3_NO_CRITERIA_SAFETY / IMPLEMENTATION
+CURRENT_PHASE = MICRO-A4_FILTER_EXPLANATION / IMPLEMENTATION
 ACTIVE_PRODUCT_WP = WP-BID-RADAR-HARDENING-01
-ACTIVE_ENGINEERING_WP = WP-BID-RADAR-HARDENING-01 / MICRO-A3
-PARENT_STATE = AUTHORIZED / MICRO-A3_IMPLEMENTED_PENDING_REVIEW
+ACTIVE_ENGINEERING_WP = WP-BID-RADAR-HARDENING-01 / MICRO-A4
+PARENT_STATE = AUTHORIZED / MICRO-A4_IMPLEMENTED_PENDING_REVIEW
 PRODUCT_CHANGE = NO
 VERSION_IMPACT = NONE
 DESIGN_SPEC = docs/superpowers/specs/2026-09-03-qi-agent-workbench-design.md
@@ -35,8 +35,11 @@ BID_RADAR_MICRO_A2_STATE = IMPLEMENTED_PENDING_PLANNER_REVIEW
 BID_RADAR_MICRO_A2_BASE_HEAD = f52a75dfbc6ccdfc6103a8eccbe5c2d89a693496
 BID_RADAR_MICRO_A3_STATE = IMPLEMENTED_PENDING_PLANNER_REVIEW
 BID_RADAR_MICRO_A3_BASE_HEAD = 587c872f01bd29e73e5c23d3854d32281e14e9ae
+BID_RADAR_MICRO_A4_STATE = IMPLEMENTED_PENDING_PLANNER_REVIEW
+BID_RADAR_MICRO_A4_BASE_HEAD = f3ca0907bd1fdec0e000666d926bd249b9a02dd1
 MONEY_CONTRACT = SHARED
 SELECTION_METHOD_CONTRACT = IMPLEMENTED_PENDING_PLANNER_REVIEW
+FILTER_EXPLANATION_CONTRACT = IMPLEMENTED_STRUCTURED_EVIDENCE
 NO_CRITERIA_SAFETY = IMPLEMENTED_UNFILTERED
 MICRO_B_STATE = CLOSED
 MICRO_B_FINAL_HEAD = 7683b2478cb437f49806030465a87a1126dab1a0
@@ -45,7 +48,7 @@ MICRO_C_FINAL_HEAD = 7ed24a13a08e9e7e63ce87bd0abb8dc25d06d2c0
 MICRO_D_STATE = CLOSED
 MICRO_D_FINAL_HEAD = 0a845a24f50e31cbfc98634b6a29e3a4678a0ba7
 MICRO_D_FINDING_WB_05 = MINOR_CARRY_TO_MICRO_E
-ACTIVE_MICRO_WP = MICRO-A3
+ACTIVE_MICRO_WP = MICRO-A4
 MICRO_E_STATE = AUDIT_ACCEPTED
 MICRO_E_PILOT_RESULT = PASS
 MICRO_E_PILOT_SCENARIOS = 7_OF_7_PASS
@@ -61,7 +64,7 @@ UI_MODEL = SELECTION_DESK | ACTIVE_TENDER_CANVAS | SMART_INSPECTOR
 COGNITIVE_SAFETY = REQUIRED
 HSMT_UI_REDESIGN = PARKED_UNTIL_BID_RADAR_ACCEPTANCE
 INTEGRATION_STATE = MERGED_TO_MAIN
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_MICRO_A3_REVIEW
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_MICRO_A4_REVIEW
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 HANDOFF_READY = NO_PENDING_PLANNER_REVIEW
 DEPLOYED_VERSION = 0.9.0
@@ -75,10 +78,4 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Human A0 approved Bid Radar under the Calm QI Bid Desk direction. Micro-A1 money normalization passed at
-f52a75dfbc6ccdfc6103a8eccbe5c2d89a693496, Micro-A2 selection-method normalization passed at its
-implementation head, and Micro-A3 no-criteria safety is implemented at 587c872f01bd29e73e5c23d3854d32281e14e9ae
-pending Planner review. The source-neutral evaluator now distinguishes UNFILTERED from MATCH, NO_MATCH, and
-INDETERMINATE; search preserves all unfiltered observations and the GUI presents them as CHƯA LỌC without
-implying suitability. The QI Agent Workbench remains merged and complete; no A4 work is active and other
-product work remains parked. Next step is Planner review of Micro-A3.
+Micro-A1 money normalization passed at f52a75dfbc6ccdfc6103a8eccbe5c2d89a693496, Micro-A2 selection-method normalization remains preserved at its approved implementation head, and Micro-A3 no-criteria safety is preserved at f3ca0907bd1fdec0e000666d926bd249b9a02dd1. Micro-A4 now carries structured, immutable filter evidence from the same source-neutral evaluation for budget, location, keyword, and selection-method outcomes; BidRadarRow propagates those criteria without GUI re-evaluation or coupling to Human Review. This implementation is pending Planner review. The source-neutral evaluator still distinguishes UNFILTERED from MATCH, NO_MATCH, and INDETERMINATE, and no UI Micro is activated. The QI Agent Workbench remains merged and complete; other product work remains parked. Next step is Planner review of Micro-A4.

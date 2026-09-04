@@ -36,7 +36,7 @@ from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
 from .market_intelligence.confirmed_opportunity_export import ConfirmedOpportunityExportResult
-from .market_intelligence.filter_engine import OpportunityFilterDisposition
+from .market_intelligence.filter_engine import CriterionEvaluation, OpportunityFilterDisposition
 from .market_intelligence.khmt_importer import import_khmt_workbook
 from .market_intelligence.legal_docx import (
     LegalDocxExportResult,
@@ -151,6 +151,7 @@ class BidRadarRow:
     disposition: OpportunityFilterDisposition
     reasons: tuple[str, ...]
     review_state: str
+    criteria: tuple[CriterionEvaluation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -186,6 +187,7 @@ def _bid_radar_rows(
                 disposition=evaluation.disposition,
                 reasons=tuple(criterion.reason_code.value for criterion in evaluation.criteria),
                 review_state=event.decision.value if event is not None else "UNREVIEWED",
+                criteria=evaluation.criteria,
             )
         )
     return tuple(rows)
