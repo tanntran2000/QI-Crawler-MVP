@@ -21,6 +21,10 @@ from qi_crawler.market_intelligence.khmt_contract import OBSERVED_KHMT_HEADERS
 from qi_crawler.market_intelligence.opportunity_contract import OpportunitySourceType
 from qi_crawler.market_intelligence.search import TargetedSearchRequest
 from qi_crawler.market_intelligence.source_detection import SourceType
+from qi_crawler.market_intelligence.source_session import (
+    SourceSessionIdentity,
+    source_session_matches,
+)
 from qi_crawler.market_intelligence.tbmt_schema import OBSERVED_TBMT_HEADERS
 
 
@@ -63,6 +67,16 @@ def test_active_context_accepts_source_raw_id_spacing_with_normalized_revision()
     assert active.base_id == "IB2600488839"
     assert active.revision == "00"
     assert exact_identity_matches(active, item)
+
+
+def test_source_session_identity_distinguishes_same_name_changed_hash(tmp_path: Path) -> None:
+    first_path = tmp_path / "same.xlsx"
+    second_path = tmp_path / "same.xlsx"
+    first = SourceSessionIdentity(first_path, first_path.name, "a" * 64, SourceType.TBMT)
+    second = SourceSessionIdentity(second_path, second_path.name, "b" * 64, SourceType.TBMT)
+
+    assert not source_session_matches(first, second)
+    assert source_session_matches(first, first)
 
 
 def _write_tbmt(path: Path) -> Path:

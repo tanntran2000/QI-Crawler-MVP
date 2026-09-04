@@ -182,13 +182,14 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
 ) -> None:
     source = tmp_path / "TBMT_19_8_2026.xlsx"
     source.write_bytes(b"tbmt")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="a" * 64,
+            source_sha256=source_sha,
             filename_type=SourceType.TBMT,
             content_type=SourceType.TBMT,
             identity_namespace="IB",
@@ -200,6 +201,8 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
             reasons=(),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window.apply_bid_radar_source()
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
@@ -296,13 +299,14 @@ def test_unknown_source_requires_explicit_human_selection(
 ) -> None:
     source = tmp_path / "opportunity.xlsx"
     source.write_bytes(b"unknown")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="b" * 64,
+            source_sha256=source_sha,
             filename_type=SourceType.UNKNOWN,
             content_type=SourceType.KHMT,
             identity_namespace="PL",
@@ -314,6 +318,8 @@ def test_unknown_source_requires_explicit_human_selection(
             reasons=("filename requires human selection",),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.UNKNOWN)
+    window.apply_bid_radar_source()
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
@@ -330,12 +336,12 @@ def test_manual_source_selection_routes_khmt_with_human_authority(
 ) -> None:
     source = tmp_path / "opportunity.xlsx"
     source.write_bytes(b"unknown")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     window.bid_radar_source_type.setCurrentIndex(1)
-    window.bid_radar_reviewer.setText("Team Bid")
     detection = SourceTypeDetection(
         original_filename=source.name,
-        source_sha256="d" * 64,
+        source_sha256=source_sha,
         filename_type=SourceType.UNKNOWN,
         content_type=SourceType.KHMT,
         identity_namespace="PL",
@@ -347,6 +353,9 @@ def test_manual_source_selection_routes_khmt_with_human_authority(
         reasons=("filename requires human selection",),
     )
     monkeypatch.setattr(gui, "detect_source_type", lambda path: detection)
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.KHMT)
+    window.apply_bid_radar_source()
+    window.bid_radar_reviewer.setText("Team Bid")
     captured: dict[str, object] = {}
 
     def fake_submit(function, *args, **kwargs) -> None:
@@ -378,13 +387,14 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
     monkeypatch.setattr(window, "_submit", fake_submit)
     source = tmp_path / "khmt.xlsx"
     source.write_bytes(b"placeholder")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="c" * 64,
+                source_sha256=source_sha,
             filename_type=SourceType.KHMT,
             content_type=SourceType.KHMT,
             identity_namespace="PL",
@@ -396,6 +406,8 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
             reasons=(),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.KHMT)
+    window.apply_bid_radar_source()
 
     window.start_bid_radar_import()
 
@@ -545,7 +557,8 @@ def test_source_change_cancel_preserves_active_context(window: QICrawlerWindow, 
     window._choose_bid_radar_file()
 
     assert window.active_tender_context is not None
-    assert window.bid_radar_path.text() == str(source_a)
+    assert window.bid_radar_path.text() == str(source_b.resolve())
+    assert window._bid_radar_pending_source.path == source_b.resolve()
 
 
 def test_source_change_confirm_clears_active_context(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -562,9 +575,233 @@ def test_source_change_confirm_clears_active_context(window: QICrawlerWindow, mo
     monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
 
     window._choose_bid_radar_file()
+    window._bid_radar_pending_source = window._source_session_identity(
+        source_b,
+        hashlib.sha256(source_b.read_bytes()).hexdigest(),
+        SourceType.TBMT,
+    )
+    window.apply_bid_radar_source()
 
     assert window.active_tender_context is None
     assert window.bid_radar_path.text() == str(source_b.resolve())
+
+
+def _source_detection(path: Path, source_sha256: str) -> SourceTypeDetection:
+    return SourceTypeDetection(
+        original_filename=path.name,
+        source_sha256=source_sha256,
+        filename_type=SourceType.TBMT,
+        content_type=SourceType.TBMT,
+        identity_namespace="IB",
+        identity_values=("IB2600488839-00",),
+        identity_raw_values=("IB2600488839-00",),
+        auto_type=SourceType.TBMT,
+        requires_human=False,
+        evidence=("TBMT headers",),
+        reasons=(),
+    )
+
+
+def test_source_selection_is_pending_and_import_waits_for_apply(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-03-09.xlsx"
+    source.write_bytes(b"source-a")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        gui,
+        "detect_source_type",
+        lambda path: _source_detection(path, source_sha),
+    )
+    monkeypatch.setattr(
+        gui.QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(source), "Excel"),
+    )
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_pending_source is not None
+    assert window._bid_radar_active_source is None
+    assert window.bid_radar_source_action_button.text() == "DÙNG FILE NÀY"
+    assert not window.bid_radar_import_button.isEnabled()
+
+
+def test_initial_source_apply_resets_workspace_and_preserves_filters(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-03-09.xlsx"
+    source.write_bytes(b"source-a")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(path, source_sha))
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+    window._choose_bid_radar_file()
+    window.bid_radar_min_budget.setText("500000000")
+    window.bid_radar_include.setText("Mạng")
+    window._render_bid_radar_result(_fake_result(path=source, source_type="TBMT", source_sha256=source_sha))
+    window.bid_radar_table.selectRow(0)
+    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
+
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source is not None
+    assert window._bid_radar_active_source.path == source.resolve()
+    assert window.bid_radar_table.rowCount() == 0
+    assert window.active_tender_context is None
+    assert window.bid_radar_min_budget.text() == "500000000"
+    assert window.bid_radar_include.text() == "Mạng"
+    assert window.bid_radar_import_button.isEnabled()
+    assert "CHƯA CHẠY" in window.bid_radar_status.text()
+
+
+def test_source_switch_cancel_preserves_active_workspace(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    detections = {source_a: _source_detection(source_a, sha_a), source_b: _source_detection(source_b, sha_b)}
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: detections[Path(path).resolve()])
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
+    window.bid_radar_path.setText(str(source_a))
+    window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
+    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window.bid_radar_table.selectRow(0)
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_active_source.path == source_a.resolve()
+    assert window._bid_radar_pending_source.path == source_b.resolve()
+    assert window.bid_radar_table.rowCount() == 1
+    assert window.active_tender_context is not None
+
+
+def test_source_switch_confirm_resets_workspace_and_preserves_filters(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    detections = {source_a: _source_detection(source_a, sha_a), source_b: _source_detection(source_b, sha_b)}
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: detections[Path(path).resolve()])
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
+    window.bid_radar_path.setText(str(source_a))
+    window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
+    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window.bid_radar_min_budget.setText("500000000")
+    window.bid_radar_include.setText("Mạng")
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
+
+    window._choose_bid_radar_file()
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source.path == source_b.resolve()
+    assert window.bid_radar_table.rowCount() == 0
+    assert window.active_tender_context is None
+    assert window.bid_radar_inspector_text.toPlainText().startswith("Chưa chọn cơ hội.")
+    assert window.bid_radar_min_budget.text() == "500000000"
+    assert window.bid_radar_include.text() == "Mạng"
+
+
+def test_same_filename_with_changed_hash_is_pending_switch(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-same.xlsx"
+    source.write_bytes(b"source-a")
+    sha_a = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(path, hashlib.sha256(Path(path).read_bytes()).hexdigest()))
+    window.bid_radar_path.setText(str(source))
+    window._bid_radar_active_source = window._source_session_identity(source, sha_a, SourceType.TBMT)
+    source.write_bytes(b"source-b")
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_pending_source.source_sha256 != sha_a
+    assert window.bid_radar_source_action_button.text() == "CHUYỂN SANG FILE NÀY"
+
+
+def test_import_uses_active_source_not_pending_source(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a if Path(path).resolve() == source_a.resolve() else sha_b))
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window._bid_radar_pending_source = window._source_session_identity(source_b, sha_b, SourceType.TBMT)
+    window.bid_radar_path.setText(str(source_b))
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["args"] = args
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a))
+
+    window.start_bid_radar_import()
+
+    assert captured["args"][1] == source_a.resolve()
+
+
+def test_pending_source_staleness_is_revalidated_before_apply(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-stale.xlsx"
+    source.write_bytes(b"source-a")
+    sha_a = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a))
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+    window._choose_bid_radar_file()
+    source.write_bytes(b"source-b")
+    refreshed_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), refreshed_sha))
+
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source is None
+    assert window._bid_radar_pending_source.source_sha256 == refreshed_sha
+
+
+def test_same_exact_source_reports_in_use_and_does_not_reset(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-same.xlsx"
+    source.write_bytes(b"source")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    window._bid_radar_active_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window._render_bid_radar_source_session()
+
+    assert window.bid_radar_source_action_button.text() == "ĐANG SỬ DỤNG"
+    assert not window.bid_radar_source_action_button.isEnabled()
 
 
 @pytest.mark.parametrize("review_state", ["UNREVIEWED", "REJECTED", "NEEDS_REVIEW"])
@@ -723,6 +960,11 @@ def test_exports_delegate_to_mi4_and_mi5_services(
     window.bid_radar_path.setText(str(source))
     window._bid_radar_loaded_source = source
     window._bid_radar_loaded_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    window._bid_radar_active_source = window._source_session_identity(
+        source,
+        window._bid_radar_loaded_sha256,
+        SourceType.KHMT,
+    )
     window._bid_radar_items = (_fake_radar_item(),)
     window._bid_radar_load_result = SimpleNamespace(
         source_type=SimpleNamespace(value="KHMT"),
@@ -763,10 +1005,21 @@ def test_switching_khmt_source_clears_stale_rows_and_blocks_export(
         "getOpenFileName",
         lambda *args, **kwargs: (str(source_b), "Excel KHMT (*.xlsx)"),
     )
+    monkeypatch.setattr(
+        gui.QMessageBox,
+        "question",
+        lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes,
+    )
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
     window._choose_bid_radar_file()
+    window._bid_radar_pending_source = window._source_session_identity(
+        source_b,
+        hashlib.sha256(source_b.read_bytes()).hexdigest(),
+        SourceType.KHMT,
+    )
+    window.apply_bid_radar_source()
     window.start_bid_radar_export()
 
     assert window.bid_radar_path.text() == str(source_b)

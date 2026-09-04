@@ -137,6 +137,7 @@ from .market_intelligence.source_detection import (
     detect_source_type,
     resolve_source_type,
 )
+from .market_intelligence.source_session import SourceSessionIdentity, source_session_matches
 from .market_intelligence.value_normalization import parse_optional_money_input
 from .migrations import upgrade_database
 from .standalone import (
@@ -347,6 +348,9 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_load_result: Any | None = None
         self._bid_radar_loaded_source: Path | None = None
         self._bid_radar_loaded_sha256: str | None = None
+        self._bid_radar_pending_source: SourceSessionIdentity | None = None
+        self._bid_radar_active_source: SourceSessionIdentity | None = None
+        self._bid_radar_pending_detection: SourceTypeDetection | None = None
         self._active_tender_context: ActiveTenderContext | None = None
         self._workspace_release_record_id: int | None = None
         self._workspace_opened_case_id: str | None = None
@@ -750,6 +754,17 @@ class QICrawlerWindow(QMainWindow):
         source_row.addWidget(self.bid_radar_path, 1)
         source_row.addWidget(choose_button)
         source_layout.addRow("File nguồn:", source_row)
+        self.bid_radar_active_source_label = QLabel("Chưa dùng nguồn nào.")
+        self.bid_radar_active_source_label.setWordWrap(True)
+        self.bid_radar_active_source_label.setObjectName("bidRadarActiveSource")
+        source_layout.addRow("Nguồn đang dùng:", self.bid_radar_active_source_label)
+        self.bid_radar_pending_source_label = QLabel("Chưa chọn file.")
+        self.bid_radar_pending_source_label.setWordWrap(True)
+        self.bid_radar_pending_source_label.setObjectName("bidRadarPendingSource")
+        source_layout.addRow("File đang chọn:", self.bid_radar_pending_source_label)
+        self.bid_radar_source_action_button = QPushButton("DÙNG FILE NÀY")
+        self.bid_radar_source_action_button.clicked.connect(self.apply_bid_radar_source)
+        source_layout.addRow("Chuyển nguồn:", self.bid_radar_source_action_button)
         self.bid_radar_source_type = QComboBox()
         self.bid_radar_source_type.addItem("TỰ ĐỘNG", None)
         self.bid_radar_source_type.addItem("KHMT", SourceType.KHMT)
@@ -839,6 +854,7 @@ class QICrawlerWindow(QMainWindow):
         action_row = QHBoxLayout()
         self.bid_radar_import_button = self._primary_button("NHẬP & TÌM GÓI")
         self.bid_radar_import_button.clicked.connect(self.start_bid_radar_import)
+        self.bid_radar_import_button.setEnabled(False)
         action_row.addWidget(self.bid_radar_import_button)
         self.bid_radar_progress = self._progress_bar()
         action_row.addWidget(self.bid_radar_progress, 1)
@@ -997,6 +1013,7 @@ class QICrawlerWindow(QMainWindow):
         ):
             field.textChanged.connect(self._update_bid_radar_context)
         self._update_bid_radar_context()
+        self._render_bid_radar_source_session()
         self._render_bid_radar_active_context()
         self._render_bid_radar_inspector(None)
 
@@ -1221,6 +1238,153 @@ class QICrawlerWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             self._set_active_bid_radar_item(item)
 
+    @staticmethod
+    def _source_session_identity(
+        path: Path,
+        source_sha256: str,
+        source_type: SourceType | str,
+    ) -> SourceSessionIdentity:
+        resolved = Path(path).resolve()
+        return SourceSessionIdentity(
+            path=resolved,
+            source_filename=resolved.name,
+            source_sha256=source_sha256,
+            source_type=SourceType(source_type),
+        )
+
+    @staticmethod
+    def _source_session_summary(identity: SourceSessionIdentity | None) -> str:
+        if identity is None:
+            return "Chưa dùng nguồn nào."
+        return (
+            f"{identity.source_filename}\n"
+            f"{identity.source_type.value} · SHA: {identity.source_sha256[:12]}…"
+        )
+
+    def _render_bid_radar_source_session(self) -> None:
+        active = self._bid_radar_active_source
+        pending = self._bid_radar_pending_source
+        self.bid_radar_active_source_label.setText(self._source_session_summary(active))
+        self.bid_radar_pending_source_label.setText(
+            "Chưa chọn file." if pending is None else self._source_session_summary(pending)
+        )
+        if pending is None:
+            self.bid_radar_source_action_button.setText("DÙNG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(False)
+        elif active is None:
+            self.bid_radar_source_action_button.setText("DÙNG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(True)
+        elif source_session_matches(active, pending):
+            self.bid_radar_source_action_button.setText("ĐANG SỬ DỤNG")
+            self.bid_radar_source_action_button.setEnabled(False)
+        else:
+            self.bid_radar_source_action_button.setText("CHUYỂN SANG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(True)
+        self.bid_radar_import_button.setEnabled(active is not None)
+
+    def _pending_source_from_detection(
+        self,
+        path: Path,
+        detection: SourceTypeDetection,
+    ) -> SourceSessionIdentity:
+        selected = self.bid_radar_source_type.currentData()
+        source_type = detection.auto_type
+        if source_type is SourceType.UNKNOWN and selected is not None:
+            source_type = SourceType(selected)
+        return self._source_session_identity(path, detection.source_sha256, source_type)
+
+    def _inspect_bid_radar_pending_source(self, path: Path) -> bool:
+        try:
+            detection = detect_source_type(path)
+        except (OSError, ValueError) as exc:
+            self.bid_radar_status.setText(
+                f"Không thể đọc/nhận dạng file nguồn: {type(exc).__name__}."
+            )
+            return False
+        self._bid_radar_pending_detection = detection
+        self._bid_radar_pending_source = self._pending_source_from_detection(path, detection)
+        self._render_bid_radar_source_detection(detection)
+        self._render_bid_radar_source_session()
+        return True
+
+    def _revalidate_pending_source(self) -> bool:
+        pending = self._bid_radar_pending_source
+        if pending is None:
+            self.bid_radar_status.setText("Hãy chọn DÙNG FILE NÀY trước khi chạy Bid Radar.")
+            return False
+        if not pending.path.is_file():
+            self.bid_radar_status.setText("File đang chọn không còn tồn tại. Hãy chọn lại file nguồn.")
+            return False
+        try:
+            current_sha = _sha256(pending.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc file đang chọn. Hãy chọn lại file nguồn.")
+            return False
+        if current_sha != pending.source_sha256:
+            if not self._inspect_bid_radar_pending_source(pending.path):
+                return False
+            self.bid_radar_status.setText(
+                "File đang chọn đã thay đổi. Hãy kiểm tra lại và bấm DÙNG FILE NÀY."
+            )
+            return False
+        if self._bid_radar_pending_detection is not None:
+            self._bid_radar_pending_source = self._pending_source_from_detection(
+                pending.path,
+                self._bid_radar_pending_detection,
+            )
+            self._render_bid_radar_source_session()
+        return True
+
+    def _revalidate_active_source(self) -> bool:
+        active = self._bid_radar_active_source
+        if active is None:
+            self.bid_radar_status.setText("Hãy chọn DÙNG FILE NÀY trước khi chạy Bid Radar.")
+            return False
+        if not active.path.is_file():
+            self.bid_radar_status.setText("Nguồn đang dùng không còn tồn tại. Hãy chọn lại nguồn.")
+            return False
+        try:
+            current_sha = _sha256(active.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc nguồn đang dùng. Hãy chọn lại nguồn.")
+            return False
+        if current_sha != active.source_sha256:
+            self._inspect_bid_radar_pending_source(active.path)
+            self.bid_radar_status.setText(
+                "Nguồn đang dùng đã thay đổi. Hãy xác nhận lại bằng CHUYỂN SANG FILE NÀY."
+            )
+            self._render_bid_radar_source_session()
+            return False
+        return True
+
+    def apply_bid_radar_source(self) -> None:
+        pending = self._bid_radar_pending_source
+        if pending is None:
+            self.bid_radar_status.setText("Hãy chọn file nguồn trước khi dùng.")
+            return
+        if not self._revalidate_pending_source():
+            return
+        active = self._bid_radar_active_source
+        if active is not None and not source_session_matches(active, pending):
+            reply = QMessageBox.question(
+                self,
+                "CHUYỂN NGUỒN LÀM VIỆC?",
+                f"CHUYỂN NGUỒN LÀM VIỆC?\n\nNguồn hiện tại: {active.source_filename}\n"
+                f"Nguồn mới: {pending.source_filename}\n\n"
+                "Kết quả Radar, dòng đang chọn và Gói đang làm sẽ được làm mới.\n"
+                "Lịch sử Review đã lưu không bị xóa; bộ lọc được giữ lại.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                self.bid_radar_status.setText("Đã hủy chuyển nguồn; nguồn đang dùng vẫn được giữ nguyên.")
+                return
+        self._bid_radar_active_source = pending
+        self._clear_bid_radar_loaded_state(clear_active=True)
+        self.bid_radar_path.setText(str(pending.path))
+        self._render_bid_radar_source_session()
+        self.bid_radar_status.setText("CHƯA CHẠY TRÊN NGUỒN HIỆN TẠI")
+
     def _render_bid_radar_inspector(self, row: Any | None) -> None:
         if row is None:
             self._update_bid_radar_context_actions(None)
@@ -1322,13 +1486,8 @@ class QICrawlerWindow(QMainWindow):
         )
         if path:
             selected = Path(path).resolve()
-            current_text = self.bid_radar_path.text().strip()
-            current = Path(current_text).resolve() if current_text else None
-            if current is not None and current != selected:
-                if not self._confirm_bid_radar_source_change(current, selected):
-                    return
-                self._clear_bid_radar_loaded_state(clear_active=True)
             self.bid_radar_path.setText(str(selected))
+            self._inspect_bid_radar_pending_source(selected)
 
     def _clear_bid_radar_loaded_state(self, *, clear_active: bool = False) -> None:
         self._bid_radar_items = ()
@@ -1340,12 +1499,14 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_table.clearSelection()
         self.bid_radar_reviewer.clear()
         self.bid_radar_note.clear()
-        self.bid_radar_source_summary.setText("Chưa nhận dạng file nguồn.")
+        self.bid_radar_result_summary.setText("Chưa có kết quả.")
+        self.bid_radar_funnel_label.setText("Luồng lọc: chưa chạy.")
         self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
         self.bid_radar_legal_button.setEnabled(False)
         if clear_active:
             self._active_tender_context = None
             self._render_bid_radar_active_context()
+        self._render_bid_radar_source_session()
         self._on_bid_radar_selected()
 
     def _render_bid_radar_source_detection(
@@ -1382,13 +1543,15 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_source_summary.setToolTip("\n".join(detail_lines))
 
     def _bid_radar_export_ready(self, action: str) -> bool:
-        current_text = self.bid_radar_path.text().strip()
-        current = Path(current_text).resolve() if current_text else None
+        active = self._bid_radar_active_source
+        current = active.path if active is not None else None
         if (
             not self._bid_radar_items
             or self._bid_radar_load_result is None
             or self._bid_radar_loaded_source is None
             or self._bid_radar_loaded_sha256 is None
+            or active is None
+            or self._bid_radar_loaded_source != active.path
             or current != self._bid_radar_loaded_source
         ):
             self.bid_radar_status.setText(
@@ -1432,11 +1595,14 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_bid_radar_import(self) -> None:
-        source = Path(self.bid_radar_path.text().strip())
-        if not source.is_file() or source.suffix.lower() != ".xlsx":
-            self.bid_radar_status.setText("Vui lòng chọn một file Excel nguồn .xlsx hợp lệ.")
+        if not self._revalidate_active_source():
             return
-        if not self._prepare_bid_radar_source_change(source):
+        active = self._bid_radar_active_source
+        if active is None:
+            return
+        source = active.path
+        if source.suffix.lower() != ".xlsx":
+            self.bid_radar_status.setText("Vui lòng chọn một file Excel nguồn .xlsx hợp lệ.")
             return
         try:
             request = self._bid_radar_request()
@@ -1492,12 +1658,30 @@ class QICrawlerWindow(QMainWindow):
         }.get(value, "Cần kiểm tra")
 
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
+        source_path = getattr(result, "source_path", None)
+        source_sha256 = getattr(result, "source_sha256", None)
+        source_type_value = getattr(getattr(result, "source_type", None), "value", result.source_type)
+        if source_path is not None and source_sha256:
+            result_identity = self._source_session_identity(
+                Path(source_path),
+                source_sha256,
+                SourceType(source_type_value),
+            )
+            if self._bid_radar_active_source is None:
+                self._bid_radar_active_source = result_identity
+                self._bid_radar_pending_source = result_identity
+            elif not source_session_matches(self._bid_radar_active_source, result_identity):
+                self.bid_radar_status.setText(
+                    "Kết quả không thuộc nguồn đang dùng. Hãy chuyển nguồn trước khi nhập."
+                )
+                return
+            self.bid_radar_path.setText(str(result_identity.path))
+            self._render_bid_radar_source_session()
         self._bid_radar_rows = tuple(result.rows)
         self._bid_radar_items = tuple(result.items)
         self._bid_radar_load_result = result.load_result
-        source_path = getattr(result, "source_path", None)
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
-        self._bid_radar_loaded_sha256 = getattr(result, "source_sha256", None)
+        self._bid_radar_loaded_sha256 = source_sha256
         self.bid_radar_legal_button.setEnabled(result.source_type.value == "KHMT")
         self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
         for row_index, row in enumerate(self._bid_radar_rows):
