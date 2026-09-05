@@ -38,15 +38,20 @@ _EXECUTION_LOCATION_FIELD_NAMES = (
 def _execution_location_from_raw_fields(raw_fields: dict[str, Any]) -> str | None:
     """Return only an explicitly-labelled execution location from source data.
 
-    The TBMT list export often omits this field.  When a detail-shaped source
-    is supplied, preserve its deterministic provinces -> location -> workAddress
-    precedence without treating the procuring-entity address or issue location
-    as the place where the contract is performed.
+    The TBMT list export often omits this field. When a detail-shaped source is
+    supplied, preserve explicit workbook fields before provinces/structured
+    detail, then location -> workAddress, without treating the procuring-entity
+    address or issue location as the place where the contract is performed.
     """
 
     normalized_fields = {
         " ".join(str(key).split()).casefold(): value for key, value in raw_fields.items()
     }
+    for field_name in _EXECUTION_LOCATION_FIELD_NAMES:
+        text = compact_source_text(normalized_fields.get(field_name))
+        if text is not None:
+            return text
+
     provinces = normalized_fields.get("provinces")
     if isinstance(provinces, (list, tuple)):
         names: list[str] = []
@@ -60,10 +65,13 @@ def _execution_location_from_raw_fields(raw_fields: dict[str, Any]) -> str | Non
         if names:
             return ", ".join(names)
 
-    for field_name in _EXECUTION_LOCATION_FIELD_NAMES:
-        text = compact_source_text(normalized_fields.get(field_name))
-        if text is not None:
-            return text
+    structured_names = tuple(
+        text
+        for field_name in ("provname", "districtname", "wardname")
+        if (text := compact_source_text(normalized_fields.get(field_name))) is not None
+    )
+    if structured_names:
+        return ", ".join(structured_names)
 
     for field_name in ("location", "workaddress"):
         text = compact_source_text(normalized_fields.get(field_name))

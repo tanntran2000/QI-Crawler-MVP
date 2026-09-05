@@ -207,6 +207,102 @@ def test_tbmt_procuring_address_does_not_create_province_match() -> None:
     assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
 
 
+def _tbmt_location_item(
+    location_detail_raw: str | None,
+    *,
+    source_fields: dict[str, object] | None = None,
+    raw_fields: dict[str, object] | None = None,
+) -> OpportunityRadarItem:
+    item = _item(
+        source_type=OpportunitySourceType.TBMT,
+        raw_id="IB2600463290-00",
+        province_code="LEGACY",
+        province_status=ProvinceCityStatus.CONFIRMED,
+    )
+    return replace(
+        item,
+        location_detail_raw=location_detail_raw,
+        source_fields=source_fields or {},
+        raw_fields=raw_fields or {},
+    )
+
+
+@pytest.mark.parametrize(
+    ("execution_location", "selected", "expected"),
+    [
+        ("Hồ Chí Minh", "Hồ Chí Minh", "PASS"),
+        ("Hồ Chí Minh", "Đồng Nai", "FAIL"),
+        ("Hồ Chí Minh, Đồng Nai", "Hồ Chí Minh", "PASS"),
+        ("Hồ Chí Minh, Đồng Nai", "Đồng Nai", "PASS"),
+        (None, "Hồ Chí Minh", "UNKNOWN"),
+    ],
+)
+def test_tbmt_execution_location_filter_is_source_authoritative(
+    execution_location: str | None,
+    selected: str,
+    expected: str,
+) -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _tbmt_location_item(execution_location),
+        _profile(execution_locations=frozenset({selected})),
+    )
+
+    assert evaluation.criteria[0].criterion == "execution_location"
+    assert evaluation.criteria[0].outcome.value == expected
+    assert evaluation.disposition.value == (
+        "MATCH" if expected == "PASS" else "NO_MATCH" if expected == "FAIL" else "INDETERMINATE"
+    )
+
+
+def test_tbmt_location_filter_ignores_procuring_and_issue_addresses() -> None:
+    item = _tbmt_location_item(
+        "Đồng Nai",
+        source_fields={
+            "procuring_entity_address": "Hồ Chí Minh",
+            "investorLocation": "Hồ Chí Minh",
+        },
+        raw_fields={
+            "ĐỊA CHỈ BÊN MỜI THẦU": "Hồ Chí Minh",
+            "ĐỊA ĐIỂM PHÁT HÀNH": "Hồ Chí Minh",
+        },
+    )
+
+    evaluation = filter_engine.evaluate_opportunity(
+        item,
+        _profile(execution_locations=frozenset({"Hồ Chí Minh"})),
+    )
+
+    assert evaluation.criteria[0].outcome is filter_engine.CriterionOutcome.FAIL
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+
+
+def test_tbmt_explicit_workbook_location_outranks_detail_fallback() -> None:
+    item = _tbmt_location_item(
+        "Đồng Nai",
+        source_fields={"provinces": [{"name": "Đồng Nai"}]},
+        raw_fields={"ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU": "Hồ Chí Minh"},
+    )
+
+    evaluation = filter_engine.evaluate_opportunity(
+        item,
+        _profile(execution_locations=frozenset({"Hồ Chí Minh"})),
+    )
+
+    assert evaluation.criteria[0].outcome is filter_engine.CriterionOutcome.PASS
+    assert evaluation.criteria[0].evidence[0].observed_value == "Hồ Chí Minh"
+
+
+def test_tbmt_legacy_province_filter_does_not_authorize_matching() -> None:
+    evaluation = filter_engine.evaluate_opportunity(
+        _tbmt_location_item("Đồng Nai"),
+        _profile(province_city_codes=frozenset({"LEGACY"})),
+    )
+
+    assert evaluation.criteria[0].criterion == "execution_location"
+    assert evaluation.criteria[0].outcome is filter_engine.CriterionOutcome.UNKNOWN
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+
+
 def test_selection_method_allowed_is_pass() -> None:
     evaluation = filter_engine.evaluate_opportunity(
         _item(selection_method="CHAO_HANG_CANH_TRANH"),

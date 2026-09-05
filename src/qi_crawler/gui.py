@@ -127,6 +127,7 @@ from .gui_services import (
 )
 from .logging_utils import configure_logging
 from .market_intelligence.candidate_review import CandidateReviewError
+from .market_intelligence.filter_engine import execution_location_values
 from .market_intelligence.khmt_importer import KHMTImportError, _sha256
 from .market_intelligence.legal_docx import LegalDocxExportError
 from .market_intelligence.search import TargetedSearchValidationError
@@ -159,6 +160,20 @@ PREFERRED_WINDOW_SIZE = (1440, 900)
 MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
+
+
+class _BidRadarLocationSelector(QComboBox):
+    """Location selector with a small compatibility surface for legacy callers."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setEditable(True)
+
+    def text(self) -> str:
+        return self.currentText()
+
+    def setText(self, value: str) -> None:
+        self.setEditText(value)
 
 
 def format_vnd_amount(value: Decimal | int | None) -> str:
@@ -791,8 +806,11 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_max_budget.editingFinished.connect(lambda: self._format_bid_radar_budget_field(self.bid_radar_max_budget))
         filter_form.addRow("Ngân sách tối thiểu:", min_budget_row)
         filter_form.addRow("Ngân sách tối đa:", max_budget_row)
-        self.bid_radar_province = QLineEdit()
-        self.bid_radar_province.setPlaceholderText("Mã tỉnh/thành, cách nhau bằng dấu phẩy")
+        self.bid_radar_location = _BidRadarLocationSelector()
+        self.bid_radar_location.addItem("Tất cả", None)
+        self.bid_radar_location.setPlaceholderText("Chọn địa điểm thực hiện từ nguồn đang dùng")
+        self.bid_radar_execution_location = self.bid_radar_location
+        self.bid_radar_province = self.bid_radar_location
         self.bid_radar_include = QLineEdit()
         self.bid_radar_include.setPlaceholderText("Nội dung cần tìm, cách nhau bằng dấu phẩy")
         self.bid_radar_exclude = QLineEdit()
@@ -801,7 +819,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_selection_method.setPlaceholderText(
             "Hình thức lựa chọn, cách nhau bằng dấu phẩy"
         )
-        filter_form.addRow("Tỉnh / thành:", self.bid_radar_province)
+        filter_form.addRow("Địa điểm thực hiện:", self.bid_radar_location)
         filter_form.addRow("Tìm trong nguồn:", self.bid_radar_include)
         filter_form.addRow("Từ khóa loại:", self.bid_radar_exclude)
         filter_form.addRow("Hình thức lựa chọn:", self.bid_radar_selection_method)
@@ -975,12 +993,17 @@ class QICrawlerWindow(QMainWindow):
         for field in (
             self.bid_radar_min_budget,
             self.bid_radar_max_budget,
-            self.bid_radar_province,
+            self.bid_radar_location,
             self.bid_radar_include,
             self.bid_radar_exclude,
             self.bid_radar_selection_method,
         ):
-            field.textChanged.connect(self._update_bid_radar_context)
+            signal = (
+                field.currentTextChanged
+                if isinstance(field, QComboBox)
+                else field.textChanged
+            )
+            signal.connect(self._update_bid_radar_context)
         self._update_bid_radar_context()
         self._render_bid_radar_source_session()
         self._render_bid_radar_inspector(None)
@@ -1062,7 +1085,7 @@ class QICrawlerWindow(QMainWindow):
     def _update_bid_radar_context(self) -> None:
         min_budget = self.bid_radar_min_budget.text().strip()
         max_budget = self.bid_radar_max_budget.text().strip()
-        province = self.bid_radar_province.text().strip()
+        location = self.bid_radar_location.text().strip()
         include = self._split_bid_radar_values(self.bid_radar_include.text())
         exclude = self._split_bid_radar_values(self.bid_radar_exclude.text())
         selection_method = self.bid_radar_selection_method.text().strip()
@@ -1076,8 +1099,8 @@ class QICrawlerWindow(QMainWindow):
             criteria.append(f"Ngân sách: ≥ {self._budget_display_text(min_budget)} VNĐ")
         elif max_budget:
             criteria.append(f"Ngân sách: ≤ {self._budget_display_text(max_budget)} VNĐ")
-        if province:
-            criteria.append(f"Khu vực: {province}")
+        if location and location != "Tất cả":
+            criteria.append(f"Địa điểm thực hiện: {location}")
         if selection_method:
             criteria.append(f"Hình thức: {selection_method}")
         if criteria:
@@ -1307,6 +1330,8 @@ class QICrawlerWindow(QMainWindow):
                 outcome = getattr(getattr(criterion, "outcome", None), "value", getattr(criterion, "outcome", "UNKNOWN"))
                 reason = getattr(getattr(criterion, "reason_code", None), "value", getattr(criterion, "reason_code", ""))
                 label = reason_labels.get(str(reason), "Tiêu chí lọc")
+                if str(getattr(criterion, "criterion", "")) == "execution_location":
+                    label = "Địa điểm thực hiện"
                 lines.append(f"- {label}: {outcome_labels.get(str(outcome), 'CHƯA RÕ')}")
                 for evidence in getattr(criterion, "evidence", ()) or ():
                     field = getattr(evidence, "field", None) or "giá trị nguồn"
@@ -1419,10 +1444,28 @@ class QICrawlerWindow(QMainWindow):
         from .market_intelligence.selection_methods import normalize_selection_method_filters
         from .market_intelligence.value_normalization import parse_optional_money_input
 
+        selected_location = self.bid_radar_location.text().strip()
+        selected_values = (
+            frozenset(self._split_bid_radar_values(selected_location))
+            if selected_location and selected_location != "Tất cả"
+            else frozenset()
+        )
+        active_source_type = (
+            self._bid_radar_active_source.source_type
+            if self._bid_radar_active_source is not None
+            else None
+        )
+        if active_source_type is SourceType.TBMT:
+            province_city_codes = frozenset()
+            execution_locations = selected_values
+        else:
+            province_city_codes = selected_values
+            execution_locations = frozenset()
         return TargetedSearchRequest(
             min_budget=parse_optional_money_input(self.bid_radar_min_budget.text()),
             max_budget=parse_optional_money_input(self.bid_radar_max_budget.text()),
-            province_city_codes=frozenset(self._split_bid_radar_values(self.bid_radar_province.text())),
+            province_city_codes=province_city_codes,
+            execution_locations=execution_locations,
             include_keywords=self._split_bid_radar_values(self.bid_radar_include.text()),
             exclude_keywords=self._split_bid_radar_values(self.bid_radar_exclude.text()),
             selection_methods=normalize_selection_method_filters(
@@ -1498,6 +1541,8 @@ class QICrawlerWindow(QMainWindow):
     def _bid_radar_execution_location(item: Any) -> str:
         """Return source-backed execution location for Bid Radar display."""
 
+        if execution_location_values(item):
+            return ", ".join(execution_location_values(item))
         for field_name in ("location_detail_raw", "execution_location"):
             value = getattr(item, field_name, None)
             if value is not None and str(value).strip():
@@ -1513,6 +1558,39 @@ class QICrawlerWindow(QMainWindow):
             if value is not None and str(value).strip():
                 return str(value).strip()
         return "—"
+
+    def _populate_bid_radar_location_options(
+        self, source_type: SourceType | str, items: tuple[Any, ...]
+    ) -> None:
+        source_type = SourceType(source_type)
+        selector = self.bid_radar_location
+        selector.clear()
+        selector.addItem("Tất cả", None)
+        if source_type is SourceType.TBMT:
+            selector.setEditable(False)
+            values = sorted(
+                {
+                    value
+                    for item in items
+                    for value in execution_location_values(item)
+                    if value.strip()
+                },
+                key=str.casefold,
+            )
+        else:
+            selector.setEditable(True)
+            values = sorted(
+                {
+                str(getattr(item, "province_city_code", "")).strip().upper()
+                for item in items
+                if getattr(item, "province_city_code", None)
+                    and str(item.province_city_code).strip()
+            },
+                key=str.casefold,
+            )
+        for value in values:
+            selector.addItem(value, value)
+        selector.setCurrentIndex(0)
 
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
         source_path = getattr(result, "source_path", None)
@@ -1536,6 +1614,9 @@ class QICrawlerWindow(QMainWindow):
             self._render_bid_radar_source_session()
         self._bid_radar_rows = tuple(result.rows)
         self._bid_radar_items = tuple(result.items)
+        self._populate_bid_radar_location_options(
+            SourceType(source_type_value), self._bid_radar_items
+        )
         self._bid_radar_load_result = result.load_result
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
         self._bid_radar_loaded_sha256 = source_sha256

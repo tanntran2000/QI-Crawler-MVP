@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
@@ -63,6 +64,7 @@ class FilterProfile:
     min_budget: Decimal | None = None
     max_budget: Decimal | None = None
     province_city_codes: frozenset[str] = frozenset()
+    execution_locations: frozenset[str] = frozenset()
     include_keywords: tuple[str, ...] = ()
     exclude_keywords: tuple[str, ...] = ()
     selection_methods: frozenset[str] = frozenset()
@@ -73,6 +75,15 @@ class FilterProfile:
             self,
             "province_city_codes",
             frozenset(value.upper() for value in self.province_city_codes),
+        )
+        object.__setattr__(
+            self,
+            "execution_locations",
+            frozenset(
+                str(value).strip()
+                for value in self.execution_locations
+                if str(value).strip()
+            ),
         )
         object.__setattr__(
             self,
@@ -91,6 +102,7 @@ class FilterProfile:
                 self.min_budget is not None,
                 self.max_budget is not None,
                 bool(self.province_city_codes),
+                bool(self.execution_locations),
                 any(normalize_search_value(keyword) for keyword in self.include_keywords),
                 any(normalize_search_value(keyword) for keyword in self.exclude_keywords),
                 any(str(method).strip() for method in self.selection_methods),
@@ -143,6 +155,103 @@ def _optional_text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text if text else None
+
+
+_EXECUTION_LOCATION_ALIASES = (
+    "địa điểm thực hiện gói thầu",
+    "địa điểm thực hiện",
+    "địa điểm thi công",
+    "execution location",
+)
+_STRUCTURED_LOCATION_ALIASES = ("provinces", "provname", "districtname", "wardname")
+_LOCATION_FALLBACK_ALIASES = ("location", "workaddress")
+_LOCATION_SEPARATOR = re.compile(r"\s*(?:[,;|\n])\s*")
+
+
+def _normalized_mapping(mapping: Mapping[object, object]) -> dict[str, object]:
+    return {
+        " ".join(str(key).split()).casefold(): value
+        for key, value in mapping.items()
+    }
+
+
+def _location_parts(value: object) -> tuple[str, ...]:
+    if isinstance(value, Mapping):
+        value = value.get("name", value.get("value"))
+    if isinstance(value, (list, tuple)):
+        parts: list[str] = []
+        for entry in value:
+            parts.extend(_location_parts(entry))
+        return tuple(dict.fromkeys(parts))
+    text = _optional_text(value)
+    if text is None:
+        return ()
+    return tuple(
+        part
+        for part in (_optional_text(piece) for piece in _LOCATION_SEPARATOR.split(text))
+        if part is not None
+    )
+
+
+def _dedupe_location_parts(parts: tuple[str, ...]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for part in parts:
+        key = normalize_literal_find(part)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(part)
+    return tuple(result)
+
+
+def execution_location_values(item: OpportunityRadarItem) -> tuple[str, ...]:
+    """Return source-owned execution locations in the declared precedence order."""
+
+    source_type = getattr(item, "source_type", None)
+    try:
+        source_type = OpportunitySourceType(source_type)
+    except (TypeError, ValueError):
+        source_type = getattr(source_type, "value", source_type)
+        try:
+            source_type = OpportunitySourceType(source_type)
+        except (TypeError, ValueError):
+            return ()
+    if source_type is not OpportunitySourceType.TBMT:
+        return ()
+    raw_fields = getattr(item, "raw_fields", {}) or {}
+    source_fields = getattr(item, "source_fields", {}) or {}
+    raw = _normalized_mapping(raw_fields) if isinstance(raw_fields, Mapping) else {}
+    source = (
+        _normalized_mapping(source_fields) if isinstance(source_fields, Mapping) else {}
+    )
+
+    for mapping in (raw, source):
+        for alias in _EXECUTION_LOCATION_ALIASES:
+            parts = _location_parts(mapping.get(alias))
+            if parts:
+                return _dedupe_location_parts(parts)
+
+    for mapping in (source, raw):
+        provinces = _location_parts(mapping.get("provinces"))
+        if provinces:
+            return _dedupe_location_parts(provinces)
+        structured = tuple(
+            part
+            for alias in _STRUCTURED_LOCATION_ALIASES[1:]
+            for part in _location_parts(mapping.get(alias))
+        )
+        if structured:
+            return _dedupe_location_parts(structured)
+
+    detail = _location_parts(getattr(item, "location_detail_raw", None))
+    if detail:
+        return _dedupe_location_parts(detail)
+    for mapping in (source, raw):
+        for alias in _LOCATION_FALLBACK_ALIASES:
+            parts = _location_parts(mapping.get(alias))
+            if parts:
+                return _dedupe_location_parts(parts)
+    return ()
 
 
 def _finite_price(value: object) -> Decimal | None:
@@ -273,6 +382,19 @@ def _province_evidence(
             field="province_city_code",
             observed_value=observed.upper() if observed is not None else None,
             expected_values=tuple(sorted(profile.province_city_codes)),
+        ),
+    )
+
+
+def _execution_location_evidence(
+    item: OpportunityRadarItem, profile: FilterProfile
+) -> tuple[CriterionEvidence, ...]:
+    values = execution_location_values(item)
+    return (
+        CriterionEvidence(
+            field="execution_location",
+            observed_value=", ".join(values) if values else None,
+            expected_values=tuple(sorted(profile.execution_locations)),
         ),
     )
 
@@ -408,7 +530,62 @@ def evaluate_opportunity(
                 )
             )
 
-    if profile.province_city_codes:
+    if item.source_type is OpportunitySourceType.TBMT:
+        if profile.execution_locations:
+            location_values = execution_location_values(item)
+            location_evidence = _execution_location_evidence(item, profile)
+            observed = {
+                normalize_literal_find(value) for value in location_values
+            }
+            expected = {
+                normalize_literal_find(value)
+                for value in profile.execution_locations
+            }
+            if not location_values:
+                criteria.append(
+                    _criterion(
+                        "execution_location",
+                        CriterionOutcome.UNKNOWN,
+                        FilterReasonCode.LOCATION_UNKNOWN,
+                        evidence=location_evidence,
+                    )
+                )
+            elif observed.intersection(expected):
+                criteria.append(
+                    _criterion(
+                        "execution_location",
+                        CriterionOutcome.PASS,
+                        FilterReasonCode.LOCATION_MATCH,
+                        evidence=location_evidence,
+                    )
+                )
+            else:
+                criteria.append(
+                    _criterion(
+                        "execution_location",
+                        CriterionOutcome.FAIL,
+                        FilterReasonCode.LOCATION_NOT_MATCHED,
+                        evidence=location_evidence,
+                    )
+                )
+        elif profile.province_city_codes:
+            criteria.append(
+                _criterion(
+                    "execution_location",
+                    CriterionOutcome.UNKNOWN,
+                    FilterReasonCode.LOCATION_UNKNOWN,
+                    evidence=(
+                        CriterionEvidence(
+                            field="execution_location",
+                            observed_value=(
+                                ", ".join(execution_location_values(item)) or None
+                            ),
+                            expected_values=tuple(sorted(profile.province_city_codes)),
+                        ),
+                    ),
+                )
+            )
+    elif profile.province_city_codes:
         province_evidence = _province_evidence(item, profile)
         if item.province_city_status is ProvinceCityStatus.NEEDS_REVIEW:
             criteria.append(

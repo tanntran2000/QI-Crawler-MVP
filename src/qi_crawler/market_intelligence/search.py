@@ -28,6 +28,7 @@ class TargetedSearchRequest:
     min_budget: Decimal | None = None
     max_budget: Decimal | None = None
     province_city_codes: frozenset[str] = frozenset()
+    execution_locations: frozenset[str] = frozenset()
     include_keywords: tuple[str, ...] = ()
     exclude_keywords: tuple[str, ...] = ()
     selection_methods: frozenset[str] = frozenset()
@@ -37,6 +38,15 @@ class TargetedSearchRequest:
             self,
             "province_city_codes",
             frozenset(code.upper() for code in self.province_city_codes),
+        )
+        object.__setattr__(
+            self,
+            "execution_locations",
+            frozenset(
+                str(location).strip()
+                for location in self.execution_locations
+                if str(location).strip()
+            ),
         )
         object.__setattr__(
             self,
@@ -70,6 +80,7 @@ class TargetedSearchRequest:
             min_budget=self.min_budget,
             max_budget=self.max_budget,
             province_city_codes=self.province_city_codes,
+            execution_locations=self.execution_locations,
             include_keywords=self.include_keywords,
             exclude_keywords=self.exclude_keywords,
             selection_methods=self.selection_methods,

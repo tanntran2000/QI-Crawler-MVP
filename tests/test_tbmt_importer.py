@@ -141,7 +141,18 @@ def test_import_maps_dedicated_execution_location_source_field(tmp_path: Path) -
     )
 
 
-def test_execution_location_detail_payload_uses_provinces_first() -> None:
+def test_execution_location_detail_payload_prefers_explicit_workbook_field() -> None:
+    assert _execution_location_from_raw_fields(
+        {
+            "ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU": "Hồ Chí Minh",
+            "provinces": [{"name": "Đồng Nai"}],
+            "location": "Fallback location",
+            "workAddress": "Fallback address",
+        }
+    ) == "Hồ Chí Minh"
+
+
+def test_execution_location_detail_payload_uses_structured_detail_before_fallback() -> None:
     assert _execution_location_from_raw_fields(
         {
             "provinces": [{"name": "Hà Nội"}, {"name": "Hải Phòng"}],

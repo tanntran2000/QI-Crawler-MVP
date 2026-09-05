@@ -1118,6 +1118,25 @@ def test_bid_radar_exposes_execution_location_in_table_and_inspector(
     assert window._bid_radar_execution_location(item) == "—"
 
 
+def test_tbmt_location_selector_uses_distinct_source_evidence(window: QICrawlerWindow) -> None:
+    item = _fake_radar_item("IB2600462391-00")
+    item.location_detail_raw = "Hà Nội, Hải Phòng"
+
+    window._render_bid_radar_result(_fake_result(item=item, source_type="TBMT"))
+
+    assert window.bid_radar_location.count() == 3
+    assert [window.bid_radar_location.itemText(index) for index in range(3)] == [
+        "Tất cả",
+        "Hà Nội",
+        "Hải Phòng",
+    ]
+    assert window.bid_radar_location.currentText() == "Tất cả"
+    window.bid_radar_location.setCurrentText("Hải Phòng")
+    request = window._bid_radar_request()
+    assert request.execution_locations == frozenset({"Hải Phòng"})
+    assert request.province_city_codes == frozenset()
+
+
 def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawlerWindow) -> None:
     window._render_bid_radar_result(_fake_result())
     assert window.bid_radar_confirm_button.text() == "XÁC NHẬN CƠ HỘI"
