@@ -807,22 +807,27 @@ class QICrawlerWindow(QMainWindow):
         filter_form.addRow("Ngân sách tối thiểu:", min_budget_row)
         filter_form.addRow("Ngân sách tối đa:", max_budget_row)
         self.bid_radar_location = _BidRadarLocationSelector()
-        self.bid_radar_location.addItem("Tất cả", None)
+        self.bid_radar_location.addItem("Chưa có dữ liệu nguồn", None)
+        self.bid_radar_location.setEnabled(False)
         self.bid_radar_location.setPlaceholderText("Chọn địa điểm thực hiện từ nguồn đang dùng")
         self.bid_radar_execution_location = self.bid_radar_location
         self.bid_radar_province = self.bid_radar_location
         self.bid_radar_include = QLineEdit()
         self.bid_radar_include.setPlaceholderText("Nội dung cần tìm, cách nhau bằng dấu phẩy")
         self.bid_radar_exclude = QLineEdit()
-        self.bid_radar_exclude.setPlaceholderText("Từ khóa loại trừ, cách nhau bằng dấu phẩy")
+        self.bid_radar_exclude.setPlaceholderText("Nội dung cần loại trừ...")
         self.bid_radar_selection_method = QLineEdit()
         self.bid_radar_selection_method.setPlaceholderText(
             "Hình thức lựa chọn, cách nhau bằng dấu phẩy"
         )
         filter_form.addRow("Địa điểm thực hiện:", self.bid_radar_location)
         filter_form.addRow("Tìm trong nguồn:", self.bid_radar_include)
-        filter_form.addRow("Từ khóa loại:", self.bid_radar_exclude)
+        filter_form.addRow("Loại trừ nội dung:", self.bid_radar_exclude)
         filter_form.addRow("Hình thức lựa chọn:", self.bid_radar_selection_method)
+        self.bid_radar_location_coverage = QLabel("Chưa có dữ liệu nguồn.")
+        self.bid_radar_location_coverage.setObjectName("bidRadarLocationCoverage")
+        self.bid_radar_location_coverage.setWordWrap(True)
+        filter_layout.addWidget(self.bid_radar_location_coverage)
         filter_layout.addWidget(self.bid_radar_filter_editor)
         self.bid_radar_filter_editor.hide()
         selection_layout.addWidget(filter_box)
@@ -1085,7 +1090,11 @@ class QICrawlerWindow(QMainWindow):
     def _update_bid_radar_context(self) -> None:
         min_budget = self.bid_radar_min_budget.text().strip()
         max_budget = self.bid_radar_max_budget.text().strip()
-        location = self.bid_radar_location.text().strip()
+        location = (
+            self.bid_radar_location.text().strip()
+            if self.bid_radar_location.isEnabled()
+            else ""
+        )
         include = self._split_bid_radar_values(self.bid_radar_include.text())
         exclude = self._split_bid_radar_values(self.bid_radar_exclude.text())
         selection_method = self.bid_radar_selection_method.text().strip()
@@ -1364,12 +1373,25 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_table.clearSelection()
         self.bid_radar_reviewer.clear()
         self.bid_radar_note.clear()
+        self._reset_bid_radar_location_state()
         self.bid_radar_result_summary.setText("Chưa có kết quả.")
         self.bid_radar_funnel_label.setText("Luồng lọc: chưa chạy.")
         self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
         self.bid_radar_legal_button.setEnabled(False)
         self._render_bid_radar_source_session()
         self._on_bid_radar_selected()
+
+    def _reset_bid_radar_location_state(self) -> None:
+        """Clear source-derived location state until a new result is loaded."""
+
+        self._bid_radar_location_coverage_total = 0
+        self._bid_radar_location_coverage_with_evidence = 0
+        self._bid_radar_location_coverage_distinct_values = 0
+        self.bid_radar_location.clear()
+        self.bid_radar_location.addItem("Chưa có dữ liệu nguồn", None)
+        self.bid_radar_location.setEditable(True)
+        self.bid_radar_location.setEnabled(False)
+        self.bid_radar_location_coverage.setText("Chưa có dữ liệu nguồn.")
 
     def _render_bid_radar_source_detection(
         self,
@@ -1447,7 +1469,9 @@ class QICrawlerWindow(QMainWindow):
         selected_location = self.bid_radar_location.text().strip()
         selected_values = (
             frozenset(self._split_bid_radar_values(selected_location))
-            if selected_location and selected_location != "Tất cả"
+            if self.bid_radar_location.isEnabled()
+            and selected_location
+            and selected_location != "Tất cả"
             else frozenset()
         )
         active_source_type = (
@@ -1565,20 +1589,41 @@ class QICrawlerWindow(QMainWindow):
         source_type = SourceType(source_type)
         selector = self.bid_radar_location
         selector.clear()
-        selector.addItem("Tất cả", None)
         if source_type is SourceType.TBMT:
-            selector.setEditable(False)
-            values = sorted(
-                {
-                    value
-                    for item in items
-                    for value in execution_location_values(item)
-                    if value.strip()
-                },
-                key=str.casefold,
-            )
+            evidence_values = tuple(execution_location_values(item) for item in items)
+            coverage_total = len(items)
+            coverage_with_evidence = sum(bool(values) for values in evidence_values)
+            values: list[str] = []
+            seen_values: set[str] = set()
+            for row_values in evidence_values:
+                for value in row_values:
+                    key = value.casefold()
+                    if value.strip() and key not in seen_values:
+                        seen_values.add(key)
+                        values.append(value)
+            self._bid_radar_location_coverage_total = coverage_total
+            self._bid_radar_location_coverage_with_evidence = coverage_with_evidence
+            self._bid_radar_location_coverage_distinct_values = len(values)
+            self.bid_radar_location_coverage.show()
+            if coverage_with_evidence == 0:
+                selector.addItem("Nguồn không có dữ liệu địa điểm", None)
+                selector.setEditable(False)
+                selector.setEnabled(False)
+                self.bid_radar_location_coverage.setText(
+                    f"Dữ liệu địa điểm: 0 / {coverage_total} gói. "
+                    "Nguồn TBMT này không cung cấp Địa điểm thực hiện."
+                )
+            else:
+                selector.addItem("Tất cả", None)
+                selector.setEditable(False)
+                selector.setEnabled(True)
+                self.bid_radar_location_coverage.setText(
+                    f"Dữ liệu địa điểm: {coverage_with_evidence} / {coverage_total} gói."
+                )
         else:
+            selector.addItem("Tất cả", None)
             selector.setEditable(True)
+            selector.setEnabled(True)
             values = sorted(
                 {
                 str(getattr(item, "province_city_code", "")).strip().upper()
@@ -1588,6 +1633,7 @@ class QICrawlerWindow(QMainWindow):
             },
                 key=str.casefold,
             )
+            self.bid_radar_location_coverage.hide()
         for value in values:
             selector.addItem(value, value)
         selector.setCurrentIndex(0)

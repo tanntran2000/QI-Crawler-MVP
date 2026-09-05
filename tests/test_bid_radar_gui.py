@@ -80,6 +80,41 @@ def _fake_result(
     )
 
 
+def _fake_multi_result(
+    items: tuple[SimpleNamespace, ...],
+    *,
+    source_type: str = "TBMT",
+) -> SimpleNamespace:
+    rows = tuple(
+        SimpleNamespace(
+            item=item,
+            disposition="MATCH",
+            reasons=(),
+            review_state="UNREVIEWED",
+        )
+        for item in items
+    )
+    return SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        load_result=SimpleNamespace(
+            source_type=SimpleNamespace(value=source_type),
+            source_path=Path("tbmt.xlsx"),
+            source_sha256="b" * 64,
+            items=items,
+        ),
+        source_path=Path("tbmt.xlsx"),
+        source_sha256="b" * 64,
+        items=items,
+        rows=rows,
+        issues=(),
+        matched_count=len(items),
+        indeterminate_count=0,
+        nonmatched_count=0,
+        unfiltered_count=0,
+        total_examined=len(items),
+    )
+
+
 @pytest.fixture(scope="module")
 def application() -> QApplication:
     return QApplication.instance() or QApplication([])
@@ -1135,6 +1170,124 @@ def test_tbmt_location_selector_uses_distinct_source_evidence(window: QICrawlerW
     request = window._bid_radar_request()
     assert request.execution_locations == frozenset({"Hải Phòng"})
     assert request.province_city_codes == frozenset()
+
+
+def test_tbmt_zero_location_coverage_disables_selector_and_explains_missing_data(
+    window: QICrawlerWindow,
+) -> None:
+    items = tuple(_fake_radar_item(f"IB26004623{index}-00") for index in range(3))
+
+    window._render_bid_radar_result(_fake_multi_result(items))
+
+    assert window.bid_radar_location.isEnabled() is False
+    assert window.bid_radar_location.itemText(0) == "Nguồn không có dữ liệu địa điểm"
+    assert "0 / 3" in window.bid_radar_location_coverage.text()
+    assert "không cung cấp Địa điểm thực hiện" in window.bid_radar_location_coverage.text()
+    assert window._bid_radar_request().execution_locations == frozenset()
+
+
+def test_tbmt_partial_location_coverage_lists_distinct_locations(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462301-00")
+    first.location_detail_raw = "Đồng Nai"
+    second = _fake_radar_item("IB2600462302-00")
+    third = _fake_radar_item("IB2600462303-00")
+    third.location_detail_raw = "Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((first, second, third)))
+
+    assert window.bid_radar_location.isEnabled() is True
+    assert "2 / 3" in window.bid_radar_location_coverage.text()
+    assert [window.bid_radar_location.itemText(index) for index in range(3)] == [
+        "Tất cả",
+        "Đồng Nai",
+        "Hà Nội",
+    ]
+
+
+def test_tbmt_full_location_coverage_keeps_selector_enabled(window: QICrawlerWindow) -> None:
+    first = _fake_radar_item("IB2600462304-00")
+    first.location_detail_raw = "Đồng Nai"
+    second = _fake_radar_item("IB2600462305-00")
+    second.location_detail_raw = "Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((first, second)))
+
+    assert window.bid_radar_location.isEnabled() is True
+    assert window.bid_radar_location_coverage.text() == "Dữ liệu địa điểm: 2 / 2 gói."
+
+
+def test_tbmt_source_reset_clears_stale_location_options_and_coverage(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462306-00")
+    first.location_detail_raw = "Đồng Nai"
+    window._render_bid_radar_result(_fake_multi_result((first,)))
+    assert "Đồng Nai" in [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+
+    window._clear_bid_radar_loaded_state()
+
+    assert "Đồng Nai" not in [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+    assert window.bid_radar_location.isEnabled() is False
+
+    second = _fake_radar_item("IB2600462307-00")
+    second.location_detail_raw = "Hà Nội"
+    window._render_bid_radar_result(_fake_multi_result((second,)))
+    options = [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+    assert "Đồng Nai" not in options
+    assert options == ["Tất cả", "Hà Nội"]
+
+
+def test_bid_radar_exclude_label_is_not_confusable_with_location_filter(
+    window: QICrawlerWindow,
+) -> None:
+    labels = [label.text() for label in window.bid_radar_filter_editor.findChildren(QLabel)]
+
+    assert "Loại trừ nội dung:" in labels
+    assert "Từ khóa loại:" not in labels
+    assert window.bid_radar_exclude.placeholderText() == "Nội dung cần loại trừ..."
+
+
+def test_generic_find_does_not_create_execution_location_evidence(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462308-00")
+    item.raw_fields = {
+        "BÊN MỜI THẦU": "Hà Nội",
+        "ĐỊA ĐIỂM PHÁT HÀNH": "Hà Nội",
+    }
+    window._render_bid_radar_result(_fake_multi_result((item,)))
+    window.bid_radar_include.setText("Hà Nội")
+
+    assert window.bid_radar_location_coverage.text().startswith("Dữ liệu địa điểm: 0 / 1")
+    assert window._bid_radar_request().execution_locations == frozenset()
+    assert window.bid_radar_location.isEnabled() is False
+
+
+def test_forbidden_addresses_do_not_infer_execution_location(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462309-00")
+    item.raw_fields = {
+        "ĐỊA CHỈ BÊN MỜI THẦU": "Hà Nội",
+        "ĐỊA ĐIỂM PHÁT HÀNH": "Hà Nội",
+        "investorLocation": "Hà Nội",
+    }
+    window._render_bid_radar_result(_fake_multi_result((item,)))
+
+    assert window.bid_radar_location_coverage.text().startswith("Dữ liệu địa điểm: 0 / 1")
+    assert window.bid_radar_location.itemText(0) == "Nguồn không có dữ liệu địa điểm"
+    assert window._bid_radar_request().execution_locations == frozenset()
 
 
 def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawlerWindow) -> None:

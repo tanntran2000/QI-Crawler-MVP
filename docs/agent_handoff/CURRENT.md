@@ -80,7 +80,16 @@ BID_RADAR_LOCATION_COLUMN = Địa điểm thực hiện
 BID_RADAR_KHU_VUC_DEFAULT = REMOVED
 LOCATION_FALLBACK = PROVINCES_THEN_LOCATION_THEN_WORKADDRESS
 LOCATION_PROVINCE_NORMALIZATION = NONE
-A7_EXPORT = NOT_ACTIVE
+MICRO_A6_C2_R1 = HUMAN_RUNTIME_FAILED_ZERO_LOCATION_COVERAGE_UX
+MICRO_A6_C2_R2A = IMPLEMENTED_PENDING_PLANNER_AND_HUMAN_REVIEW
+TBMT_EXECUTION_LOCATION_AUTHORITY = SOURCE_EVIDENCE_ONLY
+TBMT_LOCATION_ZERO_COVERAGE = EXPLICIT_DISABLED_UI
+LOCATION_MISSING = NOT_INFERRED
+LOCATION_FILTER_ZERO_DATA = NOT_AVAILABLE
+GENERIC_FIND_LOCATION_AUTHORITY = NONE
+EXCLUDE_KEYWORD_LOCATION_AUTHORITY = NONE
+SPIKE_EGP_EXECUTION_LOCATION_01 = NEXT_NOT_ACTIVE
+A7_EXPORT = HOLD
 
 UI_DESIGN = QI_BID_DESK_CALM_THREE_PANE
 
@@ -111,8 +120,8 @@ UI_MODEL = SELECTION_DESK | SOURCE_CANVAS | SMART_INSPECTOR
 COGNITIVE_SAFETY = REQUIRED
 HSMT_UI_REDESIGN = PARKED_UNTIL_BID_RADAR_ACCEPTANCE
 INTEGRATION_STATE = MERGED_TO_MAIN
-NEXT = STOP_FOR_PLANNER_AND_HUMAN_A6_C2_REVIEW
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_AND_HUMAN_A6_C2_REVIEW
+NEXT = STOP_FOR_PLANNER_AND_HUMAN_A6_C2_R2A_REVIEW
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_AND_HUMAN_A6_C2_R2A_REVIEW
 NEXT_AUTHORITY = PLANNER_ARCHITECT + HUMAN_A0
 HANDOFF_READY = NO_PENDING_PLANNER_AND_HUMAN_A6_C2_REVIEW
 DEPLOYED_VERSION = 0.9.0
@@ -126,4 +135,4 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Micro-A6-C2 adds a source-backed execution-location field to Bid Radar, using the available provinces, location, and workAddress source values without province/city normalization. The former default Khu vực presentation is removed so the table and inspector expose one authoritative Địa điểm thực hiện value. Micro-A6-C1-R1 remains preserved, and this bounded correction is pending Planner and Human A0 review; no release, migration-file, or product-authority scope was expanded.
+Micro-A6-C2 adds a source-backed execution-location field and truthful data-availability UX to Bid Radar, using the shared execution-location evidence authority without province/city normalization. Zero-coverage TBMT sources now show an explicit disabled control and coverage explanation; the former default Khu vực presentation is removed. Micro-A6-C2-R2A is pending Planner and Human A0 review, with no release, migration-file, network, or product-authority scope expanded.
