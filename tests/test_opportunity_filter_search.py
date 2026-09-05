@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
@@ -610,3 +611,123 @@ def test_revisions_remain_distinct_generic_evaluations() -> None:
 def test_legacy_filter_and_search_facades_remain_available() -> None:
     assert callable(filter_engine.evaluate_plan_package)
     assert callable(search.search_packages)
+
+
+@pytest.mark.parametrize(
+    ("package_name", "expected"),
+    [
+        ("Bộ Công An", True),
+        ("An toàn", True),
+        ("An ninh mạng", True),
+        ("Ngân sách", False),
+        ("Dự án", False),
+        ("Cân đối", False),
+    ],
+)
+def test_generic_find_is_literal_case_insensitive_and_accent_sensitive(
+    package_name: str,
+    expected: bool,
+) -> None:
+    item = replace(_item(source_type=OpportunitySourceType.TBMT), package_name=package_name)
+
+    result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(include_keywords=("An",)),
+    )
+
+    assert result.find_hit_count == int(expected)
+
+
+@pytest.mark.parametrize(
+    ("query", "package_name"),
+    [
+        ("Mạng", "Mạng lưới"),
+        ("Mạng", "AN NINH MẠNG"),
+        ("máy", "Máy tính"),
+        ("camera", "Trang bị CAMERA giám sát"),
+    ],
+)
+def test_generic_find_supports_literal_substrings(
+    query: str,
+    package_name: str,
+) -> None:
+    item = replace(_item(source_type=OpportunitySourceType.TBMT), package_name=package_name)
+
+    result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(include_keywords=(query,)),
+    )
+
+    assert result.find_hit_count == 1
+
+
+def test_generic_find_searches_raw_tender_id_and_address_fields() -> None:
+    item = replace(
+        _item(source_type=OpportunitySourceType.TBMT, raw_id="IB2600463290-00"),
+        source_fields={"ĐỊA CHỈ BÊN MỜI THẦU": "Quảng Trị"},
+        raw_fields={"ĐỊA CHỈ BÊN MỜI THẦU": "Quảng Trị"},
+    )
+
+    id_result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(include_keywords=("IB26004",)),
+    )
+    address_result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(include_keywords=("Quảng Trị",)),
+    )
+
+    assert id_result.find_hit_count == 1
+    assert address_result.find_hit_count == 1
+
+
+def test_generic_find_preserves_all_matching_business_field_evidence() -> None:
+    item = replace(
+        _item(source_type=OpportunitySourceType.TBMT, package_name="Bộ Công An"),
+        source_fields={
+            "BÊN MỜI THẦU": "Cục An ninh mạng",
+            "NỘI DUNG CHÍNH": "Thiết bị camera",
+        },
+        raw_fields={
+            "BÊN MỜI THẦU": "Cục An ninh mạng",
+            "NỘI DUNG CHÍNH": "Thiết bị camera",
+        },
+    )
+
+    result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(include_keywords=("An",)),
+    )
+    criterion = next(
+        criterion
+        for criterion in result.evaluated[0].evaluation.criteria
+        if criterion.criterion == "include_keywords"
+    )
+
+    matched_values = {
+        evidence.observed_value
+        for evidence in criterion.evidence
+        if evidence.matched_terms
+    }
+    assert result.find_hit_count == 1
+    assert "Bộ Công An" in matched_values
+    assert "Cục An ninh mạng" in matched_values
+
+
+def test_generic_find_hit_count_is_separate_from_final_filter_match() -> None:
+    item = replace(
+        _item(source_type=OpportunitySourceType.TBMT, package_name="Bộ Công An"),
+        package_price=Decimal(900000000),
+    )
+
+    result = search.search_opportunities(
+        (item,),
+        search.TargetedSearchRequest(
+            include_keywords=("An",),
+            max_budget=Decimal(500000000),
+        ),
+    )
+
+    assert result.find_hit_count == 1
+    assert result.matched_count == 0
+    assert result.nonmatched_count == 1

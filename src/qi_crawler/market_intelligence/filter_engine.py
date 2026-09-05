@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
@@ -64,6 +66,7 @@ class FilterProfile:
     include_keywords: tuple[str, ...] = ()
     exclude_keywords: tuple[str, ...] = ()
     selection_methods: frozenset[str] = frozenset()
+    literal_find: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -174,6 +177,69 @@ def _opportunity_keyword_fields(item: OpportunityRadarItem) -> dict[str, str | N
     return fields
 
 
+_NON_BUSINESS_FIELD_NAMES = {
+    "source_sha256",
+    "observation_key",
+    "source_row",
+    "sheet",
+    "schema_version",
+    "source_filename",
+    "source_type",
+    "provenance",
+}
+
+
+def normalize_literal_find(value: object) -> str:
+    """Normalize Find text without removing accents or changing characters."""
+
+    if value is None:
+        return ""
+    text = unicodedata.normalize("NFC", str(value))
+    return re.sub(r"\s+", " ", text).casefold().strip()
+
+
+def _is_business_field_name(name: object) -> bool:
+    key = str(name).strip()
+    lowered = key.casefold()
+    if not key or lowered in _NON_BUSINESS_FIELD_NAMES:
+        return False
+    if "sha" in lowered or "observation" in lowered or "diagnostic" in lowered:
+        return False
+    return not (
+        lowered.endswith("_id") or lowered in {"id", "raw_id", "base_id", "revision"}
+    )
+
+
+def searchable_business_fields(item: OpportunityRadarItem) -> dict[str, str | None]:
+    """Return deterministic, user-facing source fields eligible for generic Find."""
+
+    fields: dict[str, str | None] = {"raw_tender_id": _optional_text(item.identity.raw_id)}
+    explicit = (
+        ("package_name", item.package_name),
+        ("project", item.project),
+        ("investor", item.investor),
+        ("procuring_entity", item.procuring_entity),
+        ("approval_content", item.approval_content),
+        ("package_main_content", item.package_main_content),
+        ("selection_method_raw", item.selection_method_raw),
+        ("location_detail_raw", item.location_detail_raw),
+        ("province_city_name", item.province_city_name),
+        ("province_city_evidence", item.province_city_evidence),
+    )
+    for label, value in explicit:
+        text = _optional_text(value)
+        if label not in fields and text is not None:
+            fields[label] = text
+    for mapping in (item.source_fields, item.raw_fields):
+        for label, value in mapping.items():
+            if not _is_business_field_name(label) or not isinstance(value, str):
+                continue
+            text = _optional_text(value)
+            if label not in fields and text is not None:
+                fields[label] = text
+    return fields
+
+
 def _decimal_text(value: Decimal) -> str:
     text = format(value, "f")
     if "." in text:
@@ -212,13 +278,17 @@ def _province_evidence(
 
 
 def _keyword_evidence(
-    fields: dict[str, str | None], terms: tuple[str, ...]
+    fields: dict[str, str | None], terms: tuple[str, ...], *, literal: bool = False
 ) -> tuple[CriterionEvidence, ...]:
+    normalize = normalize_literal_find if literal else normalize_search_value
     entries: list[CriterionEvidence] = []
     for field, value in fields.items():
-        normalized = normalize_search_value(value) if value is not None else None
+        normalized = normalize(value) if value is not None else None
         matched_terms = tuple(
-            term for term in terms if normalized is not None and term in normalized
+            normalize_search_value(term) if literal else term
+            for term in terms
+            if normalized is not None
+            and (normalize_literal_find(term) if literal else term) in normalized
         )
         if matched_terms or value is None:
             entries.append(
@@ -377,12 +447,17 @@ def evaluate_opportunity(
                 )
             )
 
-    fields = _opportunity_keyword_fields(item)
+    literal_find = profile.literal_find
+    fields = searchable_business_fields(item) if literal_find else _opportunity_keyword_fields(item)
     include_terms = tuple(
-        term for keyword in profile.include_keywords if (term := normalize_search_value(keyword))
+        term
+        for keyword in profile.include_keywords
+        if (
+            term := (normalize_literal_find(keyword) if literal_find else normalize_search_value(keyword))
+        )
     )
     if include_terms:
-        include_evidence = _keyword_evidence(fields, include_terms)
+        include_evidence = _keyword_evidence(fields, include_terms, literal=literal_find)
         include_matches = tuple(
             entry.field
             for entry in include_evidence
@@ -419,10 +494,14 @@ def evaluate_opportunity(
             )
 
     exclude_terms = tuple(
-        term for keyword in profile.exclude_keywords if (term := normalize_search_value(keyword))
+        term
+        for keyword in profile.exclude_keywords
+        if (
+            term := (normalize_literal_find(keyword) if literal_find else normalize_search_value(keyword))
+        )
     )
     if exclude_terms:
-        exclude_evidence = _keyword_evidence(fields, exclude_terms)
+        exclude_evidence = _keyword_evidence(fields, exclude_terms, literal=literal_find)
         exclude_matches = tuple(
             entry.field
             for entry in exclude_evidence

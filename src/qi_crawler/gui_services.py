@@ -203,6 +203,7 @@ class BidRadarResult:
     nonmatched_count: int
     unfiltered_count: int
     total_examined: int
+    find_hit_count: int = 0
 
 
 def _bid_radar_rows(
@@ -272,6 +273,7 @@ def run_bid_radar_import_search(
         nonmatched_count=searched.nonmatched_count,
         unfiltered_count=searched.unfiltered_count,
         total_examined=searched.total_examined,
+        find_hit_count=searched.find_hit_count,
     )
 
 
