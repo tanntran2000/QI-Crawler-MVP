@@ -13,10 +13,6 @@ from qi_crawler.gui_services import (
     run_bid_radar_legal_docx,
     run_bid_radar_review,
 )
-from qi_crawler.market_intelligence.active_tender_context import (
-    ActiveTenderContext,
-    exact_identity_matches,
-)
 from qi_crawler.market_intelligence.khmt_contract import OBSERVED_KHMT_HEADERS
 from qi_crawler.market_intelligence.opportunity_contract import OpportunitySourceType
 from qi_crawler.market_intelligence.search import TargetedSearchRequest
@@ -26,47 +22,6 @@ from qi_crawler.market_intelligence.source_session import (
     source_session_matches,
 )
 from qi_crawler.market_intelligence.tbmt_schema import OBSERVED_TBMT_HEADERS
-
-
-def _context_item(raw_id: str, *, source_sha256: str = "a" * 64) -> SimpleNamespace:
-    base_id, revision = raw_id.rsplit("-", 1)
-    return SimpleNamespace(
-        source_type=SimpleNamespace(value="TBMT"),
-        identity=SimpleNamespace(raw_id=raw_id, base_id=base_id, revision=revision),
-        source_sha256=source_sha256,
-        observation_key=f"{source_sha256}:{raw_id}",
-        package_name="Gói mẫu",
-    )
-
-
-def test_active_context_keeps_exact_revision_and_provenance() -> None:
-    active = ActiveTenderContext.from_item(_context_item("IB12345678-00"))
-
-    assert active.exact_identity == ("TBMT", "IB12345678-00", "IB12345678", "00")
-    assert exact_identity_matches(active, _context_item("IB12345678-00"))
-    assert not exact_identity_matches(active, _context_item("IB12345678-01"))
-    assert not exact_identity_matches(active, _context_item("IB12345678-00", source_sha256="b" * 64))
-
-
-def test_active_context_accepts_source_raw_id_spacing_with_normalized_revision() -> None:
-    item = SimpleNamespace(
-        source_type=SimpleNamespace(value="TBMT"),
-        identity=SimpleNamespace(
-            raw_id="IB2600488839- 00",
-            base_id="IB2600488839",
-            revision="00",
-        ),
-        source_sha256="a" * 64,
-        observation_key="source:a:IB2600488839- 00",
-        package_name="Gói nguồn thật",
-    )
-
-    active = ActiveTenderContext.from_item(item)
-
-    assert active.raw_id == "IB2600488839- 00"
-    assert active.base_id == "IB2600488839"
-    assert active.revision == "00"
-    assert exact_identity_matches(active, item)
 
 
 def test_source_session_identity_distinguishes_same_name_changed_hash(tmp_path: Path) -> None:

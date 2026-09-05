@@ -424,89 +424,6 @@ def test_filter_match_does_not_auto_confirm(window: QICrawlerWindow) -> None:
     assert window._bid_radar_rows[0].review_state != "CONFIRMED"
 
 
-def test_selecting_row_does_not_activate_working_package(window: QICrawlerWindow) -> None:
-    window._render_bid_radar_result(_fake_result())
-    window.bid_radar_table.selectRow(0)
-
-    assert window.active_tender_context is None
-    assert window.bid_radar_activate_button.isEnabled()
-    assert not window.bid_radar_confirm_button.isEnabled()
-    assert "ĐANG XEM" in window.bid_radar_inspector_text.toPlainText()
-
-
-def test_activation_requires_explicit_confirmation(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch) -> None:
-    window._render_bid_radar_result(_fake_result())
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(
-        gui.QMessageBox,
-        "question",
-        lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel,
-    )
-
-    window.activate_selected_bid_radar_context()
-
-    assert window.active_tender_context is None
-
-
-def test_confirm_activation_stores_exact_revision_without_review(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch) -> None:
-    window._render_bid_radar_result(_fake_result())
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(
-        gui.QMessageBox,
-        "question",
-        lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes,
-    )
-
-    window.activate_selected_bid_radar_context()
-
-    assert window.active_tender_context is not None
-    assert window.active_tender_context.raw_id == "PL260001-00"
-    assert window.active_tender_context.revision == "00"
-    assert window._bid_radar_rows[0].review_state == "UNREVIEWED"
-    assert window.bid_radar_confirm_button.isEnabled()
-
-
-def test_same_base_different_revision_requires_explicit_switch(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch) -> None:
-    first = _fake_radar_item("IB12345678-00")
-    second = _fake_radar_item("IB12345678-01")
-    window._render_bid_radar_result(_fake_result(item=first, source_type="TBMT"))
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.activate_selected_bid_radar_context()
-
-    window._render_bid_radar_result(_fake_result(item=second, source_type="TBMT"))
-    window.bid_radar_table.selectRow(0)
-
-    assert window.active_tender_context.raw_id == "IB12345678-00"
-    assert "IB12345678-00" in window.bid_radar_context_warning.text()
-    assert "IB12345678-01" in window.bid_radar_context_warning.text()
-    assert not window.bid_radar_confirm_button.isEnabled()
-    assert window.bid_radar_switch_button.isEnabled()
-
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
-    window.switch_selected_bid_radar_context()
-    assert window.active_tender_context.raw_id == "IB12345678-00"
-
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.switch_selected_bid_radar_context()
-    assert window.active_tender_context.raw_id == "IB12345678-01"
-
-
-def test_review_and_handoff_require_exact_active_revision(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch) -> None:
-    first = _fake_radar_item("IB12345678-00")
-    second = _fake_radar_item("IB12345678-01")
-    window._render_bid_radar_result(_fake_result(item=first, source_type="TBMT", review_state="CONFIRMED"))
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.activate_selected_bid_radar_context()
-
-    window._render_bid_radar_result(_fake_result(item=second, source_type="TBMT", review_state="CONFIRMED"))
-    window.bid_radar_table.selectRow(0)
-
-    assert not window.bid_radar_workspace_button.isEnabled()
-    assert "IB12345678-00" in window.bid_radar_context_warning.text()
-
-
 def test_min_only_budget_summary_uses_inequality(window: QICrawlerWindow) -> None:
     window.bid_radar_min_budget.setText("800000000")
     window.bid_radar_max_budget.clear()
@@ -521,25 +438,6 @@ def test_max_only_budget_summary_uses_inequality(window: QICrawlerWindow) -> Non
     assert "≤ 1.000.000.000 VNĐ" in window.bid_radar_active_filter_context.text()
 
 
-def test_refilter_same_source_preserves_active_and_marks_filtered_out(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch) -> None:
-    item = _fake_radar_item("IB12345678-00")
-    window._render_bid_radar_result(_fake_result(item=item, source_type="TBMT"))
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.activate_selected_bid_radar_context()
-
-    filtered = _fake_result(item=item, source_type="TBMT")
-    filtered.items = ()
-    filtered.rows = ()
-    filtered.matched_count = 0
-    filtered.total_examined = 0
-    window._render_bid_radar_result(filtered)
-
-    assert window.active_tender_context is not None
-    assert window.active_tender_context.raw_id == "IB12345678-00"
-    assert "Gói đang làm không nằm" in window.bid_radar_active_context_notice.text()
-
-
 def test_source_change_cancel_preserves_active_context(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     source_a = tmp_path / "source-a.xlsx"
     source_b = tmp_path / "source-b.xlsx"
@@ -549,41 +447,13 @@ def test_source_change_cancel_preserves_active_context(window: QICrawlerWindow, 
     window.bid_radar_path.setText(str(source_a))
     window._render_bid_radar_result(_fake_result(item=item, path=source_a, source_type="TBMT"))
     window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.activate_selected_bid_radar_context()
     monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
     monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
 
     window._choose_bid_radar_file()
 
-    assert window.active_tender_context is not None
     assert window.bid_radar_path.text() == str(source_b.resolve())
     assert window._bid_radar_pending_source.path == source_b.resolve()
-
-
-def test_source_change_confirm_clears_active_context(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    source_a = tmp_path / "source-a.xlsx"
-    source_b = tmp_path / "source-b.xlsx"
-    source_a.write_bytes(b"a")
-    source_b.write_bytes(b"b")
-    item = _fake_radar_item("IB12345678-00")
-    window.bid_radar_path.setText(str(source_a))
-    window._render_bid_radar_result(_fake_result(item=item, path=source_a, source_type="TBMT"))
-    window.bid_radar_table.selectRow(0)
-    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
-    window.activate_selected_bid_radar_context()
-    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
-
-    window._choose_bid_radar_file()
-    window._bid_radar_pending_source = window._source_session_identity(
-        source_b,
-        hashlib.sha256(source_b.read_bytes()).hexdigest(),
-        SourceType.TBMT,
-    )
-    window.apply_bid_radar_source()
-
-    assert window.active_tender_context is None
-    assert window.bid_radar_path.text() == str(source_b.resolve())
 
 
 def _source_detection(path: Path, source_sha256: str) -> SourceTypeDetection:
@@ -644,14 +514,11 @@ def test_initial_source_apply_resets_workspace_and_preserves_filters(
     window.bid_radar_include.setText("Mạng")
     window._render_bid_radar_result(_fake_result(path=source, source_type="TBMT", source_sha256=source_sha))
     window.bid_radar_table.selectRow(0)
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
-
     window.apply_bid_radar_source()
 
     assert window._bid_radar_active_source is not None
     assert window._bid_radar_active_source.path == source.resolve()
     assert window.bid_radar_table.rowCount() == 0
-    assert window.active_tender_context is None
     assert window.bid_radar_min_budget.text() == "500000000"
     assert window.bid_radar_include.text() == "Mạng"
     assert window.bid_radar_import_button.isEnabled()
@@ -674,7 +541,6 @@ def test_source_switch_cancel_preserves_active_workspace(
     monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
     window.bid_radar_path.setText(str(source_a))
     window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
     window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
     window.bid_radar_table.selectRow(0)
     monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
@@ -684,7 +550,6 @@ def test_source_switch_cancel_preserves_active_workspace(
     assert window._bid_radar_active_source.path == source_a.resolve()
     assert window._bid_radar_pending_source.path == source_b.resolve()
     assert window.bid_radar_table.rowCount() == 1
-    assert window.active_tender_context is not None
 
 
 def test_source_switch_confirm_resets_workspace_and_preserves_filters(
@@ -703,7 +568,6 @@ def test_source_switch_confirm_resets_workspace_and_preserves_filters(
     monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
     window.bid_radar_path.setText(str(source_a))
     window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
     window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
     window.bid_radar_min_budget.setText("500000000")
     window.bid_radar_include.setText("Mạng")
@@ -714,7 +578,6 @@ def test_source_switch_confirm_resets_workspace_and_preserves_filters(
 
     assert window._bid_radar_active_source.path == source_b.resolve()
     assert window.bid_radar_table.rowCount() == 0
-    assert window.active_tender_context is None
     assert window.bid_radar_inspector_text.toPlainText().startswith("Chưa chọn cơ hội.")
     assert window.bid_radar_min_budget.text() == "500000000"
     assert window.bid_radar_include.text() == "Mạng"
@@ -804,6 +667,32 @@ def test_same_exact_source_reports_in_use_and_does_not_reset(
     assert not window.bid_radar_source_action_button.isEnabled()
 
 
+def test_bid_radar_has_no_active_package_context_layer(window: QICrawlerWindow) -> None:
+    assert not hasattr(window, "active_tender_context")
+    assert not hasattr(window, "bid_radar_active_context_banner")
+    assert not hasattr(window, "bid_radar_activate_button")
+    assert not hasattr(window, "bid_radar_switch_button")
+
+
+def test_selected_bid_radar_row_directly_enables_review(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+
+    assert window.bid_radar_confirm_button.isEnabled()
+    assert "ĐANG XEM" in window.bid_radar_inspector_text.toPlainText()
+
+
+def test_confirmed_selected_row_can_open_workspace_without_active_package(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result(review_state="CONFIRMED"))
+    window.bid_radar_table.selectRow(0)
+
+    assert window.bid_radar_workspace_button.isEnabled()
+
+
 @pytest.mark.parametrize("review_state", ["UNREVIEWED", "REJECTED", "NEEDS_REVIEW"])
 def test_workspace_handoff_button_requires_confirmed_review(
     window: QICrawlerWindow, review_state: str
@@ -818,8 +707,6 @@ def test_workspace_handoff_button_requires_confirmed_review(
 def test_confirm_action_makes_workspace_handoff_eligible(window: QICrawlerWindow) -> None:
     window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
-
     window._render_bid_radar_review(0, "CONFIRMED")
 
     assert window.bid_radar_workspace_button.isEnabled()
@@ -831,7 +718,6 @@ def test_workspace_handoff_click_delegates_item_without_review_state(
 ) -> None:
     window._render_bid_radar_result(_fake_result(review_state="CONFIRMED"))
     window.bid_radar_table.selectRow(0)
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
     captured: dict[str, object] = {}
 
     def fake_submit(function, *args, **kwargs) -> None:
@@ -915,7 +801,6 @@ def test_failed_workspace_handoff_keeps_radar_selection(
 def test_review_requires_reviewer(window: QICrawlerWindow) -> None:
     window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
     window.start_bid_radar_review("CONFIRMED")
 
     assert "reviewer" in window.bid_radar_status.text().lower()
@@ -927,7 +812,6 @@ def test_review_delegates_to_candidate_review_service(
 ) -> None:
     window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
-    window._set_active_bid_radar_item(window._bid_radar_rows[0].item)
     window.bid_radar_reviewer.setText("Bid Team")
     captured: dict[str, object] = {}
 

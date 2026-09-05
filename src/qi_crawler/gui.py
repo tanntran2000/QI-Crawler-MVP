@@ -126,7 +126,6 @@ from .gui_services import (
     run_workspace_document_intake,
 )
 from .logging_utils import configure_logging
-from .market_intelligence.active_tender_context import ActiveTenderContext, exact_identity_matches
 from .market_intelligence.candidate_review import CandidateReviewError
 from .market_intelligence.khmt_importer import KHMTImportError, _sha256
 from .market_intelligence.legal_docx import LegalDocxExportError
@@ -351,7 +350,6 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_pending_source: SourceSessionIdentity | None = None
         self._bid_radar_active_source: SourceSessionIdentity | None = None
         self._bid_radar_pending_detection: SourceTypeDetection | None = None
-        self._active_tender_context: ActiveTenderContext | None = None
         self._workspace_release_record_id: int | None = None
         self._workspace_opened_case_id: str | None = None
         self._workspace_opened_release_id: str | None = None
@@ -700,22 +698,6 @@ class QICrawlerWindow(QMainWindow):
         )
         page_layout.setSpacing(10)
 
-        self.bid_radar_active_context_banner = QFrame()
-        self.bid_radar_active_context_banner.setObjectName("bidRadarActiveContext")
-        active_context_layout = QVBoxLayout(self.bid_radar_active_context_banner)
-        active_context_layout.setContentsMargins(12, 8, 12, 8)
-        self.bid_radar_active_context_title = QLabel("GÓI ĐANG LÀM")
-        self.bid_radar_active_context_title.setObjectName("bidRadarActiveContextTitle")
-        self.bid_radar_active_context_label = QLabel()
-        self.bid_radar_active_context_label.setObjectName("bidRadarActiveContextValue")
-        self.bid_radar_active_context_label.setWordWrap(True)
-        self.bid_radar_active_context_notice = QLabel()
-        self.bid_radar_active_context_notice.setWordWrap(True)
-        active_context_layout.addWidget(self.bid_radar_active_context_title)
-        active_context_layout.addWidget(self.bid_radar_active_context_label)
-        active_context_layout.addWidget(self.bid_radar_active_context_notice)
-        page_layout.addWidget(self.bid_radar_active_context_banner)
-
         side_actions = QHBoxLayout()
         self.bid_radar_selection_toggle = QPushButton("ẨN BỘ LỌC")
         self.bid_radar_selection_toggle.clicked.connect(self._toggle_bid_radar_selection_desk)
@@ -812,7 +794,7 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_province = QLineEdit()
         self.bid_radar_province.setPlaceholderText("Mã tỉnh/thành, cách nhau bằng dấu phẩy")
         self.bid_radar_include = QLineEdit()
-        self.bid_radar_include.setPlaceholderText("Từ khóa bắt buộc, cách nhau bằng dấu phẩy")
+        self.bid_radar_include.setPlaceholderText("Nội dung cần tìm, cách nhau bằng dấu phẩy")
         self.bid_radar_exclude = QLineEdit()
         self.bid_radar_exclude.setPlaceholderText("Từ khóa loại trừ, cách nhau bằng dấu phẩy")
         self.bid_radar_selection_method = QLineEdit()
@@ -820,7 +802,7 @@ class QICrawlerWindow(QMainWindow):
             "Hình thức lựa chọn, cách nhau bằng dấu phẩy"
         )
         filter_form.addRow("Tỉnh / thành:", self.bid_radar_province)
-        filter_form.addRow("Từ khóa gồm:", self.bid_radar_include)
+        filter_form.addRow("Tìm trong nguồn:", self.bid_radar_include)
         filter_form.addRow("Từ khóa loại:", self.bid_radar_exclude)
         filter_form.addRow("Hình thức lựa chọn:", self.bid_radar_selection_method)
         filter_layout.addWidget(self.bid_radar_filter_editor)
@@ -899,6 +881,9 @@ class QICrawlerWindow(QMainWindow):
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
         )
         self.bid_radar_table.itemSelectionChanged.connect(self._on_bid_radar_selected)
+        self.bid_radar_table.currentCellChanged.connect(
+            lambda *_args: self._on_bid_radar_selected()
+        )
         canvas_layout.addWidget(self.bid_radar_table, 1)
 
         self.bid_radar_inspector = QFrame()
@@ -921,22 +906,6 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_inspector_text.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         self.bid_radar_inspector_text.setMinimumHeight(170)
         inspector_layout.addWidget(self.bid_radar_inspector_text)
-
-        context_actions = QGroupBox("GÓI ĐANG LÀM")
-        context_actions_layout = QVBoxLayout(context_actions)
-        self.bid_radar_context_warning = QLabel()
-        self.bid_radar_context_warning.setObjectName("bidRadarContextWarning")
-        self.bid_radar_context_warning.setWordWrap(True)
-        self.bid_radar_context_warning.hide()
-        context_actions_layout.addWidget(self.bid_radar_context_warning)
-        self.bid_radar_activate_button = self._primary_button("XÁC NHẬN GÓI ĐANG LÀM")
-        self.bid_radar_activate_button.clicked.connect(self.activate_selected_bid_radar_context)
-        self.bid_radar_switch_button = QPushButton("CHUYỂN SANG GÓI NÀY")
-        self.bid_radar_switch_button.clicked.connect(self.switch_selected_bid_radar_context)
-        self.bid_radar_switch_button.hide()
-        context_actions_layout.addWidget(self.bid_radar_activate_button)
-        context_actions_layout.addWidget(self.bid_radar_switch_button)
-        inspector_layout.addWidget(context_actions)
 
         review_box = QGroupBox("HUMAN REVIEW")
         review_layout = QVBoxLayout(review_box)
@@ -1014,7 +983,6 @@ class QICrawlerWindow(QMainWindow):
             field.textChanged.connect(self._update_bid_radar_context)
         self._update_bid_radar_context()
         self._render_bid_radar_source_session()
-        self._render_bid_radar_active_context()
         self._render_bid_radar_inspector(None)
 
     def _apply_bid_radar_responsive_state(self) -> None:
@@ -1129,114 +1097,19 @@ class QICrawlerWindow(QMainWindow):
             "Từ khóa: " + (" · ".join(keywords) if keywords else "chưa có")
         )
 
-    @property
-    def active_tender_context(self) -> ActiveTenderContext | None:
-        """Expose the session-only active package without persisting it."""
-
-        return self._active_tender_context
-
     def _selected_bid_radar_item(self) -> Any | None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         if 0 <= selected < len(self._bid_radar_rows):
             return self._bid_radar_rows[selected].item
         return None
 
-    def _selected_matches_active(self) -> bool:
-        return exact_identity_matches(self._active_tender_context, self._selected_bid_radar_item())
-
-    def _render_bid_radar_active_context(self) -> None:
-        context = self._active_tender_context
-        if context is None:
-            self.bid_radar_active_context_label.setText("Chưa xác nhận gói nào.")
-            self.bid_radar_active_context_notice.clear()
-            self.bid_radar_active_context_banner.setStyleSheet(
-                "background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px;"
-            )
-            return
-        self.bid_radar_active_context_label.setText(
-            f"{context.raw_id}\n{context.package_name or 'Chưa có tên gói'}"
-        )
-        visible = any(exact_identity_matches(context, row.item) for row in self._bid_radar_rows)
-        self.bid_radar_active_context_notice.setText(
-            "Gói đang làm không nằm trong kết quả lọc hiện tại." if not visible else ""
-        )
-        self.bid_radar_active_context_banner.setStyleSheet(
-            "background: #eff8ff; border: 1px solid #84adf5; border-radius: 8px;"
-        )
-
-    def _update_bid_radar_context_actions(self, row: Any | None) -> None:
-        context = self._active_tender_context
-        if row is None:
-            self.bid_radar_activate_button.setEnabled(False)
-            self.bid_radar_activate_button.hide()
-            self.bid_radar_switch_button.setEnabled(False)
-            self.bid_radar_switch_button.hide()
-            self.bid_radar_context_warning.clear()
-            self.bid_radar_context_warning.hide()
-            return
-        matches = exact_identity_matches(context, row.item)
-        if context is None:
-            self.bid_radar_activate_button.setEnabled(True)
-            self.bid_radar_activate_button.show()
-            self.bid_radar_switch_button.hide()
-            self.bid_radar_context_warning.clear()
-            self.bid_radar_context_warning.hide()
-        elif matches:
-            self.bid_radar_activate_button.setEnabled(False)
-            self.bid_radar_activate_button.hide()
-            self.bid_radar_switch_button.setEnabled(False)
-            self.bid_radar_switch_button.hide()
-            self.bid_radar_context_warning.setText("ĐANG XEM GÓI ĐANG LÀM")
-            self.bid_radar_context_warning.show()
-        else:
-            self.bid_radar_activate_button.hide()
-            self.bid_radar_switch_button.setEnabled(True)
-            self.bid_radar_switch_button.show()
-            self.bid_radar_context_warning.setText(
-                "BẠN ĐANG XEM GÓI KHÁC\n"
-                f"Gói đang làm: {context.raw_id}\n"
-                f"Gói đang xem: {row.item.identity.raw_id}\n"
-                "Hãy chuyển gói đang xem thành Gói đang làm trước khi Review."
-            )
-            self.bid_radar_context_warning.show()
-
-    def _set_active_bid_radar_item(self, item: Any) -> None:
-        self._active_tender_context = ActiveTenderContext.from_item(item)
-        self._render_bid_radar_active_context()
-        self._on_bid_radar_selected()
-
-    def activate_selected_bid_radar_context(self) -> None:
-        item = self._selected_bid_radar_item()
-        if item is None or self._active_tender_context is not None:
-            return
-        identity = item.identity
-        reply = QMessageBox.question(
-            self,
-            "XÁC NHẬN GÓI ĐANG LÀM?",
-            f"XÁC NHẬN GÓI ĐANG LÀM?\n\n{identity.raw_id}\n{item.package_name}\nRevision: {identity.revision or '—'}\n\n"
-            "Gói này sẽ trở thành ngữ cảnh làm việc hiện tại.\n"
-            "Điều này KHÔNG đồng nghĩa xác nhận cơ hội dự thầu.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self._set_active_bid_radar_item(item)
-
-    def switch_selected_bid_radar_context(self) -> None:
-        item = self._selected_bid_radar_item()
-        context = self._active_tender_context
-        if item is None or context is None or context.matches_item(item):
-            return
-        reply = QMessageBox.question(
-            self,
-            "CHUYỂN GÓI ĐANG LÀM?",
-            f"CHUYỂN GÓI ĐANG LÀM?\n\nFROM: {context.raw_id}\nTO: {item.identity.raw_id}\n\n"
-            "Việc này chỉ đổi ngữ cảnh phiên; Human Review không bị thay đổi.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self._set_active_bid_radar_item(item)
+    def _selected_bid_radar_index(self) -> int:
+        selected = self.bid_radar_table.currentRow()
+        if selected < 0:
+            selected_items = self.bid_radar_table.selectedItems()
+            if selected_items:
+                selected = selected_items[0].row()
+        return selected
 
     @staticmethod
     def _source_session_identity(
@@ -1371,7 +1244,7 @@ class QICrawlerWindow(QMainWindow):
                 "CHUYỂN NGUỒN LÀM VIỆC?",
                 f"CHUYỂN NGUỒN LÀM VIỆC?\n\nNguồn hiện tại: {active.source_filename}\n"
                 f"Nguồn mới: {pending.source_filename}\n\n"
-                "Kết quả Radar, dòng đang chọn và Gói đang làm sẽ được làm mới.\n"
+                "Kết quả Radar và dòng đang chọn sẽ được làm mới.\n"
                 "Lịch sử Review đã lưu không bị xóa; bộ lọc được giữ lại.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Cancel,
@@ -1380,14 +1253,17 @@ class QICrawlerWindow(QMainWindow):
                 self.bid_radar_status.setText("Đã hủy chuyển nguồn; nguồn đang dùng vẫn được giữ nguyên.")
                 return
         self._bid_radar_active_source = pending
-        self._clear_bid_radar_loaded_state(clear_active=True)
+        self._clear_bid_radar_loaded_state()
         self.bid_radar_path.setText(str(pending.path))
         self._render_bid_radar_source_session()
         self.bid_radar_status.setText("CHƯA CHẠY TRÊN NGUỒN HIỆN TẠI")
 
     def _render_bid_radar_inspector(self, row: Any | None) -> None:
         if row is None:
-            self._update_bid_radar_context_actions(None)
+            selected = self._selected_bid_radar_index()
+            if 0 <= selected < len(self._bid_radar_rows):
+                row = self._bid_radar_rows[selected]
+        if row is None:
             self.bid_radar_inspector_text.setPlainText(
                 "Chưa chọn cơ hội. Chọn một dòng để xem Quick View và bằng chứng lọc."
             )
@@ -1440,42 +1316,6 @@ class QICrawlerWindow(QMainWindow):
                     if expected:
                         lines.append(f"  Kỳ vọng: {', '.join(map(str, expected))}")
         self.bid_radar_inspector_text.setPlainText("\n".join(lines))
-        self._update_bid_radar_context_actions(row)
-    def _confirm_bid_radar_source_change(self, current: Path, selected: Path) -> bool:
-        context = self._active_tender_context
-        if context is None:
-            return True
-        reply = QMessageBox.question(
-            self,
-            "ĐỔI NGUỒN CƠ HỘI?",
-            f"ĐỔI NGUỒN CƠ HỘI?\n\nGói đang làm hiện tại: {context.raw_id}\n"
-            "Đổi file nguồn sẽ kết thúc ngữ cảnh Gói đang làm của phiên này.\n\n"
-            f"Nguồn hiện tại: {current}\nNguồn mới: {selected}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
-        )
-        return reply == QMessageBox.StandardButton.Yes
-
-    def _prepare_bid_radar_source_change(self, source: Path) -> bool:
-        loaded_source = self._bid_radar_loaded_source
-        path_changed = loaded_source is not None and source.resolve() != loaded_source
-        hash_changed = False
-        if loaded_source is not None and not path_changed and self._bid_radar_loaded_sha256:
-            try:
-                hash_changed = _sha256(source.resolve()) != self._bid_radar_loaded_sha256
-            except OSError:
-                hash_changed = True
-        if not (path_changed or hash_changed):
-            return True
-        if self._active_tender_context is not None:
-            current = loaded_source or source
-            if not self._confirm_bid_radar_source_change(current, source.resolve()):
-                self.bid_radar_status.setText("Đã hủy đổi nguồn; Gói đang làm vẫn được giữ nguyên.")
-                return False
-            self._clear_bid_radar_loaded_state(clear_active=True)
-        else:
-            self._clear_bid_radar_loaded_state()
-        return True
 
     def _choose_bid_radar_file(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(
@@ -1489,7 +1329,7 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_path.setText(str(selected))
             self._inspect_bid_radar_pending_source(selected)
 
-    def _clear_bid_radar_loaded_state(self, *, clear_active: bool = False) -> None:
+    def _clear_bid_radar_loaded_state(self) -> None:
         self._bid_radar_items = ()
         self._bid_radar_rows = ()
         self._bid_radar_load_result = None
@@ -1503,9 +1343,6 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_funnel_label.setText("Luồng lọc: chưa chạy.")
         self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
         self.bid_radar_legal_button.setEnabled(False)
-        if clear_active:
-            self._active_tender_context = None
-            self._render_bid_radar_active_context()
         self._render_bid_radar_source_session()
         self._on_bid_radar_selected()
 
@@ -1699,9 +1536,17 @@ class QICrawlerWindow(QMainWindow):
             for column, value in enumerate(values):
                 self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
         unfiltered_count = getattr(result, "unfiltered_count", 0)
+        source_count = getattr(result, "total_examined", len(self._bid_radar_items))
+        find_hit_count = getattr(result, "find_hit_count", source_count)
+        find_summary = (
+            f"{source_count} nguồn → {find_hit_count} dòng chứa ít nhất 1 từ tìm"
+            if self.bid_radar_include.text().strip()
+            else f"{source_count} nguồn"
+        )
         if unfiltered_count:
             summary = (
                 f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"{find_summary}; "
                 f"chưa áp dụng điều kiện lọc ({unfiltered_count}); "
                 f"cảnh báo {len(getattr(result, 'issues', ()))}. "
                 "Lọc không đồng nghĩa xác nhận."
@@ -1709,6 +1554,7 @@ class QICrawlerWindow(QMainWindow):
         else:
             summary = (
                 f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"{find_summary}; "
                 f"phù hợp {result.matched_count}; cần kiểm tra {result.indeterminate_count}; "
                 f"không phù hợp {result.nonmatched_count}; cảnh báo {len(getattr(result, 'issues', ()))}. "
                 "Lọc không đồng nghĩa xác nhận."
@@ -1720,7 +1566,8 @@ class QICrawlerWindow(QMainWindow):
             status_lines.append(f"- {code}{row}: {issue.message}")
         self.bid_radar_result_summary.setText(summary)
         self.bid_radar_funnel_label.setText(
-            f"Luồng lọc: {getattr(result, 'total_examined', len(self._bid_radar_items))} nguồn"
+            f"Luồng lọc: {source_count} nguồn"
+            f" → {find_hit_count} dòng chứa từ tìm"
             f" → {len(self._bid_radar_rows)} kết quả"
             f" → {getattr(result, 'matched_count', 0)} phù hợp"
             f" · {getattr(result, 'indeterminate_count', 0)} cần kiểm tra."
@@ -1728,7 +1575,6 @@ class QICrawlerWindow(QMainWindow):
         self._update_bid_radar_context()
         self.bid_radar_table.clearSelection()
         self.bid_radar_status.setText("\n".join(status_lines))
-        self._render_bid_radar_active_context()
         self._render_bid_radar_inspector(None)
 
     @staticmethod
@@ -1741,13 +1587,13 @@ class QICrawlerWindow(QMainWindow):
         }.get(getattr(value, "value", value), "CẦN KIỂM TRA")
 
     def _on_bid_radar_selected(self) -> None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         row_available = (
             self._active_long_operation is None
             and 0 <= selected < len(self._bid_radar_rows)
         )
         row = self._bid_radar_rows[selected] if row_available else None
-        enabled = row_available and self._selected_matches_active()
+        enabled = row_available
         for button in (
             self.bid_radar_confirm_button,
             self.bid_radar_reject_button,
@@ -1764,12 +1610,6 @@ class QICrawlerWindow(QMainWindow):
         selected = self.bid_radar_table.currentRow()
         if not (0 <= selected < len(self._bid_radar_rows)):
             self.bid_radar_status.setText("Hãy chọn một gói trước khi review.")
-            return
-        if not self._selected_matches_active():
-            self.bid_radar_status.setText(
-                "Hãy chuyển gói đang xem thành Gói đang làm trước khi Review."
-            )
-            self._on_bid_radar_selected()
             return
         reviewer = self.bid_radar_reviewer.text().strip()
         if not reviewer:
@@ -1824,12 +1664,6 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_status.setText("Hãy chọn một gói đã xác nhận trước khi mở workspace.")
             return
         row = self._bid_radar_rows[selected]
-        if not self._selected_matches_active():
-            self.bid_radar_status.setText(
-                "Hãy chuyển gói đang xem thành Gói đang làm trước khi mở workspace."
-            )
-            self._on_bid_radar_selected()
-            return
         if row.review_state != "CONFIRMED":
             self.bid_radar_status.setText(
                 "Chỉ cơ hội có review CONFIRMED mới được chuyển sang workspace."
