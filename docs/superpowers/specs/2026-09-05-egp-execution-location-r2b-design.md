@@ -116,29 +116,72 @@ M0 must prove:
 3. the exact revision and UUID binding;
 4. the relationship of official notify number, revision and UUID;
 5. the actual location DTO path;
-6. real province, district and ward values.
+6. at least one real, meaningful execution-location component and preservation
+   of whichever province, district and ward fields the source supplies.
+
+Because the R2B MVP exposes a province/city filter, M0 must additionally prove
+at least one official detail response with an explicit usable province/city
+value. A district or ward without an explicitly evidenced province/city proves
+only partial-location parsing and does not authorize province/city-filter
+implementation. M0 therefore requires M0_REAL_PROVINCE_CITY_VALUE = PROVEN
+before that filter is implemented. Missing components remain unconfirmed.
 
 The frontend variable name tbmt is not sufficient proof of a raw JSON envelope.
 If M0 cannot prove these facts, stop for Planner and do not ship production
 parser/cache/UI code.
 
-## 7. Structured execution-location contract
+## 7. Structured execution-location contract and filter level
 
 One DTO is one structured administrative evidence record with province,
 district, ward, source path and evidence provenance. Province, district and
-ward are components of one location, not three separate locations. The parser
-keeps the collection and source paths; UI display may render a friendly joined
-string, but filtering consumes structured evidence. No province/city
-normalization is introduced by R2B.
+ward are components of one location, not three separate locations. Components
+may be independently present or absent.
+
+The R2B MVP filter contract is:
+
+    R2B_LOCATION_FILTER_LEVEL = PROVINCE_CITY_ONLY
+
+The Bid Radar Địa điểm thực hiện selector contains only source-confirmed
+province/city values. For example, province Đồng Nai with district Long Thành
+and ward Long Phước contributes only Đồng Nai to the province/city selector.
+District and ward remain structured detail evidence and are not filter options.
+
+Semantic location quality is separate from acquisition outcome:
+
+    CONFIRMED = province/city is explicitly supported by the same opportunity's
+                 supported source evidence.
+    PARTIAL    = usable district and/or ward exists, but province/city is not
+                 explicitly confirmed.
+    UNKNOWN    = no usable execution-location evidence exists.
+
+These quality labels do not replace RETRIEVAL_FAILED, SCHEMA_UNSUPPORTED,
+ACCESS_CHALLENGE or INTEGRITY_MISMATCH.
 
 Authority precedence is:
 
-1. explicit execution-location fields in the workbook;
+1. explicit execution-location fields in the workbook source observation;
 2. supported structured e-GP execution-location evidence;
 3. UNKNOWN.
 
-Procuring-entity and investor addresses, issueLocation, receiveLocation,
-project name and package name are never location authority.
+District or ward must never be used to infer a parent province/city:
+
+    DISTRICT_WARD_TO_PROVINCE_INFERENCE = FORBIDDEN
+
+If the source says district Bình Chánh and provName is absent, preserve district
+Bình Chánh and set province/city to UNCONFIRMED. Do not infer TP. Hồ Chí Minh.
+If the source explicitly supplies district Đông Anh and provName Hà Nội, Hà Nội
+is confirmed. No static district-to-province table, geocoder, general
+geographic knowledge, package/project name, procuring entity address, investor
+address, issueLocation or receiveLocation may fill a missing parent.
+
+The same-evidence rule applies to workbook data. An explicit workbook value
+such as Thành phố Hà Nội or Huyện Đông Anh, Thành phố Hà Nội may confirm Hà Nội.
+A workbook observation containing only Huyện Đông Anh cannot acquire a parent
+city from general knowledge. R2B adds no geographic normalization capability.
+
+The parser keeps the collection and source paths; UI display may render a
+friendly joined string, but filtering consumes structured evidence. A joined
+display string is never reparsed as authority.
 
 ## 8. Immutable source and effective projection
 
@@ -178,18 +221,28 @@ SCHEMA_UNSUPPORTED, INTEGRITY_MISMATCH, ACCESS_CHALLENGE or NOT_PROCESSED.
 
 FOUND requires correct identity, supported detail schema, at least one valid
 DTO and at least one meaningful non-empty location component. An all-empty DTO
-is not FOUND. SOURCE_HAS_NO_LOCATION is valid only after identity and
-supported schema are confirmed and the source legitimately has no usable
-location. Malformed or unknown payloads are SCHEMA_UNSUPPORTED; wrong
-revision/UUID is INTEGRITY_MISMATCH.
+is not FOUND. A province-only record may be FOUND and CONFIRMED for the
+province filter; a district-only record may be FOUND with PARTIAL quality and
+must remain UNKNOWN for province filtering.
+
+SOURCE_HAS_NO_LOCATION is valid only after identity, supported detail schema
+and supported location structure are confirmed and the source contains no
+usable meaningful component. It is not a synonym for malformed payload,
+schema change, wrong revision, wrong UUID or retrieval failure.
+
+Malformed or unknown payloads are SCHEMA_UNSUPPORTED; wrong revision/UUID is
+INTEGRITY_MISMATCH.
 
 Batch outcomes are COMPLETED, PARTIAL, STOPPED_ACCESS_CHALLENGE,
-CANCELLED_BY_HUMAN and FAILED_BEFORE_START. An integrity mismatch is safety
-critical and stops the batch.
+STOPPED_INTEGRITY_MISMATCH, CANCELLED_BY_HUMAN and FAILED_BEFORE_START. An
+integrity mismatch is safety critical: reject the evidence, stop scheduling
+further acquisition jobs and set STOPPED_INTEGRITY_MISMATCH.
 
-Technical absence remains location criterion = UNKNOWN. Never convert
-RETRIEVAL_FAILED, SCHEMA_UNSUPPORTED, ACCESS_CHALLENGE or NOT_PROCESSED to
-NO_MATCH.
+Technical absence remains location criterion = UNKNOWN. PARTIAL evidence is
+preserved and visible but does not populate the province/city selector, does
+not match a province solely by inference, and yields UNKNOWN for an active
+province/city criterion. Never convert RETRIEVAL_FAILED, SCHEMA_UNSUPPORTED,
+ACCESS_CHALLENGE, INTEGRITY_MISMATCH or NOT_PROCESSED to NO_MATCH.
 
 ## 11. Queue, rate limit and cancellation
 
@@ -215,10 +268,16 @@ prevents stale application.
 During enrichment the UI shows progress only. On completion, Human cancel,
 challenge stop or integrity stop, apply accumulated valid evidence once,
 refresh coverage, rebuild location options and rerun the active Radar
-evaluation once when necessary. A valid selected location is preserved. If it
-is no longer present, emit FILTER_SELECTION_INVALIDATED with a visible notice;
-do not silently reset to Tất cả. A genuine source switch may reset
-source-derived selection.
+evaluation once when necessary. Province/city coverage counts only records
+with CONFIRMED province/city authority. For example, 120 confirmed,
+15 district/ward-only PARTIAL and 39 UNKNOWN records yield province-filter
+coverage 120/174, not 135/174. UI may say Tỉnh/Thành phố đã xác nhận: 120 / 174
+gói. Partial detail remains inspectable in the Inspector, for example
+Địa điểm nguồn: Bình Chánh; Tỉnh/Thành phố: Chưa xác nhận.
+
+A valid selected province/city is preserved. If it is no longer present, emit
+FILTER_SELECTION_INVALIDATED with a visible notice; do not silently reset to
+Tất cả. A genuine source switch may reset source-derived selection.
 
 ## 13. Workbook immutability and multi-location display
 
@@ -250,7 +309,10 @@ M1 through M6 remain held behind the M0 gate.
 Parser and source authority tests cover one primary DTO, multiple DTOs,
 supported fallback, a supported schema with no usable location, an all-empty
 DTO, issue/procuring-address-only payloads, malformed/unknown payloads and
-workbook explicit location outranking live evidence.
+workbook explicit location outranking live evidence. They also cover explicit
+province/city filter authority, district-only PARTIAL evidence, ward/district
+without parent inference, confirmed/partial/unknown coverage, Inspector
+partial display and the rule that joined display text is never reparsed.
 
 Identity and cache tests cover independent revision 00/UUID-A and
 revision 01/UUID-B, wrong response revision or UUID as INTEGRITY_MISMATCH,
@@ -263,7 +325,15 @@ preservation and Human-visible invalidation.
 
 Batch tests cover prior successes surviving a challenge, pending items as
 NOT_PROCESSED, bounded transient retry, no CAPTCHA retry as an ordinary
-timeout, and finite cancellation during retry/rate-limit wait.
+timeout, finite cancellation during retry/rate-limit wait, and
+INTEGRITY_MISMATCH producing STOPPED_INTEGRITY_MISMATCH with no further jobs.
+
+The explicit province/city acceptance set includes: province Đồng Nai with no
+district still filters Đồng Nai; district Bình Chánh with no province remains
+PARTIAL, visible and UNKNOWN for province filtering; no administrative parent
+is inferred; only confirmed province/city records increase coverage; and M0
+must provide one real explicit province/city value before province-filter
+implementation is authorized.
 
 Real-source acceptance verifies an exact revision, a real semantic location,
 the displayed value, corresponding filter behavior and workbook hash equality.
@@ -271,9 +341,14 @@ Coverage greater than zero is only a smoke signal, not final acceptance.
 
 ## 16. Acceptance boundaries and non-goals
 
-R2B does not add a DB migration, change product data models, write back to
-XLSX, infer province/city from names or addresses, solve CAPTCHA, export
-tokens, create a second browser stack, or authorize automatic enrichment.
+R2B does not mutate the existing immutable workbook/source observation
+contract, add a database schema migration, write back to XLSX, infer
+province/city from names or addresses, solve CAPTCHA, export tokens, create a
+second browser stack, or authorize automatic enrichment. Future implementation
+may add bounded application-layer value objects such as
+ExecutionLocationEvidence, ExecutionLocationEvidenceIndex and
+EffectiveOpportunityProjection, provided OpportunityRadarItem source
+provenance remains immutable.
 There is no scheduler, daemon, MCP connector, auto-Spine, auto-merge or
 auto-release behavior.
 
