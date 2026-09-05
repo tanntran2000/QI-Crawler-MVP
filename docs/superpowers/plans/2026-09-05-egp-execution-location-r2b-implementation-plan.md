@@ -33,12 +33,12 @@ The specification is Human-approved final design. Its M0 real-response proof rem
 - Work only in D:\QI Technology\QI Crawler\egp-crawler-python on the canonical branch selected by the Planner.
 - Use one Builder writer, one checkout, no worktrees, no parallel writers, and no subagent-driven parallel implementation. The superpowers:executing-plans skill is the execution protocol.
 - Do not start M0, M1, M2, M3, M4, M5, or M6 until the preceding authority checkpoint explicitly authorizes that milestone.
-- Do not make an e-GP request during documentation planning. M0 is the first and only network-capable milestone, and it uses the normal official frontend browser session.
+- Do not make an e-GP request during documentation planning. M0 is the first authorized network-capable validation milestone and it uses the normal official frontend browser session. M3 and M6 may perform network activity only after their separate Planner and Human authorization checkpoints.
 - Do not add database tables, Alembic migrations, API endpoints, scheduler jobs, daemon behavior, MCP, external connectors, auto-Spine, auto-merge, or auto-release.
 - Do not modify KHMT import, KHMT province/city normalization, Generic Find semantics, existing workbook source bytes, or existing source provenance.
 - Do not infer a province/city from package name, project name, procuring entity, procuring address, issue address, or any unrelated text.
 - Do not use token extraction, token export, request replay, CAPTCHA solvers, proxy rotation, fingerprint spoofing, private credentials, hidden browser storage, or aggressive retries.
-- A CAPTCHA, access-control challenge, robots uncertainty, HTTP identity mismatch, malformed response, or missing direct province/city value stops the current batch and records a governed evidence gap.
+- At M0, a missing direct province/city value fails the M0 province gate. During production M3/M4, a valid district/ward-only response is FOUND with PARTIAL quality and the batch continues with province filtering UNKNOWN. Only ACCESS_CHALLENGE or INTEGRITY_MISMATCH stops the whole batch; malformed or unsupported item responses become SCHEMA_UNSUPPORTED/RETRIEVAL_FAILED item outcomes.
 - The existing source integrity guard must remain authoritative. Workbook SHA-256 and provenance are rechecked before applying a batch; a changed source makes the batch stale and ineligible for projection.
 - LOCK, machine verification, cache integrity, and Reviewer PASS never equal Human approval or merge authority.
 - Every implementation task has separate IMPACT_RADIUS, EDIT_RADIUS, and TEST_RADIUS. No radius may be silently widened.
@@ -73,6 +73,9 @@ The following paths are the complete planned implementation surface. A path is c
 
     src/qi_crawler/market_intelligence/filter_engine.py
         A projection-aware TBMT execution-location criterion while preserving Generic Find and KHMT behavior.
+
+    src/qi_crawler/market_intelligence/search.py
+        Explicit keyword-only forwarding of an EffectiveOpportunityIndex; the default None path preserves existing callers.
 
     src/qi_crawler/market_intelligence/opportunity_radar.py
         A non-mutating effective projection adapter for existing radar items.
@@ -113,7 +116,7 @@ The following paths are the complete planned implementation surface. A path is c
     tests/test_tbmt_importer.py
         Existing importer regressions proving explicit workbook fields remain the highest precedence and are never overwritten by enrichment.
 
-The following existing files are inspection-only unless a milestone below explicitly names them: src/qi_crawler/browser.py, src/qi_crawler/compliance.py, src/qi_crawler/config.py, src/qi_crawler/market_intelligence/search.py, src/qi_crawler/market_intelligence/tbmt_importer.py, src/qi_crawler/market_intelligence/source_integrity.py, src/qi_crawler/market_intelligence/source_session.py, and src/qi_crawler/market_intelligence/location_resolver.py. The existing location_resolver is not reused for TBMT enrichment because its historical MI-1 mappings can infer from unrelated fields.
+The following existing files are inspection-only unless a milestone below explicitly names them: src/qi_crawler/browser.py, src/qi_crawler/compliance.py, src/qi_crawler/config.py, src/qi_crawler/market_intelligence/search.py, src/qi_crawler/market_intelligence/tbmt_importer.py, src/qi_crawler/market_intelligence/source_integrity.py, src/qi_crawler/market_intelligence/source_session.py, and src/qi_crawler/market_intelligence/location_resolver.py. The existing location_resolver is not reused for TBMT enrichment because its historical MI-1 mappings can infer from unrelated fields. FunctionWorker and GuiTaskBridge are existing types at src/qi_crawler/gui.py:242 and src/qi_crawler/gui.py:289; the GUI task adapter uses those concrete types.
 
 ## Static inspection before M0
 
@@ -141,13 +144,25 @@ CONDITIONAL TASK: DO NOT EXECUTE unless Human A0 authorizes M0 after Planner aud
 
 Use the official public e-GP frontend in a normal Playwright browser session to observe one to three real detail responses for the exact real source and revision selected by the Planner. The run is bounded at one browser context, one detail acquisition at a time, the configured 12 requests per minute, and the existing browser timeout. No direct tokenless API replay is allowed.
 
+### M0 exact execution method
+
+Create this temporary script outside the repository:
+
+    %TEMP%\qi-r2b-m0\capture_egp_location.py
+
+Run it only after M0 authorization:
+
+    .venv\Scripts\python.exe %TEMP%\qi-r2b-m0\capture_egp_location.py --source-id IB2500585490 --revision 00 --max-samples 3 --concurrency 1 --rate-per-minute 12 --raw-root %TEMP%\qi-r2b-m0\raw --report docs/agent_handoff/evidence/R2B-M0-egp-location-response.md
+
+The script starts one BrowserFetcher context, validates AccessPolicy and robots access, navigates the official frontend, observes at most three responses, waits between detail acquisitions using the configured rate limiter, writes raw response bytes only under the unique TEMP raw-root, and writes the sanitized report to the exact report path. It terminates after the first challenge, identity mismatch, malformed envelope, or direct-province gate failure. It never extracts tokens, exports cookies, replays a request, stores storage state, or runs a solver.
+
 ### M0 procedure
 
 1. Confirm the exact source identity, base identifier, revision, and approved official URL in the Planner Work Order.
 2. Start BrowserFetcher with the current AppConfig and AccessPolicy. Validate domain and robots policy before navigation.
 3. Navigate through the official frontend detail flow. Observe network responses emitted by the page; do not manufacture an endpoint or payload.
 4. Save raw response bytes only under a unique temporary directory outside the repository. Record SHA-256, status, content type, observed route, and capture time.
-5. Bind the response to the requested identity using the response's own notify number, base identifier, revision marker, and observed UUID relation. Ambiguity is a hold.
+5. Bind the response to the requested identity by either direct echo (the response contains the exact base/revision) or causal binding: requested exact revision → version-list resolution → exact notify_id UUID → official frontend request using that UUID → observed response bound to that request. The JSON body need not echo notify/revision when the causal chain is recorded. Any ambiguity is a hold.
 6. Locate the exact detail object path and location DTO path in the observed response. Record the path as a JSON-pointer-like sequence in the sanitized report.
 7. Record at least one semantic location value that is directly a province/city. District/ward-only output does not satisfy the gate.
 8. Write only the sanitized report to docs/agent_handoff/evidence/R2B-M0-egp-location-response.md after the Human-authorized M0 run. Never write cookies, storage state, authorization headers, tokens, or private account data.
@@ -165,7 +180,7 @@ The report must contain exact observed values for REAL_RESPONSE_ENVELOPE, REAL_D
     M0_ACCESS_POLICY = PASS
     M0_RAW_SECRET_EXCLUSION = PASS
 
-Any missing direct province/city, identity mismatch, malformed envelope, HTTP challenge, CAPTCHA, robots uncertainty, or access-control interruption sets M0_PROVINCE_GATE = FAIL or M0_ACCESS = HOLD and stops the batch. Do not bypass the challenge. The mandatory next sequence is M0 evidence → Planner audit → Human decision; M0 never auto-authorizes M1–M6.
+Any missing direct province/city, identity mismatch, malformed envelope, HTTP challenge, CAPTCHA, robots uncertainty, or access-control interruption sets M0_PROVINCE_GATE = FAIL or M0_ACCESS = HOLD and stops M0. Do not bypass the challenge. The mandatory next sequence is M0 evidence → Planner audit → Human decision; M0 never auto-authorizes M1–M6. Production M3/M4 handles PARTIAL item evidence without stopping the batch, while ACCESS_CHALLENGE and INTEGRITY_MISMATCH remain whole-batch stops.
 
 ### M0 radius and evidence
 
@@ -188,22 +203,35 @@ In src/qi_crawler/market_intelligence/execution_location.py define:
         PARTIAL = "PARTIAL"
         UNKNOWN = "UNKNOWN"
 
+    class ExecutionLocationItemOutcome(StrEnum):
+        FOUND = "FOUND"
+        SOURCE_HAS_NO_LOCATION = "SOURCE_HAS_NO_LOCATION"
+        RETRIEVAL_FAILED = "RETRIEVAL_FAILED"
+        SCHEMA_UNSUPPORTED = "SCHEMA_UNSUPPORTED"
+        INTEGRITY_MISMATCH = "INTEGRITY_MISMATCH"
+        ACCESS_CHALLENGE = "ACCESS_CHALLENGE"
+        NOT_PROCESSED = "NOT_PROCESSED"
+
     @dataclass(frozen=True, slots=True)
     class ExecutionLocationEvidence:
         identity: OpportunityIdentity
-        values: tuple[str, ...]
-        province_city_values: tuple[str, ...]
-        district_values: tuple[str, ...]
-        ward_values: tuple[str, ...]
+        province_city: str | None
+        district: str | None
+        ward: str | None
         quality: ExecutionLocationQuality
         source_path: str
         response_sha256: str
         observed_at: datetime
 
+    class ExecutionLocationParseOutcome(StrEnum):
+        FOUND = "FOUND"
+        SOURCE_HAS_NO_LOCATION = "SOURCE_HAS_NO_LOCATION"
+        SCHEMA_UNSUPPORTED = "SCHEMA_UNSUPPORTED"
+
     @dataclass(frozen=True, slots=True)
     class ExecutionLocationParseResult:
+        outcome: ExecutionLocationParseOutcome
         evidence: ExecutionLocationEvidence | None
-        rejected: bool
         reason: str | None
 
     def parse_execution_location_payload(
@@ -227,7 +255,7 @@ In src/qi_crawler/market_intelligence/execution_location.py define:
     @dataclass(frozen=True, slots=True)
     class EffectiveOpportunityProjection:
         item: OpportunityRadarItem
-        execution_locations: tuple[str, ...]
+        execution_location_evidence: tuple[ExecutionLocationEvidence, ...]
         confirmed_province_city: tuple[str, ...]
         quality: ExecutionLocationQuality
         source_fingerprint: str
@@ -237,9 +265,16 @@ In src/qi_crawler/market_intelligence/execution_location.py define:
         evidence_index: ExecutionLocationEvidenceIndex,
     ) -> EffectiveOpportunityProjection
 
-The parser accepts structured detail only at the M0-proven object path. It emits CONFIRMED only for meaningful province/city values, PARTIAL for meaningful district/ward without a province/city, and UNKNOWN for absent location or unusable evidence. Malformed content is rejected with an explicit reason and is not relabeled as source-no-location.
+    @dataclass(frozen=True, slots=True)
+    class EffectiveOpportunityIndex:
+        projections: tuple[EffectiveOpportunityProjection, ...]
+        def for_identity(
+            self, identity: OpportunityIdentity
+        ) -> EffectiveOpportunityProjection | None
 
-Projection precedence is explicit workbook execution fields, then confirmed M0-backed province/city evidence, then PARTIAL detail evidence for display only, then UNKNOWN. The projection is immutable and never writes into item.source_fields, item.raw_fields, item.location_detail_raw, or workbook provenance.
+The parser accepts structured detail only at the M0-proven object path. One official location DTO produces one ExecutionLocationEvidence record; multiple DTOs produce a tuple of records and preserve each province/district/ward relationship. It returns FOUND when at least one meaningful component exists, SOURCE_HAS_NO_LOCATION when the supported schema has no meaningful component, and SCHEMA_UNSUPPORTED for an unknown or malformed schema. Within FOUND, quality is CONFIRMED for meaningful province/city, PARTIAL for district/ward without province/city, and UNKNOWN when the supported record has no filterable component.
+
+Projection precedence is component-level: explicit workbook province/city > confirmed e-GP province/city > UNKNOWN for the filter. Workbook district/ward is preserved as provenance but does not block confirmed e-GP province/city. Structured e-GP district/ward remains PARTIAL display evidence and never becomes a province/city value. The projection is immutable and never writes into item.source_fields, item.raw_fields, item.location_detail_raw, or workbook provenance; display strings are derived views only.
 
 ### M1 TDD and verification
 
@@ -258,7 +293,7 @@ GREEN commands:
     .venv\Scripts\python.exe -m ruff check src/qi_crawler/market_intelligence/execution_location.py tests/test_execution_location.py
     git diff --check
 
-The test matrix must include HCM-only pass, HCM-only versus Đồng Nai fail, HCM plus Đồng Nai matching either value, missing UNKNOWN, procuring-address HCM with execution Đồng Nai fail, issue-location HCM with execution Đồng Nai fail, explicit workbook value outranking detail, malformed response rejection, and unchanged KHMT behavior.
+The test matrix must include HCM-only pass, HCM-only versus Đồng Nai fail, HCM plus Đồng Nai matching either value, missing UNKNOWN, procuring-address HCM with execution Đồng Nai fail, issue-location HCM with execution Đồng Nai fail, explicit workbook province/city outranking detail, workbook district-only allowing confirmed e-GP province/city, malformed schema returning SCHEMA_UNSUPPORTED, and unchanged KHMT behavior.
 
     IMPACT_RADIUS = TBMT projection, filter_engine execution criterion, existing radar item contract.
     EDIT_RADIUS = execution_location.py, filter_engine.py only at the projection seam, and tests/test_execution_location.py plus named existing regression tests.
@@ -279,11 +314,16 @@ In src/qi_crawler/market_intelligence/execution_location_cache.py define:
         source_type: OpportunitySourceType
         base_id: str
         revision: str
+        official_notify_no: str
+        source_revision_id: str
         notify_id: str
-        source_sha256: str
+        retrieved_at: datetime
         response_sha256: str
+        raw_schema_version: str
         parser_contract_version: str
-        observed_at: datetime
+        retrieval_method: str
+        raw_payload_path: Path
+        workbook_source_sha256: str | None
         evidence: ExecutionLocationEvidence
 
     class ExecutionLocationCache:
@@ -308,7 +348,7 @@ In src/qi_crawler/market_intelligence/execution_location_cache.py define:
             revision: str,
         ) -> None
 
-The on-disk key is source_type + base_id + revision. Each record contains the notify identifier, source SHA, response SHA, parser contract version, evidence path, and sanitized evidence only. Corrupt JSON, wrong schema, wrong identity, wrong source SHA, or malformed evidence is rejected and never returned as a usable record. Writes use a temporary sibling file, flush/close, and atomic replace. Cookies, tokens, authorization headers, browser storage, and raw private response secrets are not cache fields.
+The on-disk key is source_type + base_id + revision. Each record preserves a reparsable raw official response payload or sanitized raw JSON payload at raw_payload_path plus official_notify_no, source_revision_id, notify_id, retrieved_at, response_sha256, raw_schema_version, parser_contract_version, retrieval_method, and optional workbook_source_sha256 provenance. The cache reader recomputes the raw payload SHA-256 and rejects a mismatch before parsing. Parser-version changes may invalidate or reparse an existing raw payload without browser reacquisition. Corrupt JSON, wrong schema, wrong identity, or malformed evidence is rejected and never returned as a usable record. Writes use a temporary sibling file, flush/close, and atomic replace. Cookies, tokens, authorization headers, browser storage, and raw private response secrets are not cache fields. Workbook source_sha256 is not part of cache lookup identity or cache corruption validity; stale application is enforced separately by source session, workbook SHA, generation, and observation_key.
 
 ### M2 TDD and verification
 
@@ -327,7 +367,7 @@ GREEN commands:
     .venv\Scripts\python.exe -m ruff check src/qi_crawler/market_intelligence/execution_location_cache.py tests/test_execution_location_cache.py
     git diff --check
 
-The tests must prove cache hit, source identity mismatch, revision mismatch, raw/source modification invalidation, malformed record rejection, atomic replacement, and absence of secrets.
+The tests must prove cache hit, source identity mismatch, revision mismatch, raw payload SHA mismatch, parser-version reparse/invalidation, malformed record rejection, atomic replacement, absence of secrets, and the fact that a different workbook SHA alone does not invalidate the same exact e-GP revision.
 
     IMPACT_RADIUS = SourceIntegrityProof, filesystem evidence root, restart/reopen semantics, stale-source handling.
     EDIT_RADIUS = execution_location_cache.py and its focused tests.
@@ -346,8 +386,9 @@ In src/qi_crawler/market_intelligence/egp_detail_provider.py define:
     @dataclass(frozen=True, slots=True)
     class ResolvedEGPIdentity:
         identity: OpportunityIdentity
+        official_notify_no: str
+        source_revision_id: str
         notify_id: str
-        revision_uuid: str
         detail_url: str
 
     @dataclass(frozen=True, slots=True)
@@ -362,7 +403,13 @@ In src/qi_crawler/market_intelligence/egp_detail_provider.py define:
         observed_at: datetime
 
     class EGPBrowserDetailProvider:
-        def __init__(self, fetcher: BrowserFetcher, *, acquisition_budget: int = 1) -> None
+        def __init__(
+            self,
+            fetcher: BrowserFetcher,
+            *,
+            concurrency_limit: int = 1,
+            detail_acquisition_rate: int | None = None,
+        ) -> None
         async def resolve_revision(
             self, identity: OpportunityIdentity
         ) -> ResolvedEGPIdentity
@@ -370,7 +417,7 @@ In src/qi_crawler/market_intelligence/egp_detail_provider.py define:
             self, resolved: ResolvedEGPIdentity
         ) -> ObservedDetailResponse
 
-The provider navigates the official frontend with BrowserFetcher, uses AccessPolicy and DomainRateLimiter, allows only one in-flight detail acquisition, and binds the observed response to the requested base/revision/notify identity. The UUID is recorded as observed metadata; the caller does not need to discover or supply it before navigation. A finite timeout, cancellation signal, challenge detection, HTTP mismatch, and response-envelope mismatch all return governed failure statuses. No provider method exports or persists browser credentials.
+The approved identity vocabulary is official_notify_no = IB..., revision = 00, source_revision_id = IB...-00, and notify_id = the revision-specific UUID observed in the official frontend flow. The provider navigates the official frontend with BrowserFetcher, uses AccessPolicy and DomainRateLimiter, enforces CONCURRENCY_LIMIT = 1, and defaults DETAIL_ACQUISITION_RATE to config.crawl.requests_per_minute (the governed value is 12 per minute). The UUID is observed metadata; the caller does not need to discover or supply it before navigation. A finite timeout, cancellation signal, challenge detection, HTTP mismatch, and response-envelope mismatch all return governed failure statuses. Retries consume the same detail-acquisition rate budget; browser asset requests are not counted as separate detail attempts. No provider method exports or persists browser credentials.
 
 ### M3 TDD and verification
 
@@ -389,7 +436,7 @@ GREEN commands:
     .venv\Scripts\python.exe -m ruff check src/qi_crawler/market_intelligence/egp_detail_provider.py tests/test_egp_detail_provider.py
     git diff --check
 
-The tests must distinguish exact identity binding, timeout, one-at-a-time concurrency, 12-per-minute budget configuration, CAPTCHA/access denial, cancellation, malformed response, and no token/replay behavior.
+The tests must distinguish exact identity binding, timeout, one-at-a-time concurrency, the separate concurrency/rate values, the 12-per-minute detail budget, retry budget consumption, CAPTCHA/access denial, cancellation, malformed response, and no token/replay behavior.
 
     IMPACT_RADIUS = BrowserFetcher, AccessPolicy, compliance markers, official e-GP frontend response path.
     EDIT_RADIUS = egp_detail_provider.py and its focused tests; browser.py is unchanged unless a Planner-approved proven seam defect exists.
@@ -405,19 +452,25 @@ CONDITIONAL TASK: DO NOT EXECUTE unless M3 evidence is accepted and Planner/Huma
 
 In src/qi_crawler/market_intelligence/execution_location_service.py define:
 
-    class EnrichmentItemStatus(StrEnum):
-        CONFIRMED = "CONFIRMED"
+    from threading import Event
+
+    class ExecutionLocationBatchOutcome(StrEnum):
+        COMPLETED = "COMPLETED"
         PARTIAL = "PARTIAL"
-        UNKNOWN = "UNKNOWN"
-        CHALLENGE = "CHALLENGE"
-        STALE = "STALE"
-        CANCELLED = "CANCELLED"
-        REJECTED = "REJECTED"
+        STOPPED_ACCESS_CHALLENGE = "STOPPED_ACCESS_CHALLENGE"
+        STOPPED_INTEGRITY_MISMATCH = "STOPPED_INTEGRITY_MISMATCH"
+        CANCELLED_BY_HUMAN = "CANCELLED_BY_HUMAN"
+        FAILED_BEFORE_START = "FAILED_BEFORE_START"
+
+    @dataclass(frozen=True, slots=True)
+    class EnrichmentCancellationToken:
+        event: Event
+        def is_cancelled(self) -> bool
 
     @dataclass(frozen=True, slots=True)
     class EnrichmentItemResult:
         identity: OpportunityIdentity
-        status: EnrichmentItemStatus
+        outcome: ExecutionLocationItemOutcome
         evidence: ExecutionLocationEvidence | None
         source_fingerprint: str
         observation_key: str
@@ -428,6 +481,7 @@ In src/qi_crawler/market_intelligence/execution_location_service.py define:
         source_fingerprint: str
         generation: int
         items: tuple[EnrichmentItemResult, ...]
+        outcome: ExecutionLocationBatchOutcome
         cancelled: bool
 
     class ExecutionLocationEnrichmentService:
@@ -443,13 +497,35 @@ In src/qi_crawler/market_intelligence/execution_location_service.py define:
             *,
             source_session: SourceSessionIdentity,
             generation: int,
-            cancel: CancellationToken,
+            cancel: EnrichmentCancellationToken,
             on_progress: Callable[[int, int, EnrichmentItemResult], None] | None = None,
         ) -> EnrichmentBatchResult
 
 The service checks source_session SHA before starting and before applying. A stale result may remain in the cache for forensic evidence, but it cannot update the current projection when source fingerprint or generation differs. Results are deterministic for a given source identity and evidence set. Applying a batch is a single terminal operation; partial items remain visible to Inspector and do not enter confirmed province/city dropdown options.
 
 The effective projection is consumed by opportunity_radar.py, filter_engine.py, and opportunity_intelligence.py. The filter contract remains workbook explicit > confirmed enrichment province/city > UNKNOWN for TBMT; PARTIAL district/ward never becomes a filter value. Generic Find remains literal, case-insensitive, accent-sensitive substring OR. KHMT evaluation is unchanged.
+
+### M4 filter/search integration seam
+
+In src/qi_crawler/market_intelligence/filter_engine.py define the backward-compatible seam:
+
+    def evaluate_opportunity(
+        item: OpportunityRadarItem,
+        profile: FilterProfile,
+        *,
+        effective_projection: EffectiveOpportunityProjection | None = None,
+    ) -> OpportunityFilterEvaluation
+
+In src/qi_crawler/market_intelligence/search.py define:
+
+    def search_opportunities(
+        items: tuple[OpportunityRadarItem, ...] | list[OpportunityRadarItem],
+        request: TargetedSearchRequest,
+        *,
+        effective_index: EffectiveOpportunityIndex | None = None,
+    ) -> TargetedOpportunitySearchResult
+
+The default effective_projection/effective_index value is None so every existing caller keeps its current behavior. When an index is supplied, search resolves the projection for each item by observation_key and passes it as the keyword-only argument to evaluate_opportunity. Generic Find always reads the original item/source fields. KHMT continues to use its existing province/city criterion. No hidden global index is permitted. OpportunityIntelligenceService.search_opportunities exposes the same optional effective_index and forwards it explicitly.
 
 ### M4 TDD and verification
 
@@ -471,7 +547,7 @@ GREEN commands:
 The tests must cover confirmed/partial/unknown/challenge/stale/cancelled statuses, source fingerprint mismatch, changed-source non-application, deterministic result ordering, multi-location matching, no mutation of source item/provenance, Generic Find, and KHMT regression.
 
     IMPACT_RADIUS = Radar projection, search/filter authority, source-session generation, cache application.
-    EDIT_RADIUS = execution_location_service.py, opportunity_radar.py, filter_engine.py, opportunity_intelligence.py, and the named tests.
+    EDIT_RADIUS = execution_location_service.py, opportunity_radar.py, filter_engine.py, search.py, opportunity_intelligence.py, and the named tests.
     TEST_RADIUS = service fakes, projection/filter regression, and source-integrity tests.
 
 Commit: feat(location): add cancellable source-backed enrichment service.
@@ -482,7 +558,7 @@ CONDITIONAL TASK: DO NOT EXECUTE unless M4 evidence is accepted and Planner/Huma
 
 ### M5 exact GUI contract
 
-In src/qi_crawler/gui_services.py add thin adapters with these signatures:
+In src/qi_crawler/gui_services.py add thin adapters with these signatures. FunctionWorker and GuiTaskBridge are the existing concrete task types from src/qi_crawler/gui.py:
 
     def start_execution_location_enrichment(
         config: AppConfig,
@@ -490,9 +566,9 @@ In src/qi_crawler/gui_services.py add thin adapters with these signatures:
         source_session: SourceSessionIdentity,
         *,
         generation: int,
-    ) -> GuiTaskHandle
+    ) -> tuple[FunctionWorker, GuiTaskBridge]
 
-    def cancel_execution_location_enrichment(handle: GuiTaskHandle) -> None
+    def cancel_execution_location_enrichment(bridge: GuiTaskBridge) -> None
 
     def apply_execution_location_batch(
         result: EnrichmentBatchResult,
@@ -501,7 +577,7 @@ In src/qi_crawler/gui_services.py add thin adapters with these signatures:
         current_generation: int,
     ) -> EffectiveOpportunityIndex
 
-In src/qi_crawler/gui.py add a Human-labelled action named Làm giàu Địa điểm thực hiện từ e-GP, an explicit progress indicator, a DỪNG action, a terminal status summary, and one apply-once callback. The GUI never calls e-GP directly and never edits an OpportunityRadarItem. After a confirmed batch is applied, rebuild the TBMT selector from distinct confirmed province/city values only, preserve the prior selection when still valid, otherwise select Tất cả, show PARTIAL evidence in Inspector, show UNKNOWN/invalidated items explicitly, and rerun the current filter exactly once. A source switch or generation change invalidates pending application.
+In src/qi_crawler/gui.py add a Human-labelled action named BỔ SUNG ĐỊA ĐIỂM TỪ e-GP, an explicit progress indicator, a DỪNG action, a terminal status summary, and one apply-once callback. The GUI never calls e-GP directly and never edits an OpportunityRadarItem. After a confirmed batch is applied, rebuild the TBMT selector from distinct confirmed province/city values only, preserve the prior selection when still valid, otherwise emit and show FILTER_SELECTION_INVALIDATED with a Human-visible notice before selecting Tất cả, show PARTIAL evidence in Inspector, show UNKNOWN/invalidated items explicitly, and rerun the current filter exactly once. A source switch or generation change invalidates pending application.
 
 ### M5 TDD and verification
 
@@ -555,7 +631,7 @@ The acceptance run records the exact source base/revision selected by the Work O
 10. Change the source fingerprint in a temporary copy and verify the stale batch cannot apply; verify a valid prior selection remains preserved after dropdown rebuild.
 11. Close and restart the application or service boundary, reopen the exact source identity, and confirm the cache/projection semantics remain deterministic.
 
-M6 coverage is smoke acceptance only; do not invent a full real-source count until the command actually runs. Any network challenge, missing direct province/city, source mismatch, cache corruption, or unexplained mutation is a HOLD and stops the lane.
+M6 coverage is smoke acceptance only; do not invent a full real-source count until the command actually runs. For the selected M6 source, missing direct province/city fails the M0-backed acceptance gate; it does not change the M3/M4 rule that valid PARTIAL item evidence may continue. Any network challenge, source mismatch, cache corruption, or unexplained mutation is a HOLD and stops the lane.
 
 ### M6 tests and verification
 
@@ -589,6 +665,17 @@ Each accepted milestone receives one bounded commit with the exact message defin
 
 ## Final self-review checklist
 
+- SPEC COVERAGE = architecture, authority, filter level, no inference, source identity, raw cache, browser policy, M0 proof, stale guard, GUI safety, and M6 acceptance are each mapped to a named section.
+- TYPE CONSISTENCY = every referenced type is existing at a cited path or defined in this plan, including Event, EnrichmentCancellationToken, EffectiveOpportunityIndex, item outcomes, batch outcomes, cache records, provider responses, and projections.
+- OUTCOME VS QUALITY SEPARATION = FOUND, SOURCE_HAS_NO_LOCATION, RETRIEVAL_FAILED, SCHEMA_UNSUPPORTED, INTEGRITY_MISMATCH, ACCESS_CHALLENGE, and NOT_PROCESSED are distinct from CONFIRMED, PARTIAL, and UNKNOWN.
+- MULTI-DTO STRUCTURE = one official DTO produces one structured evidence record; multiple DTOs remain a tuple with province/district/ward relationships intact.
+- FILTER SEAM = evaluate_opportunity and search_opportunities keyword-only projection/index signatures preserve old callers, Generic Find, and KHMT behavior.
+- CACHE RAW PAYLOAD = reparsable raw payload, response SHA recomputation, raw schema, parser version, retrieval method, and secret exclusion are explicit.
+- CACHE VS WORKBOOK IDENTITY = cache lookup uses source type + base ID + revision; workbook SHA is optional provenance, while stale application uses source session + workbook SHA + generation + observation key.
+- EGP IDENTITY VOCABULARY = official_notify_no, revision, source_revision_id, and notify_id have one unambiguous meaning.
+- M0 NETWORK CONTRACT = exact temporary harness command, three-sample maximum, concurrency one, governed rate, raw TEMP root, sanitized report path, and challenge stop are explicit.
+- GUI COPY = BỔ SUNG ĐỊA ĐIỂM TỪ e-GP is the Human action label and no auto-import occurs.
+- PLACEHOLDER SCAN = no unfinished marker, undefined interface, or unowned implementation path remains.
 - Spec coverage: architecture, authority, filter level, no inference, cache identity, browser policy, M0 proof, stale guard, GUI safety, and M6 acceptance are all represented.
 - Type consistency: OpportunityIdentity, SourceSessionIdentity, OpportunityRadarItem, ExecutionLocationEvidenceIndex, EffectiveOpportunityProjection, cache records, provider responses, and batch results have explicit immutable interfaces.
 - Network boundary: only BrowserFetcher/AccessPolicy-backed M3 service may observe official responses; GUI and local importer stay offline.
