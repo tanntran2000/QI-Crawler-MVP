@@ -29,6 +29,7 @@ def _fake_radar_item(raw_id: str = "PL260001-00") -> SimpleNamespace:
         source_type=SimpleNamespace(value="KHMT" if namespace == "PL" else "TBMT"),
         package_name="Gói thử nghiệm",
         package_price=100,
+        location_detail_raw=None,
         province_city_name="Hà Nội",
         source_sha256="a" * 64,
         observation_key=f"observation-{raw_id}",
@@ -1089,6 +1090,32 @@ def test_bid_radar_inspector_projects_supplied_structured_evidence(window: QICra
     assert "ĐẠT" in text
     assert "SUPPLIED-EVIDENCE-VALUE" in text
     assert "MATCH_BUDGET" not in text
+
+
+def test_bid_radar_exposes_execution_location_in_table_and_inspector(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462391-00")
+    item.location_detail_raw = "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+
+    window._render_bid_radar_result(_fake_result(item=item, source_type="TBMT"))
+
+    assert window.bid_radar_table.columnCount() == 8
+    assert window.bid_radar_table.horizontalHeaderItem(5).text() == (
+        "Địa điểm thực hiện"
+    )
+    assert window.bid_radar_table.item(0, 5).text() == (
+        "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+    )
+
+    window.bid_radar_table.selectRow(0)
+    inspector = window.bid_radar_inspector_text.toPlainText()
+    assert "Địa điểm thực hiện" in inspector
+    assert "Khu vực" not in inspector
+    assert "Phường Bến Nghé, Thành phố Hồ Chí Minh" in inspector
+
+    item.location_detail_raw = None
+    assert window._bid_radar_execution_location(item) == "—"
 
 
 def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawlerWindow) -> None:

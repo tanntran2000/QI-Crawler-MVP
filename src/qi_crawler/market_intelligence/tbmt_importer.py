@@ -27,6 +27,50 @@ from .tbmt_schema import REQUIRED_TBMT_HEADERS, canonical_tbmt_header
 MAX_HEADER_SCAN_ROWS = 50
 SCHEMA_VERSION = "mi-tbmt-1"
 
+_EXECUTION_LOCATION_FIELD_NAMES = (
+    "địa điểm thực hiện gói thầu",
+    "địa điểm thực hiện",
+    "địa điểm thi công",
+    "execution location",
+)
+
+
+def _execution_location_from_raw_fields(raw_fields: dict[str, Any]) -> str | None:
+    """Return only an explicitly-labelled execution location from source data.
+
+    The TBMT list export often omits this field.  When a detail-shaped source
+    is supplied, preserve its deterministic provinces -> location -> workAddress
+    precedence without treating the procuring-entity address or issue location
+    as the place where the contract is performed.
+    """
+
+    normalized_fields = {
+        " ".join(str(key).split()).casefold(): value for key, value in raw_fields.items()
+    }
+    provinces = normalized_fields.get("provinces")
+    if isinstance(provinces, (list, tuple)):
+        names: list[str] = []
+        for province in provinces:
+            if isinstance(province, dict):
+                name = compact_source_text(province.get("name"))
+            else:
+                name = compact_source_text(province)
+            if name is not None:
+                names.append(name)
+        if names:
+            return ", ".join(names)
+
+    for field_name in _EXECUTION_LOCATION_FIELD_NAMES:
+        text = compact_source_text(normalized_fields.get(field_name))
+        if text is not None:
+            return text
+
+    for field_name in ("location", "workaddress"):
+        text = compact_source_text(normalized_fields.get(field_name))
+        if text is not None:
+            return text
+    return None
+
 
 class TBMTIssueCode(StrEnum):
     MISSING_REQUIRED_HEADER = "MISSING_REQUIRED_HEADER"
@@ -238,7 +282,7 @@ def import_tbmt_workbook(
                     package_price_raw=package_price_raw,
                     package_price=package_price,
                     funding_source=compact_source_text(raw_fields.get("NGUỒN VỐN")),
-                    location_detail_raw=None,
+                    location_detail_raw=_execution_location_from_raw_fields(raw_fields),
                     raw_fields=raw_fields,
                     provenance={
                         "source_filename": batch.source_filename,

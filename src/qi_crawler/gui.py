@@ -858,7 +858,7 @@ class QICrawlerWindow(QMainWindow):
                 "Revision",
                 "Tên gói",
                 "Giá gói",
-                "Khu vực",
+                "Địa điểm thực hiện",
                 "Kết quả lọc",
                 "Review",
             ]
@@ -1280,7 +1280,7 @@ class QICrawlerWindow(QMainWindow):
             f"Mã dòng: {base_id}",
             f"Tên gói: {getattr(row, 'package_name', getattr(item, 'package_name', '—'))}",
             f"Giá gói: {format_vnd_amount(getattr(item, 'package_price', None)) or '—'}",
-            f"Khu vực: {getattr(item, 'province_city_name', None) or '—'}",
+            f"Địa điểm thực hiện: {self._bid_radar_execution_location(item)}",
             f"Revision: {revision}",
             f"Nguồn: {source_type}",
             f"Kết quả lọc: {self._bid_radar_disposition_label(getattr(row, 'disposition', 'UNKNOWN'))}",
@@ -1494,6 +1494,26 @@ class QICrawlerWindow(QMainWindow):
             "NEEDS_REVIEW": "Cần kiểm tra",
         }.get(value, "Cần kiểm tra")
 
+    @staticmethod
+    def _bid_radar_execution_location(item: Any) -> str:
+        """Return source-backed execution location for Bid Radar display."""
+
+        for field_name in ("location_detail_raw", "execution_location"):
+            value = getattr(item, field_name, None)
+            if value is not None and str(value).strip():
+                return str(value).strip()
+        source_fields = getattr(item, "source_fields", {}) or {}
+        for field_name in (
+            "execution_location",
+            "location_detail_raw",
+            "location",
+            "workAddress",
+        ):
+            value = source_fields.get(field_name)
+            if value is not None and str(value).strip():
+                return str(value).strip()
+        return "—"
+
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
         source_path = getattr(result, "source_path", None)
         source_sha256 = getattr(result, "source_sha256", None)
@@ -1529,7 +1549,7 @@ class QICrawlerWindow(QMainWindow):
                 item.identity.revision or "",
                 item.package_name,
                 format_vnd_amount(item.package_price).removesuffix(" VNĐ") if item.package_price is not None else "",
-                item.province_city_name or "",
+                self._bid_radar_execution_location(item),
                 self._bid_radar_disposition_label(row.disposition),
                 self._bid_radar_review_label(row.review_state),
             )

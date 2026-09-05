@@ -12,6 +12,7 @@ from qi_crawler.market_intelligence.opportunity_contract import OpportunitySourc
 from qi_crawler.market_intelligence.tbmt_importer import (
     TBMTImportError,
     TBMTIssueCode,
+    _execution_location_from_raw_fields,
     import_tbmt_workbook,
 )
 from qi_crawler.market_intelligence.tbmt_schema import OBSERVED_TBMT_HEADERS
@@ -117,6 +118,44 @@ def test_import_maps_common_fields_without_inventing_execution_location(tmp_path
     assert candidate.location_detail_raw is None
     assert candidate.raw_fields["ĐỊA CHỈ BÊN MỜI THẦU"] == "Địa chỉ bên mời thầu"
     assert candidate.raw_fields["ĐỊA ĐIỂM PHÁT HÀNH"] == "Địa điểm phát hành"
+
+
+def test_import_maps_dedicated_execution_location_source_field(tmp_path: Path) -> None:
+    headers = OBSERVED_TBMT_HEADERS + ("ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU",)
+    path = _write_workbook(
+        tmp_path,
+        headers=headers,
+        rows=[
+            {
+                **_row(),
+                "ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU": "Phường Bến Nghé, Thành phố Hồ Chí Minh",
+            }
+        ],
+    )
+
+    candidate = import_tbmt_workbook(path).candidates[0]
+
+    assert candidate.location_detail_raw == "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+    assert candidate.raw_fields["ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU"] == (
+        "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+    )
+
+
+def test_execution_location_detail_payload_uses_provinces_first() -> None:
+    assert _execution_location_from_raw_fields(
+        {
+            "provinces": [{"name": "Hà Nội"}, {"name": "Hải Phòng"}],
+            "location": "Fallback location",
+            "workAddress": "Fallback address",
+        }
+    ) == "Hà Nội, Hải Phòng"
+
+    assert _execution_location_from_raw_fields({"location": "Fallback location"}) == (
+        "Fallback location"
+    )
+    assert _execution_location_from_raw_fields({"workAddress": "Fallback address"}) == (
+        "Fallback address"
+    )
 
 
 def test_import_preserves_full_package_source_text_without_stripping_identity(
