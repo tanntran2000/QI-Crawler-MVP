@@ -359,6 +359,9 @@ class QICrawlerWindow(QMainWindow):
         self._document_session_duplicates = 0
         self._bid_radar_items: tuple[Any, ...] = ()
         self._bid_radar_rows: tuple[BidRadarRow, ...] = ()
+        self._bid_radar_result: Any | None = None
+        self._bid_radar_visible_result_indices: tuple[int, ...] = ()
+        self.bid_radar_result_view_mode = "ALL"
         self._bid_radar_load_result: Any | None = None
         self._bid_radar_loaded_source: Path | None = None
         self._bid_radar_loaded_sha256: str | None = None
@@ -872,6 +875,24 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_status.setWordWrap(True)
         canvas_layout.addWidget(self.bid_radar_status)
 
+        result_view_box = QGroupBox("KẾT QUẢ HIỂN THỊ")
+        result_view_layout = QHBoxLayout(result_view_box)
+        self.bid_radar_view_buttons: dict[str, QPushButton] = {}
+        for view_mode in ("MATCH", "INDETERMINATE", "NO_MATCH", "ALL"):
+            button = QPushButton()
+            button.setCheckable(True)
+            button.setObjectName(f"bidRadarView{view_mode.title().replace('_', '')}")
+            button.clicked.connect(
+                lambda _checked=False, mode=view_mode: self._set_bid_radar_result_view(mode)
+            )
+            self.bid_radar_view_buttons[view_mode] = button
+            result_view_layout.addWidget(button)
+        canvas_layout.addWidget(result_view_box)
+        self.bid_radar_result_view_empty_state = QLabel()
+        self.bid_radar_result_view_empty_state.setWordWrap(True)
+        self.bid_radar_result_view_empty_state.hide()
+        canvas_layout.addWidget(self.bid_radar_result_view_empty_state)
+
         self.bid_radar_table = QTableWidget(0, 8)
         self.bid_radar_table.setObjectName("bidRadarResultTable")
         self.bid_radar_table.setHorizontalHeaderLabels(
@@ -1129,6 +1150,88 @@ class QICrawlerWindow(QMainWindow):
             "Từ khóa: " + (" · ".join(keywords) if keywords else "chưa có")
         )
 
+    @staticmethod
+    def _bid_radar_result_view_label(view_mode: str) -> str:
+        return {
+            "MATCH": "PHÙ HỢP",
+            "INDETERMINATE": "CẦN KIỂM TRA",
+            "NO_MATCH": "KHÔNG PHÙ HỢP",
+            "ALL": "TẤT CẢ",
+        }[view_mode]
+
+    def _update_bid_radar_view_controls(self) -> None:
+        result = self._bid_radar_result
+        counts = {
+            "MATCH": int(getattr(result, "matched_count", 0) or 0),
+            "INDETERMINATE": int(getattr(result, "indeterminate_count", 0) or 0),
+            "NO_MATCH": int(getattr(result, "nonmatched_count", 0) or 0),
+            "ALL": int(
+                getattr(result, "total_examined", len(self._bid_radar_rows))
+                if result is not None
+                else 0
+            ),
+        }
+        for view_mode, button in self.bid_radar_view_buttons.items():
+            button.setText(f"{self._bid_radar_result_view_label(view_mode)} {counts[view_mode]}")
+            button.setChecked(view_mode == self.bid_radar_result_view_mode)
+
+    def _visible_bid_radar_result_indices(self, view_mode: str) -> tuple[int, ...]:
+        if view_mode == "ALL":
+            return tuple(range(len(self._bid_radar_rows)))
+        return tuple(
+            index
+            for index, row in enumerate(self._bid_radar_rows)
+            if getattr(getattr(row, "disposition", None), "value", row.disposition)
+            == view_mode
+        )
+
+    def _render_bid_radar_table(self, selected_original_index: int | None = None) -> None:
+        visible_indices = self._visible_bid_radar_result_indices(self.bid_radar_result_view_mode)
+        self._bid_radar_visible_result_indices = visible_indices
+        self.bid_radar_table.setRowCount(len(visible_indices))
+        for visible_index, original_index in enumerate(visible_indices):
+            row = self._bid_radar_rows[original_index]
+            item = row.item
+            values = (
+                item.identity.raw_id,
+                item.identity.base_id,
+                item.identity.revision or "",
+                item.package_name,
+                format_vnd_amount(item.package_price).removesuffix(" VNĐ")
+                if item.package_price is not None
+                else "",
+                self._bid_radar_execution_location(item),
+                self._bid_radar_disposition_label(row.disposition),
+                self._bid_radar_review_label(row.review_state),
+            )
+            for column, value in enumerate(values):
+                self.bid_radar_table.setItem(
+                    visible_index, column, QTableWidgetItem(str(value))
+                )
+        empty = not visible_indices
+        self.bid_radar_result_view_empty_state.setVisible(empty)
+        if empty:
+            label = self._bid_radar_result_view_label(self.bid_radar_result_view_mode)
+            self.bid_radar_result_view_empty_state.setText(
+                f'Không có gói trong nhóm "{label}".'
+            )
+        self.bid_radar_table.clearSelection()
+        self.bid_radar_table.setCurrentCell(-1, -1)
+        if selected_original_index is not None and selected_original_index in visible_indices:
+            self.bid_radar_table.selectRow(visible_indices.index(selected_original_index))
+        else:
+            self._on_bid_radar_selected()
+
+    def _set_bid_radar_result_view(self, view_mode: str) -> None:
+        if view_mode not in {"MATCH", "INDETERMINATE", "NO_MATCH", "ALL"}:
+            raise ValueError(f"Unsupported Bid Radar result view: {view_mode}")
+        selected_original_index = self._selected_bid_radar_index()
+        self.bid_radar_result_view_mode = view_mode
+        self._update_bid_radar_view_controls()
+        self._render_bid_radar_table(
+            selected_original_index if selected_original_index >= 0 else None
+        )
+
     def _selected_bid_radar_item(self) -> Any | None:
         selected = self._selected_bid_radar_index()
         if 0 <= selected < len(self._bid_radar_rows):
@@ -1141,6 +1244,8 @@ class QICrawlerWindow(QMainWindow):
             selected_items = self.bid_radar_table.selectedItems()
             if selected_items:
                 selected = selected_items[0].row()
+        if 0 <= selected < len(self._bid_radar_visible_result_indices):
+            return self._bid_radar_visible_result_indices[selected]
         return selected
 
     @staticmethod
@@ -1366,11 +1471,17 @@ class QICrawlerWindow(QMainWindow):
     def _clear_bid_radar_loaded_state(self) -> None:
         self._bid_radar_items = ()
         self._bid_radar_rows = ()
+        self._bid_radar_result = None
+        self._bid_radar_visible_result_indices = ()
+        self.bid_radar_result_view_mode = "ALL"
         self._bid_radar_load_result = None
         self._bid_radar_loaded_source = None
         self._bid_radar_loaded_sha256 = None
         self.bid_radar_table.setRowCount(0)
         self.bid_radar_table.clearSelection()
+        self.bid_radar_table.setCurrentCell(-1, -1)
+        self.bid_radar_result_view_empty_state.hide()
+        self._update_bid_radar_view_controls()
         self.bid_radar_reviewer.clear()
         self.bid_radar_note.clear()
         self._reset_bid_radar_location_state()
@@ -1658,6 +1769,7 @@ class QICrawlerWindow(QMainWindow):
                 return
             self.bid_radar_path.setText(str(result_identity.path))
             self._render_bid_radar_source_session()
+        self._bid_radar_result = result
         self._bid_radar_rows = tuple(result.rows)
         self._bid_radar_items = tuple(result.items)
         self._populate_bid_radar_location_options(
@@ -1667,22 +1779,10 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
         self._bid_radar_loaded_sha256 = source_sha256
         self.bid_radar_legal_button.setEnabled(result.source_type.value == "KHMT")
-        self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
-        for row_index, row in enumerate(self._bid_radar_rows):
-            item = row.item
-            values = (
-                item.identity.raw_id,
-                item.identity.base_id,
-                item.identity.revision or "",
-                item.package_name,
-                format_vnd_amount(item.package_price).removesuffix(" VNĐ") if item.package_price is not None else "",
-                self._bid_radar_execution_location(item),
-                self._bid_radar_disposition_label(row.disposition),
-                self._bid_radar_review_label(row.review_state),
-            )
-            for column, value in enumerate(values):
-                self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
         unfiltered_count = getattr(result, "unfiltered_count", 0)
+        self.bid_radar_result_view_mode = "ALL" if unfiltered_count else "MATCH"
+        self._update_bid_radar_view_controls()
+        self._render_bid_radar_table()
         source_count = getattr(result, "total_examined", len(self._bid_radar_items))
         find_hit_count = getattr(result, "find_hit_count", source_count)
         find_summary = (
@@ -1720,7 +1820,6 @@ class QICrawlerWindow(QMainWindow):
             f" · {getattr(result, 'indeterminate_count', 0)} cần kiểm tra."
         )
         self._update_bid_radar_context()
-        self.bid_radar_table.clearSelection()
         self.bid_radar_status.setText("\n".join(status_lines))
         self._render_bid_radar_inspector(None)
 
@@ -1754,7 +1853,7 @@ class QICrawlerWindow(QMainWindow):
         self._render_bid_radar_inspector(row)
 
     def start_bid_radar_review(self, decision: str) -> None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         if not (0 <= selected < len(self._bid_radar_rows)):
             self.bid_radar_status.setText("Hãy chọn một gói trước khi review.")
             return
@@ -1796,17 +1895,18 @@ class QICrawlerWindow(QMainWindow):
                 criteria=getattr(row, "criteria", ()),
             ),
         ) + self._bid_radar_rows[row_index + 1 :]
-        self.bid_radar_table.setItem(
-            row_index,
-            7,
-            QTableWidgetItem(self._bid_radar_review_label(decision)),
-        )
+        if row_index in self._bid_radar_visible_result_indices:
+            self.bid_radar_table.setItem(
+                self._bid_radar_visible_result_indices.index(row_index),
+                7,
+                QTableWidgetItem(self._bid_radar_review_label(decision)),
+            )
         self.bid_radar_status.setText("Đã lưu quyết định review. Có thể xuất lại dữ liệu đã xác nhận.")
         self._on_bid_radar_selected()
 
     @Slot()
     def start_bid_radar_workspace_handoff(self) -> None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         if not (0 <= selected < len(self._bid_radar_rows)):
             self.bid_radar_status.setText("Hãy chọn một gói đã xác nhận trước khi mở workspace.")
             return

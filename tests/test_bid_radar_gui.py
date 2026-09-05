@@ -303,6 +303,7 @@ def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow
     )
     result.rows[0].reasons = ("PRICE_UNKNOWN",)
     window._render_bid_radar_result(result)
+    window._set_bid_radar_result_view("INDETERMINATE")
 
     assert window.bid_radar_table.item(0, 0).text() == "IB2600463290-00"
     assert window.bid_radar_table.item(0, 6).text() == "CẦN KIỂM TRA"
@@ -1296,6 +1297,173 @@ def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawler
     assert window.bid_radar_export_button.isVisible() or not window.isVisible()
     assert window.bid_radar_legal_button.isEnabled() is True
     assert not window.bid_radar_workspace_button.isEnabled()
+
+
+def _result_with_dispositions(
+    dispositions: tuple[str, ...],
+    *,
+    review_states: tuple[str, ...] | None = None,
+    source_type: str = "TBMT",
+) -> SimpleNamespace:
+    review_states = review_states or tuple("UNREVIEWED" for _ in dispositions)
+    items = tuple(_fake_radar_item(f"IB260090{index:04d}-00") for index in range(len(dispositions)))
+    rows = tuple(
+        SimpleNamespace(
+            item=item,
+            disposition=disposition,
+            reasons=(),
+            review_state=review_state,
+        )
+        for item, disposition, review_state in zip(items, dispositions, review_states)
+    )
+    counts = {
+        "MATCH": dispositions.count("MATCH"),
+        "INDETERMINATE": dispositions.count("INDETERMINATE"),
+        "NO_MATCH": dispositions.count("NO_MATCH"),
+        "UNFILTERED": dispositions.count("UNFILTERED"),
+    }
+    return SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        load_result=SimpleNamespace(
+            source_type=SimpleNamespace(value=source_type),
+            source_path=Path("tbmt.xlsx"),
+            source_sha256="c" * 64,
+            items=items,
+        ),
+        source_path=Path("tbmt.xlsx"),
+        source_sha256="c" * 64,
+        items=items,
+        rows=rows,
+        issues=(),
+        matched_count=counts["MATCH"],
+        indeterminate_count=counts["INDETERMINATE"],
+        nonmatched_count=counts["NO_MATCH"],
+        unfiltered_count=counts["UNFILTERED"],
+        total_examined=len(rows),
+        find_hit_count=len(rows),
+    )
+
+
+def test_bid_radar_match_view_surfaces_only_matches_first(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH", "NO_MATCH", "MATCH"))
+
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_result_view_mode == "MATCH"
+    assert window.bid_radar_table.rowCount() == 2
+    assert [window.bid_radar_table.item(row, 0).text() for row in range(2)] == [
+        "IB2600900001-00",
+        "IB2600900003-00",
+    ]
+
+
+def test_bid_radar_result_view_modes_preserve_authoritative_counts(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH", "NO_MATCH", "MATCH"))
+
+    window._render_bid_radar_result(result)
+    assert window.bid_radar_view_buttons["MATCH"].text() == "PHÙ HỢP 2"
+    assert window.bid_radar_view_buttons["INDETERMINATE"].text() == "CẦN KIỂM TRA 0"
+    assert window.bid_radar_view_buttons["NO_MATCH"].text() == "KHÔNG PHÙ HỢP 2"
+    assert window.bid_radar_view_buttons["ALL"].text() == "TẤT CẢ 4"
+
+    window._set_bid_radar_result_view("ALL")
+    assert window.bid_radar_table.rowCount() == 4
+    window._set_bid_radar_result_view("NO_MATCH")
+    assert window.bid_radar_table.rowCount() == 2
+    assert all(
+        window.bid_radar_table.item(row, 6).text() == "KHÔNG PHÙ HỢP"
+        for row in range(window.bid_radar_table.rowCount())
+    )
+
+
+def test_bid_radar_indeterminate_and_unfiltered_defaults(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(
+        ("MATCH", "INDETERMINATE", "INDETERMINATE", "NO_MATCH", "NO_MATCH")
+    )
+    window._render_bid_radar_result(result)
+    window._set_bid_radar_result_view("INDETERMINATE")
+    assert window.bid_radar_table.rowCount() == 2
+
+    unfiltered = _result_with_dispositions(("UNFILTERED", "UNFILTERED", "UNFILTERED"))
+    window._render_bid_radar_result(unfiltered)
+    assert window.bid_radar_result_view_mode == "ALL"
+    assert window.bid_radar_table.rowCount() == 3
+
+
+def test_bid_radar_visible_index_maps_inspector_review_and_handoff_to_original_item(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH"), review_states=("UNREVIEWED", "CONFIRMED"))
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+
+    selected_item = result.rows[1].item
+    assert window._selected_bid_radar_item() is selected_item
+    assert selected_item.identity.raw_id in window.bid_radar_inspector_text.toPlainText()
+
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["function"] = function
+        captured["args"] = args
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    window.start_bid_radar_workspace_handoff()
+    assert captured["args"] == (window.config, selected_item)
+
+
+def test_bid_radar_switching_view_clears_hidden_selection(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("MATCH", "NO_MATCH"))
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+    window._set_bid_radar_result_view("NO_MATCH")
+
+    assert window.bid_radar_table.currentRow() == -1
+    assert window._selected_bid_radar_item() is None
+    assert window.bid_radar_inspector_text.toPlainText().startswith("Chưa chọn cơ hội.")
+    assert not window.bid_radar_confirm_button.isEnabled()
+
+
+def test_bid_radar_view_switch_preserves_visible_identity_and_review_state(
+    window: QICrawlerWindow,
+) -> None:
+    result = _result_with_dispositions(
+        ("NO_MATCH", "MATCH"), review_states=("UNREVIEWED", "CONFIRMED")
+    )
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+    selected_item = result.rows[1].item
+
+    window._set_bid_radar_result_view("ALL")
+    assert window.bid_radar_table.currentRow() == 1
+    assert window._selected_bid_radar_item() is selected_item
+    assert window.bid_radar_table.item(1, 7).text() == "Đã xác nhận"
+
+    window._set_bid_radar_result_view("MATCH")
+    assert window.bid_radar_table.currentRow() == 0
+    assert window._selected_bid_radar_item() is selected_item
+    assert window.bid_radar_table.item(0, 7).text() == "Đã xác nhận"
+
+
+def test_bid_radar_source_reset_clears_view_mapping_and_new_run_default(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(
+        _result_with_dispositions(("NO_MATCH", "MATCH"))
+    )
+    window._set_bid_radar_result_view("NO_MATCH")
+    window._clear_bid_radar_loaded_state()
+
+    assert window.bid_radar_result_view_mode == "ALL"
+    assert window._bid_radar_visible_result_indices == ()
+    assert window.bid_radar_table.rowCount() == 0
+
+    window._render_bid_radar_result(
+        _result_with_dispositions(("NO_MATCH", "MATCH"))
+    )
+    assert window.bid_radar_result_view_mode == "MATCH"
+    assert window.bid_radar_table.rowCount() == 1
 
 
 def test_bid_radar_required_geometries_have_operable_regions(window: QICrawlerWindow) -> None:
