@@ -1,7 +1,8 @@
 # Controlled e-GP Execution Location Enrichment — R2B Design
 
-Status: Human-approved design sections 1, 2 and 3-R1; documentation only.
-Implementation is gated by the M0 real-response proof in this document.
+Status: Human-approved final design. Documentation only. Implementation remains
+gated by implementation-plan approval, M0 execution authorization and the M0
+real-response proof gate.
 
 ## 1. Problem and goal
 
