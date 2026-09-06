@@ -105,10 +105,10 @@ R2B_SPEC = HUMAN_APPROVED_FINAL
 R2B_SPEC_PATH = docs/superpowers/specs/2026-09-05-egp-execution-location-r2b-design.md
 R2B_PLAN = FEATURE_BRANCH_PLAN
 R2B_IMPLEMENTATION_PLAN = docs/superpowers/plans/2026-09-05-egp-execution-location-r2b-implementation-plan.md
-R2B_PLAN_STATE = PENDING_PLANNER_OFFLINE_HARNESS_REAUDIT
+R2B_PLAN_STATE = PENDING_PLANNER_PRE_M0_CLOSURE
 R2B_ARCHITECTURE = BROWSER_NATIVE_RESPONSE_CAPTURE
 R2B_CAPTCHA_POLICY = STOP_BATCH_HUMAN_CHECK
-R2B_M0 = HOLD_PENDING_OFFLINE_HARNESS_REAUDIT
+R2B_M0 = HOLD_PENDING_PLANNER_PRE_M0_CLOSURE
 R2B_M0_EXECUTION = NOT_EXECUTED
 R2B_M1_TO_M6 = HOLD_BEHIND_M0
 R2B_M1_TO_M6_IMPLEMENTATION = NOT_IMPLEMENTED
@@ -148,11 +148,11 @@ QI_BID_DESK = APPROVED_DESIGN_BASELINE
 UI_MODEL = SELECTION_DESK | SOURCE_CANVAS | SMART_INSPECTOR
 COGNITIVE_SAFETY = REQUIRED
 HSMT_UI_REDESIGN = PARKED_UNTIL_BID_RADAR_ACCEPTANCE
-INTEGRATION_STATE = MERGED_TO_MAIN
-NEXT = STOP_FOR_PLANNER_R2B_M0_HARNESS_REAUDIT
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_R2B_M0_HARNESS_REAUDIT
+ACTIVE_BRANCH_INTEGRATION_STATE = FEATURE_BRANCH_NOT_MERGED_TO_MAIN
+NEXT = STOP_FOR_PLANNER_R2B_PRE_M0_FINAL_DECISION
+EXACTLY_ONE_NEXT_ACTION = STOP_FOR_PLANNER_R2B_PRE_M0_FINAL_DECISION
 NEXT_AUTHORITY = PLANNER_ARCHITECT
-HANDOFF_READY = PENDING_PLANNER_R2B_M0_HARNESS_REAUDIT
+HANDOFF_READY = PENDING_PLANNER_R2B_PRE_M0_CLOSURE
 DEPLOYED_VERSION = 0.9.0
 RELEASE_SOURCE = bf46dbce7501ddf0ae0a7115ddde28eb3b137f62
 OPERATIONAL_RELEASE = ACCEPTED_BY_HUMAN_A0
@@ -164,4 +164,4 @@ NOTEBOOKLM_DESIGN = PARKED
 
 ## Current disposition
 
-Micro-A6-C3 adds presentation-only result surfacing to Bid Radar: active-filter runs open on the PHÙ HỢP subset, unfiltered runs open on TẤT CẢ, and users can switch among disposition views without changing filter semantics. An explicit result-index mapping keeps table selection, Quick View, Review, and Team Bid handoff bound to the same source opportunity; result order and the accepted A6-C2 execution-location evidence contract remain unchanged. Micro-A6-C3 is human-accepted and closed, with no release, migration-file, network, or product-authority scope expanded. The next action is Planner selection of the next governed work.
+Micro-A6-C3 is historical: it is human-accepted and closed. The active object is R2B-PRE-M0 on this feature branch. Its R2B specification is Human-approved, but its M0 evidence harness awaits Planner pre-M0 closure; M0 has not executed and M1–M6 are not implemented. Those states do not merge the feature branch to main. A7 remains HOLD by current priority, not by an R2B dependency.
