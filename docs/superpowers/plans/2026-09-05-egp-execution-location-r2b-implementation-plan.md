@@ -438,31 +438,55 @@ The complete temporary script is:
         return bool(payload and payload.get(contract.identity_field) == sample.expected_notify_id)
 
 
-    async def visible_runtime_challenge(page: Any) -> bool:
-        """Detect only visible runtime gates; static script references are not a challenge."""
+    async def _within_deadline(awaitable: Any, deadline_at: float) -> Any | None:
+        remaining = remaining_seconds(deadline_at)
+        if remaining <= 0:
+            return None
+        try:
+            return await asyncio.wait_for(awaitable, timeout=remaining)
+        except TimeoutError:
+            return None
+
+
+    async def visible_runtime_challenge(page: Any, deadline_at: float) -> str:
+        """Use real Playwright visibility/body seams inside the shared deadline."""
         url = str(getattr(page, "url", "")).casefold()
         if any(token in url for token in ("/login", "/sign-in", "/dang-nhap")):
-            return True
+            return "ACCESS_CHALLENGE"
         locator = getattr(page, "locator", None)
-        if locator is not None:
-            for selector in (
-                "input[type='password']",
-                "iframe[src*='recaptcha']",
-                "[data-sitekey]",
-                "[class*='captcha']",
-            ):
-                try:
-                    if await locator(selector).count():
-                        return True
-                except Exception:
-                    pass
-        text_content = getattr(page, "visible_text", None)
-        if callable(text_content):
-            text = (await text_content()).casefold()
-            return any(marker in text for marker in (
-                "access denied", "human verification", "verify you are human", "xác minh", "truy cập bị từ chối",
-            ))
-        return False
+        if locator is None:
+            return "RETRIEVAL_FAILED"
+        for selector in (
+            "input[type='password']",
+            "iframe[src*='recaptcha']",
+            "[data-sitekey]",
+            "[class*='captcha']",
+        ):
+            count = await _within_deadline(locator(selector).count(), deadline_at)
+            if count is None:
+                return "RETRIEVAL_FAILED"
+            if count:
+                visible = await _within_deadline(locator(selector).is_visible(timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
+                if visible is None:
+                    return "RETRIEVAL_FAILED"
+                if visible:
+                    return "ACCESS_CHALLENGE"
+        body = locator("body")
+        body_visible = await _within_deadline(body.is_visible(timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
+        if body_visible is None:
+            return "RETRIEVAL_FAILED"
+        if not body_visible:
+            return "CLEAR"
+        text = await _within_deadline(body.inner_text(timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
+        if text is None:
+            return "RETRIEVAL_FAILED"
+        text = text.casefold()
+        if any(marker in text for marker in (
+            "access denied", "human verification", "verify you are human",
+            "xác minh bạn là con người", "xác minh bạn không phải", "truy cập bị từ chối",
+        )):
+            return "ACCESS_CHALLENGE"
+        return "CLEAR"
 
 
     def remaining_seconds(deadline_at: float) -> float:
@@ -475,8 +499,9 @@ The complete temporary script is:
         """Use one deadline for response, challenge polling, and uniqueness quiet window."""
         selected = None
         while selected is None:
-            if await visible_runtime_challenge(page):
-                return None, "ACCESS_CHALLENGE"
+            challenge_state = await visible_runtime_challenge(page, deadline_at)
+            if challenge_state != "CLEAR":
+                return None, challenge_state
             remaining = remaining_seconds(deadline_at)
             if remaining <= 0:
                 return None, "DETAIL_RESPONSE_TIMEOUT"
@@ -488,8 +513,9 @@ The complete temporary script is:
         if quiet_deadline > deadline_at:
             return None, "UNIQUENESS_NOT_PROVEN"
         while True:
-            if await visible_runtime_challenge(page):
-                return None, "ACCESS_CHALLENGE"
+            challenge_state = await visible_runtime_challenge(page, deadline_at)
+            if challenge_state != "CLEAR":
+                return None, challenge_state
             remaining = min(remaining_seconds(deadline_at), quiet_deadline - asyncio.get_running_loop().time())
             if remaining <= 0:
                 return selected, "UNIQUE"
@@ -522,8 +548,9 @@ The complete temporary script is:
             navigation_state = detail_status(int(getattr(navigation, "status", 0)))
             if navigation_state != "SUCCESS":
                 return None, navigation_state
-            if await visible_runtime_challenge(page):
-                return None, "ACCESS_CHALLENGE"
+            challenge_state = await visible_runtime_challenge(page, deadline_at)
+            if challenge_state != "CLEAR":
+                return None, challenge_state
             if remaining_seconds(deadline_at) <= 0:
                 return None, "DETAIL_RESPONSE_TIMEOUT"
             return await wait_for_unique_response(queue, deadline_at, quiet_seconds, page)
@@ -575,6 +602,12 @@ The complete temporary script is:
         await limiter.wait(url)
         deadline_at = asyncio.get_running_loop().time() + deadline_seconds
         page = await fetcher.new_page()
+        result: dict[str, Any] | None = None
+
+        def finish(item: dict[str, Any]) -> dict[str, Any]:
+            nonlocal result
+            result = item
+            return item
         try:
             response, capture_state = await capture_exact_response(
                 page,
@@ -585,7 +618,7 @@ The complete temporary script is:
                 quiet_seconds,
             )
             if capture_state != "UNIQUE":
-                return {"sample": sample.key, "outcome": capture_state, "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+                return finish({"sample": sample.key, "outcome": capture_state, "REAL_IDENTITY_BINDING": "NOT_PROVEN"})
             status_state = detail_status(response.status)
             binding = {
                 "method": contract.method.upper(),
@@ -605,33 +638,33 @@ The complete temporary script is:
                 "captured_at": datetime.now(UTC).isoformat(),
             }
             if status_state == "ACCESS_CHALLENGE":
-                return base | {"outcome": "ACCESS_CHALLENGE", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+                return finish(base | {"outcome": "ACCESS_CHALLENGE", "REAL_IDENTITY_BINDING": "NOT_PROVEN"})
             if status_state != "SUCCESS":
-                return base | {"outcome": "RETRIEVAL_FAILED", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+                return finish(base | {"outcome": "RETRIEVAL_FAILED", "REAL_IDENTITY_BINDING": "NOT_PROVEN"})
             remaining = remaining_seconds(deadline_at)
             if remaining <= 0:
-                return base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+                return finish(base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"})
             try:
                 body = await asyncio.wait_for(response.body(), timeout=remaining)
             except TimeoutError:
-                return base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+                return finish(base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"})
             digest = hashlib.sha256(body).hexdigest()
             try:
                 payload = json.loads(body)
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
-                return base | {
+                return finish(base | {
                     "outcome": "PARSER_FAILED",
                     "RAW_RESPONSE_SHA256": digest,
                     "stop_reason": sanitize_error(error),
-                }
+                })
             raw_path = raw_root / f"{sample.source_id}-{sample.revision}-{digest}.json"
             persisted_digest, raw_written = persist_raw_if_secret_free(raw_path, body)
             if not raw_written:
-                return base | {
+                return finish(base | {
                     "outcome": "RAW_SECRET_HOLD",
                     "RAW_RESPONSE_SHA256": persisted_digest,
                     "M0_RAW_SECRET_EXCLUSION": "HOLD",
-                }
+                })
             detail_path, location, location_state = supported_location_path(payload)
             envelope = {
                 "root_type": type(payload).__name__,
@@ -646,7 +679,7 @@ The complete temporary script is:
                 "M0_RAW_SECRET_EXCLUSION": "PASS",
             }
             if location_state == "SOURCE_HAS_NO_LOCATION":
-                return base | {
+                return finish(base | {
                     "outcome": "SOURCE_HAS_NO_LOCATION",
                     "location_state": location_state,
                     "REAL_LOCATION_DTO_PATH": location["location_path"],
@@ -654,26 +687,35 @@ The complete temporary script is:
                     "location_dtos": [],
                     "selected_container": location["selected_container"],
                     "container_resolution": location["container_resolution"],
-                }
+                })
             if location_state != "PROVEN":
-                return base | {
+                return finish(base | {
                     "outcome": location_state,
                     "location_state": location_state,
                     "REAL_LOCATION_DTO_PATH": "NOT_PROVEN",
                     "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
-                }
+                })
             dtos = location["location_dtos"]
             confirmed = [dto for dto in dtos if dto["province_city"]]
-            return base | {
+            return finish(base | {
                 "outcome": "PROVEN" if confirmed else "PARTIAL",
                 "REAL_LOCATION_DTO_PATH": location["location_path"],
                 "REAL_SEMANTIC_LOCATION_VALUE": confirmed[0]["province_city"] if confirmed else "NOT_PROVEN",
                 "location_dtos": dtos,
                 "selected_container": location["selected_container"],
                 "container_resolution": location["container_resolution"],
-            }
+            })
         finally:
-            await page.close()
+            try:
+                await page.close()
+            except Exception as error:
+                prior = result.get("outcome") if result else "NOT_PROVEN"
+                return {
+                    "sample": sample.key,
+                    "outcome": "SAMPLE_CLEANUP_FAILED",
+                    "prior_safety_outcome": prior,
+                    "cleanup_error": sanitize_error(error),
+                }
 
 
     def write_terminal_report(report_path: Path, report: dict[str, Any]) -> None:
@@ -736,6 +778,13 @@ The complete temporary script is:
                     report["stop_reason"] = sanitize_error(error)
                     continue
                 apply_sample_outcome(report, item)
+                if item["outcome"] == "SAMPLE_CLEANUP_FAILED":
+                    report["terminal_outcome"] = "CLEANUP_FAILED"
+                    report["stop_reason"] = "SAMPLE_CLEANUP_FAILED"
+                    report["prior_safety_outcome"] = item.get("prior_safety_outcome", "NOT_PROVEN")
+                    report["cleanup_error"] = item.get("cleanup_error", "NOT_PROVEN")
+                    report["cleanup_failed"] = True
+                    break
                 if item["outcome"] == "ACCESS_CHALLENGE":
                     report["M0_ACCESS_POLICY"] = "HOLD"
                     report["stop_reason"] = "ACCESS_CHALLENGE"
@@ -771,7 +820,8 @@ The complete temporary script is:
                     break
             else:
                 report["stop_reason"] = "CANDIDATES_EXHAUSTED"
-            report["terminal_outcome"] = "COMPLETED"
+            if report["terminal_outcome"] == "NOT_STARTED":
+                report["terminal_outcome"] = "COMPLETED"
         except Exception as error:
             report["terminal_outcome"] = report["terminal_outcome"] if report["terminal_outcome"] != "NOT_STARTED" else "FAILED_BEFORE_START"
             report["stop_reason"] = sanitize_error(error)
@@ -813,14 +863,14 @@ The complete temporary script is:
 2. The harness validates its temporary raw-root and configuration before starting a browser. It then validates the allowed HTTPS origin, official navigation URL, and robots policy before navigation.
 3. Register the exact-response listener before navigation. A response qualifies only when its request has the supplied official origin, exact method, exact route, and parsed payload identity field equal to the candidate UUID. A UUID in an unrelated field, query text, or arbitrary JSON string does not bind identity.
 4. After rate limiting, one active browser-timeout deadline covers frontend navigation, visible-runtime challenge checks, exact-response wait, the bounded uniqueness quiet window, and response-body read. A missing navigation response is RETRIEVAL_FAILED/NOT_PROVEN; a frontend 401/403/429 is ACCESS_CHALLENGE and stops the whole batch immediately; another frontend 4xx/5xx is RETRIEVAL_FAILED and may advance. A late exact response is valid only inside that same deadline. If the quiet window or body cannot complete inside it, the candidate is non-proving (UNIQUENESS_NOT_PROVEN or DETAIL_BODY_TIMEOUT). A second exact response during the quiet window is INTEGRITY_MISMATCH. Always remove the listener and close the page.
-5. Check a visible runtime access gate after navigation and while awaiting an exact response. Login/sign-in redirects, a visible password input or challenge widget, and visible access-denied/human-verification text are ACCESS_CHALLENGE; static grecaptcha/recaptcha script references alone are not. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
+5. Check a visible runtime access gate after navigation and while awaiting an exact response. Every locator count, is_visible, and body inner_text operation is bounded by the remaining shared deadline. Login/sign-in redirects, an actually visible password input or actual visible challenge UI, and specific visible body phrases (access denied, human verification, verify you are human, xác minh bạn là con người, xác minh bạn không phải, or truy cập bị từ chối) are ACCESS_CHALLENGE. The body text is read through page.locator("body").inner_text, not a fake page API. A hidden/inactive integration node, a static grecaptcha/recaptcha reference, or isolated generic "xác minh" business text is not a challenge. An inspection that cannot finish within the deadline is RETRIEVAL_FAILED and non-proving. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
 6. Compute a raw SHA-256 in memory, parse and scan explicit credential-bearing keys (including normalized grecaptcharesponse, recaptcharesponse, recaptchatoken, and captchatoken) and Bearer material, then write exact raw bytes only after that scan passes and only under the temporary raw-root. On suspicious content, write nothing and set M0_RAW_SECRET_EXCLUSION = HOLD. All errors and every reported route are sanitized to omit credentials, query, and fragment.
 7. Bind exactly one detail object. Preserve every meaningful location DTO. A missing or malformed supported container is SCHEMA_UNSUPPORTED and may advance; multiple detail objects are DETAIL_OBJECT_AMBIGUOUS and hold; conflicting nonempty containers are CONFLICTING_LOCATION_CONTAINERS and hold. Within one object, select semantically identical mirrors deterministically, select the usable one when the other is empty, and never merge conflicts. A structurally supported empty container, or structurally valid DTOs whose province/district/ward are all empty, is SOURCE_HAS_NO_LOCATION: preserve detail/container paths, never prove a province, and continue to the next candidate.
 8. A province/city gate considers only DTOs with meaningful provName, but partial district/ward DTOs remain in location_dtos even when confirmed DTOs exist. SOURCE_HAS_NO_LOCATION after every candidate finishes with M0_PROVINCE_GATE = FAIL. M0 never auto-authorizes M1–M6.
 
 ### M0 proof and stop contract
 
-The `run()` lifecycle, not a detached helper, emits the terminal report for config failure, browser-start failure, page failure, response-body failure, timeout, parser failure, cleanup failure, or normal completion. It attempts BrowserFetcher.close() whenever initialization reached a closable state, records a sanitized CLEANUP_FAILED result and returns nonzero if close fails, then writes the report. If report writing itself fails, it returns nonzero and makes no durability claim.
+The `run()` lifecycle, not a detached helper, emits the terminal report for config failure, browser-start failure, page failure, response-body failure, timeout, parser failure, cleanup failure, or normal completion. `one()` converts a page-close exception to SAMPLE_CLEANUP_FAILED, retaining its prior ACCESS_CHALLENGE or INTEGRITY_MISMATCH classification; `run()` stops the batch, records CLEANUP_FAILED, and exits nonzero rather than treating it as an ordinary retriable retrieval failure. It attempts BrowserFetcher.close() whenever initialization reached a closable state, records a sanitized CLEANUP_FAILED result and returns nonzero if close fails, then writes the report. If report writing itself fails, it returns nonzero and makes no durability claim.
 
 The report records only source/revision identifiers, method, sanitized route, expected UUID, binding result, status, raw SHA-256, location evidence, and sanitized terminal reason. A zero exit requires every required proof gate to be PASS; a lock or verifier result never replaces Human approval.
 
