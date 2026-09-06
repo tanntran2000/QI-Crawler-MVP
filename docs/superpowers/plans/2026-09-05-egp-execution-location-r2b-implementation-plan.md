@@ -456,11 +456,22 @@ The complete temporary script is:
         locator = getattr(page, "locator", None)
         if locator is None:
             return "RETRIEVAL_FAILED"
+        semantic_markers = (
+            "access denied", "human verification", "verify you are human", "i'm not a robot",
+            "xác minh bạn là con người", "xác minh bạn không phải robot", "truy cập bị từ chối",
+        )
+        password = locator("input[type='password']")
+        password_count = await _within_deadline(password.count(), deadline_at)
+        if password_count is None:
+            return "RETRIEVAL_FAILED"
+        if password_count:
+            password_visible = await _within_deadline(password.is_visible(timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
+            if password_visible is None:
+                return "RETRIEVAL_FAILED"
+            if password_visible:
+                return "ACCESS_CHALLENGE"
         for selector in (
-            "input[type='password']",
-            "iframe[src*='recaptcha']",
-            "[data-sitekey]",
-            "[class*='captcha']",
+            "iframe[src*='recaptcha']", "[data-sitekey]", "[class*='captcha']",
         ):
             count = await _within_deadline(locator(selector).count(), deadline_at)
             if count is None:
@@ -470,7 +481,12 @@ The complete temporary script is:
                 if visible is None:
                     return "RETRIEVAL_FAILED"
                 if visible:
-                    return "ACCESS_CHALLENGE"
+                    for attribute in ("aria-label", "title"):
+                        value = await _within_deadline(locator(selector).get_attribute(attribute, timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
+                        if value is None and remaining_seconds(deadline_at) <= 0:
+                            return "RETRIEVAL_FAILED"
+                        if isinstance(value, str) and any(marker in value.casefold() for marker in semantic_markers):
+                            return "ACCESS_CHALLENGE"
         body = locator("body")
         body_visible = await _within_deadline(body.is_visible(timeout=max(int(remaining_seconds(deadline_at) * 1000), 1)), deadline_at)
         if body_visible is None:
@@ -481,10 +497,7 @@ The complete temporary script is:
         if text is None:
             return "RETRIEVAL_FAILED"
         text = text.casefold()
-        if any(marker in text for marker in (
-            "access denied", "human verification", "verify you are human",
-            "xác minh bạn là con người", "xác minh bạn không phải", "truy cập bị từ chối",
-        )):
+        if any(marker in text for marker in semantic_markers):
             return "ACCESS_CHALLENGE"
         return "CLEAR"
 
@@ -863,7 +876,7 @@ The complete temporary script is:
 2. The harness validates its temporary raw-root and configuration before starting a browser. It then validates the allowed HTTPS origin, official navigation URL, and robots policy before navigation.
 3. Register the exact-response listener before navigation. A response qualifies only when its request has the supplied official origin, exact method, exact route, and parsed payload identity field equal to the candidate UUID. A UUID in an unrelated field, query text, or arbitrary JSON string does not bind identity.
 4. After rate limiting, one active browser-timeout deadline covers frontend navigation, visible-runtime challenge checks, exact-response wait, the bounded uniqueness quiet window, and response-body read. A missing navigation response is RETRIEVAL_FAILED/NOT_PROVEN; a frontend 401/403/429 is ACCESS_CHALLENGE and stops the whole batch immediately; another frontend 4xx/5xx is RETRIEVAL_FAILED and may advance. A late exact response is valid only inside that same deadline. If the quiet window or body cannot complete inside it, the candidate is non-proving (UNIQUENESS_NOT_PROVEN or DETAIL_BODY_TIMEOUT). A second exact response during the quiet window is INTEGRITY_MISMATCH. Always remove the listener and close the page.
-5. Check a visible runtime access gate after navigation and while awaiting an exact response. Every locator count, is_visible, and body inner_text operation is bounded by the remaining shared deadline. Login/sign-in redirects, an actually visible password input or actual visible challenge UI, and specific visible body phrases (access denied, human verification, verify you are human, xác minh bạn là con người, xác minh bạn không phải, or truy cập bị từ chối) are ACCESS_CHALLENGE. The body text is read through page.locator("body").inner_text, not a fake page API. A hidden/inactive integration node, a static grecaptcha/recaptcha reference, or isolated generic "xác minh" business text is not a challenge. An inspection that cannot finish within the deadline is RETRIEVAL_FAILED and non-proving. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
+5. Check a visible runtime access gate after navigation and while awaiting an exact response. Every locator count, is_visible, get_attribute, and body inner_text operation is bounded by the remaining shared deadline. Login/sign-in redirects and an actually visible password input are decisive. A visible generic iframe[src*='recaptcha'], [data-sitekey], or [class*='captcha'] is only a supporting signal: it is never sufficient on its own, and it is decisive only when its visible control has a challenge-specific accessible aria-label or title (for example, human verification or verify you are human). The strings captcha, recaptcha, and data-sitekey alone are not semantic proof. Specific visible body phrases (access denied, human verification, verify you are human, I'm not a robot, xác minh bạn là con người, xác minh bạn không phải robot, or truy cập bị từ chối) are decisive. The body text is read through page.locator("body").inner_text, not a fake page API. A hidden/inactive integration node, a static grecaptcha/recaptcha reference, or isolated generic "xác minh" business text is not a challenge. An inspection that cannot finish within the deadline is RETRIEVAL_FAILED and non-proving. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
 6. Compute a raw SHA-256 in memory, parse and scan explicit credential-bearing keys (including normalized grecaptcharesponse, recaptcharesponse, recaptchatoken, and captchatoken) and Bearer material, then write exact raw bytes only after that scan passes and only under the temporary raw-root. On suspicious content, write nothing and set M0_RAW_SECRET_EXCLUSION = HOLD. All errors and every reported route are sanitized to omit credentials, query, and fragment.
 7. Bind exactly one detail object. Preserve every meaningful location DTO. A missing or malformed supported container is SCHEMA_UNSUPPORTED and may advance; multiple detail objects are DETAIL_OBJECT_AMBIGUOUS and hold; conflicting nonempty containers are CONFLICTING_LOCATION_CONTAINERS and hold. Within one object, select semantically identical mirrors deterministically, select the usable one when the other is empty, and never merge conflicts. A structurally supported empty container, or structurally valid DTOs whose province/district/ward are all empty, is SOURCE_HAS_NO_LOCATION: preserve detail/container paths, never prove a province, and continue to the next candidate.
 8. A province/city gate considers only DTOs with meaningful provName, but partial district/ward DTOs remain in location_dtos even when confirmed DTOs exist. SOURCE_HAS_NO_LOCATION after every candidate finishes with M0_PROVINCE_GATE = FAIL. M0 never auto-authorizes M1–M6.
