@@ -142,7 +142,7 @@ CONDITIONAL TASK: DO NOT EXECUTE unless Human A0 authorizes M0 after Planner aud
 
 ### M0 objective
 
-Use the official public e-GP frontend in a normal Playwright browser session to observe one to three real detail responses for the exact real source and revision selected by the Planner. The run is bounded at one browser context, one detail acquisition at a time, the configured 12 requests per minute, and the existing browser timeout. No direct tokenless API replay is allowed.
+Use the official public e-GP frontend in a normal Playwright browser session to observe at most three real detail responses. The only approved candidate pairs are IB2600488839:00, IB2600498410:00, and IB2600489267:00. They are candidates, not assertions that a province/city value exists. The run is bounded at one browser context, one detail acquisition at a time, and min(configured_rate, 12) requests per minute. The existing BrowserFetcher page timeout remains authoritative. No direct tokenless API replay is allowed.
 
 ### M0 exact execution method
 
@@ -152,20 +152,158 @@ Create this temporary script outside the repository:
 
 Run it only after M0 authorization:
 
-    .venv\Scripts\python.exe %TEMP%\qi-r2b-m0\capture_egp_location.py --source-id IB2500585490 --revision 00 --max-samples 3 --concurrency 1 --rate-per-minute 12 --raw-root %TEMP%\qi-r2b-m0\raw --report docs/agent_handoff/evidence/R2B-M0-egp-location-response.md
+    .venv\Scripts\python.exe %TEMP%\qi-r2b-m0\capture_egp_location.py --config config.yaml --detail-url-template "$env:QI_R2B_M0_DETAIL_URL_TEMPLATE" --sample IB2600488839:00 --sample IB2600498410:00 --sample IB2600489267:00 --max-samples 3 --concurrency 1 --raw-root %TEMP%\qi-r2b-m0\raw --report docs/agent_handoff/evidence/R2B-M0-egp-location-response.md
 
-The script starts one BrowserFetcher context, validates AccessPolicy and robots access, navigates the official frontend, observes at most three responses, waits between detail acquisitions using the configured rate limiter, writes raw response bytes only under the unique TEMP raw-root, and writes the sanitized report to the exact report path. It terminates after the first challenge, identity mismatch, malformed envelope, or direct-province gate failure. It never extracts tokens, exports cookies, replays a request, stores storage state, or runs a solver.
+QI_R2B_M0_DETAIL_URL_TEMPLATE is a runtime input copied verbatim from the Human-authorized Work Order's current official frontend route. It must contain {source_id} and {revision}; the script rejects a non-unique sample, a fourth sample, or a pair other than the three exact candidates. The route is never committed, raw output is TEMP-only, and report routes omit query strings.
+
+The complete temporary script below uses BrowserFetcher, AccessPolicy, robots checks, the existing page timeout, and a dedicated DomainRateLimiter at min(config.crawl.requests_per_minute, 12). It never extracts tokens, exports cookies, replays requests, saves storage state, or uses a solver.
+
+    from __future__ import annotations
+    import argparse, asyncio, hashlib, json, re
+    from datetime import UTC, datetime
+    from pathlib import Path
+    from urllib.parse import urlsplit, urlunsplit
+    from qi_crawler.browser import BrowserFetcher
+    from qi_crawler.compliance import AccessDenied, DomainRateLimiter
+    from qi_crawler.config import load_config
+
+    ALLOWED = (("IB2600488839", "00"), ("IB2600498410", "00"), ("IB2600489267", "00"))
+    SAMPLE = re.compile(r"^(IB\d{10}):(\d{2})$")
+    UUID = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.I)
+
+    def sample(value: str) -> tuple[str, str]:
+        match = SAMPLE.fullmatch(value)
+        if not match or match.groups() not in ALLOWED:
+            raise argparse.ArgumentTypeError("M0 sample is not approved")
+        return match.groups()
+
+    def safe_url(value: str) -> str:
+        parsed = urlsplit(value)
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+
+    def walk(value, path=""):
+        if isinstance(value, dict):
+            yield path or "/", value
+            for key, child in value.items():
+                yield from walk(child, f"{path}/{str(key).replace('~', '~0').replace('/', '~1')}")
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                yield from walk(child, f"{path}/{index}")
+
+    def locations(payload):
+        result = []
+        for path, node in walk(payload):
+            keys = {str(key).casefold(): value for key, value in node.items()}
+            def value_of(names):
+                return next((keys[name.casefold()].strip() for name in names
+                             if isinstance(keys.get(name.casefold()), str)
+                             and keys[name.casefold()].strip()), None)
+            province = value_of(("provinceCity", "province_city", "provName", "province"))
+            district = value_of(("districtName", "district"))
+            ward = value_of(("wardName", "ward"))
+            if province or district or ward:
+                result.append({"path": path, "province_city": province, "district": district, "ward": ward})
+        return result
+
+    def select_response(captures, source_id, revision):
+        direct = [item for item in captures if source_id in json.dumps(item["json"]) and revision in json.dumps(item["json"])]
+        if len(direct) == 1:
+            return "DIRECT_ECHO", direct[0]
+        uuids = {uuid for item in direct for uuid in UUID.findall(json.dumps(item["json"]))}
+        bound = [item for item in captures if len(uuids) == 1 and next(iter(uuids)) in item["request_binding"]]
+        return ("CAUSAL_UUID", bound[0]) if len(bound) == 1 else ("INTEGRITY_MISMATCH", None)
+
+    async def one(fetcher, limiter, template, source_id, revision, raw_root):
+        url = template.format(source_id=source_id, revision=revision)
+        await fetcher.ensure_browser_access_allowed(url)
+        await limiter.wait(url)
+        page, captures, pending = await fetcher.new_page(), [], []
+        async def record(response):
+            content_type = (await response.all_headers()).get("content-type", "")
+            if "json" not in content_type.casefold():
+                return
+            body = await response.body()
+            try:
+                payload = json.loads(body)
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return
+            captures.append({"response": response, "body": body, "json": payload,
+                             "request_binding": f"{response.request.url}\n{response.request.post_data or ''}",
+                             "status": response.status, "content_type": content_type})
+        page.on("response", lambda response: pending.append(asyncio.create_task(record(response))))
+        try:
+            response = await page.goto(url, wait_until="domcontentloaded")
+            if response is not None and response.status in {401, 403, 429}:
+                raise AccessDenied(f"ACCESS_CHALLENGE HTTP {response.status}")
+            await page.wait_for_timeout(fetcher.config.crawl.render_wait_ms)
+            fetcher.policy.detect_block_page(await page.content())
+            await asyncio.gather(*pending)
+            binding, selected = select_response(captures, source_id, revision)
+            if selected is None:
+                return {"sample": f"{source_id}:{revision}", "outcome": "INTEGRITY_MISMATCH"}
+            digest = hashlib.sha256(selected["body"]).hexdigest()
+            raw_root.mkdir(parents=True, exist_ok=True)
+            (raw_root / f"{source_id}-{revision}-{digest}.json").write_bytes(selected["body"])
+            values = locations(selected["json"])
+            confirmed = [value for value in values if value["province_city"]]
+            partial = [value for value in values if not value["province_city"] and (value["district"] or value["ward"])]
+            return {"sample": f"{source_id}:{revision}", "outcome": "PROVEN" if confirmed else "PARTIAL" if partial else "NO_PROVINCE",
+                    "identity_binding": binding, "response_sha256": digest, "response_status": selected["status"],
+                    "content_type": selected["content_type"], "observed_route": safe_url(selected["response"].url),
+                    "captured_at": datetime.now(UTC).isoformat(), "location_candidates": confirmed or partial}
+        finally:
+            await page.close()
+
+    async def run(args):
+        if args.max_samples != 3 or args.concurrency != 1 or tuple(args.sample) != ALLOWED:
+            raise SystemExit("M0 is exactly three approved sequential samples and concurrency one")
+        if "{source_id}" not in args.detail_url_template or "{revision}" not in args.detail_url_template:
+            raise SystemExit("approved frontend template must bind source_id and revision")
+        config, report = load_config(args.config), {"samples": [], "M0_REAL_PROVINCE_CITY_VALUE": "NOT_PROVEN", "M0_PROVINCE_GATE": "FAIL"}
+        fetcher, limiter = BrowserFetcher(config), DomainRateLimiter(min(config.crawl.requests_per_minute, 12))
+        await fetcher.start(headed=True)
+        try:
+            for source_id, revision in args.sample:
+                try:
+                    item = await one(fetcher, limiter, args.detail_url_template, source_id, revision, args.raw_root)
+                except AccessDenied as error:
+                    report["samples"].append({"sample": f"{source_id}:{revision}", "outcome": "ACCESS_CHALLENGE"})
+                    report["stop_reason"] = str(error)
+                    break
+                report["samples"].append(item)
+                if item["outcome"] == "INTEGRITY_MISMATCH":
+                    report["stop_reason"] = "INTEGRITY_MISMATCH"
+                    break
+                if item["outcome"] == "PROVEN":
+                    report["M0_REAL_PROVINCE_CITY_VALUE"], report["M0_PROVINCE_GATE"] = "PROVEN", "PASS"
+                    break
+            else:
+                report["stop_reason"] = "CANDIDATES_EXHAUSTED"
+        finally:
+            await fetcher.close()
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        return 0 if report["M0_PROVINCE_GATE"] == "PASS" else 2
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--detail-url-template", required=True)
+    parser.add_argument("--sample", action="append", type=sample, required=True)
+    parser.add_argument("--max-samples", required=True, type=int)
+    parser.add_argument("--concurrency", required=True, type=int)
+    parser.add_argument("--raw-root", required=True, type=Path)
+    parser.add_argument("--report", required=True, type=Path)
+    raise SystemExit(asyncio.run(run(parser.parse_args())))
 
 ### M0 procedure
 
-1. Confirm the exact source identity, base identifier, revision, and approved official URL in the Planner Work Order.
+1. Confirm the approved official frontend URL template in the Human Work Order and set QI_R2B_M0_DETAIL_URL_TEMPLATE only for this process. Do not infer a route or use an undocumented API endpoint.
 2. Start BrowserFetcher with the current AppConfig and AccessPolicy. Validate domain and robots policy before navigation.
-3. Navigate through the official frontend detail flow. Observe network responses emitted by the page; do not manufacture an endpoint or payload.
-4. Save raw response bytes only under a unique temporary directory outside the repository. Record SHA-256, status, content type, observed route, and capture time.
-5. Bind the response to the requested identity by either direct echo (the response contains the exact base/revision) or causal binding: requested exact revision → version-list resolution → exact notify_id UUID → official frontend request using that UUID → observed response bound to that request. The JSON body need not echo notify/revision when the causal chain is recorded. Any ambiguity is a hold.
-6. Locate the exact detail object path and location DTO path in the observed response. Record the path as a JSON-pointer-like sequence in the sanitized report.
-7. Record at least one semantic location value that is directly a province/city. District/ward-only output does not satisfy the gate.
-8. Write only the sanitized report to docs/agent_handoff/evidence/R2B-M0-egp-location-response.md after the Human-authorized M0 run. Never write cookies, storage state, authorization headers, tokens, or private account data.
+3. Acquire candidates sequentially in the exact command order. Browser asset requests are not counted as detail acquisitions.
+4. Save selected raw response bytes only under the unique temporary directory outside the repository. Record SHA-256, status, content type, sanitized observed route, and capture time.
+5. Bind the response to the requested identity by direct echo or causal UUID binding: requested exact revision → version-list response → exact notify_id UUID → official frontend request using that UUID → observed response. Any ambiguity is INTEGRITY_MISMATCH and stops M0.
+6. Record PARTIAL when a candidate has district/ward but no province/city; PARTIAL does not satisfy the province gate and the next candidate must run. Only ACCESS_CHALLENGE, INTEGRITY_MISMATCH, or robots-policy HOLD stops immediately.
+7. If all three candidates complete without a direct province/city, record M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then STOP_FOR_PLANNER.
 
 ### M0 proof contract
 
@@ -180,7 +318,7 @@ The report must contain exact observed values for REAL_RESPONSE_ENVELOPE, REAL_D
     M0_ACCESS_POLICY = PASS
     M0_RAW_SECRET_EXCLUSION = PASS
 
-Any missing direct province/city, identity mismatch, malformed envelope, HTTP challenge, CAPTCHA, robots uncertainty, or access-control interruption sets M0_PROVINCE_GATE = FAIL or M0_ACCESS = HOLD and stops M0. Do not bypass the challenge. The mandatory next sequence is M0 evidence → Planner audit → Human decision; M0 never auto-authorizes M1–M6. Production M3/M4 handles PARTIAL item evidence without stopping the batch, while ACCESS_CHALLENGE and INTEGRITY_MISMATCH remain whole-batch stops.
+Identity mismatch, HTTP challenge, CAPTCHA, robots uncertainty, or access-control interruption sets M0_ACCESS = HOLD and stops M0. A malformed/unsupported candidate response is recorded and the next candidate runs. A missing direct province/city after all three candidates sets M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then STOP_FOR_PLANNER. Do not bypass a challenge. The mandatory next sequence is M0 evidence → Planner audit → Human decision; M0 never auto-authorizes M1–M6. Production M3/M4 handles PARTIAL item evidence without stopping the batch, while ACCESS_CHALLENGE and INTEGRITY_MISMATCH remain whole-batch stops.
 
 ### M0 radius and evidence
 
@@ -231,7 +369,7 @@ In src/qi_crawler/market_intelligence/execution_location.py define:
     @dataclass(frozen=True, slots=True)
     class ExecutionLocationParseResult:
         outcome: ExecutionLocationParseOutcome
-        evidence: ExecutionLocationEvidence | None
+        evidence: tuple[ExecutionLocationEvidence, ...]
         reason: str | None
 
     def parse_execution_location_payload(
@@ -268,11 +406,11 @@ In src/qi_crawler/market_intelligence/execution_location.py define:
     @dataclass(frozen=True, slots=True)
     class EffectiveOpportunityIndex:
         projections: tuple[EffectiveOpportunityProjection, ...]
-        def for_identity(
-            self, identity: OpportunityIdentity
+        def for_observation_key(
+            self, observation_key: str
         ) -> EffectiveOpportunityProjection | None
 
-The parser accepts structured detail only at the M0-proven object path. One official location DTO produces one ExecutionLocationEvidence record; multiple DTOs produce a tuple of records and preserve each province/district/ward relationship. It returns FOUND when at least one meaningful component exists, SOURCE_HAS_NO_LOCATION when the supported schema has no meaningful component, and SCHEMA_UNSUPPORTED for an unknown or malformed schema. Within FOUND, quality is CONFIRMED for meaningful province/city, PARTIAL for district/ward without province/city, and UNKNOWN when the supported record has no filterable component.
+The parser accepts structured detail only at the M0-proven object path. One official location DTO produces one ExecutionLocationEvidence record. Every multi-DTO layer preserves those records as tuple[ExecutionLocationEvidence, ...], never by flattening province/district/ward components across DTOs. FOUND returns a non-empty tuple; SOURCE_HAS_NO_LOCATION and SCHEMA_UNSUPPORTED return evidence = (). SOURCE_HAS_NO_LOCATION applies only to a supported schema with no meaningful component; SCHEMA_UNSUPPORTED applies to an unknown or malformed schema. Within FOUND, quality is CONFIRMED for meaningful province/city, PARTIAL for district/ward without province/city, and UNKNOWN when the supported record has no filterable component.
 
 Projection precedence is component-level: explicit workbook province/city > confirmed e-GP province/city > UNKNOWN for the filter. Workbook district/ward is preserved as provenance but does not block confirmed e-GP province/city. Structured e-GP district/ward remains PARTIAL display evidence and never becomes a province/city value. The projection is immutable and never writes into item.source_fields, item.raw_fields, item.location_detail_raw, or workbook provenance; display strings are derived views only.
 
@@ -324,7 +462,7 @@ In src/qi_crawler/market_intelligence/execution_location_cache.py define:
         retrieval_method: str
         raw_payload_path: Path
         workbook_source_sha256: str | None
-        evidence: ExecutionLocationEvidence
+        evidence: tuple[ExecutionLocationEvidence, ...]
 
     class ExecutionLocationCache:
         def __init__(
@@ -411,13 +549,13 @@ In src/qi_crawler/market_intelligence/egp_detail_provider.py define:
             detail_acquisition_rate: int | None = None,
         ) -> None
         async def resolve_revision(
-            self, identity: OpportunityIdentity
+            self, identity: OpportunityIdentity, *, is_cancelled: Callable[[], bool]
         ) -> ResolvedEGPIdentity
         async def fetch_detail(
-            self, resolved: ResolvedEGPIdentity
+            self, resolved: ResolvedEGPIdentity, *, is_cancelled: Callable[[], bool]
         ) -> ObservedDetailResponse
 
-The approved identity vocabulary is official_notify_no = IB..., revision = 00, source_revision_id = IB...-00, and notify_id = the revision-specific UUID observed in the official frontend flow. The provider navigates the official frontend with BrowserFetcher, uses AccessPolicy and DomainRateLimiter, enforces CONCURRENCY_LIMIT = 1, and defaults DETAIL_ACQUISITION_RATE to config.crawl.requests_per_minute (the governed value is 12 per minute). The UUID is observed metadata; the caller does not need to discover or supply it before navigation. A finite timeout, cancellation signal, challenge detection, HTTP mismatch, and response-envelope mismatch all return governed failure statuses. Retries consume the same detail-acquisition rate budget; browser asset requests are not counted as separate detail attempts. No provider method exports or persists browser credentials.
+The approved identity vocabulary is official_notify_no = IB..., revision = 00, source_revision_id = IB...-00, and notify_id = the revision-specific UUID observed in the official frontend flow. The provider navigates the official frontend with BrowserFetcher, uses AccessPolicy and DomainRateLimiter, enforces CONCURRENCY_LIMIT = 1, and uses min(config.crawl.requests_per_minute, 12) as the detail-acquisition rate. The UUID is observed metadata; the caller does not need to discover or supply it before navigation. Cancellation checks occur before navigation, during retry waits, during detail-rate waits, and between response waits; every active browser operation has the existing finite BrowserFetcher timeout. A finite timeout, cancellation signal, challenge detection, HTTP mismatch, and response-envelope mismatch all return governed failure statuses. Retries consume the same detail-acquisition rate budget; browser asset requests are not counted as separate detail attempts. No provider method exports or persists browser credentials.
 
 ### M3 TDD and verification
 
@@ -465,20 +603,20 @@ In src/qi_crawler/market_intelligence/execution_location_service.py define:
     @dataclass(frozen=True, slots=True)
     class EnrichmentCancellationToken:
         event: Event
+        def cancel(self) -> None
         def is_cancelled(self) -> bool
 
     @dataclass(frozen=True, slots=True)
     class EnrichmentItemResult:
         identity: OpportunityIdentity
         outcome: ExecutionLocationItemOutcome
-        evidence: ExecutionLocationEvidence | None
-        source_fingerprint: str
+        evidence: tuple[ExecutionLocationEvidence, ...]
         observation_key: str
         message: str
 
     @dataclass(frozen=True, slots=True)
     class EnrichmentBatchResult:
-        source_fingerprint: str
+        source_session: SourceSessionIdentity
         generation: int
         items: tuple[EnrichmentItemResult, ...]
         outcome: ExecutionLocationBatchOutcome
@@ -501,7 +639,7 @@ In src/qi_crawler/market_intelligence/execution_location_service.py define:
             on_progress: Callable[[int, int, EnrichmentItemResult], None] | None = None,
         ) -> EnrichmentBatchResult
 
-The service checks source_session SHA before starting and before applying. A stale result may remain in the cache for forensic evidence, but it cannot update the current projection when source fingerprint or generation differs. Results are deterministic for a given source identity and evidence set. Applying a batch is a single terminal operation; partial items remain visible to Inspector and do not enter confirmed province/city dropdown options.
+The service checks source_session SHA before starting and before applying. EnrichmentCancellationToken.cancel() sets its Event; the GUI DỪNG action calls that token method and never tries to cancel through GuiTaskBridge. A stale result may remain in the cache for forensic evidence, but it cannot update the current projection unless source_session_matches(batch.source_session, current_source_session) and batch.generation == current_generation. Reject the other case as STALE_BATCH_RESULT with no projection apply. Results are deterministic for a given source identity and evidence set. Applying a batch is a single terminal operation; partial items remain visible to Inspector and do not enter confirmed province/city dropdown options.
 
 The effective projection is consumed by opportunity_radar.py, filter_engine.py, and opportunity_intelligence.py. The filter contract remains workbook explicit > confirmed enrichment province/city > UNKNOWN for TBMT; PARTIAL district/ward never becomes a filter value. Generic Find remains literal, case-insensitive, accent-sensitive substring OR. KHMT evaluation is unchanged.
 
@@ -525,7 +663,7 @@ In src/qi_crawler/market_intelligence/search.py define:
         effective_index: EffectiveOpportunityIndex | None = None,
     ) -> TargetedOpportunitySearchResult
 
-The default effective_projection/effective_index value is None so every existing caller keeps its current behavior. When an index is supplied, search resolves the projection for each item by observation_key and passes it as the keyword-only argument to evaluate_opportunity. Generic Find always reads the original item/source fields. KHMT continues to use its existing province/city criterion. No hidden global index is permitted. OpportunityIntelligenceService.search_opportunities exposes the same optional effective_index and forwards it explicitly.
+The default effective_projection/effective_index value is None so every existing caller keeps its current behavior. When an index is supplied, search resolves the projection with effective_index.for_observation_key(item.observation_key), never by OpportunityIdentity, and passes it as the keyword-only argument to evaluate_opportunity. Generic Find always reads the original item/source fields. KHMT continues to use its existing province/city criterion. No hidden global index is permitted. OpportunityIntelligenceService.search_opportunities exposes the same optional effective_index and forwards it explicitly.
 
 ### M4 TDD and verification
 
@@ -558,26 +696,26 @@ CONDITIONAL TASK: DO NOT EXECUTE unless M4 evidence is accepted and Planner/Huma
 
 ### M5 exact GUI contract
 
-In src/qi_crawler/gui_services.py add thin adapters with these signatures. FunctionWorker and GuiTaskBridge are the existing concrete task types from src/qi_crawler/gui.py:
+In src/qi_crawler/gui_services.py add only a pure, GUI-independent adapter. gui_services.py must not import or return FunctionWorker or GuiTaskBridge because gui.py imports gui_services.py:
 
-    def start_execution_location_enrichment(
+    def run_execution_location_enrichment(
         config: AppConfig,
         items: Sequence[OpportunityRadarItem],
         source_session: SourceSessionIdentity,
         *,
         generation: int,
-    ) -> tuple[FunctionWorker, GuiTaskBridge]
-
-    def cancel_execution_location_enrichment(bridge: GuiTaskBridge) -> None
+        cancel: EnrichmentCancellationToken,
+        on_progress: Callable[..., None] | None = None,
+    ) -> EnrichmentBatchResult
 
     def apply_execution_location_batch(
         result: EnrichmentBatchResult,
         *,
         current_source_session: SourceSessionIdentity,
         current_generation: int,
-    ) -> EffectiveOpportunityIndex
+    ) -> EffectiveOpportunityIndex | None
 
-In src/qi_crawler/gui.py add a Human-labelled action named BỔ SUNG ĐỊA ĐIỂM TỪ e-GP, an explicit progress indicator, a DỪNG action, a terminal status summary, and one apply-once callback. The GUI never calls e-GP directly and never edits an OpportunityRadarItem. After a confirmed batch is applied, rebuild the TBMT selector from distinct confirmed province/city values only, preserve the prior selection when still valid, otherwise emit and show FILTER_SELECTION_INVALIDATED with a Human-visible notice before selecting Tất cả, show PARTIAL evidence in Inspector, show UNKNOWN/invalidated items explicitly, and rerun the current filter exactly once. A source switch or generation change invalidates pending application.
+apply_execution_location_batch returns None with the terminal status STALE_BATCH_RESULT when source_session_matches(batch.source_session, current_source_session) is false or batch.generation differs from current_generation; cache evidence may remain, but no projection applies. In src/qi_crawler/gui.py construct FunctionWorker and GuiTaskBridge around the pure adapter, retain the cancellation token, and wire DỪNG to token.cancel(). Add a Human-labelled action named BỔ SUNG ĐỊA ĐIỂM TỪ e-GP, an explicit progress indicator, a terminal status summary, and one apply-once callback. The GUI never calls e-GP directly and never edits an OpportunityRadarItem. After a confirmed batch is applied, rebuild the TBMT selector from distinct confirmed province/city values only, preserve the prior selection when still valid, otherwise emit and show FILTER_SELECTION_INVALIDATED with a Human-visible notice before selecting Tất cả, show PARTIAL evidence in Inspector, show UNKNOWN/invalidated items explicitly, and rerun the current filter exactly once. A source switch or generation change invalidates pending application.
 
 ### M5 TDD and verification
 
@@ -665,6 +803,19 @@ Each accepted milestone receives one bounded commit with the exact message defin
 
 ## Final self-review checklist
 
+- MULTI_DTO_COLLECTION scan = ExecutionLocationParseResult.evidence, ExecutionLocationCacheRecord.evidence, and EnrichmentItemResult.evidence are tuple[ExecutionLocationEvidence, ...]; SOURCE_HAS_NO_LOCATION and SCHEMA_UNSUPPORTED use ().
+- OBSERVATION_KEY_BINDING scan = EffectiveOpportunityIndex exposes for_observation_key(observation_key), and search passes item.observation_key rather than an identity lookup.
+- GUI_IMPORT_DIRECTION scan = gui_services.py contains the pure run_execution_location_enrichment adapter and does not import or return FunctionWorker or GuiTaskBridge; gui.py owns those types.
+- CANCELLATION_PROPAGATION scan = EnrichmentCancellationToken.cancel() sets Event; DỪNG calls it; provider resolve_revision and fetch_detail receive is_cancelled; cancellation checks cover retry waits, rate waits, pre-navigation, response waits, and finite browser operations.
+- SOURCE_SESSION_IDENTITY scan = EnrichmentBatchResult retains SourceSessionIdentity and generation; stale application is rejected as STALE_BATCH_RESULT without projection apply.
+- M0_SAMPLE_PROVENANCE scan = exactly IB2600488839:00, IB2600498410:00, and IB2600489267:00 appear as candidate samples, with no claim that any already has a province value.
+- M0_PARTIAL_CONTINUE scan = PARTIAL records district/ward evidence, does not satisfy the province gate, and continues to the next candidate; only challenge, integrity mismatch, or robots-policy HOLD stops immediately.
+- M0_TEMP_SCRIPT_COMPLETENESS scan = the embedded script covers argparse, exact samples, AppConfig, BrowserFetcher start/close, AccessPolicy/robots checks, sequential rate waits, frontend response observation only, causal UUID binding, TEMP raw writes, SHA-256, sanitized report, and no token/cookie/storage/replay handling.
+- CONFIGURED_RATE_POLICY scan = M0 and M3 use min(config.crawl.requests_per_minute, 12), concurrency one, and do not count browser assets as detail acquisitions.
+- GUI_INVALIDATION scan = BỔ SUNG ĐỊA ĐIỂM TỪ e-GP is exact, and FILTER_SELECTION_INVALIDATED is shown before fallback to Tất cả.
+- PLACEHOLDERS scan = no unfinished marker, undefined interface, or unowned implementation path remains.
+- TYPE_CONSISTENCY scan = all referenced signatures have a named type or explicit None terminal value.
+- SPEC_COVERAGE scan = architecture, authority, M0 bounded evidence, multi-DTO fidelity, observation identity, cancellation, stale guard, GUI safety, filter authority, and M6 acceptance have named sections.
 - SPEC COVERAGE = architecture, authority, filter level, no inference, source identity, raw cache, browser policy, M0 proof, stale guard, GUI safety, and M6 acceptance are each mapped to a named section.
 - TYPE CONSISTENCY = every referenced type is existing at a cited path or defined in this plan, including Event, EnrichmentCancellationToken, EffectiveOpportunityIndex, item outcomes, batch outcomes, cache records, provider responses, and projections.
 - OUTCOME VS QUALITY SEPARATION = FOUND, SOURCE_HAS_NO_LOCATION, RETRIEVAL_FAILED, SCHEMA_UNSUPPORTED, INTEGRITY_MISMATCH, ACCESS_CHALLENGE, and NOT_PROCESSED are distinct from CONFIRMED, PARTIAL, and UNKNOWN.
