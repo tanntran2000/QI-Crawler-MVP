@@ -197,7 +197,7 @@ The complete temporary script is:
     SECRET_KEYS = {
         "password", "passphrase", "authorization", "cookie", "setcookie",
         "accesstoken", "refreshtoken", "clientsecret", "sessiontoken",
-        "csrftoken", "recaptchatoken",
+        "csrftoken", "grecaptcharesponse", "recaptcharesponse", "recaptchatoken", "captchatoken",
     }
     BEARER = re.compile(r"\bbearer\s+[a-z0-9._~+/=-]{8,}", re.I)
     URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
@@ -359,21 +359,32 @@ The complete temporary script is:
             for name in SUPPORTED_CONTAINERS:
                 if name in node:
                     if not isinstance(node[name], list):
-                        return detail_path, None, "UNSUPPORTED_CONTAINER_SHAPE"
+                        return detail_path, None, "SCHEMA_UNSUPPORTED"
                     found.append((name, node[name]))
             if found:
                 objects.append((detail_path, node, found))
         if len(objects) != 1:
-            return None, None, "DETAIL_OBJECT_AMBIGUOUS" if objects else "NOT_PROVEN"
+            return None, None, "DETAIL_OBJECT_AMBIGUOUS" if objects else "SCHEMA_UNSUPPORTED"
         detail_path, _, containers = objects[0]
         evaluated = []
         for name, values in containers:
             location_path = pointer_join(detail_path, name)
-            evidence = _evidence(location_path, values)
+            try:
+                evidence = _evidence(location_path, values)
+            except ValueError:
+                return detail_path, None, "SCHEMA_UNSUPPORTED"
             evaluated.append((name, location_path, evidence))
         usable = [item for item in evaluated if item[2]]
         if not usable:
-            return detail_path, None, "NO_USABLE_LOCATION_CONTAINER"
+            primary = next(
+                (item for item in evaluated if item[0] == "bidpBidLocationList"), evaluated[0]
+            )
+            return detail_path, {
+                "location_path": primary[1],
+                "location_dtos": [],
+                "selected_container": primary[0],
+                "container_resolution": "SUPPORTED_BUT_EMPTY",
+            }, "SOURCE_HAS_NO_LOCATION"
         if len(usable) == 1:
             name, location_path, evidence = usable[0]
             return detail_path, {
@@ -427,18 +438,66 @@ The complete temporary script is:
         return bool(payload and payload.get(contract.identity_field) == sample.expected_notify_id)
 
 
+    async def visible_runtime_challenge(page: Any) -> bool:
+        """Detect only visible runtime gates; static script references are not a challenge."""
+        url = str(getattr(page, "url", "")).casefold()
+        if any(token in url for token in ("/login", "/sign-in", "/dang-nhap")):
+            return True
+        locator = getattr(page, "locator", None)
+        if locator is not None:
+            for selector in (
+                "input[type='password']",
+                "iframe[src*='recaptcha']",
+                "[data-sitekey]",
+                "[class*='captcha']",
+            ):
+                try:
+                    if await locator(selector).count():
+                        return True
+                except Exception:
+                    pass
+        text_content = getattr(page, "visible_text", None)
+        if callable(text_content):
+            text = (await text_content()).casefold()
+            return any(marker in text for marker in (
+                "access denied", "human verification", "verify you are human", "xác minh", "truy cập bị từ chối",
+            ))
+        return False
+
+
+    def remaining_seconds(deadline_at: float) -> float:
+        return deadline_at - asyncio.get_running_loop().time()
+
+
     async def wait_for_unique_response(
-        queue: asyncio.Queue[Any], deadline_seconds: float, quiet_seconds: float
+        queue: asyncio.Queue[Any], deadline_at: float, quiet_seconds: float, page: Any
     ) -> tuple[Any | None, str]:
-        try:
-            selected = await asyncio.wait_for(queue.get(), timeout=deadline_seconds)
-        except TimeoutError:
-            return None, "DETAIL_RESPONSE_TIMEOUT"
-        try:
-            await asyncio.wait_for(queue.get(), timeout=quiet_seconds)
-        except TimeoutError:
-            return selected, "UNIQUE"
-        return None, "INTEGRITY_MISMATCH"
+        """Use one deadline for response, challenge polling, and uniqueness quiet window."""
+        selected = None
+        while selected is None:
+            if await visible_runtime_challenge(page):
+                return None, "ACCESS_CHALLENGE"
+            remaining = remaining_seconds(deadline_at)
+            if remaining <= 0:
+                return None, "DETAIL_RESPONSE_TIMEOUT"
+            try:
+                selected = await asyncio.wait_for(queue.get(), timeout=min(remaining, 0.10))
+            except TimeoutError:
+                continue
+        quiet_deadline = asyncio.get_running_loop().time() + quiet_seconds
+        if quiet_deadline > deadline_at:
+            return None, "UNIQUENESS_NOT_PROVEN"
+        while True:
+            if await visible_runtime_challenge(page):
+                return None, "ACCESS_CHALLENGE"
+            remaining = min(remaining_seconds(deadline_at), quiet_deadline - asyncio.get_running_loop().time())
+            if remaining <= 0:
+                return selected, "UNIQUE"
+            try:
+                await asyncio.wait_for(queue.get(), timeout=min(remaining, 0.10))
+            except TimeoutError:
+                continue
+            return None, "INTEGRITY_MISMATCH"
 
 
     async def capture_exact_response(
@@ -446,7 +505,7 @@ The complete temporary script is:
         navigate,
         sample: M0Sample,
         contract: DetailRequestContract,
-        deadline_seconds: float,
+        deadline_at: float,
         quiet_seconds: float,
     ) -> tuple[Any | None, str]:
         queue: asyncio.Queue[Any] = asyncio.Queue()
@@ -456,13 +515,20 @@ The complete temporary script is:
                 queue.put_nowait(response)
 
         page.on("response", listener)
-        started = asyncio.get_running_loop().time()
         try:
-            await navigate()
-            remaining = deadline_seconds - (asyncio.get_running_loop().time() - started)
-            if remaining <= 0:
+            navigation = await asyncio.wait_for(navigate(), timeout=max(remaining_seconds(deadline_at), 0))
+            if navigation is None:
+                return None, "RETRIEVAL_FAILED"
+            navigation_state = detail_status(int(getattr(navigation, "status", 0)))
+            if navigation_state != "SUCCESS":
+                return None, navigation_state
+            if await visible_runtime_challenge(page):
+                return None, "ACCESS_CHALLENGE"
+            if remaining_seconds(deadline_at) <= 0:
                 return None, "DETAIL_RESPONSE_TIMEOUT"
-            return await wait_for_unique_response(queue, remaining, quiet_seconds)
+            return await wait_for_unique_response(queue, deadline_at, quiet_seconds, page)
+        except TimeoutError:
+            return None, "RETRIEVAL_FAILED"
         finally:
             page.off("response", listener)
 
@@ -507,6 +573,7 @@ The complete temporary script is:
     ) -> dict[str, Any]:
         await fetcher.ensure_browser_access_allowed(url)
         await limiter.wait(url)
+        deadline_at = asyncio.get_running_loop().time() + deadline_seconds
         page = await fetcher.new_page()
         try:
             response, capture_state = await capture_exact_response(
@@ -514,7 +581,7 @@ The complete temporary script is:
                 lambda: page.goto(url, wait_until="domcontentloaded"),
                 sample,
                 contract,
-                deadline_seconds,
+                deadline_at,
                 quiet_seconds,
             )
             if capture_state != "UNIQUE":
@@ -541,7 +608,13 @@ The complete temporary script is:
                 return base | {"outcome": "ACCESS_CHALLENGE", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
             if status_state != "SUCCESS":
                 return base | {"outcome": "RETRIEVAL_FAILED", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
-            body = await response.body()
+            remaining = remaining_seconds(deadline_at)
+            if remaining <= 0:
+                return base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+            try:
+                body = await asyncio.wait_for(response.body(), timeout=remaining)
+            except TimeoutError:
+                return base | {"outcome": "DETAIL_BODY_TIMEOUT", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
             digest = hashlib.sha256(body).hexdigest()
             try:
                 payload = json.loads(body)
@@ -572,9 +645,19 @@ The complete temporary script is:
                 "raw_response_written": True,
                 "M0_RAW_SECRET_EXCLUSION": "PASS",
             }
+            if location_state == "SOURCE_HAS_NO_LOCATION":
+                return base | {
+                    "outcome": "SOURCE_HAS_NO_LOCATION",
+                    "location_state": location_state,
+                    "REAL_LOCATION_DTO_PATH": location["location_path"],
+                    "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
+                    "location_dtos": [],
+                    "selected_container": location["selected_container"],
+                    "container_resolution": location["container_resolution"],
+                }
             if location_state != "PROVEN":
                 return base | {
-                    "outcome": "HOLD_DETAIL_PATH",
+                    "outcome": location_state,
                     "location_state": location_state,
                     "REAL_LOCATION_DTO_PATH": "NOT_PROVEN",
                     "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
@@ -593,19 +676,9 @@ The complete temporary script is:
             await page.close()
 
 
-    async def terminal_report_on_browser_start(start):
-        report = base_report()
-        fetcher = None
-        try:
-            fetcher = await start()
-            report["terminal_outcome"] = "STARTED"
-        except Exception as error:
-            report["terminal_outcome"] = "FAILED_BEFORE_START"
-            report["stop_reason"] = sanitize_error(error)
-        finally:
-            if fetcher is not None:
-                await fetcher.close()
-        return report
+    def write_terminal_report(report_path: Path, report: dict[str, Any]) -> None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
     def parse_contract(value: str) -> DetailRequestContract:
@@ -616,7 +689,14 @@ The complete temporary script is:
         return DetailRequestContract(**{key: data[key] for key in required})
 
 
-    async def run(args: argparse.Namespace) -> int:
+    async def run(
+        args: argparse.Namespace,
+        *,
+        fetcher_factory: Any | None = None,
+        limiter_factory: Any | None = None,
+        config_loader=read_config_side_effect_free,
+        sample_runner=one,
+    ) -> int:
         report = base_report()
         fetcher = None
         try:
@@ -626,24 +706,26 @@ The complete temporary script is:
             if not raw_root_inside_temp(raw_root):
                 report["terminal_outcome"] = "FAILED_BEFORE_START"
                 report["stop_reason"] = "RAW_ROOT_OUTSIDE_TEMP"
-                return 2
+                raise RuntimeError("RAW_ROOT_OUTSIDE_TEMP")
             urls = dict(value.split("=", 1) for value in args.detail_url)
             if set(urls) != {sample.key for sample in SAMPLES}:
                 raise ValueError("each exact sample requires a Work-Order-supplied official detail URL")
             contract = parse_contract(args.detail_contract)
-            config = read_config_side_effect_free(args.config)
+            config = config_loader(args.config)
             enforce_access_policy(config)
             enforce_official_origin(config, contract)
             report["M0_ACCESS_POLICY"] = "PASS"
-            from qi_crawler.browser import BrowserFetcher
             from qi_crawler.compliance import AccessDenied, DomainRateLimiter
-            fetcher = BrowserFetcher(config)
+            if fetcher_factory is None:
+                from qi_crawler.browser import BrowserFetcher
+                fetcher_factory = BrowserFetcher
+            fetcher = fetcher_factory(config)
             await fetcher.start(headed=True)
             deadline = config.crawl.browser_timeout_seconds
-            limiter = DomainRateLimiter(min(config.crawl.requests_per_minute, 12))
+            limiter = (limiter_factory or DomainRateLimiter)(min(config.crawl.requests_per_minute, 12))
             for sample in SAMPLES:
                 try:
-                    item = await one(fetcher, limiter, urls[sample.key], sample, contract, raw_root, deadline, 0.25)
+                    item = await sample_runner(fetcher, limiter, urls[sample.key], sample, contract, raw_root, deadline, 0.25)
                 except AccessDenied as error:
                     report["samples"].append({"sample": sample.key, "outcome": "ACCESS_CHALLENGE"})
                     report["M0_ACCESS_POLICY"] = "HOLD"
@@ -658,7 +740,10 @@ The complete temporary script is:
                     report["M0_ACCESS_POLICY"] = "HOLD"
                     report["stop_reason"] = "ACCESS_CHALLENGE"
                     break
-                if item["outcome"] in {"INTEGRITY_MISMATCH", "HOLD_DETAIL_PATH", "RAW_SECRET_HOLD"}:
+                if item["outcome"] in {
+                    "INTEGRITY_MISMATCH", "DETAIL_OBJECT_AMBIGUOUS",
+                    "CONFLICTING_LOCATION_CONTAINERS", "RAW_SECRET_HOLD",
+                }:
                     report["stop_reason"] = item["outcome"]
                     break
                 if item["outcome"] == "PROVEN":
@@ -692,10 +777,20 @@ The complete temporary script is:
             report["stop_reason"] = sanitize_error(error)
         finally:
             if fetcher is not None:
-                await fetcher.close()
-            args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        return 0 if exit_zero_requires_all_gates(report) else 2
+                try:
+                    await fetcher.close()
+                except Exception as error:
+                    report["terminal_outcome"] = "CLEANUP_FAILED"
+                    report["stop_reason"] = sanitize_error(error)
+                    report["cleanup_failed"] = True
+            try:
+                write_terminal_report(args.report, report)
+            except Exception as error:
+                report["report_write_failed"] = True
+                report["terminal_outcome"] = "REPORT_WRITE_FAILED"
+                report["stop_reason"] = sanitize_error(error)
+                return 2
+        return 0 if exit_zero_requires_all_gates(report) and not report.get("cleanup_failed") else 2
 
 
     def main() -> None:
@@ -717,15 +812,15 @@ The complete temporary script is:
 1. Human/Planner supplies the exact official frontend navigation URLs and spike-proven JSON detail-request contract for this process only. No route, API endpoint, identity field, or source-to-URL mapping may be inferred by the harness.
 2. The harness validates its temporary raw-root and configuration before starting a browser. It then validates the allowed HTTPS origin, official navigation URL, and robots policy before navigation.
 3. Register the exact-response listener before navigation. A response qualifies only when its request has the supplied official origin, exact method, exact route, and parsed payload identity field equal to the candidate UUID. A UUID in an unrelated field, query text, or arbitrary JSON string does not bind identity.
-4. Capture one matching response before the overall sample deadline. A late exact response arriving inside that deadline is valid; a second exact response during the bounded quiet window is an INTEGRITY_MISMATCH. Always remove the listener and close the page.
-5. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
-6. Compute a raw SHA-256 in memory, parse and scan explicit credential-bearing keys and Bearer material, then write exact raw bytes only after that scan passes and only under the temporary raw-root. On suspicious content, write nothing and set M0_RAW_SECRET_EXCLUSION = HOLD. All errors and every reported route are sanitized to omit credentials, query, and fragment.
-7. Bind exactly one detail object. Preserve every meaningful location DTO. If two supported containers occur in distinct candidate detail objects, hold DETAIL_OBJECT_AMBIGUOUS. Within one object, select one usable container; choose semantically identical mirrors deterministically; select the usable one when the other is empty; and hold conflicting nonempty containers. Never merge conflicts.
-8. A province/city gate considers only DTOs with meaningful provName, but partial district/ward DTOs remain in location_dtos even when confirmed DTOs exist. A candidate without province/city may continue to the next candidate. M0 never auto-authorizes M1–M6.
+4. After rate limiting, one active browser-timeout deadline covers frontend navigation, visible-runtime challenge checks, exact-response wait, the bounded uniqueness quiet window, and response-body read. A missing navigation response is RETRIEVAL_FAILED/NOT_PROVEN; a frontend 401/403/429 is ACCESS_CHALLENGE and stops the whole batch immediately; another frontend 4xx/5xx is RETRIEVAL_FAILED and may advance. A late exact response is valid only inside that same deadline. If the quiet window or body cannot complete inside it, the candidate is non-proving (UNIQUENESS_NOT_PROVEN or DETAIL_BODY_TIMEOUT). A second exact response during the quiet window is INTEGRITY_MISMATCH. Always remove the listener and close the page.
+5. Check a visible runtime access gate after navigation and while awaiting an exact response. Login/sign-in redirects, a visible password input or challenge widget, and visible access-denied/human-verification text are ACCESS_CHALLENGE; static grecaptcha/recaptcha script references alone are not. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
+6. Compute a raw SHA-256 in memory, parse and scan explicit credential-bearing keys (including normalized grecaptcharesponse, recaptcharesponse, recaptchatoken, and captchatoken) and Bearer material, then write exact raw bytes only after that scan passes and only under the temporary raw-root. On suspicious content, write nothing and set M0_RAW_SECRET_EXCLUSION = HOLD. All errors and every reported route are sanitized to omit credentials, query, and fragment.
+7. Bind exactly one detail object. Preserve every meaningful location DTO. A missing or malformed supported container is SCHEMA_UNSUPPORTED and may advance; multiple detail objects are DETAIL_OBJECT_AMBIGUOUS and hold; conflicting nonempty containers are CONFLICTING_LOCATION_CONTAINERS and hold. Within one object, select semantically identical mirrors deterministically, select the usable one when the other is empty, and never merge conflicts. A structurally supported empty container, or structurally valid DTOs whose province/district/ward are all empty, is SOURCE_HAS_NO_LOCATION: preserve detail/container paths, never prove a province, and continue to the next candidate.
+8. A province/city gate considers only DTOs with meaningful provName, but partial district/ward DTOs remain in location_dtos even when confirmed DTOs exist. SOURCE_HAS_NO_LOCATION after every candidate finishes with M0_PROVINCE_GATE = FAIL. M0 never auto-authorizes M1–M6.
 
 ### M0 proof and stop contract
 
-The terminal report is emitted for config failure, browser-start failure, page failure, response-body failure, timeout, parser failure, or normal completion. BrowserFetcher.close() runs whenever initialization reached a closable state.
+The `run()` lifecycle, not a detached helper, emits the terminal report for config failure, browser-start failure, page failure, response-body failure, timeout, parser failure, cleanup failure, or normal completion. It attempts BrowserFetcher.close() whenever initialization reached a closable state, records a sanitized CLEANUP_FAILED result and returns nonzero if close fails, then writes the report. If report writing itself fails, it returns nonzero and makes no durability claim.
 
 The report records only source/revision identifiers, method, sanitized route, expected UUID, binding result, status, raw SHA-256, location evidence, and sanitized terminal reason. A zero exit requires every required proof gate to be PASS; a lock or verifier result never replaces Human approval.
 
@@ -737,7 +832,7 @@ The report records only source/revision identifiers, method, sanitized route, ex
     M0_RAW_SECRET_EXCLUSION = PASS only after selected bytes pass the explicit scan
     M0_PROVINCE_GATE = PASS only when a direct meaningful province/city exists
 
-ACCESS_CHALLENGE, identity mismatch, duplicate matching response, conflicting containers, unsafe raw content, robots uncertainty, or access-control interruption stop M0 without bypass. Unsupported or retrieval-failed candidates record bounded evidence and may continue. Missing direct province/city after all candidates yields M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then stops for Planner. The mandatory sequence remains M0 evidence → Planner audit → Human decision; M0 does not auto-authorize M1–M6.
+ACCESS_CHALLENGE, identity mismatch, duplicate matching response, ambiguous detail objects, conflicting containers, unsafe raw content, robots uncertainty, or access-control interruption stop M0 without bypass. SCHEMA_UNSUPPORTED, SOURCE_HAS_NO_LOCATION, retrieval-failed, parser-failed, and bounded body/uniqueness failures record bounded evidence and may continue. Missing direct province/city after all candidates yields M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then stops for Planner. The mandatory sequence remains M0 evidence → Planner audit → Human decision; M0 does not auto-authorize M1–M6.
 
 ### M0 radius and evidence
 
