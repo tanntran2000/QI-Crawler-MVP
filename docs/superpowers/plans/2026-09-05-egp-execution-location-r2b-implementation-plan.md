@@ -138,35 +138,70 @@ The inspection output is a plan checkpoint only. It must not add a network call 
 
 ## M0 — real browser-response proof
 
-CONDITIONAL TASK: DO NOT EXECUTE unless Human A0 authorizes M0 after Planner audits this plan.
+CONDITIONAL TASK: DO NOT EXECUTE unless Human A0 authorizes M0 after Planner audits this plan. This plan embeds a temporary harness specification only; it is not M0 authority.
 
-### M0 objective
+### M0 objective and state
 
-Use the official public e-GP frontend in a normal Playwright browser session to observe at most three real detail responses. The only approved candidate pairs are IB2600488839:00, IB2600498410:00, and IB2600489267:00. They are candidates, not assertions that a province/city value exists. The run is bounded at one browser context, one detail acquisition at a time, and min(configured_rate, 12) requests per minute. The existing BrowserFetcher page timeout remains authoritative. No direct tokenless API replay is allowed.
+Observe at most three real detail responses through the official public e-GP frontend in a normal Playwright browser session. The approved candidates are IB2600488839:00, IB2600498410:00, and IB2600489267:00; they are candidates, not assertions that a province/city value exists.
+
+    R2B_SPEC = HUMAN_APPROVED_FINAL
+    R2B_PLAN = FEATURE_BRANCH_PLAN
+    R2B_M0 = NOT_EXECUTED
+    R2B_M1_TO_M6 = NOT_IMPLEMENTED
+
+M0 uses one browser context, sequential detail acquisition, and min(configured_rate, 12) requests per minute. Existing browser timeout remains authoritative. It may use neither a direct tokenless API replay nor a CAPTCHA solver.
 
 ### M0 exact execution method
 
-Create this temporary script outside the repository:
+Create the temporary script below only under a unique directory outside the repository. A later Human/Planner M0 Work Order must supply the exact official frontend navigation URLs and the exact spike-proven detail request contract as JSON. The contract has four fields only: origin, method, route, and identity_field.
 
-    %TEMP%\qi-r2b-m0\capture_egp_location.py
+Use PowerShell only after M0 authorization:
 
-Run it only after M0 authorization:
+    $M0Root = Join-Path $env:TEMP 'qi-r2b-m0'
+    $RawRoot = Join-Path $M0Root 'raw'
+    $Script = Join-Path $M0Root 'capture_egp_location.py'
+    $DetailContract = $env:QI_R2B_M0_DETAIL_REQUEST_CONTRACT
+    & .\.venv\Scripts\python.exe $Script --config .\config.yaml --detail-url "IB2600488839:00=$env:QI_R2B_M0_DETAIL_URL_1" --detail-url "IB2600498410:00=$env:QI_R2B_M0_DETAIL_URL_2" --detail-url "IB2600489267:00=$env:QI_R2B_M0_DETAIL_URL_3" --detail-contract $DetailContract --max-samples 3 --concurrency 1 --raw-root $RawRoot --report .\docs\agent_handoff\evidence\R2B-M0-egp-location-response.md
 
-    .venv\Scripts\python.exe %TEMP%\qi-r2b-m0\capture_egp_location.py --config config.yaml --detail-url "IB2600488839:00=$env:QI_R2B_M0_DETAIL_URL_1" --detail-url "IB2600498410:00=$env:QI_R2B_M0_DETAIL_URL_2" --detail-url "IB2600489267:00=$env:QI_R2B_M0_DETAIL_URL_3" --max-samples 3 --concurrency 1 --raw-root %TEMP%\qi-r2b-m0\raw --report docs/agent_handoff/evidence/R2B-M0-egp-location-response.md
+The later Work Order must copy the descriptor verbatim from approved spike evidence. The harness does not construct a source-to-URL mapping from source id or revision. It rejects a non-HTTPS/non-allowed contract origin, validates the official navigation URL against existing access policy and robots policy, and persists neither query strings, request bodies, headers, cookies, nor credentials.
 
-The three QI_R2B_M0_DETAIL_URL_* values are exact official frontend detail URLs or route descriptors copied verbatim from the later Human/Planner M0 Work Order. The script does not construct a source-to-URL mapping from source_id/revision. It validates the e-GP allowed domain and causal binding to the known revision UUID. Routes are never committed, raw output is TEMP-only, and report routes omit query strings.
+The harness is side-effect-free before browser start: it parses YAML directly and calls AppConfig.model_validate, never load_config, so it does not create configured application storage directories. It hard-holds before browser start unless both obey_robots_txt and stop_on_captcha are true. It also rejects any raw-root outside TEMP.
 
-The complete temporary script below uses BrowserFetcher, AccessPolicy, robots checks, the existing page timeout, and a dedicated DomainRateLimiter at min(config.crawl.requests_per_minute, 12). It never extracts tokens, exports cookies, replays requests, saves storage state, or uses a solver.
+The complete temporary script is:
 
+    """Temporary, authorization-gated R2B M0 browser evidence harness.
+
+    This file belongs under %TEMP% only.  It is deliberately read-only with
+    respect to application state; raw response bytes are permitted only after a
+    secret scan and only under a unique TEMP root.
+    """
     from __future__ import annotations
-    import argparse, asyncio, hashlib, json
+
+    import argparse
+    import asyncio
+    import hashlib
+    import json
+    import re
     from dataclasses import dataclass
     from datetime import UTC, datetime
     from pathlib import Path
+    from typing import Any
     from urllib.parse import urlsplit, urlunsplit
-    from qi_crawler.browser import BrowserFetcher
-    from qi_crawler.compliance import AccessDenied, DomainRateLimiter
-    from qi_crawler.config import load_config
+
+    import yaml
+
+    from qi_crawler.config import AppConfig
+
+    SUPPORTED_CONTAINERS = ("bidpBidLocationList", "lsBidpBidLocationDTO")
+    CHALLENGE_STATUSES = {401, 403, 429}
+    SECRET_KEYS = {
+        "password", "passphrase", "authorization", "cookie", "setcookie",
+        "accesstoken", "refreshtoken", "clientsecret", "sessiontoken",
+        "csrftoken", "recaptchatoken",
+    }
+    BEARER = re.compile(r"\bbearer\s+[a-z0-9._~+/=-]{8,}", re.I)
+    URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
+
 
     @dataclass(frozen=True)
     class M0Sample:
@@ -182,206 +217,535 @@ The complete temporary script below uses BrowserFetcher, AccessPolicy, robots ch
         def key(self) -> str:
             return f"{self.source_id}:{self.revision}"
 
+
+    @dataclass(frozen=True)
+    class DetailRequestContract:
+        origin: str
+        method: str
+        route: str
+        identity_field: str
+
+
     SAMPLES = (
         M0Sample("IB2600488839", "00", "ca1aadd6-edbc-4912-81fa-dccba9712245"),
         M0Sample("IB2600498410", "00", "9446dc1c-3687-4fa5-a73f-67b1b9cc75cf"),
         M0Sample("IB2600489267", "00", "9716b9c7-e446-4e0a-89fc-27cb244b3eac"),
     )
 
-    def safe_url(value: str) -> str:
-        parsed = urlsplit(value)
-        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
 
-    def walk(value, path=""):
+    def pointer_join(parent: str, token: str | int) -> str:
+        escaped = str(token).replace("~", "~0").replace("/", "~1")
+        return f"/{escaped}" if parent == "/" else f"{parent}/{escaped}"
+
+
+    def walk(value: Any, path: str = "/"):
         if isinstance(value, dict):
-            yield path or "/", value
+            yield path, value
             for key, child in value.items():
-                yield from walk(child, f"{path}/{str(key).replace('~', '~0').replace('/', '~1')}")
+                yield from walk(child, pointer_join(path, key))
         elif isinstance(value, list):
             for index, child in enumerate(value):
-                yield from walk(child, f"{path}/{index}")
+                yield from walk(child, pointer_join(path, index))
 
-    def supported_location_path(payload):
-        containers = []
-        for detail_path, node in walk(payload):
-            for name in ("bidpBidLocationList", "lsBidpBidLocationDTO"):
-                if name in node:
-                    value = node[name]
-                    if not isinstance(value, list):
-                        return None, None, "UNSUPPORTED_CONTAINER_SHAPE"
-                    containers.append((detail_path, f"{detail_path}/{name}", value))
-        if len(containers) != 1:
-            return None, None, "NOT_PROVEN"
-        detail_path, location_path, dtos = containers[0]
-        evidence = []
-        for index, dto in enumerate(dtos):
+
+    def safe_url(value: str) -> str:
+        parsed = urlsplit(value)
+        host = parsed.hostname or ""
+        if parsed.port:
+            host = f"{host}:{parsed.port}"
+        return urlunsplit((parsed.scheme, host, parsed.path, "", ""))
+
+
+    def sanitize_error(error: BaseException | str) -> str:
+        message = str(error)
+        message = URL.sub(lambda match: safe_url(match.group(0)), message)
+        return BEARER.sub("Bearer [REDACTED]", message)
+
+
+    def detail_status(status: int) -> str:
+        if 200 <= status < 300:
+            return "SUCCESS"
+        if status in CHALLENGE_STATUSES:
+            return "ACCESS_CHALLENGE"
+        return "RETRIEVAL_FAILED"
+
+
+    def _normal_key(value: str) -> str:
+        return value.casefold().replace("-", "").replace("_", "")
+
+
+    def contains_secret(value: Any, key: str | None = None) -> bool:
+        if key and _normal_key(key) in SECRET_KEYS:
+            return True
+        if isinstance(value, dict):
+            return any(contains_secret(child, str(child_key)) for child_key, child in value.items())
+        if isinstance(value, list):
+            return any(contains_secret(child) for child in value)
+        return isinstance(value, str) and bool(BEARER.search(value))
+
+
+    def persist_raw_if_secret_free(raw_path: Path, body: bytes) -> tuple[str, bool]:
+        digest = hashlib.sha256(body).hexdigest()
+        try:
+            payload = json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return digest, False
+        if contains_secret(payload):
+            return digest, False
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        raw_path.write_bytes(body)
+        return digest, True
+
+
+    def raw_root_inside_temp(raw_root: Path, temp_root: Path | None = None) -> bool:
+        root = raw_root.resolve()
+        temp = (temp_root or Path(__import__("os").environ["TEMP"])).resolve()
+        try:
+            root.relative_to(temp)
+            return True
+        except ValueError:
+            return False
+
+
+    def read_config_side_effect_free(path: Path) -> AppConfig:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return AppConfig.model_validate(payload)
+
+
+    def enforce_access_policy(config: AppConfig) -> None:
+        if not config.compliance.obey_robots_txt or not config.compliance.stop_on_captcha:
+            raise RuntimeError("M0_ACCESS_POLICY_HOLD")
+
+
+    def enforce_official_origin(config: AppConfig, contract: DetailRequestContract) -> None:
+        parsed = urlsplit(contract.origin)
+        if parsed.scheme != "https" or not parsed.hostname:
+            raise RuntimeError("DETAIL_CONTRACT_ORIGIN_INVALID")
+        if parsed.hostname.casefold() not in {domain.casefold() for domain in config.allowed_domains}:
+            raise RuntimeError("DETAIL_CONTRACT_ORIGIN_NOT_ALLOWED")
+
+
+    def _text(dto: dict[str, Any], key: str) -> str | None:
+        value = dto.get(key)
+        return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+    def _evidence(location_path: str, values: list[Any]) -> list[dict[str, str | None]]:
+        evidence: list[dict[str, str | None]] = []
+        for index, dto in enumerate(values):
             if not isinstance(dto, dict):
-                return None, None, "UNSUPPORTED_DTO_SHAPE"
-            def text(name):
-                value = dto.get(name)
-                return value.strip() if isinstance(value, str) and value.strip() else None
-            province, district, ward = text("provName"), text("districtName"), text("wardName")
+                raise ValueError("UNSUPPORTED_DTO_SHAPE")
+            province = _text(dto, "provName")
+            district = _text(dto, "districtName")
+            ward = _text(dto, "wardName")
             if province or district or ward:
-                evidence.append({"path": f"{location_path}/{index}", "province_city": province,
-                                 "district": district, "ward": ward})
-        return detail_path, (location_path, evidence), "PROVEN"
+                evidence.append(
+                    {
+                        "path": pointer_join(location_path, index),
+                        "province_city": province,
+                        "district": district,
+                        "ward": ward,
+                    }
+                )
+        return evidence
 
-    def visible_challenge_text(text: str) -> bool:
-        lowered = text.casefold()
-        return any(marker in lowered for marker in (
-            "access denied", "xác minh bạn là con người", "xác minh bạn không phải",
-            "human verification", "verify you are human",
-        ))
 
-    async def one(fetcher, limiter, url, sample, raw_root):
+    def supported_location_path(payload: Any) -> tuple[str | None, dict[str, Any] | None, str]:
+        objects: list[tuple[str, dict[str, Any], list[tuple[str, list[Any]]]]] = []
+        for detail_path, node in walk(payload):
+            if not isinstance(node, dict):
+                continue
+            found: list[tuple[str, list[Any]]] = []
+            for name in SUPPORTED_CONTAINERS:
+                if name in node:
+                    if not isinstance(node[name], list):
+                        return detail_path, None, "UNSUPPORTED_CONTAINER_SHAPE"
+                    found.append((name, node[name]))
+            if found:
+                objects.append((detail_path, node, found))
+        if len(objects) != 1:
+            return None, None, "DETAIL_OBJECT_AMBIGUOUS" if objects else "NOT_PROVEN"
+        detail_path, _, containers = objects[0]
+        evaluated = []
+        for name, values in containers:
+            location_path = pointer_join(detail_path, name)
+            evidence = _evidence(location_path, values)
+            evaluated.append((name, location_path, evidence))
+        usable = [item for item in evaluated if item[2]]
+        if not usable:
+            return detail_path, None, "NO_USABLE_LOCATION_CONTAINER"
+        if len(usable) == 1:
+            name, location_path, evidence = usable[0]
+            return detail_path, {
+                "location_path": location_path,
+                "location_dtos": evidence,
+                "selected_container": name,
+                "container_resolution": "SINGLE_USABLE"
+                if len(evaluated) == 1 else "EMPTY_CONTAINER_IGNORED",
+            }, "PROVEN"
+        first, second = usable
+        def semantic_values(item):
+            return [
+                (dto["province_city"], dto["district"], dto["ward"])
+                for dto in item[2]
+            ]
+        if semantic_values(first) != semantic_values(second):
+            return detail_path, None, "CONFLICTING_LOCATION_CONTAINERS"
+        primary = next(item for item in evaluated if item[0] == "bidpBidLocationList") if any(
+            item[0] == "bidpBidLocationList" for item in evaluated
+        ) else first
+        return detail_path, {
+            "location_path": primary[1],
+            "location_dtos": primary[2],
+            "selected_container": primary[0],
+            "container_resolution": "MIRRORED_DETERMINISTIC_PRIMARY",
+        }, "PROVEN"
+
+
+    def _parsed_payload(request: Any) -> dict[str, Any] | None:
+        raw = getattr(request, "post_data", None)
+        if not isinstance(raw, str):
+            return None
+        try:
+            result = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        return result if isinstance(result, dict) else None
+
+
+    def request_binds(request: Any, sample: M0Sample, contract: DetailRequestContract) -> bool:
+        parsed = urlsplit(str(getattr(request, "url", "")))
+        actual_origin = f"{parsed.scheme}://{parsed.netloc}".casefold()
+        expected_origin = contract.origin.rstrip("/").casefold()
+        if actual_origin != expected_origin:
+            return False
+        if str(getattr(request, "method", "")).upper() != contract.method.upper():
+            return False
+        if parsed.path != contract.route:
+            return False
+        payload = _parsed_payload(request)
+        return bool(payload and payload.get(contract.identity_field) == sample.expected_notify_id)
+
+
+    async def wait_for_unique_response(
+        queue: asyncio.Queue[Any], deadline_seconds: float, quiet_seconds: float
+    ) -> tuple[Any | None, str]:
+        try:
+            selected = await asyncio.wait_for(queue.get(), timeout=deadline_seconds)
+        except TimeoutError:
+            return None, "DETAIL_RESPONSE_TIMEOUT"
+        try:
+            await asyncio.wait_for(queue.get(), timeout=quiet_seconds)
+        except TimeoutError:
+            return selected, "UNIQUE"
+        return None, "INTEGRITY_MISMATCH"
+
+
+    async def capture_exact_response(
+        page: Any,
+        navigate,
+        sample: M0Sample,
+        contract: DetailRequestContract,
+        deadline_seconds: float,
+        quiet_seconds: float,
+    ) -> tuple[Any | None, str]:
+        queue: asyncio.Queue[Any] = asyncio.Queue()
+
+        def listener(response: Any) -> None:
+            if request_binds(response.request, sample, contract):
+                queue.put_nowait(response)
+
+        page.on("response", listener)
+        started = asyncio.get_running_loop().time()
+        try:
+            await navigate()
+            remaining = deadline_seconds - (asyncio.get_running_loop().time() - started)
+            if remaining <= 0:
+                return None, "DETAIL_RESPONSE_TIMEOUT"
+            return await wait_for_unique_response(queue, remaining, quiet_seconds)
+        finally:
+            page.off("response", listener)
+
+
+    def base_report() -> dict[str, Any]:
+        return {
+            "samples": [],
+            "terminal_outcome": "NOT_STARTED",
+            "REAL_RESPONSE_ENVELOPE": "NOT_PROVEN",
+            "REAL_DETAIL_OBJECT_PATH": "NOT_PROVEN",
+            "REAL_IDENTITY_BINDING": "NOT_PROVEN",
+            "REAL_NOTIFYNO_REVISION_UUID_RELATION": "NOT_PROVEN",
+            "REAL_LOCATION_DTO_PATH": "NOT_PROVEN",
+            "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
+            "M0_REAL_PROVINCE_CITY_VALUE": "NOT_PROVEN",
+            "M0_IDENTITY_BINDING": "FAIL",
+            "M0_DETAIL_OBJECT_PATH": "FAIL",
+            "M0_LOCATION_DTO_PATH": "FAIL",
+            "M0_ACCESS_POLICY": "NOT_PROVEN",
+            "M0_RAW_SECRET_EXCLUSION": "NOT_PROVEN",
+            "M0_PROVINCE_GATE": "FAIL",
+        }
+
+
+    def exit_zero_requires_all_gates(report: dict[str, Any]) -> bool:
+        required = (
+            "M0_IDENTITY_BINDING", "M0_DETAIL_OBJECT_PATH", "M0_LOCATION_DTO_PATH",
+            "M0_ACCESS_POLICY", "M0_RAW_SECRET_EXCLUSION", "M0_PROVINCE_GATE",
+        )
+        return all(report.get(key) == "PASS" for key in required)
+
+
+    def apply_sample_outcome(report: dict[str, Any], item: dict[str, Any]) -> None:
+        report["samples"].append(item)
+        if item.get("M0_RAW_SECRET_EXCLUSION") == "HOLD":
+            report["M0_RAW_SECRET_EXCLUSION"] = "HOLD"
+
+
+    async def one(
+        fetcher: Any, limiter: Any, url: str, sample: M0Sample, contract: DetailRequestContract,
+        raw_root: Path, deadline_seconds: float, quiet_seconds: float,
+    ) -> dict[str, Any]:
         await fetcher.ensure_browser_access_allowed(url)
         await limiter.wait(url)
-        page, captures, pending = await fetcher.new_page(), [], []
-        async def record(response):
-            content_type = (await response.all_headers()).get("content-type", "")
-            if "json" not in content_type.casefold():
-                return
+        page = await fetcher.new_page()
+        try:
+            response, capture_state = await capture_exact_response(
+                page,
+                lambda: page.goto(url, wait_until="domcontentloaded"),
+                sample,
+                contract,
+                deadline_seconds,
+                quiet_seconds,
+            )
+            if capture_state != "UNIQUE":
+                return {"sample": sample.key, "outcome": capture_state, "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+            status_state = detail_status(response.status)
+            binding = {
+                "method": contract.method.upper(),
+                "sanitized_route": contract.route,
+                "expected_notify_id": sample.expected_notify_id,
+                "binding_result": "PASS",
+            }
+            base = {
+                "sample": sample.key,
+                "official_notify_no": sample.source_id,
+                "revision": sample.revision,
+                "source_revision_id": sample.source_revision_id,
+                "notify_id": sample.expected_notify_id,
+                "exact_request_binding": binding,
+                "response_status": response.status,
+                "sanitized_response_route": safe_url(response.url),
+                "captured_at": datetime.now(UTC).isoformat(),
+            }
+            if status_state == "ACCESS_CHALLENGE":
+                return base | {"outcome": "ACCESS_CHALLENGE", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
+            if status_state != "SUCCESS":
+                return base | {"outcome": "RETRIEVAL_FAILED", "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
             body = await response.body()
+            digest = hashlib.sha256(body).hexdigest()
             try:
                 payload = json.loads(body)
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                return
-            captures.append({"response": response, "body": body, "json": payload,
-                             "request_binding": f"{response.request.url}\n{response.request.post_data or ''}",
-                             "status": response.status, "content_type": content_type})
-        page.on("response", lambda response: pending.append(asyncio.create_task(record(response))))
-        try:
-            response = await page.goto(url, wait_until="domcontentloaded")
-            if response is not None and response.status in {401, 403, 429}:
-                raise AccessDenied(f"ACCESS_CHALLENGE HTTP {response.status}")
-            await page.wait_for_timeout(fetcher.config.crawl.render_wait_ms)
-            if visible_challenge_text(await page.locator("body").inner_text()):
-                raise AccessDenied("ACCESS_CHALLENGE visible human-verification UI")
-            await asyncio.gather(*pending)
-            selected = [item for item in captures if sample.expected_notify_id in item["request_binding"]]
-            if len(selected) != 1:
-                return {"sample": sample.key, "outcome": "INTEGRITY_MISMATCH",
-                        "REAL_IDENTITY_BINDING": "NOT_PROVEN"}
-            selected = selected[0]
-            digest = hashlib.sha256(selected["body"]).hexdigest()
-            raw_root.mkdir(parents=True, exist_ok=True)
-            (raw_root / f"{sample.source_id}-{sample.revision}-{digest}.json").write_bytes(selected["body"])
-            detail_path, location_result, path_state = supported_location_path(selected["json"])
-            envelope = {"root_type": type(selected["json"]).__name__,
-                        "root_keys": sorted(selected["json"]) if isinstance(selected["json"], dict) else []}
-            base = {"sample": sample.key, "official_notify_no": sample.source_id,
-                    "revision": sample.revision, "source_revision_id": sample.source_revision_id,
-                    "notify_id": sample.expected_notify_id, "binding_method": "EXPECTED_NOTIFY_ID_REQUEST",
-                    "REAL_RESPONSE_ENVELOPE": envelope, "REAL_DETAIL_OBJECT_PATH": detail_path or "NOT_PROVEN",
-                    "response_sha256": digest, "response_status": selected["status"],
-                    "sanitized_response_route": safe_url(selected["response"].url),
-                    "captured_at": datetime.now(UTC).isoformat()}
-            if path_state != "PROVEN":
-                return base | {"outcome": "HOLD_DETAIL_PATH", "REAL_LOCATION_DTO_PATH": "NOT_PROVEN",
-                               "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN"}
-            location_path, values = location_result
-            confirmed = [value for value in values if value["province_city"]]
-            partial = [value for value in values if not value["province_city"] and (value["district"] or value["ward"])]
-            return base | {"outcome": "PROVEN" if confirmed else "PARTIAL" if partial else "NO_PROVINCE",
-                           "REAL_LOCATION_DTO_PATH": location_path,
-                           "REAL_SEMANTIC_LOCATION_VALUE": confirmed[0]["province_city"] if confirmed else "NOT_PROVEN",
-                           "location_dtos": confirmed or partial}
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                return base | {
+                    "outcome": "PARSER_FAILED",
+                    "RAW_RESPONSE_SHA256": digest,
+                    "stop_reason": sanitize_error(error),
+                }
+            raw_path = raw_root / f"{sample.source_id}-{sample.revision}-{digest}.json"
+            persisted_digest, raw_written = persist_raw_if_secret_free(raw_path, body)
+            if not raw_written:
+                return base | {
+                    "outcome": "RAW_SECRET_HOLD",
+                    "RAW_RESPONSE_SHA256": persisted_digest,
+                    "M0_RAW_SECRET_EXCLUSION": "HOLD",
+                }
+            detail_path, location, location_state = supported_location_path(payload)
+            envelope = {
+                "root_type": type(payload).__name__,
+                "root_keys": sorted(payload) if isinstance(payload, dict) else [],
+            }
+            base |= {
+                "REAL_RESPONSE_ENVELOPE": envelope,
+                "REAL_DETAIL_OBJECT_PATH": detail_path or "NOT_PROVEN",
+                "REAL_IDENTITY_BINDING": "EXACT_REQUEST_CONTRACT",
+                "RAW_RESPONSE_SHA256": digest,
+                "raw_response_written": True,
+                "M0_RAW_SECRET_EXCLUSION": "PASS",
+            }
+            if location_state != "PROVEN":
+                return base | {
+                    "outcome": "HOLD_DETAIL_PATH",
+                    "location_state": location_state,
+                    "REAL_LOCATION_DTO_PATH": "NOT_PROVEN",
+                    "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
+                }
+            dtos = location["location_dtos"]
+            confirmed = [dto for dto in dtos if dto["province_city"]]
+            return base | {
+                "outcome": "PROVEN" if confirmed else "PARTIAL",
+                "REAL_LOCATION_DTO_PATH": location["location_path"],
+                "REAL_SEMANTIC_LOCATION_VALUE": confirmed[0]["province_city"] if confirmed else "NOT_PROVEN",
+                "location_dtos": dtos,
+                "selected_container": location["selected_container"],
+                "container_resolution": location["container_resolution"],
+            }
         finally:
             await page.close()
 
-    async def run(args):
-        if args.max_samples != 3 or args.concurrency != 1 or len(args.detail_url) != 3:
-            raise SystemExit("M0 is exactly three approved sequential samples and concurrency one")
-        urls = dict(value.split("=", 1) for value in args.detail_url)
-        if set(urls) != {sample.key for sample in SAMPLES}:
-            raise SystemExit("each exact sample requires a Work-Order-supplied official detail URL")
-        config, report = load_config(args.config), {
-            "samples": [], "REAL_RESPONSE_ENVELOPE": "NOT_PROVEN", "REAL_DETAIL_OBJECT_PATH": "NOT_PROVEN",
-            "REAL_IDENTITY_BINDING": "NOT_PROVEN", "REAL_NOTIFYNO_REVISION_UUID_RELATION": "NOT_PROVEN",
-            "REAL_LOCATION_DTO_PATH": "NOT_PROVEN", "REAL_SEMANTIC_LOCATION_VALUE": "NOT_PROVEN",
-            "M0_REAL_PROVINCE_CITY_VALUE": "NOT_PROVEN", "M0_IDENTITY_BINDING": "FAIL",
-            "M0_DETAIL_OBJECT_PATH": "FAIL", "M0_LOCATION_DTO_PATH": "FAIL", "M0_ACCESS_POLICY": "PASS",
-            "M0_RAW_SECRET_EXCLUSION": "PASS", "M0_PROVINCE_GATE": "FAIL",
-        }
-        fetcher, limiter = BrowserFetcher(config), DomainRateLimiter(min(config.crawl.requests_per_minute, 12))
-        await fetcher.start(headed=True)
+
+    async def terminal_report_on_browser_start(start):
+        report = base_report()
+        fetcher = None
         try:
+            fetcher = await start()
+            report["terminal_outcome"] = "STARTED"
+        except Exception as error:
+            report["terminal_outcome"] = "FAILED_BEFORE_START"
+            report["stop_reason"] = sanitize_error(error)
+        finally:
+            if fetcher is not None:
+                await fetcher.close()
+        return report
+
+
+    def parse_contract(value: str) -> DetailRequestContract:
+        data = json.loads(value)
+        required = ("origin", "method", "route", "identity_field")
+        if not isinstance(data, dict) or any(not isinstance(data.get(key), str) or not data[key] for key in required):
+            raise ValueError("detail contract must contain origin, method, route, identity_field")
+        return DetailRequestContract(**{key: data[key] for key in required})
+
+
+    async def run(args: argparse.Namespace) -> int:
+        report = base_report()
+        fetcher = None
+        try:
+            if args.max_samples != 3 or args.concurrency != 1 or len(args.detail_url) != 3:
+                raise ValueError("M0 is exactly three approved sequential samples and concurrency one")
+            raw_root = args.raw_root.resolve()
+            if not raw_root_inside_temp(raw_root):
+                report["terminal_outcome"] = "FAILED_BEFORE_START"
+                report["stop_reason"] = "RAW_ROOT_OUTSIDE_TEMP"
+                return 2
+            urls = dict(value.split("=", 1) for value in args.detail_url)
+            if set(urls) != {sample.key for sample in SAMPLES}:
+                raise ValueError("each exact sample requires a Work-Order-supplied official detail URL")
+            contract = parse_contract(args.detail_contract)
+            config = read_config_side_effect_free(args.config)
+            enforce_access_policy(config)
+            enforce_official_origin(config, contract)
+            report["M0_ACCESS_POLICY"] = "PASS"
+            from qi_crawler.browser import BrowserFetcher
+            from qi_crawler.compliance import AccessDenied, DomainRateLimiter
+            fetcher = BrowserFetcher(config)
+            await fetcher.start(headed=True)
+            deadline = config.crawl.browser_timeout_seconds
+            limiter = DomainRateLimiter(min(config.crawl.requests_per_minute, 12))
             for sample in SAMPLES:
                 try:
-                    item = await one(fetcher, limiter, urls[sample.key], sample, args.raw_root)
+                    item = await one(fetcher, limiter, urls[sample.key], sample, contract, raw_root, deadline, 0.25)
                 except AccessDenied as error:
                     report["samples"].append({"sample": sample.key, "outcome": "ACCESS_CHALLENGE"})
-                    report["stop_reason"] = str(error)
                     report["M0_ACCESS_POLICY"] = "HOLD"
+                    report["stop_reason"] = sanitize_error(error)
                     break
-                report["samples"].append(item)
-                if item["outcome"] in {"INTEGRITY_MISMATCH", "HOLD_DETAIL_PATH"}:
-                    report["stop_reason"] = "INTEGRITY_MISMATCH"
+                except Exception as error:
+                    report["samples"].append({"sample": sample.key, "outcome": "RETRIEVAL_FAILED"})
+                    report["stop_reason"] = sanitize_error(error)
+                    continue
+                apply_sample_outcome(report, item)
+                if item["outcome"] == "ACCESS_CHALLENGE":
+                    report["M0_ACCESS_POLICY"] = "HOLD"
+                    report["stop_reason"] = "ACCESS_CHALLENGE"
+                    break
+                if item["outcome"] in {"INTEGRITY_MISMATCH", "HOLD_DETAIL_PATH", "RAW_SECRET_HOLD"}:
+                    report["stop_reason"] = item["outcome"]
                     break
                 if item["outcome"] == "PROVEN":
-                    report["M0_REAL_PROVINCE_CITY_VALUE"], report["M0_PROVINCE_GATE"] = "PROVEN", "PASS"
-                    for key in ("REAL_RESPONSE_ENVELOPE", "REAL_DETAIL_OBJECT_PATH", "REAL_LOCATION_DTO_PATH",
-                                "REAL_SEMANTIC_LOCATION_VALUE"):
-                        report[key] = item[key]
-                    report["REAL_IDENTITY_BINDING"] = "EXPECTED_NOTIFY_ID_REQUEST"
-                    report["REAL_NOTIFYNO_REVISION_UUID_RELATION"] = {
-                        "official_notify_no": sample.source_id, "revision": sample.revision,
-                        "source_revision_id": sample.source_revision_id, "notify_id": sample.expected_notify_id}
-                    report["M0_IDENTITY_BINDING"] = "PASS"
-                    report["M0_DETAIL_OBJECT_PATH"] = "PASS"
-                    report["M0_LOCATION_DTO_PATH"] = "PASS"
+                    report.update(
+                        {
+                            "REAL_RESPONSE_ENVELOPE": item["REAL_RESPONSE_ENVELOPE"],
+                            "REAL_DETAIL_OBJECT_PATH": item["REAL_DETAIL_OBJECT_PATH"],
+                            "REAL_IDENTITY_BINDING": item["REAL_IDENTITY_BINDING"],
+                            "REAL_LOCATION_DTO_PATH": item["REAL_LOCATION_DTO_PATH"],
+                            "REAL_SEMANTIC_LOCATION_VALUE": item["REAL_SEMANTIC_LOCATION_VALUE"],
+                            "REAL_NOTIFYNO_REVISION_UUID_RELATION": {
+                                "official_notify_no": sample.source_id,
+                                "revision": sample.revision,
+                                "source_revision_id": sample.source_revision_id,
+                                "notify_id": sample.expected_notify_id,
+                            },
+                            "M0_REAL_PROVINCE_CITY_VALUE": "PROVEN",
+                            "M0_IDENTITY_BINDING": "PASS",
+                            "M0_DETAIL_OBJECT_PATH": "PASS",
+                            "M0_LOCATION_DTO_PATH": "PASS",
+                            "M0_RAW_SECRET_EXCLUSION": item["M0_RAW_SECRET_EXCLUSION"],
+                            "M0_PROVINCE_GATE": "PASS",
+                        }
+                    )
                     break
             else:
                 report["stop_reason"] = "CANDIDATES_EXHAUSTED"
+            report["terminal_outcome"] = "COMPLETED"
+        except Exception as error:
+            report["terminal_outcome"] = report["terminal_outcome"] if report["terminal_outcome"] != "NOT_STARTED" else "FAILED_BEFORE_START"
+            report["stop_reason"] = sanitize_error(error)
         finally:
-            await fetcher.close()
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-        required = ("M0_IDENTITY_BINDING", "M0_DETAIL_OBJECT_PATH", "M0_LOCATION_DTO_PATH",
-                    "M0_ACCESS_POLICY", "M0_RAW_SECRET_EXCLUSION", "M0_PROVINCE_GATE")
-        return 0 if all(report[key] == "PASS" for key in required) else 2
+            if fetcher is not None:
+                await fetcher.close()
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        return 0 if exit_zero_requires_all_gates(report) else 2
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--detail-url", action="append", required=True)
-    parser.add_argument("--max-samples", required=True, type=int)
-    parser.add_argument("--concurrency", required=True, type=int)
-    parser.add_argument("--raw-root", required=True, type=Path)
-    parser.add_argument("--report", required=True, type=Path)
-    raise SystemExit(asyncio.run(run(parser.parse_args())))
 
+    def main() -> None:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--config", required=True, type=Path)
+        parser.add_argument("--detail-url", action="append", required=True)
+        parser.add_argument("--detail-contract", required=True)
+        parser.add_argument("--max-samples", required=True, type=int)
+        parser.add_argument("--concurrency", required=True, type=int)
+        parser.add_argument("--raw-root", required=True, type=Path)
+        parser.add_argument("--report", required=True, type=Path)
+        raise SystemExit(asyncio.run(run(parser.parse_args())))
+
+
+    if __name__ == "__main__":
+        main()
 ### M0 procedure
 
-1. Confirm the approved official frontend URL template in the Human Work Order and set QI_R2B_M0_DETAIL_URL_TEMPLATE only for this process. Do not infer a route or use an undocumented API endpoint.
-2. Start BrowserFetcher with the current AppConfig and AccessPolicy. Validate domain and robots policy before navigation.
-3. Acquire the three M0Sample objects sequentially in their exact command order. Browser asset requests are not counted as detail acquisitions.
-4. Save selected raw response bytes only under the unique temporary directory outside the repository. Record SHA-256, status, content type, sanitized observed route, and capture time.
-5. Bind each response only through the spike-proven M0Sample expected_notify_id: approved source/revision → expected notify_id → exactly one official frontend request containing that UUID → the response generated by it. The report records official_notify_no, revision, source_revision_id, notify_id, binding_method, and sanitized response route. Any ambiguity is INTEGRITY_MISMATCH and stops M0; the script never identifies a revision by a generic response substring.
-6. Record PARTIAL when a candidate has district/ward but no province/city; PARTIAL does not satisfy the province gate and the next candidate must run. Only ACCESS_CHALLENGE, INTEGRITY_MISMATCH, or robots-policy HOLD stops immediately.
-7. If all three candidates complete without a direct province/city, record M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then STOP_FOR_PLANNER.
+1. Human/Planner supplies the exact official frontend navigation URLs and spike-proven JSON detail-request contract for this process only. No route, API endpoint, identity field, or source-to-URL mapping may be inferred by the harness.
+2. The harness validates its temporary raw-root and configuration before starting a browser. It then validates the allowed HTTPS origin, official navigation URL, and robots policy before navigation.
+3. Register the exact-response listener before navigation. A response qualifies only when its request has the supplied official origin, exact method, exact route, and parsed payload identity field equal to the candidate UUID. A UUID in an unrelated field, query text, or arbitrary JSON string does not bind identity.
+4. Capture one matching response before the overall sample deadline. A late exact response arriving inside that deadline is valid; a second exact response during the bounded quiet window is an INTEGRITY_MISMATCH. Always remove the listener and close the page.
+5. Only a 2xx selected detail response is eligible for proof. HTTP 401/403/429 is ACCESS_CHALLENGE and stops M0. Other 4xx/5xx responses are RETRIEVAL_FAILED, are recorded, and may advance to the next bounded candidate; they never prove a REAL field.
+6. Compute a raw SHA-256 in memory, parse and scan explicit credential-bearing keys and Bearer material, then write exact raw bytes only after that scan passes and only under the temporary raw-root. On suspicious content, write nothing and set M0_RAW_SECRET_EXCLUSION = HOLD. All errors and every reported route are sanitized to omit credentials, query, and fragment.
+7. Bind exactly one detail object. Preserve every meaningful location DTO. If two supported containers occur in distinct candidate detail objects, hold DETAIL_OBJECT_AMBIGUOUS. Within one object, select one usable container; choose semantically identical mirrors deterministically; select the usable one when the other is empty; and hold conflicting nonempty containers. Never merge conflicts.
+8. A province/city gate considers only DTOs with meaningful provName, but partial district/ward DTOs remain in location_dtos even when confirmed DTOs exist. A candidate without province/city may continue to the next candidate. M0 never auto-authorizes M1–M6.
 
-### M0 proof contract
+### M0 proof and stop contract
 
-The report must contain exact observed values for REAL_RESPONSE_ENVELOPE, REAL_DETAIL_OBJECT_PATH, REAL_IDENTITY_BINDING, REAL_NOTIFYNO_REVISION_UUID_RELATION, REAL_LOCATION_DTO_PATH, REAL_SEMANTIC_LOCATION_VALUE, and M0_REAL_PROVINCE_CITY_VALUE. It must identify the source base/revision and response SHA-256 without storing secrets.
+The terminal report is emitted for config failure, browser-start failure, page failure, response-body failure, timeout, parser failure, or normal completion. BrowserFetcher.close() runs whenever initialization reached a closable state.
 
-### M0 stop/decision contract
+The report records only source/revision identifiers, method, sanitized route, expected UUID, binding result, status, raw SHA-256, location evidence, and sanitized terminal reason. A zero exit requires every required proof gate to be PASS; a lock or verifier result never replaces Human approval.
 
-    M0_REAL_PROVINCE_CITY_VALUE = PROVEN
-    M0_IDENTITY_BINDING = PASS
-    M0_DETAIL_OBJECT_PATH = PROVEN
-    M0_LOCATION_DTO_PATH = PROVEN
-    M0_ACCESS_POLICY = PASS
-    M0_RAW_SECRET_EXCLUSION = PASS
+    M0_REAL_PROVINCE_CITY_VALUE = PROVEN only after a 2xx, exact-bound, secret-clean response
+    M0_IDENTITY_BINDING = PASS only after exact contract binding
+    M0_DETAIL_OBJECT_PATH = PASS only after one unambiguous detail object
+    M0_LOCATION_DTO_PATH = PASS only after a supported, usable location container
+    M0_ACCESS_POLICY = PASS only after side-effect-free config and access-policy gates
+    M0_RAW_SECRET_EXCLUSION = PASS only after selected bytes pass the explicit scan
+    M0_PROVINCE_GATE = PASS only when a direct meaningful province/city exists
 
-Identity mismatch, HTTP challenge, CAPTCHA, robots uncertainty, or access-control interruption sets M0_ACCESS = HOLD and stops M0. A malformed/unsupported candidate response is recorded and the next candidate runs. A missing direct province/city after all three candidates sets M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then STOP_FOR_PLANNER. Do not bypass a challenge. The mandatory next sequence is M0 evidence → Planner audit → Human decision; M0 never auto-authorizes M1–M6. Production M3/M4 handles PARTIAL item evidence without stopping the batch, while ACCESS_CHALLENGE and INTEGRITY_MISMATCH remain whole-batch stops.
+ACCESS_CHALLENGE, identity mismatch, duplicate matching response, conflicting containers, unsafe raw content, robots uncertainty, or access-control interruption stop M0 without bypass. Unsupported or retrieval-failed candidates record bounded evidence and may continue. Missing direct province/city after all candidates yields M0_REAL_PROVINCE_CITY_VALUE = NOT_PROVEN and M0_PROVINCE_GATE = FAIL, then stops for Planner. The mandatory sequence remains M0 evidence → Planner audit → Human decision; M0 does not auto-authorize M1–M6.
 
 ### M0 radius and evidence
 
-    IMPACT_RADIUS = BrowserFetcher, AccessPolicy, e-GP frontend response envelope, identity binding, location DTO, evidence report path.
-    EDIT_RADIUS = temporary raw response files plus the single sanitized M0 report after explicit authorization.
-    TEST_RADIUS = temporary parser/response inspection helpers and no production test changes.
+    IMPACT_RADIUS = BrowserFetcher, AccessPolicy, official e-GP frontend response envelope, exact request binding, location DTOs, terminal report.
+    EDIT_RADIUS = temporary raw responses and the one sanitized M0 report after explicit authorization.
+    TEST_RADIUS = temporary fake response/request harness tests only; no production test changes.
 
-Commit after accepted evidence, if Planner authorizes durable evidence: docs(evidence): record R2B M0 browser proof.
+Commit durable evidence only if a later Planner order authorizes it: docs(evidence): record R2B M0 browser proof.
 
 ## M1 — structured execution-location contract and pure parser
 
