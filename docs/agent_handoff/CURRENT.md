@@ -16,7 +16,7 @@ PR = 91
 PR_STATE = MERGED_CLOSED
 FEATURE_HEAD = 206f7e7a80ae3a62a5ae49bb7296dc04d2675ef1
 MERGE_COMMIT = 4997efae0ab21519b40540c937708877a55b1ecd
-MAIN_VERIFIED_HEAD = 4997efae0ab21519b40540c937708877a55b1ecd
+MAIN_VERIFIED_HEAD = 1367f28c51d3a52e5fca027fd06fe4d4919e1b2a
 LOCAL_AUDITED_CODE_HEAD = 722f0d4ee479d355551f29ac88b22c1f4199e447
 REMOTE_EXACT_HEAD_AUDIT = PASS
 
@@ -26,6 +26,8 @@ POST_MERGE_CI_RUN = 34108820359
 POST_MERGE_CI = PASS_4_OF_4
 POST_MERGE_CODEQL_RUN = 34108820429
 POST_MERGE_CODEQL = PASS
+POSTMERGE_CLOSEOUT_PR = 92
+POSTMERGE_CLOSEOUT_MERGE = 1367f28c51d3a52e5fca027fd06fe4d4919e1b2a
 
 EXCEL_SCREENING_SOURCE_AUTHORITY = IDENTITY_AND_SCHEMA_OVER_FILENAME
 EXCEL_SCREENING_PL_IB_INVARIANT = PL_NE_IB
@@ -55,10 +57,11 @@ WP_WH_RECOVERY_01 = PARKED_AFTER_COMPLETENESS_NOT_AUTHORIZED
 
 BRANCH_HYGIENE_PR18 = CLOSED_SUPERSEDED
 BRANCH_HYGIENE_DOCS_MASTER_WORK_PACKAGE = SAFE_TO_DELETE_REMOTE
+BRANCH_HYGIENE_PR13 = CLOSED_REFERENCE_ONLY
 BRANCH_HYGIENE_FEAT_BID_RADAR_HARDENING_01 = MERGED_SAFE_TO_DELETE_REMOTE
 BRANCH_HYGIENE_P0_B1 = KEEP_TEMPORARILY_PENDING_REGRESSION_COVERAGE_RECONCILIATION
 
-PROJECT_MEMORY_PROMOTION = REQUIRED_FOR_MERGED_EXCEL_SCREENING_DURABLE_FACT
+PROJECT_MEMORY_PROMOTION = PASS_MEM_027
 MASTER_ROADMAP_CHANGE = NOT_REQUIRED_CAPABILITY_REMAINS_OPERATIONAL
 MASTER_ROADMAP_DELTA_CHANGE = NOT_REQUIRED_NO_RD_PROMOTION_TRIGGERED
 KNOWN_FAILURE_MODES_CHANGE = NOT_REQUIRED_NO_NEW_FAILURE_CLASS
@@ -67,14 +70,14 @@ FEEDBACK_LEDGER_CHANGE = NOT_REQUIRED_HUMAN_LIGHT_CONTRACT_IS_MERGED_PRODUCT_AUT
 
 NEXT_PRODUCT_CANDIDATE = WP-WH-COMPLETE-01
 NEXT_WP_AUTHORIZED = NO
-NEXT_ACTION = COMPLETE_POSTMERGE_DOCS_CLOSEOUT_AND_BRANCH_HYGIENE_THEN_HUMAN_PRIORITY
+NEXT_ACTION = DELETE_SAFE_REMOTE_BRANCH_REFS_AND_RECONCILE_P0_B1_REGRESSION_THEN_HUMAN_PRIORITY
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 HANDOFF_READY = YES_POSTMERGE
 ```
 
 ## Durable merged behavior
 
-`WP-BID-RADAR-EXCEL-SCREENING-01` is merged and verified on `main`. The Human-light Excel Screening flow detects source type from embedded identity/schema, preserves exact PL/IB revision and row provenance, applies deterministic C07/C09/C10 screening, exports four Team Bid sheets, and exposes the flow through the desktop GUI. `NEEDS_REVIEW` is an optional discovery surface rather than a mandatory Human queue, and machine screening never becomes Human Ground Truth automatically.
+`WP-BID-RADAR-EXCEL-SCREENING-01` is merged and verified on `main`. The Human-light Excel Screening flow detects source type from embedded identity/schema, preserves exact PL/IB revision and row provenance, applies deterministic C07/C09/C10 screening, exports four Team Bid sheets, and exposes the flow through the desktop GUI. `NEEDS_REVIEW` is an optional discovery surface rather than a mandatory Human queue, and machine screening never becomes Human Ground Truth automatically. Durable merged-main authority is recorded in `PROJECT_MEMORY.md` as MEM-027.
 
 ## Warehouse/storage status
 
@@ -83,8 +86,9 @@ The product frontier remains **Unified Tender Warehouse**. Minimum Safe Warehous
 ## Branch hygiene
 
 - PR #18 is closed as superseded; `docs/master-work-package-2026-08-19` is safe to delete remotely.
+- PR #13 is closed as reference-only; `p0-b1-managed-storage-independence` remains temporarily available only for regression-coverage reconciliation and must not be merged directly.
 - `feat/bid-radar-hardening-01` is merged through PR #91 and is safe to delete remotely after local checkout reconciliation.
-- `p0-b1-managed-storage-independence` is intentionally retained temporarily until its managed-storage regression invariant is compared against current `main` coverage and, if necessary, ported as a fresh bounded regression test. Do not merge the stale PR/branch directly.
+- The current connector cannot delete remote branch refs; deletion remains an explicit branch-hygiene action outside this docs sync.
 
 ## Next entry
 

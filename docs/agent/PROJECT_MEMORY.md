@@ -564,3 +564,41 @@ Do not add RD-0011 as implemented memory.
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal
 judgement, scoring, GO/HOLD/NO-GO, and future extraction work remain pending
 unless a later Work Package is merged and verified.
+
+## MEM-027 — Human-Light Excel Opportunity Screening
+
+- **State:** ACTIVE
+- **Since main commit:** `4997efae0ab21519b40540c937708877a55b1ecd`.
+- **Contract:** PR #91 merged `WP-BID-RADAR-EXCEL-SCREENING-01`. Excel source
+  classification uses embedded PL/IB identity and workbook schema ahead of
+  filename hints; exact revision and source SHA/sheet/row provenance are
+  preserved, including multiple package observations under one PL. Screening
+  is additive and deterministic: C07 auto-PASS requires bounded,
+  package-specific technology evidence and otherwise remains UNKNOWN; C09 uses
+  package price with `<= 2,000,000,000 VND = PASS`, `> 2,000,000,000 VND =
+  FAIL`, and C09 FAIL never hard-excludes; KHLCNT geography signals remain
+  `LOCATION_HINT` evidence and do not become C10 PASS/FAIL without
+  authoritative execution-location evidence. `NEEDS_REVIEW` is an optional
+  discovery/reference surface, not a mandatory Human queue, and machine
+  screening never becomes Human Ground Truth automatically.
+- **Delivery:** The merged flow exports exactly four Team Bid XLSX sheets and
+  provides a desktop GUI entry point for source selection, screening and
+  export with source SHA revalidation. Source accounting is explicit through
+  READ_OK / READ_ERROR / NON_RECORD and no silent row loss is allowed.
+- **Evidence:** independently audited code head
+  `722f0d4ee479d355551f29ac88b22c1f4199e447`; remote exact feature head
+  `206f7e7a80ae3a62a5ae49bb7296dc04d2675ef1`; PR-head Python CI
+  `34107393108 / PASS 4/4`; merge commit
+  `4997efae0ab21519b40540c937708877a55b1ecd`; post-merge Python CI
+  `34108820359 / PASS 4/4`; post-merge CodeQL `34108820429 / PASS`; local full
+  suite `988 passed`; real 420-record acceptance accounted all records with
+  `137 SELECT`, `283 NEEDS_REVIEW`, `0 READ_ERROR` and no business workbook
+  committed.
+- **Boundary:** This does not create Ground Truth, release authority, live e-GP
+  access, R2B/CAPTCHA automation, numeric bid scoring, GO/HOLD/NO-GO authority,
+  package completeness, Vault/recovery/archive or completion of the Unified
+  Tender Warehouse. Operational release remains v0.9.0 until separately
+  authorized.
+- **Post-merge closeout:** PR #92 merged the concise CURRENT reconciliation at
+  `1367f28c51d3a52e5fca027fd06fe4d4919e1b2a`; no product behavior changed.
+- **Last verified:** `1367f28c51d3a52e5fca027fd06fe4d4919e1b2a`.
