@@ -308,6 +308,7 @@ def test_profile_v1_formalizes_roles_and_keeps_ground_truth_blank(tmp_path: Path
     actual_regions = tuple(part.strip() for part in allowed["C10"].split(";"))
     assert actual_regions == EXPECTED_HUMAN_REGIONS
     assert not any(region in allowed["C10"] for region in UNAUTHORIZED_REGIONS)
+    assert not any(region in profile_text for region in UNAUTHORIZED_REGIONS)
     assert "100 km" not in profile_text
 
     labels = workbook["02_TEAM_BID_GAN_NHAN"]
