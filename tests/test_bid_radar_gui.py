@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import os
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import QApplication, QLabel, QTextEdit
 
 from qi_crawler import gui
 from qi_crawler.config import AppConfig
+from qi_crawler.db import SchemaNotReady
 from qi_crawler.gui import QICrawlerWindow
 from qi_crawler.market_intelligence.khmt_importer import KHMTImportError, KHMTIssueCode
 from qi_crawler.market_intelligence.search import TargetedSearchValidationError
@@ -27,7 +29,11 @@ def _fake_radar_item(raw_id: str = "PL260001-00") -> SimpleNamespace:
         source_type=SimpleNamespace(value="KHMT" if namespace == "PL" else "TBMT"),
         package_name="Gói thử nghiệm",
         package_price=100,
+        location_detail_raw=None,
         province_city_name="Hà Nội",
+        source_sha256="a" * 64,
+        observation_key=f"observation-{raw_id}",
+        source_filename="source.xlsx",
     )
 
 
@@ -42,6 +48,7 @@ def _fake_result(
     matched_count: int = 1,
     indeterminate_count: int = 0,
     nonmatched_count: int = 0,
+    unfiltered_count: int = 0,
     review_state: str = "UNREVIEWED",
 ) -> SimpleNamespace:
     item = item or _fake_radar_item("PL260001-00")
@@ -68,7 +75,43 @@ def _fake_result(
         matched_count=matched_count,
         indeterminate_count=indeterminate_count,
         nonmatched_count=nonmatched_count,
+        unfiltered_count=unfiltered_count,
         total_examined=1,
+    )
+
+
+def _fake_multi_result(
+    items: tuple[SimpleNamespace, ...],
+    *,
+    source_type: str = "TBMT",
+) -> SimpleNamespace:
+    rows = tuple(
+        SimpleNamespace(
+            item=item,
+            disposition="MATCH",
+            reasons=(),
+            review_state="UNREVIEWED",
+        )
+        for item in items
+    )
+    return SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        load_result=SimpleNamespace(
+            source_type=SimpleNamespace(value=source_type),
+            source_path=Path("tbmt.xlsx"),
+            source_sha256="b" * 64,
+            items=items,
+        ),
+        source_path=Path("tbmt.xlsx"),
+        source_sha256="b" * 64,
+        items=items,
+        rows=rows,
+        issues=(),
+        matched_count=len(items),
+        indeterminate_count=0,
+        nonmatched_count=0,
+        unfiltered_count=0,
+        total_examined=len(items),
     )
 
 
@@ -142,6 +185,32 @@ def test_bid_radar_source_selector_defaults_to_automatic(window: QICrawlerWindow
     assert window.bid_radar_source_type.currentText() == "TỰ ĐỘNG"
 
 
+def test_bid_radar_request_normalizes_grouped_money_inputs(window: QICrawlerWindow) -> None:
+    window.bid_radar_min_budget.setText("500.000.000")
+    window.bid_radar_max_budget.setText("1 300 000 000")
+
+    request = window._bid_radar_request()
+
+    assert request.min_budget == Decimal(500000000)
+    assert request.max_budget == Decimal(1300000000)
+
+def test_bid_radar_request_normalizes_selection_method_labels(window: QICrawlerWindow) -> None:
+    window.bid_radar_selection_method.setText("Đấu thầu rộng rãi, CHAO_GIA_TRUC_TUYEN")
+
+    request = window._bid_radar_request()
+
+    assert request.selection_methods == frozenset(
+        {"DAU_THAU_RONG_RAI", "CHAO_GIA_TRUC_TUYEN"}
+    )
+
+
+def test_bid_radar_request_rejects_unknown_selection_method(window: QICrawlerWindow) -> None:
+    window.bid_radar_selection_method.setText("Phương thức tự do")
+
+    with pytest.raises(ValueError, match="selection method"):
+        window._bid_radar_request()
+
+
 def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,
@@ -149,13 +218,14 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
 ) -> None:
     source = tmp_path / "TBMT_19_8_2026.xlsx"
     source.write_bytes(b"tbmt")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="a" * 64,
+            source_sha256=source_sha,
             filename_type=SourceType.TBMT,
             content_type=SourceType.TBMT,
             identity_namespace="IB",
@@ -167,6 +237,8 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
             reasons=(),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window.apply_bid_radar_source()
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
@@ -175,6 +247,49 @@ def test_tbmt_source_is_recognized_and_submitted_to_source_neutral_import(
     assert captured == [gui.run_bid_radar_import_search]
     assert "Work Package tiếp theo" not in window.bid_radar_status.text()
 
+
+
+def test_bid_radar_source_summary_is_compact_and_retains_identity_details(
+    window: QICrawlerWindow,
+) -> None:
+    detection = SourceTypeDetection(
+        original_filename="TBMT_3_9_2026.xlsx",
+        source_sha256="a" * 64,
+        filename_type=SourceType.TBMT,
+        content_type=SourceType.TBMT,
+        identity_namespace="IB",
+        identity_values=(
+            "IB2600488839-00",
+            "IB2600498410-00",
+            "IB2600489267-01",
+            "IB2600482068-01",
+            "IB2600413629-00",
+            "IB2600491729-00",
+        ),
+        identity_raw_values=(
+            "IB2600488839-00",
+            "IB2600498410-00",
+            "IB2600489267-01",
+            "IB2600482068-01",
+            "IB2600413629-00",
+            "IB2600491729-00",
+        ),
+        auto_type=SourceType.TBMT,
+        requires_human=False,
+        evidence=("TBMT headers",),
+        reasons=(),
+    )
+
+    window._render_bid_radar_source_detection(detection, SourceType.TBMT)
+
+    summary = window.bid_radar_source_summary.text()
+    assert "Tên file: TBMT_3_9_2026.xlsx" in summary
+    assert "Loại: TBMT" in summary
+    assert "Số thông báo: 6" in summary
+    assert "Revision:" in summary
+    assert "Identity:" not in summary
+    assert "(+5)" not in summary
+    assert "IB2600488839-00" in window.bid_radar_source_summary.toolTip()
 
 def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow) -> None:
     item = _fake_radar_item("IB2600463290-00")
@@ -188,10 +303,30 @@ def test_bid_radar_renders_indeterminate_as_needs_review(window: QICrawlerWindow
     )
     result.rows[0].reasons = ("PRICE_UNKNOWN",)
     window._render_bid_radar_result(result)
+    window._set_bid_radar_result_view("INDETERMINATE")
 
     assert window.bid_radar_table.item(0, 0).text() == "IB2600463290-00"
     assert window.bid_radar_table.item(0, 6).text() == "CẦN KIỂM TRA"
     assert not window.bid_radar_legal_button.isEnabled()
+
+
+def test_bid_radar_renders_unfiltered_without_suitability_claim(window: QICrawlerWindow) -> None:
+    item = _fake_radar_item("IB2600463290-00")
+    result = _fake_result(
+        item,
+        path=Path("tbmt.xlsx"),
+        source_type="TBMT",
+        disposition="UNFILTERED",
+        matched_count=0,
+        unfiltered_count=1,
+    )
+
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_table.item(0, 6).text() == "CHƯA LỌC"
+    status = window.bid_radar_status.text().lower()
+    assert "chưa áp dụng điều kiện lọc" in status
+    assert "phù hợp 1" not in status
 
 
 def test_unknown_source_requires_explicit_human_selection(
@@ -201,13 +336,14 @@ def test_unknown_source_requires_explicit_human_selection(
 ) -> None:
     source = tmp_path / "opportunity.xlsx"
     source.write_bytes(b"unknown")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="b" * 64,
+            source_sha256=source_sha,
             filename_type=SourceType.UNKNOWN,
             content_type=SourceType.KHMT,
             identity_namespace="PL",
@@ -219,6 +355,8 @@ def test_unknown_source_requires_explicit_human_selection(
             reasons=("filename requires human selection",),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.UNKNOWN)
+    window.apply_bid_radar_source()
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
@@ -235,12 +373,12 @@ def test_manual_source_selection_routes_khmt_with_human_authority(
 ) -> None:
     source = tmp_path / "opportunity.xlsx"
     source.write_bytes(b"unknown")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     window.bid_radar_source_type.setCurrentIndex(1)
-    window.bid_radar_reviewer.setText("Team Bid")
     detection = SourceTypeDetection(
         original_filename=source.name,
-        source_sha256="d" * 64,
+        source_sha256=source_sha,
         filename_type=SourceType.UNKNOWN,
         content_type=SourceType.KHMT,
         identity_namespace="PL",
@@ -252,6 +390,9 @@ def test_manual_source_selection_routes_khmt_with_human_authority(
         reasons=("filename requires human selection",),
     )
     monkeypatch.setattr(gui, "detect_source_type", lambda path: detection)
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.KHMT)
+    window.apply_bid_radar_source()
+    window.bid_radar_reviewer.setText("Team Bid")
     captured: dict[str, object] = {}
 
     def fake_submit(function, *args, **kwargs) -> None:
@@ -283,13 +424,14 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
     monkeypatch.setattr(window, "_submit", fake_submit)
     source = tmp_path / "khmt.xlsx"
     source.write_bytes(b"placeholder")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     window.bid_radar_path.setText(str(source))
     monkeypatch.setattr(
         gui,
         "detect_source_type",
         lambda path: SourceTypeDetection(
             original_filename=source.name,
-            source_sha256="c" * 64,
+                source_sha256=source_sha,
             filename_type=SourceType.KHMT,
             content_type=SourceType.KHMT,
             identity_namespace="PL",
@@ -301,6 +443,8 @@ def test_import_delegates_to_existing_mi_import_and_search_service(
             reasons=(),
         ),
     )
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.KHMT)
+    window.apply_bid_radar_source()
 
     window.start_bid_radar_import()
 
@@ -317,6 +461,275 @@ def test_filter_match_does_not_auto_confirm(window: QICrawlerWindow) -> None:
     assert window._bid_radar_rows[0].review_state != "CONFIRMED"
 
 
+def test_min_only_budget_summary_uses_inequality(window: QICrawlerWindow) -> None:
+    window.bid_radar_min_budget.setText("800000000")
+    window.bid_radar_max_budget.clear()
+    window._update_bid_radar_context()
+    assert "≥ 800.000.000 VNĐ" in window.bid_radar_active_filter_context.text()
+
+
+def test_max_only_budget_summary_uses_inequality(window: QICrawlerWindow) -> None:
+    window.bid_radar_min_budget.clear()
+    window.bid_radar_max_budget.setText("1000000000")
+    window._update_bid_radar_context()
+    assert "≤ 1.000.000.000 VNĐ" in window.bid_radar_active_filter_context.text()
+
+
+def test_source_change_cancel_preserves_active_context(window: QICrawlerWindow, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    source_a = tmp_path / "source-a.xlsx"
+    source_b = tmp_path / "source-b.xlsx"
+    source_a.write_bytes(b"a")
+    source_b.write_bytes(b"b")
+    item = _fake_radar_item("IB12345678-00")
+    window.bid_radar_path.setText(str(source_a))
+    window._render_bid_radar_result(_fake_result(item=item, path=source_a, source_type="TBMT"))
+    window.bid_radar_table.selectRow(0)
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
+
+    window._choose_bid_radar_file()
+
+    assert window.bid_radar_path.text() == str(source_b.resolve())
+    assert window._bid_radar_pending_source.path == source_b.resolve()
+
+
+def _source_detection(path: Path, source_sha256: str) -> SourceTypeDetection:
+    return SourceTypeDetection(
+        original_filename=path.name,
+        source_sha256=source_sha256,
+        filename_type=SourceType.TBMT,
+        content_type=SourceType.TBMT,
+        identity_namespace="IB",
+        identity_values=("IB2600488839-00",),
+        identity_raw_values=("IB2600488839-00",),
+        auto_type=SourceType.TBMT,
+        requires_human=False,
+        evidence=("TBMT headers",),
+        reasons=(),
+    )
+
+
+def test_source_selection_is_pending_and_import_waits_for_apply(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-03-09.xlsx"
+    source.write_bytes(b"source-a")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        gui,
+        "detect_source_type",
+        lambda path: _source_detection(path, source_sha),
+    )
+    monkeypatch.setattr(
+        gui.QFileDialog,
+        "getOpenFileName",
+        lambda *args, **kwargs: (str(source), "Excel"),
+    )
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_pending_source is not None
+    assert window._bid_radar_active_source is None
+    assert window.bid_radar_source_action_button.text() == "DÙNG FILE NÀY"
+    assert not window.bid_radar_import_button.isEnabled()
+
+
+def test_initial_source_apply_resets_workspace_and_preserves_filters(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-03-09.xlsx"
+    source.write_bytes(b"source-a")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(path, source_sha))
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+    window._choose_bid_radar_file()
+    window.bid_radar_min_budget.setText("500000000")
+    window.bid_radar_include.setText("Mạng")
+    window._render_bid_radar_result(_fake_result(path=source, source_type="TBMT", source_sha256=source_sha))
+    window.bid_radar_table.selectRow(0)
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source is not None
+    assert window._bid_radar_active_source.path == source.resolve()
+    assert window.bid_radar_table.rowCount() == 0
+    assert window.bid_radar_min_budget.text() == "500000000"
+    assert window.bid_radar_include.text() == "Mạng"
+    assert window.bid_radar_import_button.isEnabled()
+    assert "CHƯA CHẠY" in window.bid_radar_status.text()
+
+
+def test_source_switch_cancel_preserves_active_workspace(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    detections = {source_a: _source_detection(source_a, sha_a), source_b: _source_detection(source_b, sha_b)}
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: detections[Path(path).resolve()])
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
+    window.bid_radar_path.setText(str(source_a))
+    window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window.bid_radar_table.selectRow(0)
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Cancel)
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_active_source.path == source_a.resolve()
+    assert window._bid_radar_pending_source.path == source_b.resolve()
+    assert window.bid_radar_table.rowCount() == 1
+
+
+def test_source_switch_confirm_resets_workspace_and_preserves_filters(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    detections = {source_a: _source_detection(source_a, sha_a), source_b: _source_detection(source_b, sha_b)}
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: detections[Path(path).resolve()])
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source_b), "Excel"))
+    window.bid_radar_path.setText(str(source_a))
+    window._render_bid_radar_result(_fake_result(path=source_a, source_type="TBMT", source_sha256=sha_a))
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window.bid_radar_min_budget.setText("500000000")
+    window.bid_radar_include.setText("Mạng")
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes)
+
+    window._choose_bid_radar_file()
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source.path == source_b.resolve()
+    assert window.bid_radar_table.rowCount() == 0
+    assert window.bid_radar_inspector_text.toPlainText().startswith("Chưa chọn cơ hội.")
+    assert window.bid_radar_min_budget.text() == "500000000"
+    assert window.bid_radar_include.text() == "Mạng"
+
+
+def test_same_filename_with_changed_hash_is_pending_switch(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-same.xlsx"
+    source.write_bytes(b"source-a")
+    sha_a = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(path, hashlib.sha256(Path(path).read_bytes()).hexdigest()))
+    window.bid_radar_path.setText(str(source))
+    window._bid_radar_active_source = window._source_session_identity(source, sha_a, SourceType.TBMT)
+    source.write_bytes(b"source-b")
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+
+    window._choose_bid_radar_file()
+
+    assert window._bid_radar_pending_source.source_sha256 != sha_a
+    assert window.bid_radar_source_action_button.text() == "CHUYỂN SANG FILE NÀY"
+
+
+def test_import_uses_active_source_not_pending_source(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_a = tmp_path / "TBMT-03-09.xlsx"
+    source_b = tmp_path / "TBMT-04-09.xlsx"
+    source_a.write_bytes(b"source-a")
+    source_b.write_bytes(b"source-b")
+    sha_a = hashlib.sha256(source_a.read_bytes()).hexdigest()
+    sha_b = hashlib.sha256(source_b.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a if Path(path).resolve() == source_a.resolve() else sha_b))
+    window._bid_radar_active_source = window._source_session_identity(source_a, sha_a, SourceType.TBMT)
+    window._bid_radar_pending_source = window._source_session_identity(source_b, sha_b, SourceType.TBMT)
+    window.bid_radar_path.setText(str(source_b))
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["args"] = args
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a))
+
+    window.start_bid_radar_import()
+
+    assert captured["args"][1] == source_a.resolve()
+
+
+def test_pending_source_staleness_is_revalidated_before_apply(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-stale.xlsx"
+    source.write_bytes(b"source-a")
+    sha_a = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), sha_a))
+    monkeypatch.setattr(gui.QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(source), "Excel"))
+    window._choose_bid_radar_file()
+    source.write_bytes(b"source-b")
+    refreshed_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    monkeypatch.setattr(gui, "detect_source_type", lambda path: _source_detection(Path(path), refreshed_sha))
+
+    window.apply_bid_radar_source()
+
+    assert window._bid_radar_active_source is None
+    assert window._bid_radar_pending_source.source_sha256 == refreshed_sha
+
+
+def test_same_exact_source_reports_in_use_and_does_not_reset(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "TBMT-same.xlsx"
+    source.write_bytes(b"source")
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    window._bid_radar_active_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window._bid_radar_pending_source = window._source_session_identity(source, source_sha, SourceType.TBMT)
+    window._render_bid_radar_source_session()
+
+    assert window.bid_radar_source_action_button.text() == "ĐANG SỬ DỤNG"
+    assert not window.bid_radar_source_action_button.isEnabled()
+
+
+def test_bid_radar_has_no_active_package_context_layer(window: QICrawlerWindow) -> None:
+    assert not hasattr(window, "active_tender_context")
+    assert not hasattr(window, "bid_radar_active_context_banner")
+    assert not hasattr(window, "bid_radar_activate_button")
+    assert not hasattr(window, "bid_radar_switch_button")
+
+
+def test_selected_bid_radar_row_directly_enables_review(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+
+    assert window.bid_radar_confirm_button.isEnabled()
+    assert "ĐANG XEM" in window.bid_radar_inspector_text.toPlainText()
+
+
+def test_confirmed_selected_row_can_open_workspace_without_active_package(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result(review_state="CONFIRMED"))
+    window.bid_radar_table.selectRow(0)
+
+    assert window.bid_radar_workspace_button.isEnabled()
+
+
 @pytest.mark.parametrize("review_state", ["UNREVIEWED", "REJECTED", "NEEDS_REVIEW"])
 def test_workspace_handoff_button_requires_confirmed_review(
     window: QICrawlerWindow, review_state: str
@@ -331,7 +744,6 @@ def test_workspace_handoff_button_requires_confirmed_review(
 def test_confirm_action_makes_workspace_handoff_eligible(window: QICrawlerWindow) -> None:
     window._render_bid_radar_result(_fake_result())
     window.bid_radar_table.selectRow(0)
-
     window._render_bid_radar_review(0, "CONFIRMED")
 
     assert window.bid_radar_workspace_button.isEnabled()
@@ -469,6 +881,11 @@ def test_exports_delegate_to_mi4_and_mi5_services(
     window.bid_radar_path.setText(str(source))
     window._bid_radar_loaded_source = source
     window._bid_radar_loaded_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
+    window._bid_radar_active_source = window._source_session_identity(
+        source,
+        window._bid_radar_loaded_sha256,
+        SourceType.KHMT,
+    )
     window._bid_radar_items = (_fake_radar_item(),)
     window._bid_radar_load_result = SimpleNamespace(
         source_type=SimpleNamespace(value="KHMT"),
@@ -509,10 +926,21 @@ def test_switching_khmt_source_clears_stale_rows_and_blocks_export(
         "getOpenFileName",
         lambda *args, **kwargs: (str(source_b), "Excel KHMT (*.xlsx)"),
     )
+    monkeypatch.setattr(
+        gui.QMessageBox,
+        "question",
+        lambda *args, **kwargs: gui.QMessageBox.StandardButton.Yes,
+    )
     captured: list[object] = []
     monkeypatch.setattr(window, "_submit", lambda function, *args, **kwargs: captured.append(function))
 
     window._choose_bid_radar_file()
+    window._bid_radar_pending_source = window._source_session_identity(
+        source_b,
+        hashlib.sha256(source_b.read_bytes()).hexdigest(),
+        SourceType.KHMT,
+    )
+    window.apply_bid_radar_source()
     window.start_bid_radar_export()
 
     assert window.bid_radar_path.text() == str(source_b)
@@ -597,3 +1025,735 @@ def test_expected_bid_radar_errors_are_user_readable(
 
     assert str(error) in window.bid_radar_status.text()
     assert "traceback" not in window.bid_radar_status.text().lower()
+
+
+
+def _a5_evidence_result() -> SimpleNamespace:
+    result = _fake_result(_fake_radar_item("IB2600462391-00"), source_type="TBMT")
+    result.rows = (
+        SimpleNamespace(
+            item=result.items[0],
+            disposition="MATCH",
+            reasons=("MATCH_BUDGET",),
+            review_state="UNREVIEWED",
+            criteria=(
+                SimpleNamespace(
+                    criterion="budget",
+                    outcome="PASS",
+                    reason_code="MATCH_BUDGET",
+                    evidence=(
+                        SimpleNamespace(
+                            field="package_price",
+                            observed_value="SUPPLIED-EVIDENCE-VALUE",
+                            expected_values=("100",),
+                            matched_terms=(),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    return result
+
+
+def test_bid_radar_has_calm_three_pane_desk_with_center_stretch(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.bid_radar_splitter.count() == 3
+    assert window.bid_radar_selection_desk.objectName() == "bidRadarSelectionDesk"
+    assert window.bid_radar_active_canvas.objectName() == "bidRadarActiveCanvas"
+    assert window.bid_radar_inspector.objectName() == "bidRadarInspector"
+    window.navigation.setCurrentRow(2)
+    window.resize(1440, 900)
+    window.show()
+    QApplication.processEvents()
+    left, center, right = window.bid_radar_splitter.sizes()
+    assert center > left
+    assert center > right
+
+
+def test_bid_radar_filter_studio_is_collapsed_and_preserves_values(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.bid_radar_filter_editor.isHidden()
+    window.bid_radar_min_budget.setText("500.000.000")
+    window.bid_radar_province.setText("HCM")
+
+    window.bid_radar_filter_toggle.click()
+    assert not window.bid_radar_filter_editor.isHidden()
+    window.bid_radar_filter_toggle.click()
+
+    assert window.bid_radar_filter_editor.isHidden()
+    assert window.bid_radar_min_budget.text() == "500.000.000"
+    assert window.bid_radar_province.text() == "HCM"
+
+
+def test_bid_radar_side_collapses_are_independent_and_preserve_selection(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_selection_toggle.click()
+    assert window.bid_radar_selection_desk.isHidden()
+    assert not window.bid_radar_inspector.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isHidden()
+    window.bid_radar_selection_toggle.click()
+    assert not window.bid_radar_selection_desk.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+
+def test_bid_radar_context_is_neutral_until_a_filter_is_active(window: QICrawlerWindow) -> None:
+    assert "CHƯA LỌC" in window.bid_radar_active_filter_context.text()
+    assert "PHÙ HỢP" not in window.bid_radar_active_filter_context.text()
+
+    window.bid_radar_min_budget.setText("1000000")
+    assert "1.000.000" in window.bid_radar_active_filter_context.text()
+    assert "CHƯA LỌC" not in window.bid_radar_active_filter_context.text()
+
+
+def test_bid_radar_inspector_projects_supplied_structured_evidence(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_a5_evidence_result())
+    window.bid_radar_table.selectRow(0)
+    text = window.bid_radar_inspector_text.toPlainText()
+
+    assert "IB2600462391-00" in text
+    assert "Gói thử nghiệm" in text
+    assert "ĐẠT" in text
+    assert "SUPPLIED-EVIDENCE-VALUE" in text
+    assert "MATCH_BUDGET" not in text
+
+
+def test_bid_radar_exposes_execution_location_in_table_and_inspector(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462391-00")
+    item.location_detail_raw = "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+
+    window._render_bid_radar_result(_fake_result(item=item, source_type="TBMT"))
+
+    assert window.bid_radar_table.columnCount() == 8
+    assert window.bid_radar_table.horizontalHeaderItem(5).text() == (
+        "Địa điểm thực hiện"
+    )
+    assert window.bid_radar_table.item(0, 5).text() == (
+        "Phường Bến Nghé, Thành phố Hồ Chí Minh"
+    )
+
+    window.bid_radar_table.selectRow(0)
+    inspector = window.bid_radar_inspector_text.toPlainText()
+    assert "Địa điểm thực hiện" in inspector
+    assert "Khu vực" not in inspector
+    assert "Phường Bến Nghé, Thành phố Hồ Chí Minh" in inspector
+
+    item.location_detail_raw = None
+    assert window._bid_radar_execution_location(item) == "—"
+
+
+def test_tbmt_location_selector_uses_distinct_source_evidence(window: QICrawlerWindow) -> None:
+    item = _fake_radar_item("IB2600462391-00")
+    item.location_detail_raw = "Hà Nội, Hải Phòng"
+
+    window._render_bid_radar_result(_fake_result(item=item, source_type="TBMT"))
+
+    assert window.bid_radar_location.count() == 3
+    assert [window.bid_radar_location.itemText(index) for index in range(3)] == [
+        "Tất cả",
+        "Hà Nội",
+        "Hải Phòng",
+    ]
+    assert window.bid_radar_location.currentText() == "Tất cả"
+    window.bid_radar_location.setCurrentText("Hải Phòng")
+    request = window._bid_radar_request()
+    assert request.execution_locations == frozenset({"Hải Phòng"})
+    assert request.province_city_codes == frozenset()
+
+
+def test_tbmt_zero_location_coverage_disables_selector_and_explains_missing_data(
+    window: QICrawlerWindow,
+) -> None:
+    items = tuple(_fake_radar_item(f"IB26004623{index}-00") for index in range(3))
+
+    window._render_bid_radar_result(_fake_multi_result(items))
+
+    assert window.bid_radar_location.isEnabled() is False
+    assert window.bid_radar_location.itemText(0) == "Nguồn không có dữ liệu địa điểm"
+    assert "0 / 3" in window.bid_radar_location_coverage.text()
+    assert "không cung cấp Địa điểm thực hiện" in window.bid_radar_location_coverage.text()
+    assert window._bid_radar_request().execution_locations == frozenset()
+
+
+def test_tbmt_partial_location_coverage_lists_distinct_locations(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462301-00")
+    first.location_detail_raw = "Đồng Nai"
+    second = _fake_radar_item("IB2600462302-00")
+    third = _fake_radar_item("IB2600462303-00")
+    third.location_detail_raw = "Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((first, second, third)))
+
+    assert window.bid_radar_location.isEnabled() is True
+    assert "2 / 3" in window.bid_radar_location_coverage.text()
+    assert [window.bid_radar_location.itemText(index) for index in range(3)] == [
+        "Tất cả",
+        "Đồng Nai",
+        "Hà Nội",
+    ]
+
+
+def test_tbmt_full_location_coverage_keeps_selector_enabled(window: QICrawlerWindow) -> None:
+    first = _fake_radar_item("IB2600462304-00")
+    first.location_detail_raw = "Đồng Nai"
+    second = _fake_radar_item("IB2600462305-00")
+    second.location_detail_raw = "Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((first, second)))
+
+    assert window.bid_radar_location.isEnabled() is True
+    assert window.bid_radar_location_coverage.text() == "Dữ liệu địa điểm: 2 / 2 gói."
+
+
+def test_tbmt_source_reset_clears_stale_location_options_and_coverage(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462306-00")
+    first.location_detail_raw = "Đồng Nai"
+    window._render_bid_radar_result(_fake_multi_result((first,)))
+    assert "Đồng Nai" in [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+
+    window._clear_bid_radar_loaded_state()
+
+    assert "Đồng Nai" not in [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+    assert window.bid_radar_location.isEnabled() is False
+
+    second = _fake_radar_item("IB2600462307-00")
+    second.location_detail_raw = "Hà Nội"
+    window._render_bid_radar_result(_fake_multi_result((second,)))
+    options = [
+        window.bid_radar_location.itemText(index)
+        for index in range(window.bid_radar_location.count())
+    ]
+    assert "Đồng Nai" not in options
+    assert options == ["Tất cả", "Hà Nội"]
+
+
+def test_bid_radar_exclude_label_is_not_confusable_with_location_filter(
+    window: QICrawlerWindow,
+) -> None:
+    labels = [label.text() for label in window.bid_radar_filter_editor.findChildren(QLabel)]
+
+    assert "Loại trừ nội dung:" in labels
+    assert "Từ khóa loại:" not in labels
+    assert window.bid_radar_exclude.placeholderText() == "Nội dung cần loại trừ..."
+
+
+def test_generic_find_does_not_create_execution_location_evidence(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462308-00")
+    item.raw_fields = {
+        "BÊN MỜI THẦU": "Hà Nội",
+        "ĐỊA ĐIỂM PHÁT HÀNH": "Hà Nội",
+    }
+    window._render_bid_radar_result(_fake_multi_result((item,)))
+    window.bid_radar_include.setText("Hà Nội")
+
+    assert window.bid_radar_location_coverage.text().startswith("Dữ liệu địa điểm: 0 / 1")
+    assert window._bid_radar_request().execution_locations == frozenset()
+    assert window.bid_radar_location.isEnabled() is False
+
+
+def test_forbidden_addresses_do_not_infer_execution_location(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462309-00")
+    item.raw_fields = {
+        "ĐỊA CHỈ BÊN MỜI THẦU": "Hà Nội",
+        "ĐỊA ĐIỂM PHÁT HÀNH": "Hà Nội",
+        "investorLocation": "Hà Nội",
+    }
+    window._render_bid_radar_result(_fake_multi_result((item,)))
+
+    assert window.bid_radar_location_coverage.text().startswith("Dữ liệu địa điểm: 0 / 1")
+    assert window.bid_radar_location.itemText(0) == "Nguồn không có dữ liệu địa điểm"
+    assert window._bid_radar_request().execution_locations == frozenset()
+
+
+def test_bid_radar_review_and_export_controls_remain_reachable(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_fake_result())
+    assert window.bid_radar_confirm_button.text() == "XÁC NHẬN CƠ HỘI"
+    assert window.bid_radar_export_button.isVisible() or not window.isVisible()
+    assert window.bid_radar_legal_button.isEnabled() is True
+    assert not window.bid_radar_workspace_button.isEnabled()
+
+
+def _result_with_dispositions(
+    dispositions: tuple[str, ...],
+    *,
+    review_states: tuple[str, ...] | None = None,
+    source_type: str = "TBMT",
+) -> SimpleNamespace:
+    review_states = review_states or tuple("UNREVIEWED" for _ in dispositions)
+    items = tuple(_fake_radar_item(f"IB260090{index:04d}-00") for index in range(len(dispositions)))
+    rows = tuple(
+        SimpleNamespace(
+            item=item,
+            disposition=disposition,
+            reasons=(),
+            review_state=review_state,
+        )
+        for item, disposition, review_state in zip(items, dispositions, review_states)
+    )
+    counts = {
+        "MATCH": dispositions.count("MATCH"),
+        "INDETERMINATE": dispositions.count("INDETERMINATE"),
+        "NO_MATCH": dispositions.count("NO_MATCH"),
+        "UNFILTERED": dispositions.count("UNFILTERED"),
+    }
+    return SimpleNamespace(
+        source_type=SimpleNamespace(value=source_type),
+        load_result=SimpleNamespace(
+            source_type=SimpleNamespace(value=source_type),
+            source_path=Path("tbmt.xlsx"),
+            source_sha256="c" * 64,
+            items=items,
+        ),
+        source_path=Path("tbmt.xlsx"),
+        source_sha256="c" * 64,
+        items=items,
+        rows=rows,
+        issues=(),
+        matched_count=counts["MATCH"],
+        indeterminate_count=counts["INDETERMINATE"],
+        nonmatched_count=counts["NO_MATCH"],
+        unfiltered_count=counts["UNFILTERED"],
+        total_examined=len(rows),
+        find_hit_count=len(rows),
+    )
+
+
+def test_bid_radar_match_view_surfaces_only_matches_first(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH", "NO_MATCH", "MATCH"))
+
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_result_view_mode == "MATCH"
+    assert window.bid_radar_table.rowCount() == 2
+    assert [window.bid_radar_table.item(row, 0).text() for row in range(2)] == [
+        "IB2600900001-00",
+        "IB2600900003-00",
+    ]
+
+
+def test_bid_radar_result_view_modes_preserve_authoritative_counts(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH", "NO_MATCH", "MATCH"))
+
+    window._render_bid_radar_result(result)
+    assert window.bid_radar_view_buttons["MATCH"].text() == "PHÙ HỢP 2"
+    assert window.bid_radar_view_buttons["INDETERMINATE"].text() == "CẦN KIỂM TRA 0"
+    assert window.bid_radar_view_buttons["NO_MATCH"].text() == "KHÔNG PHÙ HỢP 2"
+    assert window.bid_radar_view_buttons["ALL"].text() == "TẤT CẢ 4"
+
+    window._set_bid_radar_result_view("ALL")
+    assert window.bid_radar_table.rowCount() == 4
+    window._set_bid_radar_result_view("NO_MATCH")
+    assert window.bid_radar_table.rowCount() == 2
+    assert all(
+        window.bid_radar_table.item(row, 6).text() == "KHÔNG PHÙ HỢP"
+        for row in range(window.bid_radar_table.rowCount())
+    )
+
+
+def test_bid_radar_indeterminate_and_unfiltered_defaults(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(
+        ("MATCH", "INDETERMINATE", "INDETERMINATE", "NO_MATCH", "NO_MATCH")
+    )
+    window._render_bid_radar_result(result)
+    window._set_bid_radar_result_view("INDETERMINATE")
+    assert window.bid_radar_table.rowCount() == 2
+
+    unfiltered = _result_with_dispositions(("UNFILTERED", "UNFILTERED", "UNFILTERED"))
+    window._render_bid_radar_result(unfiltered)
+    assert window.bid_radar_result_view_mode == "ALL"
+    assert window.bid_radar_table.rowCount() == 3
+
+
+def test_bid_radar_visible_index_maps_inspector_review_and_handoff_to_original_item(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = _result_with_dispositions(("NO_MATCH", "MATCH"), review_states=("UNREVIEWED", "CONFIRMED"))
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+
+    selected_item = result.rows[1].item
+    assert window._selected_bid_radar_item() is selected_item
+    assert selected_item.identity.raw_id in window.bid_radar_inspector_text.toPlainText()
+
+    captured: dict[str, object] = {}
+
+    def fake_submit(function, *args, **kwargs) -> None:
+        captured["function"] = function
+        captured["args"] = args
+
+    monkeypatch.setattr(window, "_submit", fake_submit)
+    window.start_bid_radar_workspace_handoff()
+    assert captured["args"] == (window.config, selected_item)
+
+
+def test_bid_radar_switching_view_clears_hidden_selection(window: QICrawlerWindow) -> None:
+    result = _result_with_dispositions(("MATCH", "NO_MATCH"))
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+    window._set_bid_radar_result_view("NO_MATCH")
+
+    assert window.bid_radar_table.currentRow() == -1
+    assert window._selected_bid_radar_item() is None
+    assert window.bid_radar_inspector_text.toPlainText().startswith("Chưa chọn cơ hội.")
+    assert not window.bid_radar_confirm_button.isEnabled()
+
+
+def test_bid_radar_view_switch_preserves_visible_identity_and_review_state(
+    window: QICrawlerWindow,
+) -> None:
+    result = _result_with_dispositions(
+        ("NO_MATCH", "MATCH"), review_states=("UNREVIEWED", "CONFIRMED")
+    )
+    window._render_bid_radar_result(result)
+    window.bid_radar_table.selectRow(0)
+    selected_item = result.rows[1].item
+
+    window._set_bid_radar_result_view("ALL")
+    assert window.bid_radar_table.currentRow() == 1
+    assert window._selected_bid_radar_item() is selected_item
+    assert window.bid_radar_table.item(1, 7).text() == "Đã xác nhận"
+
+    window._set_bid_radar_result_view("MATCH")
+    assert window.bid_radar_table.currentRow() == 0
+    assert window._selected_bid_radar_item() is selected_item
+    assert window.bid_radar_table.item(0, 7).text() == "Đã xác nhận"
+
+
+def test_bid_radar_source_reset_clears_view_mapping_and_new_run_default(
+    window: QICrawlerWindow,
+) -> None:
+    window._render_bid_radar_result(
+        _result_with_dispositions(("NO_MATCH", "MATCH"))
+    )
+    window._set_bid_radar_result_view("NO_MATCH")
+    window._clear_bid_radar_loaded_state()
+
+    assert window.bid_radar_result_view_mode == "ALL"
+    assert window._bid_radar_visible_result_indices == ()
+    assert window.bid_radar_table.rowCount() == 0
+
+    window._render_bid_radar_result(
+        _result_with_dispositions(("NO_MATCH", "MATCH"))
+    )
+    assert window.bid_radar_result_view_mode == "MATCH"
+    assert window.bid_radar_table.rowCount() == 1
+
+
+def test_bid_radar_required_geometries_have_operable_regions(window: QICrawlerWindow) -> None:
+    window.navigation.setCurrentRow(2)
+    for width, height in ((1180, 680), (1440, 900)):
+        window.resize(width, height)
+        window.show()
+        QApplication.processEvents()
+        assert window.bid_radar_splitter.width() > 0
+        sizes = window.bid_radar_splitter.sizes()
+        assert sizes[0] > 0
+        assert sizes[1] > 0
+        if width >= 1400:
+            assert sizes[2] > 0
+        assert window.bid_radar_table.viewport().width() > 0
+        assert window.bid_radar_import_button.width() > 0
+
+
+
+def _show_bid_radar(window: QICrawlerWindow, width: int, height: int) -> None:
+    window.navigation.setCurrentRow(2)
+    window.resize(width, height)
+    window.show()
+    QApplication.processEvents()
+
+
+def test_bid_radar_compact_mode_collapses_inspector_and_expands_center(
+    window: QICrawlerWindow,
+) -> None:
+    _show_bid_radar(window, 1180, 680)
+
+    assert window.bid_radar_selection_desk.isVisible()
+    assert window.bid_radar_active_canvas.isVisible()
+    assert window.bid_radar_inspector.isHidden()
+    left, center, right = window.bid_radar_splitter.sizes()
+    assert right == 0
+    assert center > left
+    assert center > 400
+
+
+def test_bid_radar_compact_inspector_toggle_preserves_selection(window: QICrawlerWindow) -> None:
+    window._render_bid_radar_result(_fake_result())
+    window.bid_radar_table.selectRow(0)
+    _show_bid_radar(window, 1180, 680)
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isVisible()
+    assert window.bid_radar_table.currentRow() == 0
+
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector.isHidden()
+    assert window.bid_radar_table.currentRow() == 0
+
+
+def test_bid_radar_side_panels_disable_horizontal_scrolling(window: QICrawlerWindow) -> None:
+    assert (
+        window.bid_radar_selection_scroll.horizontalScrollBarPolicy()
+        == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    )
+    assert (
+        window.bid_radar_inspector_scroll.horizontalScrollBarPolicy()
+        == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    )
+    assert window.bid_radar_source_summary.wordWrap()
+    assert window.bid_radar_inspector_text.lineWrapMode() != QTextEdit.LineWrapMode.NoWrap
+
+
+def test_bid_radar_compact_collapse_does_not_recreate_filter_or_evidence(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("500.000.000")
+    window._render_bid_radar_result(_a5_evidence_result())
+    window.bid_radar_table.selectRow(0)
+    before = window.bid_radar_inspector_text.toPlainText()
+
+    _show_bid_radar(window, 1180, 680)
+    window.bid_radar_inspector_toggle.click()
+    assert window.bid_radar_inspector_text.toPlainText() == before
+    assert window.bid_radar_min_budget.text() == "500.000.000"
+
+
+
+def test_bid_radar_compact_mode_applies_when_page_is_opened_after_resize(
+    window: QICrawlerWindow,
+) -> None:
+    window.resize(1180, 680)
+    window.show()
+    QApplication.processEvents()
+    window.navigation.setCurrentRow(2)
+    QApplication.processEvents()
+    assert window.bid_radar_inspector.isHidden()
+
+
+def test_schema_not_ready_offers_explicit_upgrade_with_database_identity(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    prompts: list[str] = []
+    monkeypatch.setattr(
+        gui.QMessageBox,
+        "question",
+        lambda _parent, title, message, *args, **kwargs: prompts.append(
+            f"{title}\n{message}"
+        ) or gui.QMessageBox.StandardButton.Cancel,
+    )
+    upgrade_calls: list[object] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: upgrade_calls.append(function),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert prompts
+    assert "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP" in prompts[0]
+    assert "bid-radar.db" in prompts[0]
+    assert "NÂNG CẤP CSDL" in prompts[0]
+    assert upgrade_calls == []
+    assert "NÂNG CẤP" in window.bid_radar_status.text()
+
+
+def test_schema_not_ready_requires_confirmation_before_upgrade_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    answers = iter(
+        (
+            gui.QMessageBox.StandardButton.Yes,
+            gui.QMessageBox.StandardButton.Cancel,
+        )
+    )
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: next(answers))
+    submitted: list[tuple[object, tuple[object, ...], dict[str, object]]] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: submitted.append((function, args, kwargs)),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert submitted == []
+
+
+def test_database_upgrade_success_reports_verified_revision_backup_and_identity(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    result = gui.DatabaseReadinessResult(
+        database_path=tmp_path / "egp.db",
+        revision="0020_add_tender_operational_revision_events",
+        backup_path=tmp_path / "backups" / "egp-before.db",
+    )
+
+    window._render_database_upgrade_result(result)
+
+    status = window.bid_radar_status.text()
+    assert "Nâng cấp cơ sở dữ liệu hoàn tất" in status
+    assert str(result.database_path) in status
+    assert str(result.backup_path) in status
+    assert result.revision in status
+    assert "NHẬP / TÌM GÓI" in status
+
+
+def test_database_upgrade_failure_retains_created_backup_path(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    error = RuntimeError("migration failed")
+    error.backup_path = Path("backups/egp-before.db")
+    window._database_upgrade_in_progress = True
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        error,
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert str(error.backup_path) in window.bid_radar_status.text()
+
+def test_database_upgrade_failure_is_user_readable_and_does_not_claim_success(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    window._database_upgrade_in_progress = True
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        RuntimeError("backup failed"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    status = window.bid_radar_status.text()
+    assert "Nâng cấp cơ sở dữ liệu thất bại" in status
+    assert "backup failed" in status
+    assert "hoàn tất" not in status
+
+def test_schema_not_ready_confirmation_submits_existing_database_upgrade_seam(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui.QMessageBox, "critical", lambda *args, **kwargs: None)
+    answers = iter(
+        (
+            gui.QMessageBox.StandardButton.Yes,
+            gui.QMessageBox.StandardButton.Yes,
+        )
+    )
+    monkeypatch.setattr(gui.QMessageBox, "question", lambda *args, **kwargs: next(answers))
+    submitted: list[tuple[object, tuple[object, ...], dict[str, object]]] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **kwargs: submitted.append((function, args, kwargs)),
+    )
+
+    window._worker_error(
+        window.bid_radar_import_button,
+        SchemaNotReady("Hay chay QI-Crawler db-upgrade"),
+        window.bid_radar_progress,
+        window.bid_radar_status,
+    )
+
+    assert len(submitted) == 1
+    function, args, kwargs = submitted[0]
+    assert function is gui.run_database_upgrade
+    assert args == (window.config,)
+    assert kwargs["long_operation"] is True
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    (
+        ("800000000", "800.000.000"),
+        ("800.000.000", "800.000.000"),
+        ("800,000,000", "800.000.000"),
+        ("800 000 000", "800.000.000"),
+        ("1000000000", "1.000.000.000"),
+    ),
+)
+def test_bid_radar_money_display_groups_existing_money_inputs(
+    window: QICrawlerWindow,
+    raw: str,
+    expected: str,
+) -> None:
+    window.bid_radar_min_budget.setText(raw)
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == expected
+    assert gui.format_vnd_amount(1000000000) == "1.000.000.000 VNĐ"
+
+
+def test_bid_radar_money_display_preserves_blank_and_invalid_inputs(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("")
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == ""
+    window.bid_radar_min_budget.setText("800.00.000")
+    window.bid_radar_min_budget.editingFinished.emit()
+    assert window.bid_radar_min_budget.text() == "800.00.000"
+
+
+def test_bid_radar_money_summary_and_budget_rows_are_explicitly_labeled(
+    window: QICrawlerWindow,
+) -> None:
+    window.bid_radar_min_budget.setText("800000000")
+    window.bid_radar_max_budget.setText("1000000000")
+    window.bid_radar_min_budget.editingFinished.emit()
+    window.bid_radar_max_budget.editingFinished.emit()
+    summary = window.bid_radar_active_filter_context.text()
+    assert "800.000.000" in summary
+    assert "1.000.000.000" in summary
+    assert "VNĐ" in summary
+    assert window.bid_radar_min_budget.minimumWidth() >= 140
+    assert window.bid_radar_max_budget.minimumWidth() >= 140
+    assert [label.text() for label in window.findChildren(QLabel)].count("VNĐ") >= 2

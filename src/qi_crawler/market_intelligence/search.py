@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from .filter_engine import (
@@ -15,7 +15,6 @@ from .filter_engine import (
     evaluate_plan_package,
 )
 from .khmt_contract import PlanPackage
-from .khmt_normalization import normalize_search_value
 from .opportunity_radar import OpportunityRadarItem
 
 
@@ -29,6 +28,7 @@ class TargetedSearchRequest:
     min_budget: Decimal | None = None
     max_budget: Decimal | None = None
     province_city_codes: frozenset[str] = frozenset()
+    execution_locations: frozenset[str] = frozenset()
     include_keywords: tuple[str, ...] = ()
     exclude_keywords: tuple[str, ...] = ()
     selection_methods: frozenset[str] = frozenset()
@@ -41,26 +41,27 @@ class TargetedSearchRequest:
         )
         object.__setattr__(
             self,
+            "execution_locations",
+            frozenset(
+                str(location).strip()
+                for location in self.execution_locations
+                if str(location).strip()
+            ),
+        )
+        object.__setattr__(
+            self,
             "selection_methods",
             frozenset(method.upper() for method in self.selection_methods),
         )
         object.__setattr__(
             self,
             "include_keywords",
-            tuple(
-                normalized
-                for keyword in self.include_keywords
-                if (normalized := normalize_search_value(keyword))
-            ),
+            tuple(str(keyword).strip() for keyword in self.include_keywords if str(keyword).strip()),
         )
         object.__setattr__(
             self,
             "exclude_keywords",
-            tuple(
-                normalized
-                for keyword in self.exclude_keywords
-                if (normalized := normalize_search_value(keyword))
-            ),
+            tuple(str(keyword).strip() for keyword in self.exclude_keywords if str(keyword).strip()),
         )
 
     def to_filter_profile(self) -> FilterProfile:
@@ -79,6 +80,7 @@ class TargetedSearchRequest:
             min_budget=self.min_budget,
             max_budget=self.max_budget,
             province_city_codes=self.province_city_codes,
+            execution_locations=self.execution_locations,
             include_keywords=self.include_keywords,
             exclude_keywords=self.exclude_keywords,
             selection_methods=self.selection_methods,
@@ -114,10 +116,13 @@ class TargetedOpportunitySearchResult:
     matched_count: int
     indeterminate_count: int
     nonmatched_count: int
+    unfiltered_count: int
     matches: tuple[OpportunitySearchEvaluation, ...]
     indeterminate: tuple[OpportunitySearchEvaluation, ...]
     nonmatches: tuple[OpportunitySearchEvaluation, ...]
+    unfiltered: tuple[OpportunitySearchEvaluation, ...]
     evaluated: tuple[OpportunitySearchEvaluation, ...]
+    find_hit_count: int = 0
 
 
 def search_opportunities(
@@ -125,7 +130,7 @@ def search_opportunities(
 ) -> TargetedOpportunitySearchResult:
     """Evaluate source-neutral radar items in stable order and bucket outcomes."""
 
-    profile = request.to_filter_profile()
+    profile = replace(request.to_filter_profile(), literal_find=True)
     evaluated = tuple(
         OpportunitySearchEvaluation(item=item, evaluation=evaluate_opportunity(item, profile))
         for item in tuple(items)
@@ -145,16 +150,37 @@ def search_opportunities(
         for result in evaluated
         if result.evaluation.disposition is OpportunityFilterDisposition.NO_MATCH
     )
+    unfiltered = tuple(
+        result
+        for result in evaluated
+        if result.evaluation.disposition is OpportunityFilterDisposition.UNFILTERED
+    )
+    include_terms = tuple(str(keyword).strip() for keyword in request.include_keywords if str(keyword).strip())
+    find_hit_count = (
+        sum(
+            any(
+                criterion.criterion == "include_keywords"
+                and criterion.outcome.value == "PASS"
+                for criterion in result.evaluation.criteria
+            )
+            for result in evaluated
+        )
+        if include_terms
+        else len(evaluated)
+    )
     return TargetedOpportunitySearchResult(
         request=request,
         total_examined=len(evaluated),
         matched_count=len(matches),
         indeterminate_count=len(indeterminate),
         nonmatched_count=len(nonmatches),
+        unfiltered_count=len(unfiltered),
         matches=matches,
         indeterminate=indeterminate,
         nonmatches=nonmatches,
+        unfiltered=unfiltered,
         evaluated=evaluated,
+        find_hit_count=find_hit_count,
     )
 
 

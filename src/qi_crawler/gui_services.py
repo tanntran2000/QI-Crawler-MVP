@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy import or_, select
+from sqlalchemy.engine import make_url
 
 from .authenticated_sources import (
     create_login_session,
@@ -36,7 +37,12 @@ from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
 from .market_intelligence.confirmed_opportunity_export import ConfirmedOpportunityExportResult
-from .market_intelligence.filter_engine import OpportunityFilterDisposition
+from .market_intelligence.excel_screening import (
+    ScreeningRun,
+    export_screening_workbook,
+    screen_excel_workbook,
+)
+from .market_intelligence.filter_engine import CriterionEvaluation, OpportunityFilterDisposition
 from .market_intelligence.khmt_importer import import_khmt_workbook
 from .market_intelligence.legal_docx import (
     LegalDocxExportResult,
@@ -60,6 +66,7 @@ from .market_intelligence.source_detection import (
 )
 from .market_intelligence.source_integrity import verify_source_integrity
 from .market_intelligence.source_type_review import SourceTypeReviewService
+from .migrations import upgrade_database
 from .models import Document, DocumentEvidence, DocumentExtraction, Notice
 from .native_extraction import (
     SUPPORTED_FORMATS,
@@ -107,6 +114,14 @@ class EvidencePreview:
 
 
 @dataclass(frozen=True)
+class ExcelScreeningExportResult:
+    """Machine-readable completion summary for the Human-Light Excel flow."""
+
+    output_path: Path
+    run: ScreeningRun
+
+
+@dataclass(frozen=True)
 class DocumentExtractionInspection:
     document_id: int
     filename: str
@@ -144,6 +159,37 @@ class WorkspaceDocumentIntakeResult:
 
 
 @dataclass(frozen=True)
+class DatabaseReadinessResult:
+    """Result of an explicit, operator-triggered database maintenance run."""
+
+    database_path: Path | None
+    revision: str
+    backup_path: Path | None
+
+
+def resolve_database_path(database_url: str) -> Path | None:
+    """Resolve the database identity shown to an operator without mutating it."""
+    url = make_url(database_url)
+    if not url.drivername.startswith("sqlite") or not url.database:
+        return None
+    if url.database == ":memory:":
+        return None
+    path = Path(url.database)
+    return path if path.is_absolute() else (Path.cwd() / path).resolve()
+
+
+def run_database_upgrade(config: AppConfig) -> DatabaseReadinessResult:
+    """Run the existing migration authority only after explicit human action."""
+    backup_dir = config.storage.report_dir.parent / "backups"
+    result = upgrade_database(config.storage.database_url, backup_dir=backup_dir)
+    Database(config.storage.database_url).require_current_schema()
+    return DatabaseReadinessResult(
+        database_path=resolve_database_path(config.storage.database_url),
+        revision=result.revision,
+        backup_path=result.backup_path,
+    )
+
+@dataclass(frozen=True)
 class BidRadarRow:
     """One filter evaluation plus the latest explicit human review state."""
 
@@ -151,6 +197,7 @@ class BidRadarRow:
     disposition: OpportunityFilterDisposition
     reasons: tuple[str, ...]
     review_state: str
+    criteria: tuple[CriterionEvaluation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -167,7 +214,9 @@ class BidRadarResult:
     matched_count: int
     indeterminate_count: int
     nonmatched_count: int
+    unfiltered_count: int
     total_examined: int
+    find_hit_count: int = 0
 
 
 def _bid_radar_rows(
@@ -185,6 +234,7 @@ def _bid_radar_rows(
                 disposition=evaluation.disposition,
                 reasons=tuple(criterion.reason_code.value for criterion in evaluation.criteria),
                 review_state=event.decision.value if event is not None else "UNREVIEWED",
+                criteria=evaluation.criteria,
             )
         )
     return tuple(rows)
@@ -234,7 +284,9 @@ def run_bid_radar_import_search(
         matched_count=searched.matched_count,
         indeterminate_count=searched.indeterminate_count,
         nonmatched_count=searched.nonmatched_count,
+        unfiltered_count=searched.unfiltered_count,
         total_examined=searched.total_examined,
+        find_hit_count=searched.find_hit_count,
     )
 
 
@@ -316,6 +368,18 @@ def run_bid_radar_export(
         load_result,
         output=config.storage.report_dir / "CÁC GÓI ĐÃ XÁC NHẬN.xlsx",
     )
+
+
+def run_bid_radar_excel_screening(
+    source_path: Path,
+    *,
+    output_path: Path,
+) -> ExcelScreeningExportResult:
+    """Run the additive Human-Light screening service and export four sheets."""
+
+    run = screen_excel_workbook(source_path)
+    destination = export_screening_workbook(run, output_path)
+    return ExcelScreeningExportResult(output_path=destination, run=run)
 
 
 def run_bid_radar_legal_docx(

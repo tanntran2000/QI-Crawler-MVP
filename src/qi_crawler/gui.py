@@ -12,6 +12,7 @@ import traceback
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -84,15 +85,19 @@ from .document_taxonomy import (
 from .gui_services import (
     BidRadarResult,
     BidRadarRow,
+    DatabaseReadinessResult,
     DocumentExtractionInspection,
     HSMTFactDashboard,
     SearchRow,
+    resolve_database_path,
+    run_bid_radar_excel_screening,
     run_bid_radar_export,
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
     run_bid_radar_review,
     run_bid_radar_workspace_handoff,
     run_create_manual_tender_workspace,
+    run_database_upgrade,
     run_document_classification_confirmation,
     run_document_extraction_inspection,
     run_document_intake,
@@ -123,6 +128,7 @@ from .gui_services import (
 )
 from .logging_utils import configure_logging
 from .market_intelligence.candidate_review import CandidateReviewError
+from .market_intelligence.filter_engine import execution_location_values
 from .market_intelligence.khmt_importer import KHMTImportError, _sha256
 from .market_intelligence.legal_docx import LegalDocxExportError
 from .market_intelligence.search import TargetedSearchValidationError
@@ -132,6 +138,8 @@ from .market_intelligence.source_detection import (
     detect_source_type,
     resolve_source_type,
 )
+from .market_intelligence.source_session import SourceSessionIdentity, source_session_matches
+from .market_intelligence.value_normalization import parse_optional_money_input
 from .migrations import upgrade_database
 from .standalone import (
     StandaloneResourceError,
@@ -153,6 +161,35 @@ PREFERRED_WINDOW_SIZE = (1440, 900)
 MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
+
+
+class _BidRadarLocationSelector(QComboBox):
+    """Location selector with a small compatibility surface for legacy callers."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setEditable(True)
+
+    def text(self) -> str:
+        return self.currentText()
+
+    def setText(self, value: str) -> None:
+        self.setEditText(value)
+
+
+def format_vnd_amount(value: Decimal | int | None) -> str:
+    """Format a whole VND amount for presentation without changing its value."""
+    if value is None:
+        return ""
+    try:
+        amount = Decimal(value)
+    except (ArithmeticError, TypeError, ValueError):
+        return ""
+    if not amount.is_finite():
+        return ""
+    if amount != amount.to_integral_value():
+        return f"{amount:,}".replace(",", ".") + " VNĐ"
+    return f"{int(amount):,}".replace(",", ".") + " VNĐ"
 
 _DIAGNOSTIC_SECRET_PATTERN = re.compile(
     r"(?i)\b(password|passphrase|pwd|otp|cookie|authorization|api[_ -]?key|"
@@ -323,9 +360,15 @@ class QICrawlerWindow(QMainWindow):
         self._document_session_duplicates = 0
         self._bid_radar_items: tuple[Any, ...] = ()
         self._bid_radar_rows: tuple[BidRadarRow, ...] = ()
+        self._bid_radar_result: Any | None = None
+        self._bid_radar_visible_result_indices: tuple[int, ...] = ()
+        self.bid_radar_result_view_mode = "ALL"
         self._bid_radar_load_result: Any | None = None
         self._bid_radar_loaded_source: Path | None = None
         self._bid_radar_loaded_sha256: str | None = None
+        self._bid_radar_pending_source: SourceSessionIdentity | None = None
+        self._bid_radar_active_source: SourceSessionIdentity | None = None
+        self._bid_radar_pending_detection: SourceTypeDetection | None = None
         self._workspace_release_record_id: int | None = None
         self._workspace_opened_case_id: str | None = None
         self._workspace_opened_release_id: str | None = None
@@ -334,6 +377,7 @@ class QICrawlerWindow(QMainWindow):
         self._login_confirmed: threading.Event | None = None
         self._active_jobs: list[GuiTaskBridge] = []
         self._active_long_operation: str | None = None
+        self._database_upgrade_in_progress = False
         self._diagnostic_events: list[DiagnosticEvent] = []
         self.setWindowTitle(f"QI-CRAWLER v{__version__}")
         self.setMinimumSize(*MINIMUM_WINDOW_SIZE)
@@ -354,6 +398,11 @@ class QICrawlerWindow(QMainWindow):
             return
         self._save_window_geometry()
         super().closeEvent(event)
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "bid_radar_splitter"):
+            self._apply_bid_radar_responsive_state()
 
     def _restore_window_geometry(self) -> None:
         geometry = self._settings.value("window/geometry", type=QByteArray)
@@ -435,6 +484,10 @@ class QICrawlerWindow(QMainWindow):
             }
             QLabel#metricValue { color: #172033; font-size: 24px; font-weight: 700; }
             QLabel#metricName { color: #667085; font-size: 12px; }
+            QFrame#bidRadarActiveContext { background: #eff8ff; border: 1px solid #84adf5; border-radius: 8px; }
+            QLabel#bidRadarActiveContextTitle { color: #175cd3; font-weight: 700; }
+            QLabel#bidRadarActiveContextValue { color: #0b4f9c; font-size: 15px; font-weight: 700; }
+            QLabel#bidRadarContextWarning { color: #b54708; background: #fffaeb; border-radius: 6px; padding: 8px; }
             QTableWidget { background: white; border: 1px solid #dce3ed; }
             QProgressBar { min-height: 7px; max-height: 7px; border: 0; background: #dce3ed; }
             QProgressBar::chunk { background: #1f6feb; }
@@ -487,6 +540,7 @@ class QICrawlerWindow(QMainWindow):
             self.export_button,
             self.export_snapshot_button,
             self.bid_radar_import_button,
+            self.bid_radar_screening_button,
             self.bid_radar_export_button,
             self.bid_radar_legal_button,
             self.login_button,
@@ -658,21 +712,61 @@ class QICrawlerWindow(QMainWindow):
         layout.addWidget(self.search_table)
 
     def _build_bid_radar_page(self) -> None:
-        _page, layout = self._new_page(
+        self.bid_radar_page, page_layout = self._new_page(
             "Bid Radar",
-            "Nhập KHMT/TBMT, lọc cơ hội, sau đó xác nhận thủ công trước khi xuất hồ sơ.",
+            "Bàn làm việc bình tĩnh: khoanh vùng, xem nhanh và xác nhận thủ công.",
         )
-        source_box = QGroupBox("1. NHẬP NGUỒN CƠ HỘI")
+        page_layout.setSpacing(10)
+
+        side_actions = QHBoxLayout()
+        self.bid_radar_selection_toggle = QPushButton("ẨN BỘ LỌC")
+        self.bid_radar_selection_toggle.clicked.connect(self._toggle_bid_radar_selection_desk)
+        self.bid_radar_inspector_toggle = QPushButton("ẨN CHI TIẾT")
+        self.bid_radar_inspector_toggle.clicked.connect(self._toggle_bid_radar_inspector)
+        side_actions.addWidget(self.bid_radar_selection_toggle)
+        side_actions.addStretch()
+        side_actions.addWidget(self.bid_radar_inspector_toggle)
+        page_layout.addLayout(side_actions)
+
+        self.bid_radar_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.bid_radar_splitter.setObjectName("bidRadarSplitter")
+        self.bid_radar_splitter.setChildrenCollapsible(False)
+
+        self.bid_radar_selection_desk = QFrame()
+        self.bid_radar_selection_desk.setObjectName("bidRadarSelectionDesk")
+        self.bid_radar_selection_desk.setMinimumWidth(260)
+        selection_scroll = QScrollArea()
+        self.bid_radar_selection_scroll = selection_scroll
+        selection_scroll.setWidgetResizable(True)
+        selection_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        selection_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        selection_content = QWidget()
+        selection_layout = QVBoxLayout(selection_content)
+        selection_layout.setContentsMargins(2, 2, 8, 2)
+        selection_layout.setSpacing(10)
+
+        source_box = QGroupBox("NGUỒN CƠ HỘI")
         source_layout = QFormLayout(source_box)
         source_row = QHBoxLayout()
         self.bid_radar_path = QLineEdit()
         self.bid_radar_path.setReadOnly(True)
         self.bid_radar_path.setPlaceholderText("Chọn file Excel nguồn")
-        choose_button = QPushButton("CHỌN FILE EXCEL")
+        choose_button = QPushButton("CHỌN FILE")
         choose_button.clicked.connect(self._choose_bid_radar_file)
         source_row.addWidget(self.bid_radar_path, 1)
         source_row.addWidget(choose_button)
         source_layout.addRow("File nguồn:", source_row)
+        self.bid_radar_active_source_label = QLabel("Chưa dùng nguồn nào.")
+        self.bid_radar_active_source_label.setWordWrap(True)
+        self.bid_radar_active_source_label.setObjectName("bidRadarActiveSource")
+        source_layout.addRow("Nguồn đang dùng:", self.bid_radar_active_source_label)
+        self.bid_radar_pending_source_label = QLabel("Chưa chọn file.")
+        self.bid_radar_pending_source_label.setWordWrap(True)
+        self.bid_radar_pending_source_label.setObjectName("bidRadarPendingSource")
+        source_layout.addRow("File đang chọn:", self.bid_radar_pending_source_label)
+        self.bid_radar_source_action_button = QPushButton("DÙNG FILE NÀY")
+        self.bid_radar_source_action_button.clicked.connect(self.apply_bid_radar_source)
+        source_layout.addRow("Chuyển nguồn:", self.bid_radar_source_action_button)
         self.bid_radar_source_type = QComboBox()
         self.bid_radar_source_type.addItem("TỰ ĐỘNG", None)
         self.bid_radar_source_type.addItem("KHMT", SourceType.KHMT)
@@ -681,55 +775,138 @@ class QICrawlerWindow(QMainWindow):
         self.bid_radar_source_summary = QLabel("Chưa nhận dạng file nguồn.")
         self.bid_radar_source_summary.setWordWrap(True)
         source_layout.addRow("Nhận dạng:", self.bid_radar_source_summary)
-        layout.addWidget(source_box)
+        selection_layout.addWidget(source_box)
 
-        filter_box = QGroupBox("2. LỌC CƠ HỘI (KHÔNG TỰ XÁC NHẬN)")
-        filter_form = QFormLayout(filter_box)
+        filter_box = QGroupBox("KHOANH VÙNG")
+        filter_layout = QVBoxLayout(filter_box)
+        self.bid_radar_filter_summary = QLabel()
+        self.bid_radar_filter_summary.setWordWrap(True)
+        self.bid_radar_filter_summary.setObjectName("bidRadarFilterSummary")
+        filter_layout.addWidget(self.bid_radar_filter_summary)
+        self.bid_radar_keyword_summary = QLabel()
+        self.bid_radar_keyword_summary.setWordWrap(True)
+        self.bid_radar_keyword_summary.setObjectName("bidRadarKeywordSummary")
+        filter_layout.addWidget(self.bid_radar_keyword_summary)
+        self.bid_radar_filter_toggle = QPushButton("CHỈNH BỘ LỌC")
+        self.bid_radar_filter_toggle.setCheckable(True)
+        self.bid_radar_filter_toggle.clicked.connect(self._toggle_bid_radar_filter_editor)
+        filter_layout.addWidget(self.bid_radar_filter_toggle)
+
+        self.bid_radar_filter_editor = QWidget()
+        self.bid_radar_filter_editor.setObjectName("bidRadarFilterEditor")
+        filter_form = QFormLayout(self.bid_radar_filter_editor)
         self.bid_radar_min_budget = QLineEdit()
         self.bid_radar_min_budget.setPlaceholderText("Ví dụ: 1000000000")
+        self.bid_radar_min_budget.setMinimumWidth(150)
         self.bid_radar_max_budget = QLineEdit()
         self.bid_radar_max_budget.setPlaceholderText("Ví dụ: 50000000000")
-        budget_row = QHBoxLayout()
-        budget_row.addWidget(self.bid_radar_min_budget)
-        budget_row.addWidget(self.bid_radar_max_budget)
-        filter_form.addRow("Ngân sách tối thiểu / tối đa:", budget_row)
-        self.bid_radar_province = QLineEdit()
-        self.bid_radar_province.setPlaceholderText("Mã tỉnh/thành, cách nhau bằng dấu phẩy")
+        self.bid_radar_max_budget.setMinimumWidth(150)
+        min_budget_row = QHBoxLayout()
+        min_budget_row.addWidget(self.bid_radar_min_budget, 1)
+        min_budget_row.addWidget(QLabel("VNĐ"))
+        max_budget_row = QHBoxLayout()
+        max_budget_row.addWidget(self.bid_radar_max_budget, 1)
+        max_budget_row.addWidget(QLabel("VNĐ"))
+        self.bid_radar_min_budget.editingFinished.connect(lambda: self._format_bid_radar_budget_field(self.bid_radar_min_budget))
+        self.bid_radar_max_budget.editingFinished.connect(lambda: self._format_bid_radar_budget_field(self.bid_radar_max_budget))
+        filter_form.addRow("Ngân sách tối thiểu:", min_budget_row)
+        filter_form.addRow("Ngân sách tối đa:", max_budget_row)
+        self.bid_radar_location = _BidRadarLocationSelector()
+        self.bid_radar_location.addItem("Chưa có dữ liệu nguồn", None)
+        self.bid_radar_location.setEnabled(False)
+        self.bid_radar_location.setPlaceholderText("Chọn địa điểm thực hiện từ nguồn đang dùng")
+        self.bid_radar_execution_location = self.bid_radar_location
+        self.bid_radar_province = self.bid_radar_location
         self.bid_radar_include = QLineEdit()
-        self.bid_radar_include.setPlaceholderText("Từ khóa bắt buộc, cách nhau bằng dấu phẩy")
+        self.bid_radar_include.setPlaceholderText("Nội dung cần tìm, cách nhau bằng dấu phẩy")
         self.bid_radar_exclude = QLineEdit()
-        self.bid_radar_exclude.setPlaceholderText("Từ khóa loại trừ, cách nhau bằng dấu phẩy")
+        self.bid_radar_exclude.setPlaceholderText("Nội dung cần loại trừ...")
         self.bid_radar_selection_method = QLineEdit()
-        self.bid_radar_selection_method.setPlaceholderText("Hình thức lựa chọn, cách nhau bằng dấu phẩy")
-        filter_form.addRow("Tỉnh / thành:", self.bid_radar_province)
-        filter_form.addRow("Từ khóa gồm:", self.bid_radar_include)
-        filter_form.addRow("Từ khóa loại:", self.bid_radar_exclude)
+        self.bid_radar_selection_method.setPlaceholderText(
+            "Hình thức lựa chọn, cách nhau bằng dấu phẩy"
+        )
+        filter_form.addRow("Địa điểm thực hiện:", self.bid_radar_location)
+        filter_form.addRow("Tìm trong nguồn:", self.bid_radar_include)
+        filter_form.addRow("Loại trừ nội dung:", self.bid_radar_exclude)
         filter_form.addRow("Hình thức lựa chọn:", self.bid_radar_selection_method)
-        layout.addWidget(filter_box)
+        self.bid_radar_location_coverage = QLabel("Chưa có dữ liệu nguồn.")
+        self.bid_radar_location_coverage.setObjectName("bidRadarLocationCoverage")
+        self.bid_radar_location_coverage.setWordWrap(True)
+        filter_layout.addWidget(self.bid_radar_location_coverage)
+        filter_layout.addWidget(self.bid_radar_filter_editor)
+        self.bid_radar_filter_editor.hide()
+        selection_layout.addWidget(filter_box)
+        selection_layout.addStretch()
+        selection_content.setLayout(selection_layout)
+        selection_scroll.setWidget(selection_content)
+        selection_frame_layout = QVBoxLayout(self.bid_radar_selection_desk)
+        selection_frame_layout.setContentsMargins(0, 0, 0, 0)
+        selection_frame_layout.addWidget(selection_scroll)
 
-        actions = QHBoxLayout()
+        self.bid_radar_active_canvas = QFrame()
+        self.bid_radar_active_canvas.setObjectName("bidRadarActiveCanvas")
+        canvas_layout = QVBoxLayout(self.bid_radar_active_canvas)
+        canvas_layout.setContentsMargins(8, 0, 8, 0)
+        canvas_layout.setSpacing(10)
+
+        context_box = QGroupBox("NGỮ CẢNH ĐANG LỌC")
+        context_layout = QVBoxLayout(context_box)
+        self.bid_radar_active_filter_context = QLabel()
+        self.bid_radar_active_filter_context.setObjectName("bidRadarActiveFilterContext")
+        self.bid_radar_active_filter_context.setWordWrap(True)
+        context_layout.addWidget(self.bid_radar_active_filter_context)
+        self.bid_radar_funnel_label = QLabel("Luồng lọc: chưa chạy.")
+        self.bid_radar_funnel_label.setObjectName("bidRadarFunnel")
+        self.bid_radar_funnel_label.setWordWrap(True)
+        context_layout.addWidget(self.bid_radar_funnel_label)
+        canvas_layout.addWidget(context_box)
+
+        action_row = QHBoxLayout()
         self.bid_radar_import_button = self._primary_button("NHẬP & TÌM GÓI")
         self.bid_radar_import_button.clicked.connect(self.start_bid_radar_import)
-        actions.addWidget(self.bid_radar_import_button)
+        self.bid_radar_import_button.setEnabled(False)
+        action_row.addWidget(self.bid_radar_import_button)
         self.bid_radar_progress = self._progress_bar()
-        actions.addWidget(self.bid_radar_progress)
-        actions.addStretch()
-        layout.addLayout(actions)
+        action_row.addWidget(self.bid_radar_progress, 1)
+        canvas_layout.addLayout(action_row)
+
+        self.bid_radar_result_summary = QLabel("Chưa có kết quả.")
+        self.bid_radar_result_summary.setWordWrap(True)
+        canvas_layout.addWidget(self.bid_radar_result_summary)
         self.bid_radar_status = QLabel("Chọn file Excel nguồn để bắt đầu.")
         self.bid_radar_status.setWordWrap(True)
-        layout.addWidget(self.bid_radar_status)
+        canvas_layout.addWidget(self.bid_radar_status)
+
+        result_view_box = QGroupBox("KẾT QUẢ HIỂN THỊ")
+        result_view_layout = QHBoxLayout(result_view_box)
+        self.bid_radar_view_buttons: dict[str, QPushButton] = {}
+        for view_mode in ("MATCH", "INDETERMINATE", "NO_MATCH", "ALL"):
+            button = QPushButton()
+            button.setCheckable(True)
+            button.setObjectName(f"bidRadarView{view_mode.title().replace('_', '')}")
+            button.clicked.connect(
+                lambda _checked=False, mode=view_mode: self._set_bid_radar_result_view(mode)
+            )
+            self.bid_radar_view_buttons[view_mode] = button
+            result_view_layout.addWidget(button)
+        canvas_layout.addWidget(result_view_box)
+        self.bid_radar_result_view_empty_state = QLabel()
+        self.bid_radar_result_view_empty_state.setWordWrap(True)
+        self.bid_radar_result_view_empty_state.hide()
+        canvas_layout.addWidget(self.bid_radar_result_view_empty_state)
 
         self.bid_radar_table = QTableWidget(0, 8)
+        self.bid_radar_table.setObjectName("bidRadarResultTable")
         self.bid_radar_table.setHorizontalHeaderLabels(
             [
-                "Gói tin",
+                "Mã",
                 "Mã gốc",
                 "Revision",
                 "Tên gói",
-                "Giá gói thầu",
-                "Tỉnh / thành",
+                "Giá gói",
+                "Địa điểm thực hiện",
                 "Kết quả lọc",
-                "Trạng thái review",
+                "Review",
             ]
         )
         header = self.bid_radar_table.horizontalHeader()
@@ -741,11 +918,42 @@ class QICrawlerWindow(QMainWindow):
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(6, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(7, QHeaderView.ResizeToContents)
-        self.bid_radar_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.bid_radar_table.setColumnHidden(1, True)
+        self.bid_radar_table.setColumnHidden(2, True)
+        self.bid_radar_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.bid_radar_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.bid_radar_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.bid_radar_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self.bid_radar_table.itemSelectionChanged.connect(self._on_bid_radar_selected)
-        layout.addWidget(self.bid_radar_table, 1)
+        self.bid_radar_table.currentCellChanged.connect(
+            lambda *_args: self._on_bid_radar_selected()
+        )
+        canvas_layout.addWidget(self.bid_radar_table, 1)
 
-        review_box = QGroupBox("3. XÁC NHẬN THỦ CÔNG")
+        self.bid_radar_inspector = QFrame()
+        self.bid_radar_inspector.setObjectName("bidRadarInspector")
+        self.bid_radar_inspector.setMinimumWidth(280)
+        inspector_scroll = QScrollArea()
+        self.bid_radar_inspector_scroll = inspector_scroll
+        inspector_scroll.setWidgetResizable(True)
+        inspector_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inspector_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        inspector_content = QWidget()
+        inspector_layout = QVBoxLayout(inspector_content)
+        inspector_layout.setContentsMargins(2, 2, 2, 2)
+        inspector_title = QLabel("QUICK VIEW / SMART INSPECTOR")
+        inspector_title.setObjectName("bidRadarInspectorTitle")
+        inspector_layout.addWidget(inspector_title)
+        self.bid_radar_inspector_text = QTextEdit()
+        self.bid_radar_inspector_text.setReadOnly(True)
+        self.bid_radar_inspector_text.setObjectName("bidRadarInspectorText")
+        self.bid_radar_inspector_text.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.bid_radar_inspector_text.setMinimumHeight(170)
+        inspector_layout.addWidget(self.bid_radar_inspector_text)
+
+        review_box = QGroupBox("HUMAN REVIEW")
         review_layout = QVBoxLayout(review_box)
         reviewer_row = QHBoxLayout()
         self.bid_radar_reviewer = QLineEdit()
@@ -755,8 +963,8 @@ class QICrawlerWindow(QMainWindow):
         reviewer_row.addWidget(self.bid_radar_reviewer)
         reviewer_row.addWidget(self.bid_radar_note)
         review_layout.addLayout(reviewer_row)
-        review_actions = QHBoxLayout()
-        self.bid_radar_confirm_button = QPushButton("XÁC NHẬN")
+        review_actions = QVBoxLayout()
+        self.bid_radar_confirm_button = QPushButton("XÁC NHẬN CƠ HỘI")
         self.bid_radar_confirm_button.clicked.connect(
             lambda: self.start_bid_radar_review("CONFIRMED")
         )
@@ -775,24 +983,485 @@ class QICrawlerWindow(QMainWindow):
         ):
             button.setEnabled(False)
             review_actions.addWidget(button)
-        self.bid_radar_workspace_button = QPushButton("CHUYỂN SANG WORKSPACE")
+        self.bid_radar_workspace_button = QPushButton("MỞ / TẠO HỒ SƠ TEAM BID")
         self.bid_radar_workspace_button.setEnabled(False)
         self.bid_radar_workspace_button.clicked.connect(self.start_bid_radar_workspace_handoff)
         review_actions.addWidget(self.bid_radar_workspace_button)
-        review_actions.addStretch()
         review_layout.addLayout(review_actions)
-        layout.addWidget(review_box)
+        inspector_layout.addWidget(review_box)
 
-        output_actions = QHBoxLayout()
+        output_box = QGroupBox("ĐẦU RA PHỤ")
+        output_actions = QVBoxLayout(output_box)
+        self.bid_radar_screening_button = QPushButton("SCREENING HUMAN-LIGHT (4 SHEET)")
+        self.bid_radar_screening_button.setEnabled(False)
+        self.bid_radar_screening_button.clicked.connect(self.start_bid_radar_excel_screening)
         self.bid_radar_export_button = QPushButton("XUẤT GÓI ĐÃ XÁC NHẬN (XLSX)")
         self.bid_radar_export_button.clicked.connect(self.start_bid_radar_export)
         self.bid_radar_legal_button = QPushButton("TẠO LEGAL DOCX")
         self.bid_radar_legal_button.setEnabled(False)
         self.bid_radar_legal_button.clicked.connect(self.start_bid_radar_legal_docx)
+        output_actions.addWidget(self.bid_radar_screening_button)
         output_actions.addWidget(self.bid_radar_export_button)
         output_actions.addWidget(self.bid_radar_legal_button)
-        output_actions.addStretch()
-        layout.addLayout(output_actions)
+        inspector_layout.addWidget(output_box)
+        inspector_layout.addStretch()
+        inspector_content.setLayout(inspector_layout)
+        inspector_scroll.setWidget(inspector_content)
+        inspector_frame_layout = QVBoxLayout(self.bid_radar_inspector)
+        inspector_frame_layout.setContentsMargins(0, 0, 0, 0)
+        inspector_frame_layout.addWidget(inspector_scroll)
+
+        self.bid_radar_splitter.addWidget(self.bid_radar_selection_desk)
+        self.bid_radar_splitter.addWidget(self.bid_radar_active_canvas)
+        self.bid_radar_splitter.addWidget(self.bid_radar_inspector)
+        self.bid_radar_splitter.setStretchFactor(0, 0)
+        self.bid_radar_splitter.setStretchFactor(1, 1)
+        self.bid_radar_splitter.setStretchFactor(2, 0)
+        self.bid_radar_splitter.setSizes([270, 650, 290])
+        self._bid_radar_inspector_user_toggled = False
+        self._bid_radar_responsive_compact = False
+        page_layout.addWidget(self.bid_radar_splitter, 1)
+
+        for field in (
+            self.bid_radar_min_budget,
+            self.bid_radar_max_budget,
+            self.bid_radar_location,
+            self.bid_radar_include,
+            self.bid_radar_exclude,
+            self.bid_radar_selection_method,
+        ):
+            signal = (
+                field.currentTextChanged
+                if isinstance(field, QComboBox)
+                else field.textChanged
+            )
+            signal.connect(self._update_bid_radar_context)
+        self._update_bid_radar_context()
+        self._render_bid_radar_source_session()
+        self._render_bid_radar_inspector(None)
+
+    def _apply_bid_radar_responsive_state(self) -> None:
+        workspace_width = self.bid_radar_splitter.width()
+        if workspace_width <= 0:
+            return
+        compact = workspace_width < 980
+        if compact != self._bid_radar_responsive_compact:
+            self._bid_radar_responsive_compact = compact
+            if not self._bid_radar_inspector_user_toggled:
+                self.bid_radar_inspector.setVisible(not compact)
+                self.bid_radar_inspector_toggle.setText(
+                    "XEM CHI TIẾT" if compact else "ẨN CHI TIẾT"
+                )
+        self._rebalance_bid_radar_splitter()
+
+    def _rebalance_bid_radar_splitter(self) -> None:
+        workspace_width = self.bid_radar_splitter.width()
+        if workspace_width <= 0:
+            return
+        inspector_visible = not self.bid_radar_inspector.isHidden()
+        if not inspector_visible:
+            left = min(270, max(250, round(workspace_width * 0.28)))
+            self.bid_radar_splitter.setSizes([left, max(1, workspace_width - left), 0])
+            return
+        left = min(280, max(250, round(workspace_width * 0.24)))
+        right = min(300, max(280, round(workspace_width * 0.26)))
+        center = max(1, workspace_width - left - right)
+        self.bid_radar_splitter.setSizes([left, center, right])
+
+    def _toggle_bid_radar_filter_editor(self) -> None:
+        visible = self.bid_radar_filter_editor.isHidden()
+        self.bid_radar_filter_editor.setVisible(visible)
+        self.bid_radar_filter_toggle.setText("ẨN BỘ LỌC" if visible else "CHỈNH BỘ LỌC")
+        self._update_bid_radar_context()
+
+    def _toggle_bid_radar_selection_desk(self) -> None:
+        visible = self.bid_radar_selection_desk.isHidden()
+        self.bid_radar_selection_desk.setVisible(visible)
+        self.bid_radar_selection_toggle.setText("ẨN BỘ LỌC" if visible else "HIỆN BỘ LỌC")
+
+    def _toggle_bid_radar_inspector(self) -> None:
+        visible = self.bid_radar_inspector.isHidden()
+        self._bid_radar_inspector_user_toggled = True
+        self.bid_radar_inspector.setVisible(visible)
+        self.bid_radar_inspector_toggle.setText(
+            "ẨN CHI TIẾT" if visible else "XEM CHI TIẾT"
+        )
+        self._rebalance_bid_radar_splitter()
+
+    @staticmethod
+    def _budget_display_text(value: str) -> str:
+        raw = value.strip()
+        if not raw:
+            return "—"
+        try:
+            parsed = parse_optional_money_input(raw)
+        except ValueError:
+            return raw
+        if parsed is None:
+            return "—"
+        return format_vnd_amount(parsed).removesuffix(" VNĐ")
+
+    @staticmethod
+    def _format_bid_radar_budget_field(field: QLineEdit) -> None:
+        raw = field.text().strip()
+        if not raw:
+            field.clear()
+            return
+        try:
+            parsed = parse_optional_money_input(raw)
+        except ValueError:
+            return
+        if parsed is not None:
+            field.setText(format_vnd_amount(parsed).removesuffix(" VNĐ"))
+
+    def _update_bid_radar_context(self) -> None:
+        min_budget = self.bid_radar_min_budget.text().strip()
+        max_budget = self.bid_radar_max_budget.text().strip()
+        location = (
+            self.bid_radar_location.text().strip()
+            if self.bid_radar_location.isEnabled()
+            else ""
+        )
+        include = self._split_bid_radar_values(self.bid_radar_include.text())
+        exclude = self._split_bid_radar_values(self.bid_radar_exclude.text())
+        selection_method = self.bid_radar_selection_method.text().strip()
+        criteria: list[str] = []
+        if min_budget and max_budget:
+            criteria.append(
+                f"Ngân sách: {self._budget_display_text(min_budget)} – "
+                f"{self._budget_display_text(max_budget)} VNĐ"
+            )
+        elif min_budget:
+            criteria.append(f"Ngân sách: ≥ {self._budget_display_text(min_budget)} VNĐ")
+        elif max_budget:
+            criteria.append(f"Ngân sách: ≤ {self._budget_display_text(max_budget)} VNĐ")
+        if location and location != "Tất cả":
+            criteria.append(f"Địa điểm thực hiện: {location}")
+        if selection_method:
+            criteria.append(f"Hình thức: {selection_method}")
+        if criteria:
+            summary = " · ".join(criteria)
+            self.bid_radar_active_filter_context.setText(f"Hiệu lực: {summary}")
+            self.bid_radar_filter_summary.setText(summary)
+        else:
+            summary = "CHƯA LỌC · Chưa có điều kiện hiệu lực."
+            self.bid_radar_active_filter_context.setText(summary)
+            self.bid_radar_filter_summary.setText(summary)
+        keywords: list[str] = []
+        if include:
+            keywords.append(f"{len(include)} gồm: {', '.join(include)}")
+        if exclude:
+            keywords.append(f"{len(exclude)} loại: {', '.join(exclude)}")
+        self.bid_radar_keyword_summary.setText(
+            "Từ khóa: " + (" · ".join(keywords) if keywords else "chưa có")
+        )
+
+    @staticmethod
+    def _bid_radar_result_view_label(view_mode: str) -> str:
+        return {
+            "MATCH": "PHÙ HỢP",
+            "INDETERMINATE": "CẦN KIỂM TRA",
+            "NO_MATCH": "KHÔNG PHÙ HỢP",
+            "ALL": "TẤT CẢ",
+        }[view_mode]
+
+    def _update_bid_radar_view_controls(self) -> None:
+        result = self._bid_radar_result
+        counts = {
+            "MATCH": int(getattr(result, "matched_count", 0) or 0),
+            "INDETERMINATE": int(getattr(result, "indeterminate_count", 0) or 0),
+            "NO_MATCH": int(getattr(result, "nonmatched_count", 0) or 0),
+            "ALL": int(
+                getattr(result, "total_examined", len(self._bid_radar_rows))
+                if result is not None
+                else 0
+            ),
+        }
+        for view_mode, button in self.bid_radar_view_buttons.items():
+            button.setText(f"{self._bid_radar_result_view_label(view_mode)} {counts[view_mode]}")
+            button.setChecked(view_mode == self.bid_radar_result_view_mode)
+
+    def _visible_bid_radar_result_indices(self, view_mode: str) -> tuple[int, ...]:
+        if view_mode == "ALL":
+            return tuple(range(len(self._bid_radar_rows)))
+        return tuple(
+            index
+            for index, row in enumerate(self._bid_radar_rows)
+            if getattr(getattr(row, "disposition", None), "value", row.disposition)
+            == view_mode
+        )
+
+    def _render_bid_radar_table(self, selected_original_index: int | None = None) -> None:
+        visible_indices = self._visible_bid_radar_result_indices(self.bid_radar_result_view_mode)
+        self._bid_radar_visible_result_indices = visible_indices
+        self.bid_radar_table.setRowCount(len(visible_indices))
+        for visible_index, original_index in enumerate(visible_indices):
+            row = self._bid_radar_rows[original_index]
+            item = row.item
+            values = (
+                item.identity.raw_id,
+                item.identity.base_id,
+                item.identity.revision or "",
+                item.package_name,
+                format_vnd_amount(item.package_price).removesuffix(" VNĐ")
+                if item.package_price is not None
+                else "",
+                self._bid_radar_execution_location(item),
+                self._bid_radar_disposition_label(row.disposition),
+                self._bid_radar_review_label(row.review_state),
+            )
+            for column, value in enumerate(values):
+                self.bid_radar_table.setItem(
+                    visible_index, column, QTableWidgetItem(str(value))
+                )
+        empty = not visible_indices
+        self.bid_radar_result_view_empty_state.setVisible(empty)
+        if empty:
+            label = self._bid_radar_result_view_label(self.bid_radar_result_view_mode)
+            self.bid_radar_result_view_empty_state.setText(
+                f'Không có gói trong nhóm "{label}".'
+            )
+        self.bid_radar_table.clearSelection()
+        self.bid_radar_table.setCurrentCell(-1, -1)
+        if selected_original_index is not None and selected_original_index in visible_indices:
+            self.bid_radar_table.selectRow(visible_indices.index(selected_original_index))
+        else:
+            self._on_bid_radar_selected()
+
+    def _set_bid_radar_result_view(self, view_mode: str) -> None:
+        if view_mode not in {"MATCH", "INDETERMINATE", "NO_MATCH", "ALL"}:
+            raise ValueError(f"Unsupported Bid Radar result view: {view_mode}")
+        selected_original_index = self._selected_bid_radar_index()
+        self.bid_radar_result_view_mode = view_mode
+        self._update_bid_radar_view_controls()
+        self._render_bid_radar_table(
+            selected_original_index if selected_original_index >= 0 else None
+        )
+
+    def _selected_bid_radar_item(self) -> Any | None:
+        selected = self._selected_bid_radar_index()
+        if 0 <= selected < len(self._bid_radar_rows):
+            return self._bid_radar_rows[selected].item
+        return None
+
+    def _selected_bid_radar_index(self) -> int:
+        selected = self.bid_radar_table.currentRow()
+        if selected < 0:
+            selected_items = self.bid_radar_table.selectedItems()
+            if selected_items:
+                selected = selected_items[0].row()
+        if 0 <= selected < len(self._bid_radar_visible_result_indices):
+            return self._bid_radar_visible_result_indices[selected]
+        return selected
+
+    @staticmethod
+    def _source_session_identity(
+        path: Path,
+        source_sha256: str,
+        source_type: SourceType | str,
+    ) -> SourceSessionIdentity:
+        resolved = Path(path).resolve()
+        return SourceSessionIdentity(
+            path=resolved,
+            source_filename=resolved.name,
+            source_sha256=source_sha256,
+            source_type=SourceType(source_type),
+        )
+
+    @staticmethod
+    def _source_session_summary(identity: SourceSessionIdentity | None) -> str:
+        if identity is None:
+            return "Chưa dùng nguồn nào."
+        return (
+            f"{identity.source_filename}\n"
+            f"{identity.source_type.value} · SHA: {identity.source_sha256[:12]}…"
+        )
+
+    def _render_bid_radar_source_session(self) -> None:
+        active = self._bid_radar_active_source
+        pending = self._bid_radar_pending_source
+        self.bid_radar_active_source_label.setText(self._source_session_summary(active))
+        self.bid_radar_pending_source_label.setText(
+            "Chưa chọn file." if pending is None else self._source_session_summary(pending)
+        )
+        if pending is None:
+            self.bid_radar_source_action_button.setText("DÙNG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(False)
+        elif active is None:
+            self.bid_radar_source_action_button.setText("DÙNG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(True)
+        elif source_session_matches(active, pending):
+            self.bid_radar_source_action_button.setText("ĐANG SỬ DỤNG")
+            self.bid_radar_source_action_button.setEnabled(False)
+        else:
+            self.bid_radar_source_action_button.setText("CHUYỂN SANG FILE NÀY")
+            self.bid_radar_source_action_button.setEnabled(True)
+        self.bid_radar_import_button.setEnabled(active is not None)
+        self.bid_radar_screening_button.setEnabled(active is not None)
+
+    def _pending_source_from_detection(
+        self,
+        path: Path,
+        detection: SourceTypeDetection,
+    ) -> SourceSessionIdentity:
+        selected = self.bid_radar_source_type.currentData()
+        source_type = detection.auto_type
+        if source_type is SourceType.UNKNOWN and selected is not None:
+            source_type = SourceType(selected)
+        return self._source_session_identity(path, detection.source_sha256, source_type)
+
+    def _inspect_bid_radar_pending_source(self, path: Path) -> bool:
+        try:
+            detection = detect_source_type(path)
+        except (OSError, ValueError) as exc:
+            self.bid_radar_status.setText(
+                f"Không thể đọc/nhận dạng file nguồn: {type(exc).__name__}."
+            )
+            return False
+        self._bid_radar_pending_detection = detection
+        self._bid_radar_pending_source = self._pending_source_from_detection(path, detection)
+        self._render_bid_radar_source_detection(detection)
+        self._render_bid_radar_source_session()
+        return True
+
+    def _revalidate_pending_source(self) -> bool:
+        pending = self._bid_radar_pending_source
+        if pending is None:
+            self.bid_radar_status.setText("Hãy chọn DÙNG FILE NÀY trước khi chạy Bid Radar.")
+            return False
+        if not pending.path.is_file():
+            self.bid_radar_status.setText("File đang chọn không còn tồn tại. Hãy chọn lại file nguồn.")
+            return False
+        try:
+            current_sha = _sha256(pending.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc file đang chọn. Hãy chọn lại file nguồn.")
+            return False
+        if current_sha != pending.source_sha256:
+            if not self._inspect_bid_radar_pending_source(pending.path):
+                return False
+            self.bid_radar_status.setText(
+                "File đang chọn đã thay đổi. Hãy kiểm tra lại và bấm DÙNG FILE NÀY."
+            )
+            return False
+        if self._bid_radar_pending_detection is not None:
+            self._bid_radar_pending_source = self._pending_source_from_detection(
+                pending.path,
+                self._bid_radar_pending_detection,
+            )
+            self._render_bid_radar_source_session()
+        return True
+
+    def _revalidate_active_source(self) -> bool:
+        active = self._bid_radar_active_source
+        if active is None:
+            self.bid_radar_status.setText("Hãy chọn DÙNG FILE NÀY trước khi chạy Bid Radar.")
+            return False
+        if not active.path.is_file():
+            self.bid_radar_status.setText("Nguồn đang dùng không còn tồn tại. Hãy chọn lại nguồn.")
+            return False
+        try:
+            current_sha = _sha256(active.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc nguồn đang dùng. Hãy chọn lại nguồn.")
+            return False
+        if current_sha != active.source_sha256:
+            self._inspect_bid_radar_pending_source(active.path)
+            self.bid_radar_status.setText(
+                "Nguồn đang dùng đã thay đổi. Hãy xác nhận lại bằng CHUYỂN SANG FILE NÀY."
+            )
+            self._render_bid_radar_source_session()
+            return False
+        return True
+
+    def apply_bid_radar_source(self) -> None:
+        pending = self._bid_radar_pending_source
+        if pending is None:
+            self.bid_radar_status.setText("Hãy chọn file nguồn trước khi dùng.")
+            return
+        if not self._revalidate_pending_source():
+            return
+        active = self._bid_radar_active_source
+        if active is not None and not source_session_matches(active, pending):
+            reply = QMessageBox.question(
+                self,
+                "CHUYỂN NGUỒN LÀM VIỆC?",
+                f"CHUYỂN NGUỒN LÀM VIỆC?\n\nNguồn hiện tại: {active.source_filename}\n"
+                f"Nguồn mới: {pending.source_filename}\n\n"
+                "Kết quả Radar và dòng đang chọn sẽ được làm mới.\n"
+                "Lịch sử Review đã lưu không bị xóa; bộ lọc được giữ lại.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                self.bid_radar_status.setText("Đã hủy chuyển nguồn; nguồn đang dùng vẫn được giữ nguyên.")
+                return
+        self._bid_radar_active_source = pending
+        self._clear_bid_radar_loaded_state()
+        self.bid_radar_path.setText(str(pending.path))
+        self._render_bid_radar_source_session()
+        self.bid_radar_status.setText("CHƯA CHẠY TRÊN NGUỒN HIỆN TẠI")
+
+    def _render_bid_radar_inspector(self, row: Any | None) -> None:
+        if row is None:
+            selected = self._selected_bid_radar_index()
+            if 0 <= selected < len(self._bid_radar_rows):
+                row = self._bid_radar_rows[selected]
+        if row is None:
+            self.bid_radar_inspector_text.setPlainText(
+                "Chưa chọn cơ hội. Chọn một dòng để xem Quick View và bằng chứng lọc."
+            )
+            return
+        item = row.item
+        identity = getattr(item, "identity", None)
+        raw_id = getattr(identity, "raw_id", "—")
+        base_id = getattr(identity, "base_id", "—")
+        revision = getattr(identity, "revision", None) or "—"
+        source_type = getattr(getattr(item, "source_type", None), "value", "—")
+        lines = [
+            "ĐANG XEM",
+            f"{raw_id}",
+            f"Mã dòng: {base_id}",
+            f"Tên gói: {getattr(row, 'package_name', getattr(item, 'package_name', '—'))}",
+            f"Giá gói: {format_vnd_amount(getattr(item, 'package_price', None)) or '—'}",
+            f"Địa điểm thực hiện: {self._bid_radar_execution_location(item)}",
+            f"Revision: {revision}",
+            f"Nguồn: {source_type}",
+            f"Kết quả lọc: {self._bid_radar_disposition_label(getattr(row, 'disposition', 'UNKNOWN'))}",
+            f"Human Review: {self._bid_radar_review_label(getattr(row, 'review_state', 'UNREVIEWED'))}",
+            "",
+            "Bằng chứng từ bộ lọc:",
+        ]
+        criteria = getattr(row, "criteria", ()) or ()
+        if not criteria:
+            lines.append("Chưa có tiêu chí hoạt động.")
+        else:
+            outcome_labels = {"PASS": "ĐẠT", "FAIL": "KHÔNG ĐẠT", "UNKNOWN": "CHƯA RÕ"}
+            reason_labels = {
+                "MATCH_BUDGET": "Ngân sách",
+                "BUDGET_MATCH": "Ngân sách",
+                "MATCH_PROVINCE": "Khu vực",
+                "LOCATION_MATCH": "Khu vực",
+                "MATCH_KEYWORD": "Từ khóa",
+                "INCLUDE_KEYWORD_MATCH": "Từ khóa gồm",
+                "MATCH_SELECTION_METHOD": "Hình thức lựa chọn",
+                "SELECTION_METHOD_MATCH": "Hình thức lựa chọn",
+            }
+            for criterion in criteria:
+                outcome = getattr(getattr(criterion, "outcome", None), "value", getattr(criterion, "outcome", "UNKNOWN"))
+                reason = getattr(getattr(criterion, "reason_code", None), "value", getattr(criterion, "reason_code", ""))
+                label = reason_labels.get(str(reason), "Tiêu chí lọc")
+                if str(getattr(criterion, "criterion", "")) == "execution_location":
+                    label = "Địa điểm thực hiện"
+                lines.append(f"- {label}: {outcome_labels.get(str(outcome), 'CHƯA RÕ')}")
+                for evidence in getattr(criterion, "evidence", ()) or ():
+                    field = getattr(evidence, "field", None) or "giá trị nguồn"
+                    observed = getattr(evidence, "observed_value", None) or "chưa có"
+                    lines.append(f"  {field}: {observed}")
+                    expected = tuple(getattr(evidence, "expected_values", ()) or ())
+                    if expected:
+                        lines.append(f"  Kỳ vọng: {', '.join(map(str, expected))}")
+        self.bid_radar_inspector_text.setPlainText("\n".join(lines))
 
     def _choose_bid_radar_file(self) -> None:
         path, _filter = QFileDialog.getOpenFileName(
@@ -803,55 +1472,88 @@ class QICrawlerWindow(QMainWindow):
         )
         if path:
             selected = Path(path).resolve()
-            current_text = self.bid_radar_path.text().strip()
-            current = Path(current_text).resolve() if current_text else None
-            if current is not None and current != selected:
-                self._clear_bid_radar_loaded_state()
             self.bid_radar_path.setText(str(selected))
+            self._inspect_bid_radar_pending_source(selected)
 
     def _clear_bid_radar_loaded_state(self) -> None:
         self._bid_radar_items = ()
         self._bid_radar_rows = ()
+        self._bid_radar_result = None
+        self._bid_radar_visible_result_indices = ()
+        self.bid_radar_result_view_mode = "ALL"
         self._bid_radar_load_result = None
         self._bid_radar_loaded_source = None
         self._bid_radar_loaded_sha256 = None
         self.bid_radar_table.setRowCount(0)
         self.bid_radar_table.clearSelection()
+        self.bid_radar_table.setCurrentCell(-1, -1)
+        self.bid_radar_result_view_empty_state.hide()
+        self._update_bid_radar_view_controls()
         self.bid_radar_reviewer.clear()
         self.bid_radar_note.clear()
-        self.bid_radar_source_summary.setText("Chưa nhận dạng file nguồn.")
+        self._reset_bid_radar_location_state()
+        self.bid_radar_result_summary.setText("Chưa có kết quả.")
+        self.bid_radar_funnel_label.setText("Luồng lọc: chưa chạy.")
         self.bid_radar_status.setText("Đã đổi file nguồn. Hãy nhập lại để tải dữ liệu mới.")
         self.bid_radar_legal_button.setEnabled(False)
+        self._render_bid_radar_source_session()
         self._on_bid_radar_selected()
+
+    def _reset_bid_radar_location_state(self) -> None:
+        """Clear source-derived location state until a new result is loaded."""
+
+        self._bid_radar_location_coverage_total = 0
+        self._bid_radar_location_coverage_with_evidence = 0
+        self._bid_radar_location_coverage_distinct_values = 0
+        self.bid_radar_location.clear()
+        self.bid_radar_location.addItem("Chưa có dữ liệu nguồn", None)
+        self.bid_radar_location.setEditable(True)
+        self.bid_radar_location.setEnabled(False)
+        self.bid_radar_location_coverage.setText("Chưa có dữ liệu nguồn.")
 
     def _render_bid_radar_source_detection(
         self,
         detection: SourceTypeDetection,
         resolved_type: SourceType | None = None,
     ) -> None:
-        identity_values = detection.identity_values
-        identity = ", ".join(identity_values[:5]) or "chưa thấy PL/IB"
-        if len(identity_values) > 5:
-            identity += f" (+{len(identity_values) - 5})"
+        identity_values = tuple(detection.identity_values)
+        revision_counts: dict[str, int] = {}
+        for identity_value in identity_values:
+            revision = identity_value.rsplit("-", 1)[-1] if "-" in identity_value else "—"
+            revision_counts[revision] = revision_counts.get(revision, 0) + 1
+        revision_summary = " · ".join(
+            f"{revision} ({count})" for revision, count in sorted(revision_counts.items())
+        ) or "—"
         conclusion = resolved_type.value if resolved_type else detection.auto_type.value
-        lines = [
-            f"Tên file: {detection.original_filename}",
+        detail_lines = [
             f"Gợi ý tên: {detection.filename_type.value} | Schema: {detection.content_type.value}",
-            f"Identity: {identity}",
+            "Identity: " + (", ".join(identity_values) or "chưa thấy PL/IB"),
             f"Kết luận: {conclusion}",
         ]
         if detection.requires_human and detection.reasons:
-            lines.append("Cần người xác nhận: " + "; ".join(detection.reasons))
-        self.bid_radar_source_summary.setText("\n".join(lines))
+            detail_lines.append("Cần người xác nhận: " + "; ".join(detection.reasons))
+        self.bid_radar_source_summary.setText(
+            "\n".join(
+                (
+                    f"Tên file: {detection.original_filename}",
+                    f"Loại: {conclusion}",
+                    f"Số thông báo: {len(identity_values)}",
+                    f"Revision: {revision_summary}",
+                )
+            )
+        )
+        self.bid_radar_source_summary.setToolTip("\n".join(detail_lines))
 
     def _bid_radar_export_ready(self, action: str) -> bool:
-        current_text = self.bid_radar_path.text().strip()
-        current = Path(current_text).resolve() if current_text else None
+        active = self._bid_radar_active_source
+        current = active.path if active is not None else None
         if (
             not self._bid_radar_items
             or self._bid_radar_load_result is None
             or self._bid_radar_loaded_source is None
             or self._bid_radar_loaded_sha256 is None
+            or active is None
+            or self._bid_radar_loaded_source != active.path
             or current != self._bid_radar_loaded_source
         ):
             self.bid_radar_status.setText(
@@ -873,46 +1575,74 @@ class QICrawlerWindow(QMainWindow):
             return False
         return True
 
+    def _bid_radar_screening_ready(self) -> bool:
+        active = self._bid_radar_active_source
+        if active is None or not active.path.is_file():
+            self.bid_radar_status.setText("Hãy chọn và dùng file Excel nguồn trước khi screening.")
+            return False
+        try:
+            current_sha256 = _sha256(active.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc file nguồn hiện tại. Hãy chọn lại file.")
+            return False
+        if current_sha256 != active.source_sha256:
+            self.bid_radar_status.setText(
+                "File nguồn đã thay đổi. Hãy chọn lại và bấm DÙNG FILE NÀY trước khi screening."
+            )
+            return False
+        return True
+
     @staticmethod
     def _split_bid_radar_values(value: str) -> tuple[str, ...]:
         return tuple(item.strip() for item in value.split(",") if item.strip())
 
     def _bid_radar_request(self) -> Any:
-        from decimal import Decimal, InvalidOperation
-
-        def parse_budget(value: str) -> Decimal | None:
-            normalized = value.strip().replace(" ", "").replace(",", "")
-            if not normalized:
-                return None
-            try:
-                return Decimal(normalized)
-            except InvalidOperation as exc:
-                raise ValueError("Ngân sách phải là số hợp lệ.") from exc
-
         from .market_intelligence.search import TargetedSearchRequest
+        from .market_intelligence.selection_methods import normalize_selection_method_filters
+        from .market_intelligence.value_normalization import parse_optional_money_input
 
+        selected_location = self.bid_radar_location.text().strip()
+        selected_values = (
+            frozenset(self._split_bid_radar_values(selected_location))
+            if self.bid_radar_location.isEnabled()
+            and selected_location
+            and selected_location != "Tất cả"
+            else frozenset()
+        )
+        active_source_type = (
+            self._bid_radar_active_source.source_type
+            if self._bid_radar_active_source is not None
+            else None
+        )
+        if active_source_type is SourceType.TBMT:
+            province_city_codes = frozenset()
+            execution_locations = selected_values
+        else:
+            province_city_codes = selected_values
+            execution_locations = frozenset()
         return TargetedSearchRequest(
-            min_budget=parse_budget(self.bid_radar_min_budget.text()),
-            max_budget=parse_budget(self.bid_radar_max_budget.text()),
-            province_city_codes=frozenset(self._split_bid_radar_values(self.bid_radar_province.text())),
+            min_budget=parse_optional_money_input(self.bid_radar_min_budget.text()),
+            max_budget=parse_optional_money_input(self.bid_radar_max_budget.text()),
+            province_city_codes=province_city_codes,
+            execution_locations=execution_locations,
             include_keywords=self._split_bid_radar_values(self.bid_radar_include.text()),
             exclude_keywords=self._split_bid_radar_values(self.bid_radar_exclude.text()),
-            selection_methods=frozenset(
+            selection_methods=normalize_selection_method_filters(
                 self._split_bid_radar_values(self.bid_radar_selection_method.text())
             ),
         )
 
     @Slot()
     def start_bid_radar_import(self) -> None:
-        source = Path(self.bid_radar_path.text().strip())
-        if not source.is_file() or source.suffix.lower() != ".xlsx":
+        if not self._revalidate_active_source():
+            return
+        active = self._bid_radar_active_source
+        if active is None:
+            return
+        source = active.path
+        if source.suffix.lower() != ".xlsx":
             self.bid_radar_status.setText("Vui lòng chọn một file Excel nguồn .xlsx hợp lệ.")
             return
-        if (
-            self._bid_radar_loaded_source is not None
-            and source.resolve() != self._bid_radar_loaded_source
-        ):
-            self._clear_bid_radar_loaded_state()
         try:
             request = self._bid_radar_request()
         except ValueError as exc:
@@ -966,42 +1696,156 @@ class QICrawlerWindow(QMainWindow):
             "NEEDS_REVIEW": "Cần kiểm tra",
         }.get(value, "Cần kiểm tra")
 
+    @staticmethod
+    def _bid_radar_execution_location(item: Any) -> str:
+        """Return source-backed execution location for Bid Radar display."""
+
+        if execution_location_values(item):
+            return ", ".join(execution_location_values(item))
+        for field_name in ("location_detail_raw", "execution_location"):
+            value = getattr(item, field_name, None)
+            if value is not None and str(value).strip():
+                return str(value).strip()
+        source_fields = getattr(item, "source_fields", {}) or {}
+        for field_name in (
+            "execution_location",
+            "location_detail_raw",
+            "location",
+            "workAddress",
+        ):
+            value = source_fields.get(field_name)
+            if value is not None and str(value).strip():
+                return str(value).strip()
+        return "—"
+
+    def _populate_bid_radar_location_options(
+        self, source_type: SourceType | str, items: tuple[Any, ...]
+    ) -> None:
+        source_type = SourceType(source_type)
+        selector = self.bid_radar_location
+        selector.clear()
+        if source_type is SourceType.TBMT:
+            evidence_values = tuple(execution_location_values(item) for item in items)
+            coverage_total = len(items)
+            coverage_with_evidence = sum(bool(values) for values in evidence_values)
+            values: list[str] = []
+            seen_values: set[str] = set()
+            for row_values in evidence_values:
+                for value in row_values:
+                    key = value.casefold()
+                    if value.strip() and key not in seen_values:
+                        seen_values.add(key)
+                        values.append(value)
+            self._bid_radar_location_coverage_total = coverage_total
+            self._bid_radar_location_coverage_with_evidence = coverage_with_evidence
+            self._bid_radar_location_coverage_distinct_values = len(values)
+            self.bid_radar_location_coverage.show()
+            if coverage_with_evidence == 0:
+                selector.addItem("Nguồn không có dữ liệu địa điểm", None)
+                selector.setEditable(False)
+                selector.setEnabled(False)
+                self.bid_radar_location_coverage.setText(
+                    f"Dữ liệu địa điểm: 0 / {coverage_total} gói. "
+                    "Nguồn TBMT này không cung cấp Địa điểm thực hiện."
+                )
+            else:
+                selector.addItem("Tất cả", None)
+                selector.setEditable(False)
+                selector.setEnabled(True)
+                self.bid_radar_location_coverage.setText(
+                    f"Dữ liệu địa điểm: {coverage_with_evidence} / {coverage_total} gói."
+                )
+        else:
+            selector.addItem("Tất cả", None)
+            selector.setEditable(True)
+            selector.setEnabled(True)
+            values = sorted(
+                {
+                str(getattr(item, "province_city_code", "")).strip().upper()
+                for item in items
+                if getattr(item, "province_city_code", None)
+                    and str(item.province_city_code).strip()
+            },
+                key=str.casefold,
+            )
+            self.bid_radar_location_coverage.hide()
+        for value in values:
+            selector.addItem(value, value)
+        selector.setCurrentIndex(0)
+
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
+        source_path = getattr(result, "source_path", None)
+        source_sha256 = getattr(result, "source_sha256", None)
+        source_type_value = getattr(getattr(result, "source_type", None), "value", result.source_type)
+        if source_path is not None and source_sha256:
+            result_identity = self._source_session_identity(
+                Path(source_path),
+                source_sha256,
+                SourceType(source_type_value),
+            )
+            if self._bid_radar_active_source is None:
+                self._bid_radar_active_source = result_identity
+                self._bid_radar_pending_source = result_identity
+            elif not source_session_matches(self._bid_radar_active_source, result_identity):
+                self.bid_radar_status.setText(
+                    "Kết quả không thuộc nguồn đang dùng. Hãy chuyển nguồn trước khi nhập."
+                )
+                return
+            self.bid_radar_path.setText(str(result_identity.path))
+            self._render_bid_radar_source_session()
+        self._bid_radar_result = result
         self._bid_radar_rows = tuple(result.rows)
         self._bid_radar_items = tuple(result.items)
+        self._populate_bid_radar_location_options(
+            SourceType(source_type_value), self._bid_radar_items
+        )
         self._bid_radar_load_result = result.load_result
-        source_path = getattr(result, "source_path", None)
         self._bid_radar_loaded_source = Path(source_path).resolve() if source_path else None
-        self._bid_radar_loaded_sha256 = getattr(result, "source_sha256", None)
+        self._bid_radar_loaded_sha256 = source_sha256
         self.bid_radar_legal_button.setEnabled(result.source_type.value == "KHMT")
-        self.bid_radar_table.setRowCount(len(self._bid_radar_rows))
-        for row_index, row in enumerate(self._bid_radar_rows):
-            item = row.item
-            values = (
-                item.identity.raw_id,
-                item.identity.base_id,
-                item.identity.revision or "",
-                item.package_name,
-                str(item.package_price) if item.package_price is not None else "",
-                item.province_city_name or "",
-                self._bid_radar_disposition_label(row.disposition),
-                self._bid_radar_review_label(row.review_state),
-            )
-            for column, value in enumerate(values):
-                self.bid_radar_table.setItem(row_index, column, QTableWidgetItem(str(value)))
-        status_lines = [
-            (
+        unfiltered_count = getattr(result, "unfiltered_count", 0)
+        self.bid_radar_result_view_mode = "ALL" if unfiltered_count else "MATCH"
+        self._update_bid_radar_view_controls()
+        self._render_bid_radar_table()
+        source_count = getattr(result, "total_examined", len(self._bid_radar_items))
+        find_hit_count = getattr(result, "find_hit_count", source_count)
+        find_summary = (
+            f"{source_count} nguồn → {find_hit_count} dòng chứa ít nhất 1 từ tìm"
+            if self.bid_radar_include.text().strip()
+            else f"{source_count} nguồn"
+        )
+        if unfiltered_count:
+            summary = (
                 f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"{find_summary}; "
+                f"chưa áp dụng điều kiện lọc ({unfiltered_count}); "
+                f"cảnh báo {len(getattr(result, 'issues', ()))}. "
+                "Lọc không đồng nghĩa xác nhận."
+            )
+        else:
+            summary = (
+                f"Đã nhập {len(self._bid_radar_items)} cơ hội {result.source_type.value}; "
+                f"{find_summary}; "
                 f"phù hợp {result.matched_count}; cần kiểm tra {result.indeterminate_count}; "
                 f"không phù hợp {result.nonmatched_count}; cảnh báo {len(getattr(result, 'issues', ()))}. "
                 "Lọc không đồng nghĩa xác nhận."
             )
-        ]
+        status_lines = [summary]
         for issue in getattr(result, "issues", ()):
             code = getattr(getattr(issue, "code", None), "value", getattr(issue, "code", "UNKNOWN"))
             row = f" dòng {issue.source_row}" if getattr(issue, "source_row", None) else ""
             status_lines.append(f"- {code}{row}: {issue.message}")
+        self.bid_radar_result_summary.setText(summary)
+        self.bid_radar_funnel_label.setText(
+            f"Luồng lọc: {source_count} nguồn"
+            f" → {find_hit_count} dòng chứa từ tìm"
+            f" → {len(self._bid_radar_rows)} kết quả"
+            f" → {getattr(result, 'matched_count', 0)} phù hợp"
+            f" · {getattr(result, 'indeterminate_count', 0)} cần kiểm tra."
+        )
+        self._update_bid_radar_context()
         self.bid_radar_status.setText("\n".join(status_lines))
+        self._render_bid_radar_inspector(None)
 
     @staticmethod
     def _bid_radar_disposition_label(value: Any) -> str:
@@ -1009,25 +1853,31 @@ class QICrawlerWindow(QMainWindow):
             "MATCH": "PHÙ HỢP",
             "NO_MATCH": "KHÔNG PHÙ HỢP",
             "INDETERMINATE": "CẦN KIỂM TRA",
+            "UNFILTERED": "CHƯA LỌC",
         }.get(getattr(value, "value", value), "CẦN KIỂM TRA")
 
     def _on_bid_radar_selected(self) -> None:
-        selected = self.bid_radar_table.currentRow()
-        enabled = (
+        selected = self._selected_bid_radar_index()
+        row_available = (
             self._active_long_operation is None
             and 0 <= selected < len(self._bid_radar_rows)
         )
+        row = self._bid_radar_rows[selected] if row_available else None
+        enabled = row_available
         for button in (
             self.bid_radar_confirm_button,
             self.bid_radar_reject_button,
             self.bid_radar_needs_review_button,
         ):
             button.setEnabled(enabled)
-        workspace_enabled = enabled and self._bid_radar_rows[selected].review_state == "CONFIRMED"
+        workspace_enabled = (
+            enabled and row is not None and row.review_state == "CONFIRMED"
+        )
         self.bid_radar_workspace_button.setEnabled(workspace_enabled)
+        self._render_bid_radar_inspector(row)
 
     def start_bid_radar_review(self, decision: str) -> None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         if not (0 <= selected < len(self._bid_radar_rows)):
             self.bid_radar_status.setText("Hãy chọn một gói trước khi review.")
             return
@@ -1066,19 +1916,21 @@ class QICrawlerWindow(QMainWindow):
                 disposition=row.disposition,
                 reasons=row.reasons,
                 review_state=decision,
+                criteria=getattr(row, "criteria", ()),
             ),
         ) + self._bid_radar_rows[row_index + 1 :]
-        self.bid_radar_table.setItem(
-            row_index,
-            7,
-            QTableWidgetItem(self._bid_radar_review_label(decision)),
-        )
+        if row_index in self._bid_radar_visible_result_indices:
+            self.bid_radar_table.setItem(
+                self._bid_radar_visible_result_indices.index(row_index),
+                7,
+                QTableWidgetItem(self._bid_radar_review_label(decision)),
+            )
         self.bid_radar_status.setText("Đã lưu quyết định review. Có thể xuất lại dữ liệu đã xác nhận.")
         self._on_bid_radar_selected()
 
     @Slot()
     def start_bid_radar_workspace_handoff(self) -> None:
-        selected = self.bid_radar_table.currentRow()
+        selected = self._selected_bid_radar_index()
         if not (0 <= selected < len(self._bid_radar_rows)):
             self.bid_radar_status.setText("Hãy chọn một gói đã xác nhận trước khi mở workspace.")
             return
@@ -1137,6 +1989,40 @@ class QICrawlerWindow(QMainWindow):
             status=self.bid_radar_status,
             task_name="bid_radar_export",
             long_operation=True,
+        )
+
+    @Slot()
+    def start_bid_radar_excel_screening(self) -> None:
+        active = self._bid_radar_active_source
+        if not self._bid_radar_screening_ready() or active is None:
+            return
+        output, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Lưu workbook screening Human-Light",
+            str(self.config.storage.report_dir / "BID_RADAR_SCREENING.xlsx"),
+            "Excel workbook (*.xlsx)",
+        )
+        if not output:
+            return
+        self._submit(
+            run_bid_radar_excel_screening,
+            active.path,
+            output_path=Path(output).resolve(),
+            on_success=self._render_bid_radar_excel_screening,
+            button=self.bid_radar_screening_button,
+            progress=self.bid_radar_progress,
+            status=self.bid_radar_status,
+            task_name="bid_radar_excel_screening",
+            long_operation=True,
+        )
+
+    def _render_bid_radar_excel_screening(self, result: Any) -> None:
+        run = result.run
+        self.bid_radar_status.setText(
+            "Đã screening Human-Light: "
+            f"{run.data_record_rows} dòng, SELECT={run.select_count}, "
+            f"NEEDS_REVIEW={run.needs_review_count}, READ_ERROR={run.read_error_count}. "
+            f"Đã lưu: {result.output_path}"
         )
 
     def _render_bid_radar_export(self, result: Any) -> None:
@@ -2787,6 +3673,8 @@ class QICrawlerWindow(QMainWindow):
             self._set_long_operation_controls_enabled(True)
             if hasattr(self, "bid_radar_table"):
                 self._on_bid_radar_selected()
+        if self._database_upgrade_in_progress and bridge.long_operation:
+            self._database_upgrade_in_progress = False
         bridge.release()
         bridge.deleteLater()
 
@@ -2828,6 +3716,66 @@ class QICrawlerWindow(QMainWindow):
             logger.exception("GUI success handler failed")
             self._worker_error(button, exc, progress, status)
 
+    def _offer_database_upgrade(self, status: QLabel | None) -> None:
+        database_path = resolve_database_path(self.config.storage.database_url)
+        identity = str(database_path) if database_path is not None else self.config.storage.database_url
+        message = (
+            "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP\n"
+            "Database chưa sẵn sàng cho Bid Radar.\n"
+            f"Database: {identity}\n\n"
+            "Chọn [HỦY] để giữ nguyên dữ liệu hoặc [NÂNG CẤP CSDL] "
+            "để mở bước sao lưu và nâng cấp có xác nhận."
+        )
+        if status is not None:
+            status.setText(message)
+        reply = QMessageBox.question(
+            self,
+            "CƠ SỞ DỮ LIỆU CẦN NÂNG CẤP",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        confirmation = QMessageBox.question(
+            self,
+            "SAO LƯU VÀ NÂNG CẤP CSDL?",
+            (
+                "SAO LƯU VÀ NÂNG CẤP CSDL?\n"
+                f"Database: {identity}\n"
+                "QI-Crawler sẽ tạo bản sao lưu trước khi chạy Alembic. "
+                "Chỉ tiếp tục khi bạn xác nhận [SAO LƯU VÀ NÂNG CẤP]."
+            ),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if confirmation != QMessageBox.StandardButton.Yes:
+            return
+        self._database_upgrade_in_progress = True
+        started = self._submit(
+            run_database_upgrade,
+            self.config,
+            on_success=self._render_database_upgrade_result,
+            button=self.bid_radar_import_button,
+            progress=self.bid_radar_progress,
+            status=self.bid_radar_status,
+            task_name="database_upgrade",
+            long_operation=True,
+        )
+        if not started:
+            self._database_upgrade_in_progress = False
+
+    def _render_database_upgrade_result(self, result: DatabaseReadinessResult) -> None:
+        database_path = str(result.database_path) if result.database_path is not None else self.config.storage.database_url
+        backup_path = str(result.backup_path) if result.backup_path is not None else "Không tạo (database mới hoặc không phải SQLite)"
+        self.bid_radar_status.setText(
+            "Nâng cấp cơ sở dữ liệu hoàn tất.\n"
+            f"Database: {database_path}\n"
+            f"Revision: {result.revision}\n"
+            f"Backup: {backup_path}\n"
+            "Hãy chạy lại NHẬP / TÌM GÓI."
+        )
+        self._database_upgrade_in_progress = False
     def _worker_error(
         self,
         button: QPushButton,
@@ -2864,7 +3812,15 @@ class QICrawlerWindow(QMainWindow):
                 status.setText("Cần người dùng xử lý trước khi chạy lại.")
             self.show_human_required(str(error))
             return
-        if status is self.bid_radar_status:
+        if isinstance(error, SchemaNotReady) and not self._database_upgrade_in_progress:
+            self._offer_database_upgrade(status)
+            return
+        if self._database_upgrade_in_progress:
+            message = f"Nâng cấp cơ sở dữ liệu thất bại: {error}"
+            backup_path = getattr(error, "backup_path", None)
+            if backup_path is not None:
+                message += f"\nBackup: {backup_path}"
+        elif status is self.bid_radar_status:
             if isinstance(error, KHMTImportError):
                 message = f"Không thể nhập KHMT: {error}"
             elif isinstance(error, TargetedSearchValidationError):
@@ -2879,8 +3835,6 @@ class QICrawlerWindow(QMainWindow):
                 message = "Không thể hoàn tất thao tác Bid Radar. Dữ liệu không bị ghi sai."
         elif status is self.workspace_status and isinstance(error, TenderWorkspaceError):
             message = f"Không thể hoàn tất workspace Team Bid: {error}"
-        elif isinstance(error, SchemaNotReady):
-            message = "Cơ sở dữ liệu chưa sẵn sàng. IT cần chạy QI-Crawler db-upgrade."
         else:
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
         if status is not None:
@@ -3527,11 +4481,7 @@ def main() -> int:
             try:
                 database.require_current_schema()
             except SchemaNotReady:
-                upgrade_database(
-                    config.storage.database_url,
-                    backup_dir=paths.data_dir / "backups",
-                )
-                database.require_current_schema()
+                logger.info("Database requires explicit operator upgrade before Bid Radar operations")
         else:
             env = EnvSettings()
             configure_logging(env.log_level)

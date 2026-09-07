@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 
+from qi_crawler.market_intelligence import filter_engine
 from qi_crawler.market_intelligence.khmt_contract import (
     KHMTImportBatch,
     PlanPackage,
@@ -166,6 +167,96 @@ def test_tbmt_candidate_projects_to_radar_item_with_ib_identity_and_semantics() 
     assert item.identity.revision == "00"
     assert item.procuring_entity == "Bên mời thầu TBMT"
     assert item.package_main_content == "Nội dung chính TBMT"
+    assert item.selection_method_raw == "Đấu thầu rộng rãi"
+    assert item.selection_method == "DAU_THAU_RONG_RAI"
+
+
+@pytest.mark.parametrize(
+    ("source_label", "expected_code"),
+    [
+        ("Đấu thầu rộng rãi trong nước", "DAU_THAU_RONG_RAI"),
+        ("Chào hàng cạnh tranh trong nước", "CHAO_HANG_CANH_TRANH"),
+    ],
+)
+def test_tbmt_qualified_selection_label_normalizes_without_losing_raw_evidence(
+    source_label: str, expected_code: str
+) -> None:
+    module = _radar_module()
+    candidate = _tbmt_candidate()
+    raw_fields = dict(candidate.raw_fields)
+    raw_fields["HÌNH THỨC LỰA CHỌN NHÀ THẦU"] = source_label
+    candidate = dataclasses.replace(candidate, raw_fields=raw_fields)
+
+    item = module.radar_item_from_opportunity_candidate(candidate)
+
+    assert item.selection_method_raw == source_label
+    assert item.raw_fields["HÌNH THỨC LỰA CHỌN NHÀ THẦU"] == source_label
+    assert item.selection_method == expected_code
+    assert item.procurement_method == "Một giai đoạn một túi hồ sơ"
+    assert item.identity == candidate.identity
+    assert item.provenance == candidate.provenance
+
+
+@pytest.mark.parametrize(
+    ("source_label", "expected_code", "other_code"),
+    [
+        (
+            "Đấu thầu rộng rãi trong nước",
+            "DAU_THAU_RONG_RAI",
+            "CHAO_HANG_CANH_TRANH",
+        ),
+        (
+            "Chào hàng cạnh tranh trong nước",
+            "CHAO_HANG_CANH_TRANH",
+            "DAU_THAU_RONG_RAI",
+        ),
+    ],
+)
+def test_tbmt_qualified_selection_label_reuses_filter_match_and_no_match_semantics(
+    source_label: str, expected_code: str, other_code: str
+) -> None:
+    module = _radar_module()
+    candidate = _tbmt_candidate()
+    raw_fields = dict(candidate.raw_fields)
+    raw_fields["HÌNH THỨC LỰA CHỌN NHÀ THẦU"] = source_label
+    item = module.radar_item_from_opportunity_candidate(
+        dataclasses.replace(candidate, raw_fields=raw_fields)
+    )
+
+    matching = filter_engine.evaluate_opportunity(
+        item,
+        filter_engine.FilterProfile(selection_methods=frozenset({expected_code})),
+    )
+    different = filter_engine.evaluate_opportunity(
+        item,
+        filter_engine.FilterProfile(selection_methods=frozenset({other_code})),
+    )
+
+    assert matching.disposition is filter_engine.OpportunityFilterDisposition.MATCH
+    assert different.disposition is filter_engine.OpportunityFilterDisposition.NO_MATCH
+
+
+def test_tbmt_unsupported_selection_label_remains_unknown() -> None:
+    module = _radar_module()
+    candidate = _tbmt_candidate()
+    raw_fields = dict(candidate.raw_fields)
+    raw_fields["HÌNH THỨC LỰA CHỌN NHÀ THẦU"] = "Đấu thầu quốc tế"
+    item = module.radar_item_from_opportunity_candidate(
+        dataclasses.replace(candidate, raw_fields=raw_fields)
+    )
+
+    evaluation = filter_engine.evaluate_opportunity(
+        item,
+        filter_engine.FilterProfile(selection_methods=frozenset({"DAU_THAU_RONG_RAI"})),
+    )
+
+    assert item.selection_method_raw == "Đấu thầu quốc tế"
+    assert item.selection_method is None
+    assert evaluation.disposition is filter_engine.OpportunityFilterDisposition.INDETERMINATE
+    assert (
+        evaluation.criteria[0].reason_code
+        is filter_engine.FilterReasonCode.SELECTION_METHOD_UNKNOWN
+    )
 
 
 def test_pl_and_ib_remain_distinct() -> None:
@@ -193,7 +284,8 @@ def test_selection_method_and_procurement_method_remain_distinct() -> None:
     module = _radar_module()
     item = module.radar_item_from_opportunity_candidate(_tbmt_candidate())
 
-    assert item.selection_method == "Đấu thầu rộng rãi"
+    assert item.selection_method == "DAU_THAU_RONG_RAI"
+    assert item.selection_method_raw == "Đấu thầu rộng rãi"
     assert item.procurement_method == "Một giai đoạn một túi hồ sơ"
     assert item.selection_method != item.procurement_method
 
