@@ -1575,6 +1575,23 @@ class QICrawlerWindow(QMainWindow):
             return False
         return True
 
+    def _bid_radar_screening_ready(self) -> bool:
+        active = self._bid_radar_active_source
+        if active is None or not active.path.is_file():
+            self.bid_radar_status.setText("Hãy chọn và dùng file Excel nguồn trước khi screening.")
+            return False
+        try:
+            current_sha256 = _sha256(active.path)
+        except OSError:
+            self.bid_radar_status.setText("Không thể đọc file nguồn hiện tại. Hãy chọn lại file.")
+            return False
+        if current_sha256 != active.source_sha256:
+            self.bid_radar_status.setText(
+                "File nguồn đã thay đổi. Hãy chọn lại và bấm DÙNG FILE NÀY trước khi screening."
+            )
+            return False
+        return True
+
     @staticmethod
     def _split_bid_radar_values(value: str) -> tuple[str, ...]:
         return tuple(item.strip() for item in value.split(",") if item.strip())
@@ -1977,8 +1994,7 @@ class QICrawlerWindow(QMainWindow):
     @Slot()
     def start_bid_radar_excel_screening(self) -> None:
         active = self._bid_radar_active_source
-        if active is None or not active.path.is_file():
-            self.bid_radar_status.setText("Hãy chọn và dùng file Excel nguồn trước khi screening.")
+        if not self._bid_radar_screening_ready() or active is None:
             return
         output, _filter = QFileDialog.getSaveFileName(
             self,
