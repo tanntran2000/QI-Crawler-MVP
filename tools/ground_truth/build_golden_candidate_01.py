@@ -762,6 +762,7 @@ def build_draft(
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
+    output_installed = False
     try:
         with tempfile.NamedTemporaryFile(
             prefix=f".{output.name}.",
@@ -792,6 +793,7 @@ def build_draft(
         )
         os.replace(temporary_path, output)
         temporary_path = None
+        output_installed = True
 
         source_sha_after = _sha256(source)
         source_size_after = source.stat().st_size
@@ -820,11 +822,11 @@ def build_draft(
             output_size=output.stat().st_size,
         )
     except BuildError:
-        if output.exists() and temporary_path is not None:
+        if output.exists() and (output_installed or temporary_path is not None):
             output.unlink(missing_ok=True)
         raise
     except Exception as exc:
-        if output.exists() and temporary_path is not None:
+        if output.exists() and (output_installed or temporary_path is not None):
             output.unlink(missing_ok=True)
         raise BuildError(f"ARTIFACT_VALIDATION_HOLD: {type(exc).__name__}") from exc
     finally:

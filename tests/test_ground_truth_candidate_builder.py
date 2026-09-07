@@ -218,11 +218,12 @@ def test_builder_validation_failure_leaves_no_partial_final_output(tmp_path: Pat
     output = tmp_path / "draft.xlsx"
     source_sha = _write_source(source)
 
-    def fail_validation(*args, **kwargs):
-        raise module.BuildError("ARTIFACT_VALIDATION_HOLD: synthetic failure")
+    def fail_final_validation(path, **kwargs):
+        if Path(path).resolve() == output.resolve():
+            raise module.BuildError("ARTIFACT_VALIDATION_HOLD: synthetic final failure")
 
-    monkeypatch.setattr(module, "validate_output_workbook", fail_validation)
+    monkeypatch.setattr(module, "validate_output_workbook", fail_final_validation)
     with pytest.raises(module.BuildError, match="ARTIFACT_VALIDATION_HOLD"):
         module.build_draft(source, output, expected_source_sha256=source_sha)
     assert not output.exists()
-    assert not list(tmp_path.glob(".draft.xlsx.*.tmp"))
+    assert not list(tmp_path.glob(".draft.xlsx.*"))
