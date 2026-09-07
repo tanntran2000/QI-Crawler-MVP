@@ -34,6 +34,35 @@ EXPECTED_SOURCE_ROWS = 11
 EXPECTED_IDENTITY_COUNT = 11
 CRITERION_COUNT = 11
 SOURCE_HEADER_SCAN_LIMIT = 50
+PROFILE_OUTPUT_NAME = "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx"
+PREVIOUS_DRAFT_NAME = "GOLDEN_CANDIDATE_01_DRAFT.xlsx"
+PROFILE_ID = "QI_TBMT_OPPORTUNITY_SCREENING"
+PROFILE_VERSION = "1.0"
+PREFERRED_BUDGET_MAX = "2,000,000,000 VND"
+PREFERRED_REGIONS = (
+    "TP.HCM",
+    "Cần Giờ",
+    "Vũng Tàu",
+    "Bình Dương",
+    "Tây Ninh",
+    "Long An",
+    "Đồng Nai",
+    "Lâm Đồng",
+    "Phan Thiết",
+)
+PROFILE_ROLE_MATRIX = {
+    "C01": "INACTIVE",
+    "C02": "INACTIVE",
+    "C03": "INACTIVE",
+    "C04": "INACTIVE",
+    "C05": "INACTIVE",
+    "C06": "INACTIVE",
+    "C07": "HARD",
+    "C08": "INACTIVE",
+    "C09": "PREFERENCE",
+    "C10": "PREFERENCE",
+    "C11": "INACTIVE",
+}
 SHEET_NAMES = (
     "00_HUONG_DAN_PROFILE",
     "01_NGUON_11_GOI",
@@ -185,7 +214,7 @@ CRITERIA = (
     ),
     CriterionSpec(
         "C07",
-        "TOPIC",
+        "TECHNOLOGY_SCOPE",
         "CONTEXTUAL",
         "DỰ ÁN; GÓI THẦU; NỘI DUNG CHÍNH CỦA GÓI THẦU",
         "NO",
@@ -382,10 +411,10 @@ def _add_list_validation(sheet: Any, column: int, first_row: int, last_row: int,
     validation.add(f"{get_column_letter(column)}{first_row}:{get_column_letter(column)}{last_row}")
 
 
-def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
+def _profile_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: bool = False) -> None:
     sheet = workbook.create_sheet(SHEET_NAMES[0])
     sheet.sheet_view.showGridLines = False
-    sheet["A1"] = "GOLDEN_CANDIDATE_01 — DRAFT"
+    sheet["A1"] = "GOLDEN_CANDIDATE_01 — PROFILE V1" if profile_v1 else "GOLDEN_CANDIDATE_01 — DRAFT"
     sheet["A1"].font = Font(name="Arial", size=14, bold=True, color="1F4E78")
     header_values = (
         ("CANDIDATE_ID", "GOLDEN_CANDIDATE_01"),
@@ -394,15 +423,24 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
         ("SOURCE_SHA256", source.sha256),
         ("SOURCE_TYPE", "TBMT"),
         ("SOURCE_ROW_COUNT", source.source_data_rows),
-        ("PROFILE_STATUS", "NOT_APPROVED"),
+        ("PROFILE_STATUS", "APPROVED" if profile_v1 else "NOT_APPROVED"),
         ("GROUND_TRUTH_STATUS", "NOT_APPROVED"),
-        ("PROFILE_ID", ""),
-        ("PROFILE_VERSION", ""),
+        ("PROFILE_ID", PROFILE_ID if profile_v1 else ""),
+        ("PROFILE_VERSION", PROFILE_VERSION if profile_v1 else ""),
         ("TIMEZONE", "Asia/Ho_Chi_Minh"),
         ("EVALUATION_AT", ""),
         ("DEADLINE_DAY_MODE", ""),
         ("DEADLINE_BOUNDARY_POLICY", ""),
-        ("BUSINESS_OBJECTIVE", ""),
+        (
+            "BUSINESS_OBJECTIVE",
+            (
+                "Lọc và xếp thứ tự các TBMT để Team Bid tập trung xem xét "
+                "các cơ hội phù hợp với phạm vi công nghệ của QI.\n"
+                "SELECT chỉ có nghĩa là đưa gói vào danh sách Team Bid xem xét."
+                if profile_v1
+                else ""
+            ),
+        ),
         ("AUTHORIZED_LABELER", ""),
         ("APPROVER", ""),
     )
@@ -413,25 +451,51 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
         if label in {"PROFILE_ID", "PROFILE_VERSION", "EVALUATION_AT", "DEADLINE_DAY_MODE", "DEADLINE_BOUNDARY_POLICY", "BUSINESS_OBJECTIVE", "AUTHORIZED_LABELER", "APPROVER"}:
             sheet.cell(row, 2).fill = INPUT_FILL
 
-    _write_cell(sheet["A20"], "BLIND LABELING INSTRUCTION")
-    sheet["A20"].font = Font(name="Arial", size=10, bold=True, color="1F4E78")
-    _write_cell(
-        sheet["B20"],
-        "Team Bid should label the candidate before viewing Crawler screening predictions for the same profile.",
-    )
-    sheet["B20"].alignment = Alignment(wrap_text=True, vertical="top")
-    _write_cell(sheet["A22"], "AGGREGATION RULE — DOCUMENT ONLY")
-    sheet["A22"].font = Font(name="Arial", size=10, bold=True, color="1F4E78")
-    for row, rule in enumerate(
-        (
-            "NO ACTIVE HARD CRITERIA → UNFILTERED",
-            "ANY HARD FAIL → EXCLUDE",
-            "NO HARD FAIL + ANY HARD UNKNOWN → NEEDS_REVIEW",
-            "ALL ACTIVE HARD PASS → SELECT",
-        ),
-        start=23,
-    ):
-        _write_cell(sheet.cell(row, 2), rule)
+    if not profile_v1:
+        _write_cell(sheet["A20"], "BLIND LABELING INSTRUCTION")
+        sheet["A20"].font = Font(name="Arial", size=10, bold=True, color="1F4E78")
+        _write_cell(
+            sheet["B20"],
+            "Team Bid should label the candidate before viewing Crawler screening predictions for the same profile.",
+        )
+        sheet["B20"].alignment = Alignment(wrap_text=True, vertical="top")
+        _write_cell(sheet["A22"], "AGGREGATION RULE — DOCUMENT ONLY")
+        sheet["A22"].font = Font(name="Arial", size=10, bold=True, color="1F4E78")
+        for row, rule in enumerate(
+            (
+                "NO ACTIVE HARD CRITERIA → UNFILTERED",
+                "ANY HARD FAIL → EXCLUDE",
+                "NO HARD FAIL + ANY HARD UNKNOWN → NEEDS_REVIEW",
+                "ALL ACTIVE HARD PASS → SELECT",
+            ),
+            start=23,
+        ):
+            _write_cell(sheet.cell(row, 2), rule)
+        catalog_row = 29
+    else:
+        profile_notes = (
+            ("BUSINESS OBJECTIVE", "Lọc và xếp thứ tự các TBMT để Team Bid tập trung xem xét các cơ hội phù hợp với phạm vi công nghệ của QI."),
+            ("SELECT MEANING", "SELECT chỉ đưa gói vào danh sách Team Bid xem xét. Không có nghĩa đủ điều kiện dự thầu, Gate 0 GO, giải pháp đã được duyệt, Human Review CONFIRMED hoặc quyết định tham dự thầu."),
+            ("BUSINESS LABELING ORDER", "1. C07 expected PASS / FAIL / UNKNOWN\n2. C09 expected PASS / FAIL / UNKNOWN\n3. C10 expected PASS / FAIL / UNKNOWN\n4. derive expected screening\n5. derive expected priority\n6. add business reason\n7. approver reviews"),
+            ("SCREENING RULE — DOCUMENT ONLY", "C07 PASS = SELECT. C07 UNKNOWN = NEEDS_REVIEW. C07 FAIL = EXCLUDE. C07 is the only HARD criterion."),
+            ("EXCLUDE PRESENTATION", "EXCLUDE means NOT_LISTED_IN_PRIORITY_OUTPUT. Preserve the excluded observation and reason for audit. EXCLUDE does not mean delete."),
+            ("PRIORITY RULE — DOCUMENT ONLY", "SELECT + C09 PASS + C10 PASS = HIGH. SELECT with C09 or C10 FAIL/UNKNOWN = MEDIUM. NEEDS_REVIEW or EXCLUDE = UNRANKED."),
+            ("C07 TECHNOLOGY SCOPE", "PASS requires sufficiently clear authoritative evidence that the package belongs to or materially contains approved QI technology scope. FAIL requires clear authoritative evidence that it is unrelated. Ambiguous, incomplete or mixed evidence = UNKNOWN. Do not use keyword-only matching."),
+            ("C09 BUDGET", "PREFERRED_MAX = 2,000,000,000 VND. Budget above this is PREFERENCE_NOT_MET and must never convert SELECT to EXCLUDE. Missing or unparseable authoritative budget = UNKNOWN."),
+            ("C10 PREFERRED REGIONS", "PREFERRED_REGIONS_V1 = " + "; ".join(PREFERRED_REGIONS) + ". This is a Team Bid business list, not a geometric distance calculation."),
+            ("C10 EVIDENCE AUTHORITY", "Execution location is different from procuring entity address. Do not infer from procuring entity, institution name or package-name place words. Missing or ambiguous execution location = UNKNOWN. Future HSMT evidence must retain document identity, document SHA, page/section/table/row and exact excerpt."),
+            ("ACTIVE LABELING SCOPE", "Only C07, C09 and C10 are active for GROUND_TRUTH_01 v1: 11 packages × 3 criteria = 33 active decisions. The 88 inactive criterion rows remain preserved for future profiles."),
+            ("ACTIVITY AND DEADLINE", "C08 Activity and C02 Deadline are INACTIVE for v1. They may support future classification, routing, urgency display or operational Go/No-Go discussion, but they do not decide v1 eligibility."),
+            ("SOLUTION APPROVAL GATE", "SCREENING → Team Bid xem xét → bóc HSMT → thiết kế / xác định giải pháp → SOLUTION APPROVAL → Go / No-Go. Solution approval is downstream and outside this workbook build."),
+            ("PROFILE BOUNDARY", "PROFILE_STATUS = APPROVED does not mean GROUND_TRUTH_STATUS = APPROVED. Package labels and criterion outcomes remain blank until Team Bid labels and approves them."),
+        )
+        for row, (title, body) in enumerate(profile_notes, start=20):
+            _write_cell(sheet.cell(row, 1), title)
+            sheet.cell(row, 1).font = Font(name="Arial", size=10, bold=True, color="1F4E78")
+            _write_cell(sheet.cell(row, 2), body)
+            sheet.cell(row, 2).alignment = Alignment(wrap_text=True, vertical="top")
+            sheet.row_dimensions[row].height = 45 if row not in {22, 26, 27, 28, 29, 30, 34} else 60
+        catalog_row = 43
 
     catalog_headers = (
         "CRITERION_ID",
@@ -447,9 +511,19 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
         "MISSING_DATA_POLICY",
         "QI_NOTES",
     )
-    catalog_row = 29
     for column, value in enumerate(catalog_headers, start=1):
         _write_cell(sheet.cell(catalog_row, column), value)
+    profile_roles = PROFILE_ROLE_MATRIX if profile_v1 else {}
+    profile_allowed = {
+        "C07": "PASS / FAIL / UNKNOWN; approved QI technology scope; ambiguous or mixed evidence = UNKNOWN",
+        "C09": f"PREFERRED_MAX = {PREFERRED_BUDGET_MAX}; >2B = PREFERENCE_NOT_MET; missing/unparseable = UNKNOWN",
+        "C10": "; ".join(PREFERRED_REGIONS),
+    }
+    profile_priority = {
+        "C07": "HARD screening: PASS SELECT; UNKNOWN NEEDS_REVIEW; FAIL EXCLUDE",
+        "C09": "PASS supports HIGH; FAIL/UNKNOWN supports MEDIUM; never EXCLUDE",
+        "C10": "PASS supports HIGH; FAIL/UNKNOWN supports MEDIUM; never EXCLUDE",
+    }
     for row, criterion in enumerate(CRITERIA, start=catalog_row + 1):
         values = (
             criterion.criterion_id,
@@ -459,9 +533,9 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
             criterion.current_evaluator,
             criterion.implementation_phase,
             criterion.reviewer_suggestion,
-            "",
-            "",
-            "",
+            profile_roles.get(criterion.criterion_id, ""),
+            profile_allowed.get(criterion.criterion_id, ""),
+            profile_priority.get(criterion.criterion_id, ""),
             criterion.missing_data_policy,
             criterion.notes,
         )
@@ -471,7 +545,7 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle) -> None:
     _style_table(sheet, catalog_row)
     sheet.column_dimensions["A"].width = 24
     sheet.column_dimensions["B"].width = 72
-    for row in (20, 22):
+    for row in (20, 22) if not profile_v1 else ():
         sheet.row_dimensions[row].height = 30
 
 
@@ -551,7 +625,7 @@ def _source_sheet(workbook: Workbook, source: SourceBundle) -> None:
     _style_table(sheet)
 
 
-def _label_sheet(workbook: Workbook, source: SourceBundle) -> None:
+def _label_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: bool = False) -> None:
     sheet = workbook.create_sheet(SHEET_NAMES[2])
     headers = (
         "IB",
@@ -593,12 +667,13 @@ def _label_sheet(workbook: Workbook, source: SourceBundle) -> None:
         for column, value in enumerate(values, start=1):
             _write_cell(sheet.cell(row, column), value)
     _add_list_validation(sheet, 6, 2, source.source_data_rows + 1, ("SELECT", "NEEDS_REVIEW", "EXCLUDE", "UNFILTERED"))
-    _add_list_validation(sheet, 7, 2, source.source_data_rows + 1, ("A", "B", "UNRANKED"))
+    priority_values = ("HIGH", "MEDIUM", "UNRANKED") if profile_v1 else ("A", "B", "UNRANKED")
+    _add_list_validation(sheet, 7, 2, source.source_data_rows + 1, priority_values)
     _add_list_validation(sheet, 14, 2, source.source_data_rows + 1, ("DRAFT", "DISPUTED", "APPROVED"))
     _style_table(sheet)
 
 
-def _evidence_sheet(workbook: Workbook, source: SourceBundle) -> None:
+def _evidence_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: bool = False) -> None:
     sheet = workbook.create_sheet(SHEET_NAMES[3])
     headers = (
         "IB",
@@ -633,7 +708,7 @@ def _evidence_sheet(workbook: Workbook, source: SourceBundle) -> None:
                 item.observation_key,
                 criterion.criterion_id,
                 criterion.name,
-                "PENDING_PROFILE",
+                PROFILE_ROLE_MATRIX[criterion.criterion_id] if profile_v1 else "PENDING_PROFILE",
                 criterion.source_availability,
                 observed,
                 "",
@@ -655,14 +730,14 @@ def _evidence_sheet(workbook: Workbook, source: SourceBundle) -> None:
     _style_table(sheet)
 
 
-def _build_workbook(source: SourceBundle) -> Workbook:
+def _build_workbook(source: SourceBundle, *, profile_v1: bool = False) -> Workbook:
     workbook = Workbook()
     default = workbook.active
     workbook.remove(default)
-    _profile_sheet(workbook, source)
+    _profile_sheet(workbook, source, profile_v1=profile_v1)
     _source_sheet(workbook, source)
-    _label_sheet(workbook, source)
-    _evidence_sheet(workbook, source)
+    _label_sheet(workbook, source, profile_v1=profile_v1)
+    _evidence_sheet(workbook, source, profile_v1=profile_v1)
     return workbook
 
 
@@ -672,6 +747,7 @@ def validate_output_workbook(
     expected_sha256: str,
     expected_source_rows: int,
     expected_identity_count: int,
+    profile_v1: bool = False,
 ) -> None:
     path = Path(output_path).resolve()
     if not path.is_file():
@@ -685,7 +761,15 @@ def validate_output_workbook(
             raise BuildError("ARTIFACT_VALIDATION_HOLD: profile header is incorrect")
         if profile["B5"].value.casefold() != expected_sha256.casefold():
             raise BuildError("ARTIFACT_VALIDATION_HOLD: profile SHA is incorrect")
-        if profile["B8"].value != "NOT_APPROVED" or profile["B9"].value != "NOT_APPROVED":
+        if profile_v1:
+            if profile["B8"].value != "APPROVED" or profile["B9"].value != "NOT_APPROVED":
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: profile approval state is incorrect")
+            if profile["B10"].value != PROFILE_ID or profile["B11"].value != PROFILE_VERSION:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: profile identity is incorrect")
+            profile_values = " ".join(str(cell.value or "") for row in profile.iter_rows() for cell in row)
+            if "100 km" in profile_values:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: obsolete geographic radius policy remains")
+        elif profile["B8"].value != "NOT_APPROVED" or profile["B9"].value != "NOT_APPROVED":
             raise BuildError("ARTIFACT_VALIDATION_HOLD: approval state is not draft")
 
         source_sheet = workbook[SHEET_NAMES[1]]
@@ -719,6 +803,16 @@ def validate_output_workbook(
                 raise BuildError("ARTIFACT_VALIDATION_HOLD: priority prediction leaked")
             if labels.cell(row, label_headers["LABEL_STATUS"]).value != "DRAFT":
                 raise BuildError("ARTIFACT_VALIDATION_HOLD: label lifecycle state is incorrect")
+        priority_formulas = [
+            str(validation.formula1 or "")
+            for validation in labels.data_validations.dataValidation
+            if validation.type == "list"
+        ]
+        expected_priority_values = "HIGH,MEDIUM,UNRANKED" if profile_v1 else "A,B,UNRANKED"
+        if not any(expected_priority_values in formula for formula in priority_formulas):
+            raise BuildError("ARTIFACT_VALIDATION_HOLD: priority validation is incorrect")
+        if profile_v1 and any("A,B" in formula for formula in priority_formulas):
+            raise BuildError("ARTIFACT_VALIDATION_HOLD: legacy priority validation remains")
 
         evidence = workbook[SHEET_NAMES[3]]
         if evidence.max_row - 1 != expected_source_rows * CRITERION_COUNT:
@@ -727,8 +821,26 @@ def validate_output_workbook(
         for row in range(2, evidence.max_row + 1):
             if evidence.cell(row, evidence_headers["EXPECTED_OUTCOME"]).value not in (None, ""):
                 raise BuildError("ARTIFACT_VALIDATION_HOLD: criterion prediction leaked")
-            if evidence.cell(row, evidence_headers["PROFILE_ROLE"]).value != "PENDING_PROFILE":
-                raise BuildError("ARTIFACT_VALIDATION_HOLD: profile role was prefilled")
+            expected_role = (
+                PROFILE_ROLE_MATRIX[evidence.cell(row, evidence_headers["CRITERION_ID"]).value]
+                if profile_v1
+                else "PENDING_PROFILE"
+            )
+            if evidence.cell(row, evidence_headers["PROFILE_ROLE"]).value != expected_role:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: profile role is incorrect")
+        if profile_v1:
+            catalog = profile
+            catalog_headers = {cell.value: cell.column for cell in catalog[43]}
+            roles = {
+                catalog.cell(row, catalog_headers["CRITERION_ID"]).value: catalog.cell(
+                    row, catalog_headers["QI_ROLE_DECISION"]
+                ).value
+                for row in range(44, 55)
+            }
+            if roles != PROFILE_ROLE_MATRIX:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: profile role matrix is incorrect")
+            if sum(role != "INACTIVE" for role in roles.values() for _ in [0]) != 3:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: active profile criterion count is incorrect")
 
         for sheet in workbook.worksheets:
             for row in sheet.iter_rows():
@@ -746,6 +858,7 @@ def build_draft(
     expected_source_sha256: str = EXPECTED_SOURCE_SHA256,
     expected_source_rows: int = EXPECTED_SOURCE_ROWS,
     expected_identity_count: int = EXPECTED_IDENTITY_COUNT,
+    profile_v1: bool = False,
 ) -> DraftBuildResult:
     source = Path(source_path).resolve()
     output = Path(output_path).resolve()
@@ -771,7 +884,7 @@ def build_draft(
             delete=False,
         ) as temporary:
             temporary_path = Path(temporary.name)
-        workbook = _build_workbook(bundle)
+        workbook = _build_workbook(bundle, profile_v1=profile_v1)
         try:
             workbook.save(temporary_path)
         finally:
@@ -790,6 +903,7 @@ def build_draft(
             expected_sha256=bundle.sha256,
             expected_source_rows=bundle.source_data_rows,
             expected_identity_count=bundle.exact_identity_count,
+            profile_v1=profile_v1,
         )
         os.replace(temporary_path, output)
         temporary_path = None
@@ -805,6 +919,7 @@ def build_draft(
             expected_sha256=bundle.sha256,
             expected_source_rows=bundle.source_data_rows,
             expected_identity_count=bundle.exact_identity_count,
+            profile_v1=profile_v1,
         )
         return DraftBuildResult(
             output=output,
@@ -834,17 +949,49 @@ def build_draft(
             temporary_path.unlink(missing_ok=True)
 
 
+def build_profile_v1(
+    source_path: str | Path,
+    output_path: str | Path,
+    *,
+    expected_source_sha256: str = EXPECTED_SOURCE_SHA256,
+    expected_source_rows: int = EXPECTED_SOURCE_ROWS,
+    expected_identity_count: int = EXPECTED_IDENTITY_COUNT,
+) -> DraftBuildResult:
+    output = Path(output_path).resolve()
+    previous_draft = output.parent / PREVIOUS_DRAFT_NAME
+    if not previous_draft.is_file():
+        raise BuildError("PREVIOUS_DRAFT_HOLD: historical draft workbook is missing")
+    previous_sha_before = _sha256(previous_draft)
+    previous_size_before = previous_draft.stat().st_size
+    result = build_draft(
+        source_path,
+        output,
+        expected_source_sha256=expected_source_sha256,
+        expected_source_rows=expected_source_rows,
+        expected_identity_count=expected_identity_count,
+        profile_v1=True,
+    )
+    previous_sha_after = _sha256(previous_draft)
+    previous_size_after = previous_draft.stat().st_size
+    if previous_sha_after != previous_sha_before or previous_size_after != previous_size_before:
+        output.unlink(missing_ok=True)
+        raise BuildError("PREVIOUS_DRAFT_HOLD: historical draft changed during profile build")
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build GOLDEN_CANDIDATE_01 — DRAFT")
+    parser = argparse.ArgumentParser(description="Build GOLDEN_CANDIDATE_01 draft or Profile v1 workbook")
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--profile-v1", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        result = build_draft(args.source, args.output)
+        profile_v1 = args.profile_v1 or args.output.name == PROFILE_OUTPUT_NAME
+        result = build_profile_v1(args.source, args.output) if profile_v1 else build_draft(args.source, args.output)
     except BuildError as exc:
         print(str(exc), file=sys.stderr)
         return 2

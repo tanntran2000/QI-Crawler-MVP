@@ -227,3 +227,103 @@ def test_builder_validation_failure_leaves_no_partial_final_output(tmp_path: Pat
         module.build_draft(source, output, expected_source_sha256=source_sha)
     assert not output.exists()
     assert not list(tmp_path.glob(".draft.xlsx.*"))
+
+
+def test_profile_v1_formalizes_roles_and_keeps_ground_truth_blank(tmp_path: Path) -> None:
+    module = _builder_module()
+    source = tmp_path / "source.xlsx"
+    old_draft = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT.xlsx"
+    profile_output = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx"
+    source_sha = _write_source(source)
+
+    module.build_draft(source, old_draft, expected_source_sha256=source_sha)
+    old_sha = hashlib.sha256(old_draft.read_bytes()).hexdigest()
+    result = module.build_profile_v1(source, profile_output, expected_source_sha256=source_sha)
+
+    assert result.output == profile_output.resolve()
+    workbook = load_workbook(profile_output, data_only=False)
+    profile = workbook["00_HUONG_DAN_PROFILE"]
+    assert profile["B2"].value == "GOLDEN_CANDIDATE_01"
+    assert profile["B3"].value == "DRAFT"
+    assert profile["B8"].value == "APPROVED"
+    assert profile["B9"].value == "NOT_APPROVED"
+    assert profile["B10"].value == "QI_TBMT_OPPORTUNITY_SCREENING"
+    assert profile["B11"].value == "1.0"
+    assert "Lọc và xếp thứ tự các TBMT" in profile["B16"].value
+    profile_text = " ".join(str(cell.value or "") for row in profile.iter_rows() for cell in row)
+    assert "SOLUTION APPROVAL" in profile_text
+
+    catalog_headers = {cell.value: cell.column for cell in profile[43]}
+    roles = {
+        profile.cell(row, catalog_headers["CRITERION_ID"]).value: profile.cell(
+            row, catalog_headers["QI_ROLE_DECISION"]
+        ).value
+        for row in range(44, 55)
+    }
+    assert roles == {
+        "C01": "INACTIVE",
+        "C02": "INACTIVE",
+        "C03": "INACTIVE",
+        "C04": "INACTIVE",
+        "C05": "INACTIVE",
+        "C06": "INACTIVE",
+        "C07": "HARD",
+        "C08": "INACTIVE",
+        "C09": "PREFERENCE",
+        "C10": "PREFERENCE",
+        "C11": "INACTIVE",
+    }
+    allowed = {
+        profile.cell(row, catalog_headers["CRITERION_ID"]).value: profile.cell(
+            row, catalog_headers["QI_ALLOWED_VALUE_OR_THRESHOLD"]
+        ).value
+        for row in range(44, 55)
+    }
+    assert "2,000,000,000 VND" in allowed["C09"]
+    assert ">2B" in allowed["C09"]
+    for region in ("TP.HCM", "Cần Giờ", "Vũng Tàu", "Bình Dương", "Tây Ninh", "Long An", "Đồng Nai", "Lâm Đồng", "Phan Thiết"):
+        assert region in allowed["C10"]
+    assert "100 km" not in profile_text
+
+    labels = workbook["02_TEAM_BID_GAN_NHAN"]
+    label_headers = {cell.value: cell.column for cell in labels[1]}
+    assert all(labels.cell(row, label_headers["EXPECTED_SCREENING"]).value in (None, "") for row in range(2, 13))
+    assert all(labels.cell(row, label_headers["EXPECTED_PRIORITY"]).value in (None, "") for row in range(2, 13))
+    priority_formulas = [
+        str(validation.formula1)
+        for validation in labels.data_validations.dataValidation
+        if validation.type == "list"
+    ]
+    assert any("HIGH,MEDIUM,UNRANKED" in formula for formula in priority_formulas)
+    assert all("A,B" not in formula for formula in priority_formulas)
+
+    evidence = workbook["03_BANG_CHUNG_TIEU_CHI"]
+    evidence_headers = {cell.value: cell.column for cell in evidence[1]}
+    evidence_roles = [
+        evidence.cell(row, evidence_headers["PROFILE_ROLE"]).value for row in range(2, 123)
+    ]
+    assert evidence_roles.count("HARD") == 11
+    assert evidence_roles.count("PREFERENCE") == 22
+    assert evidence_roles.count("INACTIVE") == 88
+    assert all(evidence.cell(row, evidence_headers["EXPECTED_OUTCOME"]).value in (None, "") for row in range(2, 123))
+    assert all(cell.data_type != "f" for sheet in workbook.worksheets for row in sheet.iter_rows() for cell in row)
+    workbook.close()
+
+    assert hashlib.sha256(old_draft.read_bytes()).hexdigest() == old_sha
+
+
+def test_profile_v1_rejects_existing_target_without_mutating_old_draft(tmp_path: Path) -> None:
+    module = _builder_module()
+    source = tmp_path / "source.xlsx"
+    old_draft = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT.xlsx"
+    target = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx"
+    source_sha = _write_source(source)
+    module.build_draft(source, old_draft, expected_source_sha256=source_sha)
+    old_sha = hashlib.sha256(old_draft.read_bytes()).hexdigest()
+    target.write_bytes(b"existing-profile")
+
+    with pytest.raises(module.BuildError, match="OUTPUT_EXISTS"):
+        module.build_profile_v1(source, target, expected_source_sha256=source_sha)
+
+    assert target.read_bytes() == b"existing-profile"
+    assert hashlib.sha256(old_draft.read_bytes()).hexdigest() == old_sha
