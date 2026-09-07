@@ -37,6 +37,11 @@ from .hsmt_facts import HSMTFactService, HSMTFactView
 from .keywords import expand_keyword
 from .manual_tender import ManualTenderWorkspaceService
 from .market_intelligence.confirmed_opportunity_export import ConfirmedOpportunityExportResult
+from .market_intelligence.excel_screening import (
+    ScreeningRun,
+    export_screening_workbook,
+    screen_excel_workbook,
+)
 from .market_intelligence.filter_engine import CriterionEvaluation, OpportunityFilterDisposition
 from .market_intelligence.khmt_importer import import_khmt_workbook
 from .market_intelligence.legal_docx import (
@@ -106,6 +111,14 @@ class EvidencePreview:
     content_type: str
     text: str | None
     table_json: str | None
+
+
+@dataclass(frozen=True)
+class ExcelScreeningExportResult:
+    """Machine-readable completion summary for the Human-Light Excel flow."""
+
+    output_path: Path
+    run: ScreeningRun
 
 
 @dataclass(frozen=True)
@@ -355,6 +368,18 @@ def run_bid_radar_export(
         load_result,
         output=config.storage.report_dir / "CÁC GÓI ĐÃ XÁC NHẬN.xlsx",
     )
+
+
+def run_bid_radar_excel_screening(
+    source_path: Path,
+    *,
+    output_path: Path,
+) -> ExcelScreeningExportResult:
+    """Run the additive Human-Light screening service and export four sheets."""
+
+    run = screen_excel_workbook(source_path)
+    destination = export_screening_workbook(run, output_path)
+    return ExcelScreeningExportResult(output_path=destination, run=run)
 
 
 def run_bid_radar_legal_docx(
