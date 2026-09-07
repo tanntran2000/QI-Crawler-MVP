@@ -35,9 +35,11 @@ EXPECTED_IDENTITY_COUNT = 11
 CRITERION_COUNT = 11
 SOURCE_HEADER_SCAN_LIMIT = 50
 PROFILE_OUTPUT_NAME = "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx"
+PROFILE_CORRECTION_OUTPUT_NAME = "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1_CORR1.xlsx"
 PREVIOUS_DRAFT_NAME = "GOLDEN_CANDIDATE_01_DRAFT.xlsx"
 PROFILE_ID = "QI_TBMT_OPPORTUNITY_SCREENING"
 PROFILE_VERSION = "1.0"
+PROFILE_CORRECTION_ID = "CORR-GT01-PROFILE-V1-REGION-01"
 PREFERRED_BUDGET_MAX = "2,000,000,000 VND"
 PREFERRED_REGIONS = (
     "TP.HCM",
@@ -411,11 +413,26 @@ def _add_list_validation(sheet: Any, column: int, first_row: int, last_row: int,
     validation.add(f"{get_column_letter(column)}{first_row}:{get_column_letter(column)}{last_row}")
 
 
-def _profile_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: bool = False) -> None:
+def _profile_sheet(
+    workbook: Workbook,
+    source: SourceBundle,
+    *,
+    profile_v1: bool = False,
+    correction_id: str | None = None,
+) -> None:
     sheet = workbook.create_sheet(SHEET_NAMES[0])
     sheet.sheet_view.showGridLines = False
     sheet["A1"] = "GOLDEN_CANDIDATE_01 — PROFILE V1" if profile_v1 else "GOLDEN_CANDIDATE_01 — DRAFT"
     sheet["A1"].font = Font(name="Arial", size=14, bold=True, color="1F4E78")
+    business_objective = (
+        "Lọc và xếp thứ tự các TBMT để Team Bid tập trung xem xét "
+        "các cơ hội phù hợp với phạm vi công nghệ của QI.\n"
+        "SELECT chỉ có nghĩa là đưa gói vào danh sách Team Bid xem xét."
+        if profile_v1
+        else ""
+    )
+    if profile_v1 and correction_id:
+        business_objective += f"\nARTIFACT_CORRECTION={correction_id}"
     header_values = (
         ("CANDIDATE_ID", "GOLDEN_CANDIDATE_01"),
         ("STATUS", "DRAFT"),
@@ -431,16 +448,7 @@ def _profile_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: bool
         ("EVALUATION_AT", ""),
         ("DEADLINE_DAY_MODE", ""),
         ("DEADLINE_BOUNDARY_POLICY", ""),
-        (
-            "BUSINESS_OBJECTIVE",
-            (
-                "Lọc và xếp thứ tự các TBMT để Team Bid tập trung xem xét "
-                "các cơ hội phù hợp với phạm vi công nghệ của QI.\n"
-                "SELECT chỉ có nghĩa là đưa gói vào danh sách Team Bid xem xét."
-                if profile_v1
-                else ""
-            ),
-        ),
+        ("BUSINESS_OBJECTIVE", business_objective),
         ("AUTHORIZED_LABELER", ""),
         ("APPROVER", ""),
     )
@@ -730,11 +738,16 @@ def _evidence_sheet(workbook: Workbook, source: SourceBundle, *, profile_v1: boo
     _style_table(sheet)
 
 
-def _build_workbook(source: SourceBundle, *, profile_v1: bool = False) -> Workbook:
+def _build_workbook(
+    source: SourceBundle,
+    *,
+    profile_v1: bool = False,
+    correction_id: str | None = None,
+) -> Workbook:
     workbook = Workbook()
     default = workbook.active
     workbook.remove(default)
-    _profile_sheet(workbook, source, profile_v1=profile_v1)
+    _profile_sheet(workbook, source, profile_v1=profile_v1, correction_id=correction_id)
     _source_sheet(workbook, source)
     _label_sheet(workbook, source, profile_v1=profile_v1)
     _evidence_sheet(workbook, source, profile_v1=profile_v1)
@@ -748,6 +761,7 @@ def validate_output_workbook(
     expected_source_rows: int,
     expected_identity_count: int,
     profile_v1: bool = False,
+    correction_id: str | None = None,
 ) -> None:
     path = Path(output_path).resolve()
     if not path.is_file():
@@ -769,6 +783,8 @@ def validate_output_workbook(
             profile_values = " ".join(str(cell.value or "") for row in profile.iter_rows() for cell in row)
             if "100 km" in profile_values:
                 raise BuildError("ARTIFACT_VALIDATION_HOLD: obsolete geographic radius policy remains")
+            if correction_id and f"ARTIFACT_CORRECTION={correction_id}" not in profile_values:
+                raise BuildError("ARTIFACT_VALIDATION_HOLD: correction marker is missing")
         elif profile["B8"].value != "NOT_APPROVED" or profile["B9"].value != "NOT_APPROVED":
             raise BuildError("ARTIFACT_VALIDATION_HOLD: approval state is not draft")
 
@@ -859,6 +875,7 @@ def build_draft(
     expected_source_rows: int = EXPECTED_SOURCE_ROWS,
     expected_identity_count: int = EXPECTED_IDENTITY_COUNT,
     profile_v1: bool = False,
+    correction_id: str | None = None,
 ) -> DraftBuildResult:
     source = Path(source_path).resolve()
     output = Path(output_path).resolve()
@@ -884,7 +901,7 @@ def build_draft(
             delete=False,
         ) as temporary:
             temporary_path = Path(temporary.name)
-        workbook = _build_workbook(bundle, profile_v1=profile_v1)
+        workbook = _build_workbook(bundle, profile_v1=profile_v1, correction_id=correction_id)
         try:
             workbook.save(temporary_path)
         finally:
@@ -904,6 +921,7 @@ def build_draft(
             expected_source_rows=bundle.source_data_rows,
             expected_identity_count=bundle.exact_identity_count,
             profile_v1=profile_v1,
+            correction_id=correction_id,
         )
         os.replace(temporary_path, output)
         temporary_path = None
@@ -920,6 +938,7 @@ def build_draft(
             expected_source_rows=bundle.source_data_rows,
             expected_identity_count=bundle.exact_identity_count,
             profile_v1=profile_v1,
+            correction_id=correction_id,
         )
         return DraftBuildResult(
             output=output,
@@ -979,19 +998,72 @@ def build_profile_v1(
     return result
 
 
+def build_profile_v1_correction(
+    source_path: str | Path,
+    output_path: str | Path,
+    *,
+    expected_source_sha256: str = EXPECTED_SOURCE_SHA256,
+    expected_source_rows: int = EXPECTED_SOURCE_ROWS,
+    expected_identity_count: int = EXPECTED_IDENTITY_COUNT,
+) -> DraftBuildResult:
+    """Build a marked correction artifact without overwriting the bad Profile v1."""
+
+    output = Path(output_path).resolve()
+    bad_profile = output.parent / PROFILE_OUTPUT_NAME
+    previous_draft = output.parent / PREVIOUS_DRAFT_NAME
+    if not bad_profile.is_file():
+        raise BuildError("BAD_PROFILE_ARTIFACT_HOLD: reviewed Profile v1 artifact is missing")
+    if not previous_draft.is_file():
+        raise BuildError("PREVIOUS_DRAFT_HOLD: historical draft workbook is missing")
+    bad_profile_sha_before = _sha256(bad_profile)
+    bad_profile_size_before = bad_profile.stat().st_size
+    previous_sha_before = _sha256(previous_draft)
+    previous_size_before = previous_draft.stat().st_size
+    result = build_draft(
+        source_path,
+        output,
+        expected_source_sha256=expected_source_sha256,
+        expected_source_rows=expected_source_rows,
+        expected_identity_count=expected_identity_count,
+        profile_v1=True,
+        correction_id=PROFILE_CORRECTION_ID,
+    )
+    bad_profile_sha_after = _sha256(bad_profile)
+    bad_profile_size_after = bad_profile.stat().st_size
+    previous_sha_after = _sha256(previous_draft)
+    previous_size_after = previous_draft.stat().st_size
+    if (
+        bad_profile_sha_after != bad_profile_sha_before
+        or bad_profile_size_after != bad_profile_size_before
+    ):
+        output.unlink(missing_ok=True)
+        raise BuildError("BAD_PROFILE_ARTIFACT_HOLD: reviewed Profile v1 artifact changed during correction")
+    if previous_sha_after != previous_sha_before or previous_size_after != previous_size_before:
+        output.unlink(missing_ok=True)
+        raise BuildError("PREVIOUS_DRAFT_HOLD: historical draft changed during correction")
+    return result
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build GOLDEN_CANDIDATE_01 draft or Profile v1 workbook")
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--profile-v1", action="store_true")
+    parser.add_argument("--profile-v1-correction", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        profile_v1_correction = args.profile_v1_correction or args.output.name == PROFILE_CORRECTION_OUTPUT_NAME
         profile_v1 = args.profile_v1 or args.output.name == PROFILE_OUTPUT_NAME
-        result = build_profile_v1(args.source, args.output) if profile_v1 else build_draft(args.source, args.output)
+        if profile_v1_correction:
+            result = build_profile_v1_correction(args.source, args.output)
+        elif profile_v1:
+            result = build_profile_v1(args.source, args.output)
+        else:
+            result = build_draft(args.source, args.output)
     except BuildError as exc:
         print(str(exc), file=sys.stderr)
         return 2

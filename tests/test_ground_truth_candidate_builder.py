@@ -53,6 +53,30 @@ IDENTITIES = (
     "IB2600510970-00",
 )
 
+EXPECTED_HUMAN_REGIONS = (
+    "TP.HCM",
+    "Cần Giờ",
+    "Vũng Tàu",
+    "Bình Dương",
+    "Tây Ninh",
+    "Long An",
+    "Đồng Nai",
+    "Lâm Đồng",
+    "Phan Thiết",
+)
+
+UNAUTHORIZED_REGIONS = (
+    "Hà Nội",
+    "Hải Phòng",
+    "Quảng Ninh",
+    "Bắc Ninh",
+    "Hưng Yên",
+    "Hải Dương",
+    "Vĩnh Phúc",
+    "Hà Nam",
+    "Nam Định",
+)
+
 
 def _write_source(path: Path, *, identities: tuple[str, ...] = IDENTITIES) -> str:
     workbook = Workbook()
@@ -281,8 +305,9 @@ def test_profile_v1_formalizes_roles_and_keeps_ground_truth_blank(tmp_path: Path
     }
     assert "2,000,000,000 VND" in allowed["C09"]
     assert ">2B" in allowed["C09"]
-    for region in ("TP.HCM", "Cần Giờ", "Vũng Tàu", "Bình Dương", "Tây Ninh", "Long An", "Đồng Nai", "Lâm Đồng", "Phan Thiết"):
-        assert region in allowed["C10"]
+    actual_regions = tuple(part.strip() for part in allowed["C10"].split(";"))
+    assert actual_regions == EXPECTED_HUMAN_REGIONS
+    assert not any(region in allowed["C10"] for region in UNAUTHORIZED_REGIONS)
     assert "100 km" not in profile_text
 
     labels = workbook["02_TEAM_BID_GAN_NHAN"]
@@ -310,6 +335,31 @@ def test_profile_v1_formalizes_roles_and_keeps_ground_truth_blank(tmp_path: Path
     workbook.close()
 
     assert hashlib.sha256(old_draft.read_bytes()).hexdigest() == old_sha
+
+
+def test_profile_v1_region_correction_creates_separate_marked_artifact_and_preserves_bad_profile(
+    tmp_path: Path,
+) -> None:
+    module = _builder_module()
+    source = tmp_path / "source.xlsx"
+    old_draft = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT.xlsx"
+    bad_profile = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx"
+    corrected_profile = tmp_path / "GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1_CORR1.xlsx"
+    source_sha = _write_source(source)
+
+    module.build_draft(source, old_draft, expected_source_sha256=source_sha)
+    module.build_profile_v1(source, bad_profile, expected_source_sha256=source_sha)
+    bad_profile_sha = hashlib.sha256(bad_profile.read_bytes()).hexdigest()
+    result = module.build_profile_v1_correction(source, corrected_profile, expected_source_sha256=source_sha)
+
+    assert result.output == corrected_profile.resolve()
+    assert hashlib.sha256(bad_profile.read_bytes()).hexdigest() == bad_profile_sha
+    workbook = load_workbook(corrected_profile, data_only=False)
+    profile = workbook["00_HUONG_DAN_PROFILE"]
+    profile_text = " ".join(str(cell.value or "") for row in profile.iter_rows() for cell in row)
+    assert "CORR-GT01-PROFILE-V1-REGION-01" in profile_text
+    assert "100 km" not in profile_text
+    workbook.close()
 
 
 def test_profile_v1_rejects_existing_target_without_mutating_old_draft(tmp_path: Path) -> None:

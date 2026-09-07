@@ -57,3 +57,19 @@ commit unless repository policy requires otherwise.
 
 Builder completion stops at `STOP_FOR_INDEPENDENT_REVIEW`. Profile approval
 does not approve package-level Ground Truth and does not authorize S1.
+
+## Bounded region correction
+
+`CORR-GT01-PROFILE-V1-REGION-01` produces the separate artifact
+`GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1_CORR1.xlsx`. It does not overwrite the
+reviewed `GOLDEN_CANDIDATE_01_DRAFT_PROFILE_V1.xlsx`, the historical draft, or
+the TBMT source. The active C10 authority is exactly:
+
+`TP.HCM; Cần Giờ; Vũng Tàu; Bình Dương; Tây Ninh; Long An; Đồng Nai; Lâm Đồng; Phan Thiết`
+
+The correction is a business-list policy, not a `100 km` radius. The test
+oracle independently asserts the exact ordered tuple and asserts that
+`Hà Nội`, `Hải Phòng`, `Quảng Ninh`, `Bắc Ninh`, `Hưng Yên`, `Hải Dương`,
+`Vĩnh Phúc`, `Hà Nam`, and `Nam Định` are absent. The corrected workbook is
+marked with the correction ID while retaining Profile version `1.0` and
+leaving package labels and criterion outcomes blank.
