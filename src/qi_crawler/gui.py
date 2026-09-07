@@ -90,6 +90,7 @@ from .gui_services import (
     HSMTFactDashboard,
     SearchRow,
     resolve_database_path,
+    run_bid_radar_excel_screening,
     run_bid_radar_export,
     run_bid_radar_import_search,
     run_bid_radar_legal_docx,
@@ -539,6 +540,7 @@ class QICrawlerWindow(QMainWindow):
             self.export_button,
             self.export_snapshot_button,
             self.bid_radar_import_button,
+            self.bid_radar_screening_button,
             self.bid_radar_export_button,
             self.bid_radar_legal_button,
             self.login_button,
@@ -990,11 +992,15 @@ class QICrawlerWindow(QMainWindow):
 
         output_box = QGroupBox("ĐẦU RA PHỤ")
         output_actions = QVBoxLayout(output_box)
+        self.bid_radar_screening_button = QPushButton("SCREENING HUMAN-LIGHT (4 SHEET)")
+        self.bid_radar_screening_button.setEnabled(False)
+        self.bid_radar_screening_button.clicked.connect(self.start_bid_radar_excel_screening)
         self.bid_radar_export_button = QPushButton("XUẤT GÓI ĐÃ XÁC NHẬN (XLSX)")
         self.bid_radar_export_button.clicked.connect(self.start_bid_radar_export)
         self.bid_radar_legal_button = QPushButton("TẠO LEGAL DOCX")
         self.bid_radar_legal_button.setEnabled(False)
         self.bid_radar_legal_button.clicked.connect(self.start_bid_radar_legal_docx)
+        output_actions.addWidget(self.bid_radar_screening_button)
         output_actions.addWidget(self.bid_radar_export_button)
         output_actions.addWidget(self.bid_radar_legal_button)
         inspector_layout.addWidget(output_box)
@@ -1291,6 +1297,7 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_source_action_button.setText("CHUYỂN SANG FILE NÀY")
             self.bid_radar_source_action_button.setEnabled(True)
         self.bid_radar_import_button.setEnabled(active is not None)
+        self.bid_radar_screening_button.setEnabled(active is not None)
 
     def _pending_source_from_detection(
         self,
@@ -1965,6 +1972,41 @@ class QICrawlerWindow(QMainWindow):
             status=self.bid_radar_status,
             task_name="bid_radar_export",
             long_operation=True,
+        )
+
+    @Slot()
+    def start_bid_radar_excel_screening(self) -> None:
+        active = self._bid_radar_active_source
+        if active is None or not active.path.is_file():
+            self.bid_radar_status.setText("Hãy chọn và dùng file Excel nguồn trước khi screening.")
+            return
+        output, _filter = QFileDialog.getSaveFileName(
+            self,
+            "Lưu workbook screening Human-Light",
+            str(self.config.storage.report_dir / "BID_RADAR_SCREENING.xlsx"),
+            "Excel workbook (*.xlsx)",
+        )
+        if not output:
+            return
+        self._submit(
+            run_bid_radar_excel_screening,
+            active.path,
+            output_path=Path(output).resolve(),
+            on_success=self._render_bid_radar_excel_screening,
+            button=self.bid_radar_screening_button,
+            progress=self.bid_radar_progress,
+            status=self.bid_radar_status,
+            task_name="bid_radar_excel_screening",
+            long_operation=True,
+        )
+
+    def _render_bid_radar_excel_screening(self, result: Any) -> None:
+        run = result.run
+        self.bid_radar_status.setText(
+            "Đã screening Human-Light: "
+            f"{run.data_record_rows} dòng, SELECT={run.select_count}, "
+            f"NEEDS_REVIEW={run.needs_review_count}, READ_ERROR={run.read_error_count}. "
+            f"Đã lưu: {result.output_path}"
         )
 
     def _render_bid_radar_export(self, result: Any) -> None:
