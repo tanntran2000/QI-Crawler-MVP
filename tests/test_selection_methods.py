@@ -18,6 +18,8 @@ def _selection_module():
         ("Chỉ định thầu", "CHI_DINH_THAU"),
         ("Chỉ định thầu rút gọn", "CHI_DINH_THAU_RUT_GON"),
         ("Chào hàng cạnh tranh", "CHAO_HANG_CANH_TRANH"),
+        ("Đấu thầu rộng rãi trong nước", "DAU_THAU_RONG_RAI"),
+        ("Chào hàng cạnh tranh trong nước", "CHAO_HANG_CANH_TRANH"),
         ("Đấu thầu rộng rãi", "DAU_THAU_RONG_RAI"),
         (
             "Chào giá trực tuyến theo quy trình rút gọn",

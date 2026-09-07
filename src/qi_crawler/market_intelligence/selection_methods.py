@@ -11,7 +11,9 @@ _LABEL_TO_CODE = {
     "chi dinh thau": "CHI_DINH_THAU",
     "chi dinh thau rut gon": "CHI_DINH_THAU_RUT_GON",
     "chao hang canh tranh": "CHAO_HANG_CANH_TRANH",
+    "chao hang canh tranh trong nuoc": "CHAO_HANG_CANH_TRANH",
     "dau thau rong rai": "DAU_THAU_RONG_RAI",
+    "dau thau rong rai trong nuoc": "DAU_THAU_RONG_RAI",
     "chao gia truc tuyen theo quy trinh rut gon": (
         "CHAO_GIA_TRUC_TUYEN_THEO_QUY_TRINH_RUT_GON"
     ),
