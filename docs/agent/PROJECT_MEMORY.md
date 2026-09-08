@@ -602,3 +602,27 @@ unless a later Work Package is merged and verified.
 - **Post-merge closeout:** PR #92 merged the concise CURRENT reconciliation at
   `1367f28c51d3a52e5fca027fd06fe4d4919e1b2a`; no product behavior changed.
 - **Last verified:** `1367f28c51d3a52e5fca027fd06fe4d4919e1b2a`.
+
+## MEM-028 — Bid Radar Operational Profile & Raw Source Acceptance
+
+- **State:** ACTIVE
+- **Since main commit:** `01ba604371d698249ea0739c61b9a59f234ba762`.
+- **Contract:** `WP-BID-RADAR-OPERATIONAL-PROFILE-01` is merged and verified.
+  Raw-source acceptance passed against the exact audited feature head with
+  51/51 source records `READ_OK` and 0 `READ_ERROR`; C07 is 23 PASS / 28
+  UNKNOWN; budget is 23 current priority / 21 expansion opportunity / 7
+  UNKNOWN; operational result is 0 FIT / 51 NEEDS_INFO / 0 OUTSIDE_PROFILE.
+  The 2,000,000,000 VND amount is Team Bid's current budget priority, not the
+  crawler capability ceiling, and packages above it remain visible as
+  expansion opportunities. Location remains fail-closed: buyer, project and
+  address hints do not become authoritative execution-location truth. The
+  0 FIT result is therefore an intentional fail-closed result, not evidence
+  that all packages are unsuitable. Machine screening is not Human Ground
+  Truth.
+- **Evidence:** audited feature head
+  `bed46ddcb0c630abb79a0616e83611c961f6520a`; merge commit
+  `01ba604371d698249ea0739c61b9a59f234ba762`; PR `94`.
+- **Boundary:** This memory does not authorize live e-GP, R2B, release, Ground
+  Truth promotion, GO/HOLD/NO-GO, automatic Team Bid decision, HSMT
+  Intelligence, Warehouse completeness/recovery, or any of the following
+  implementation steps without a separate approved Work Package.

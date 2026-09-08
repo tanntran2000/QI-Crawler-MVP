@@ -918,7 +918,7 @@ Promoted to: docs/agent_handoff/CURRENT.md
 ### FB-0033 — Budget is Team Bid priority, not crawler exclusion ceiling
 
 ```text
-State: ACCEPTED
+State: PROMOTED
 Author: Human
 Role: HUMAN_AUTHORITY
 WP: WP-BID-RADAR-OPERATIONAL-PROFILE-01 / WORK_ORDER_VERSION=3
@@ -933,9 +933,42 @@ technology, method, procurement and authoritative execution-location checks.
 Suggestion: Show “Mức phù hợp của gói thầu” and “Ưu tiên ngân sách Team Bid”
 separately in Team Bid business sheets; preserve canonical audit provenance.
 Scope change required: YES — authorized by Work Order v3.
-Response: Builder implementation and local verification pending Planner review.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT; PROJECT_MEMORY promotion is blocked
-until the change is merged.
-Promoted to: docs/agent_handoff/CURRENT.md
+Evidence after implementation:
+PR #94: MERGED
+Audited feature head: bed46ddcb0c630abb79a0616e83611c961f6520a
+Merge commit: 01ba604371d698249ea0739c61b9a59f234ba762
+Raw-source acceptance: PASS
+Response: The A0 budget decision is implemented and durably represented.
+Disposition: PROMOTED / MERGED_AUTHORITY
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/PROJECT_MEMORY.md / MEM-028;
+  docs/agent/MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0034 — Warehouse sequence: Completeness → Recovery → Human Check
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+Type: PRODUCT / PRIORITY / SEQUENCING
+Authority: A0 HUMAN_DECISION
+Observation:
+After post-merge Spine closeout, Human A0 selects:
+1. WP-WH-COMPLETE-01
+2. WP-WH-RECOVERY-01
+3. STOP_FOR_HUMAN_CHECK
+4. Human decides the next Product WP
+Boundary:
+Do not automatically proceed from Recovery into:
+- HSMT Intelligence
+- SOP Intelligence
+- Ground Truth
+- Controlled Learning / AI
+- live e-GP
+- R2B
+- release
+Disposition: ACCEPTED / ACTIVE_HUMAN_SEQUENCE
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md
 ```
