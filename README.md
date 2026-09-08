@@ -37,6 +37,8 @@ Một số khả năng vẫn đang trong giai đoạn thử nghiệm hoặc hoà
 
 Project được phát triển chủ yếu bằng **Python** và có quy trình kiểm thử, review và kiểm soát thay đổi trước khi tích hợp.
 
+Theo dõi thay đổi: [Changelog](CHANGELOG.md).
+
 Tài liệu kỹ thuật và hướng dẫn vận hành chi tiết được quản lý trong phạm vi nội bộ của dự án.
 
 ---
