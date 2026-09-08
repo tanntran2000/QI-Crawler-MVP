@@ -27,8 +27,11 @@ from .khmt_normalization import parse_package_price, parse_plan_identity
 from .tbmt_normalization import parse_tbmt_notice_identity
 
 PROFILE_VERSION = "QI_TBMT_OPPORTUNITY_SCREENING/1.0"
-C07_RULESET_VERSION = "C07-V1-R07-2026-09"
+C07_RULESET_VERSION = "C07-V1-R07-2026-09-R3"
 LOCATION_HINT_VERSION = "LOCATION-HINT-V1-2026-09"
+OPERATIONAL_PROFILE_ID = "QI_TEAM_BID_PROFILE_V1"
+OPERATIONAL_PROFILE_VERSION = "QI_TEAM_BID_PROFILE_V1"
+OPERATIONAL_PROFILE_LOCATION_VERSION = "EXECUTION-LOCATION-AUTHORITY-V1-2026-09"
 MAX_HEADER_SCAN_ROWS = 100
 PRICE_LIMIT = Decimal(2000000000)
 
@@ -49,6 +52,24 @@ class C10Result(StrEnum):
     PASS = "PASS"
     UNKNOWN = "UNKNOWN"
     FAIL = "FAIL"
+
+
+class OperationalCriterionResult(StrEnum):
+    PASS = "PASS"
+    UNKNOWN = "UNKNOWN"
+    FAIL = "FAIL"
+
+
+class OperationalResult(StrEnum):
+    FIT = "FIT"
+    NEEDS_INFO = "NEEDS_INFO"
+    OUTSIDE_PROFILE = "OUTSIDE_PROFILE"
+
+
+class BudgetPriority(StrEnum):
+    CURRENT_PRIORITY = "CURRENT_PRIORITY"
+    EXPANSION_OPPORTUNITY = "EXPANSION_OPPORTUNITY"
+    UNKNOWN = "UNKNOWN"
 
 
 class ScreeningResult(StrEnum):
@@ -72,6 +93,26 @@ class SourceType(StrEnum):
     KHMT = "KHMT"
     TBMT = "TBMT"
     UNKNOWN = "UNKNOWN"
+
+
+@dataclass(frozen=True, slots=True)
+class OperationalProfile:
+    profile_id: str
+    preferred_max_budget: Decimal
+    budget_priority_mode: str
+    allowed_selection_methods: tuple[str, ...]
+    required_procurement_method: str
+    allowed_execution_locations: tuple[str, ...]
+
+
+QI_TEAM_BID_PROFILE_V1 = OperationalProfile(
+    profile_id=OPERATIONAL_PROFILE_ID,
+    preferred_max_budget=PRICE_LIMIT,
+    budget_priority_mode="PRIORITY_NOT_HARD_EXCLUSION",
+    allowed_selection_methods=("DAU_THAU_RONG_RAI", "CHAO_HANG_CANH_TRANH"),
+    required_procurement_method="MOT_GIAI_DOAN_MOT_TUI_HO_SO",
+    allowed_execution_locations=(),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +144,7 @@ class ScreeningRecord:
     package_price: Decimal | None
     c07: C07Result | None
     c09: C09Result | None
+    budget_priority: BudgetPriority | None
     c10: C10Result | None
     screening: ScreeningResult | None
     priority: Priority | None
@@ -121,6 +163,16 @@ class ScreeningRecord:
     source_row_error: str | None = None
     missing_information: str | None = None
     raw_fields: dict[str, Any] = field(default_factory=dict)
+    selection_method: str | None = None
+    procurement_method: str | None = None
+    selection_status: OperationalCriterionResult | None = None
+    procurement_status: OperationalCriterionResult | None = None
+    budget_status: OperationalCriterionResult | None = None
+    location_status: OperationalCriterionResult | None = None
+    location_evidence: str | None = None
+    operational_result: OperationalResult | None = None
+    operational_missing_information: str | None = None
+    operational_failure_reasons: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +192,7 @@ class ScreeningRun:
     data_record_rows: int
     read_ok_rows: int
     read_error_rows: int
+    profile: OperationalProfile = QI_TEAM_BID_PROFILE_V1
 
     @property
     def non_record_rows(self) -> int:
@@ -160,6 +213,18 @@ class ScreeningRun:
     @property
     def read_error_count(self) -> int:
         return self.read_error_rows
+
+    @property
+    def fit_count(self) -> int:
+        return sum(record.operational_result is OperationalResult.FIT for record in self.records)
+
+    @property
+    def needs_info_count(self) -> int:
+        return sum(record.operational_result is OperationalResult.NEEDS_INFO for record in self.records)
+
+    @property
+    def outside_profile_count(self) -> int:
+        return sum(record.operational_result is OperationalResult.OUTSIDE_PROFILE for record in self.records)
 
     @property
     def accounting_invariant_status(self) -> str:
@@ -195,11 +260,17 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "COMPUTE",
         (
             r"\bm[aá]y tính\b",
+            r"\bm[aá]y vi tính\b",
+            r"\bm[aá]y tính xách tay\b",
             r"\blaptop\b",
             r"\bworkstation\b",
             r"\bm[aá]y chủ\b",
             r"\bserver\b",
             r"\bthiết bị lưu trữ\b",
+            r"\bNAS\b",
+            r"\bSAN\b",
+            r"linh kiện điện tử",
+            r"(?:hạ tầng|thiết bị)\s+(?:công nghệ thông tin|cntt)\b",
             r"\bm[aá]y in\b",
             r"\bm[aá]y qu[eé]t\b",
         ),
@@ -217,6 +288,10 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             r"access\s+point",
             r"hệ thống mạng",
             r"cáp mạng",
+            r"\binternet\b",
+            r"\bWAN\b",
+            r"cáp quang",
+            r"tủ rack",
         ),
     ),
     (
@@ -230,6 +305,7 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             r"nâng cấp phần mềm",
             r"bảo trì phần mềm",
             r"triển khai phần mềm",
+            r"\bOffice\b",
         ),
     ),
     (
@@ -244,6 +320,7 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             r"\bsiem\b",
             r"giải pháp bảo mật",
             r"cybersecurity",
+            r"\bDDoS\b",
         ),
     ),
     (
@@ -260,6 +337,11 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             r"hệ thống báo cáo điện tử",
             r"hệ thống cntt",
             r"giải pháp số",
+            r"\bAPI\b",
+            r"\bwebsite\b",
+            r"cơ sở dữ liệu",
+            r"\bOCR\b",
+            r"object\s+storage",
         ),
     ),
     (
@@ -268,6 +350,7 @@ _C07_RULES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         (
             r"thuê dịch vụ cntt",
             r"cung cấp dịch vụ cntt",
+            r"dịch vụ (?:công nghệ thông tin|cntt)\b",
             r"triển khai giải pháp chuyển đổi số",
             r"thuê giải pháp chuyển đổi số",
         ),
@@ -279,6 +362,15 @@ def _text(value: Any) -> str:
     if value is None:
         return ""
     return " ".join(unicodedata.normalize("NFKC", str(value)).strip().split())
+
+
+def _fold_text(value: Any) -> str:
+    text = _text(value).casefold().replace("đ", "d")
+    return "".join(
+        character
+        for character in unicodedata.normalize("NFKD", text)
+        if not unicodedata.combining(character)
+    )
 
 
 def _key(value: Any) -> str:
@@ -381,13 +473,53 @@ def _evidence_excerpt(text: str, match: re.Match[str]) -> str:
     return text[start:end].strip()
 
 
+_C07_CONTEXTUAL_RULES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
+    (
+        "R07-DIGITAL-SYSTEM",
+        ("so hoa",),
+        ("ocr", "co so du lieu", "phan mem", "he thong thong tin"),
+    ),
+)
+
+
+_TRAINING_RE = re.compile(r"\b(dao tao|tap huan|boi duong|khoa hoc|training)\b")
+_ORGANIZATION_TRAINING_RE = re.compile(
+    r"\b(?:so|phong|truong|vien|bo|ban|uy ban)\s+giao duc va dao tao\b"
+)
+_PROCURED_TECH_RE = re.compile(
+    r"\b(?:mua(?: sam)?|cung cap|trien khai|lap dat|bao tri|thue)\s+"
+    r"(?:dich vu\s+)?(?:ban quyen\s+)?(?:phan mem|license|he thong|thiet bi|internet|may chu|cntt)\b"
+)
+
+
+def _is_training_subject(value: str) -> bool:
+    """Recognize a training activity, while ignoring organization names."""
+
+    return bool(_TRAINING_RE.search(_ORGANIZATION_TRAINING_RE.sub("", value)))
+
+
 def _screen_c07(source_type: SourceType, fields: dict[str, Any]) -> tuple[C07Result, str | None, str | None, str | None, str | None]:
     names = ("TÊN GÓI THẦU", "GÓI THẦU")
     evidence_fields = names if source_type is SourceType.KHMT else (*names, "NỘI DUNG CHÍNH CỦA GÓI THẦU")
+    package_training = any(_is_training_subject(_fold_text(fields.get(name))) for name in names)
     for field_name in evidence_fields:
         value = _text(fields.get(field_name))
         if not value:
             continue
+        folded = _fold_text(value)
+        training_subject = package_training or _is_training_subject(folded)
+        if training_subject:
+            # Only a separately procured deliverable can override a training subject.
+            clauses = re.split(r"[;\n]|\b(?:va|kem|bao gom)\b", folded)
+            deliverables = [clause for clause in clauses if not _TRAINING_RE.search(clause) and _PROCURED_TECH_RE.search(clause)]
+            if deliverables:
+                return C07Result.PASS, "R07-TECH-DELIVERABLE", field_name, value, None
+            continue
+        if re.search(r"\brack\b", folded) and re.search(r"\b(idc|datacenter|data center|trung tam du lieu|mang|may chu|server|thiet bi)\b", folded):
+            return C07Result.PASS, "R07-NETWORK", field_name, value, None
+        for rule_code, required_terms, context_terms in _C07_CONTEXTUAL_RULES:
+            if all(term in folded for term in required_terms) and any(term in folded for term in context_terms):
+                return C07Result.PASS, rule_code, field_name, value, None
         for rule_code, _label, patterns in _C07_RULES:
             for pattern in patterns:
                 match = re.search(pattern, value, flags=re.IGNORECASE)
@@ -430,6 +562,83 @@ def _screen_c09(value: Any) -> tuple[C09Result, Decimal | None, str | None]:
     return (C09Result.PASS if price <= PRICE_LIMIT else C09Result.FAIL), price, raw
 
 
+def _budget_priority(price: Decimal | None, profile: OperationalProfile) -> BudgetPriority:
+    if price is None:
+        return BudgetPriority.UNKNOWN
+    if price <= profile.preferred_max_budget:
+        return BudgetPriority.CURRENT_PRIORITY
+    return BudgetPriority.EXPANSION_OPPORTUNITY
+
+
+def _screen_selection_method(value: Any) -> OperationalCriterionResult:
+    folded = _fold_text(value)
+    if not folded:
+        return OperationalCriterionResult.UNKNOWN
+    if "dau thau rong rai" in folded or "chao hang canh tranh" in folded:
+        return OperationalCriterionResult.PASS
+    return OperationalCriterionResult.FAIL
+
+
+def _screen_procurement_method(value: Any) -> OperationalCriterionResult:
+    folded = _fold_text(value)
+    if not folded:
+        return OperationalCriterionResult.UNKNOWN
+    if "mot giai doan mot tui ho so" in folded:
+        return OperationalCriterionResult.PASS
+    return OperationalCriterionResult.FAIL
+
+
+_EXECUTION_LOCATION_FIELDS = (
+    "ĐỊA ĐIỂM THỰC HIỆN",
+    "ĐỊA ĐIỂM THỰC HIỆN GÓI THẦU",
+    "ĐỊA ĐIỂM THỰC HIỆN HỢP ĐỒNG",
+)
+
+
+def _screen_execution_location(fields: dict[str, Any], profile: OperationalProfile = QI_TEAM_BID_PROFILE_V1) -> tuple[OperationalCriterionResult, str | None]:
+    raw = _first(fields, *_EXECUTION_LOCATION_FIELDS)
+    if raw in (None, ""):
+        return OperationalCriterionResult.UNKNOWN, None
+    text = _text(raw)
+    if not profile.allowed_execution_locations:
+        return OperationalCriterionResult.UNKNOWN, text
+    folded = _fold_text(text)
+    matched_labels: list[str] = []
+    for label, aliases in _LOCATION_ALIASES:
+        if any(_fold_text(alias) in folded for alias in aliases):
+            matched_labels.append(label)
+    if not matched_labels:
+        return OperationalCriterionResult.UNKNOWN, text
+    allowed = set(profile.allowed_execution_locations)
+    if all(label in allowed for label in matched_labels):
+        return OperationalCriterionResult.PASS, text
+    return OperationalCriterionResult.FAIL, text
+
+
+def _evaluate_operational_profile(
+    *,
+    c07: C07Result | None,
+    selection_status: OperationalCriterionResult,
+    procurement_status: OperationalCriterionResult,
+    location_status: OperationalCriterionResult,
+) -> tuple[OperationalResult, str | None, str | None]:
+    statuses = {
+        "C07": OperationalCriterionResult(c07.value) if c07 is not None else OperationalCriterionResult.UNKNOWN,
+        "SELECTION_METHOD": selection_status,
+        "PROCUREMENT_METHOD": procurement_status,
+        "LOCATION": location_status,
+    }
+    failures = tuple(name for name, status in statuses.items() if status is OperationalCriterionResult.FAIL)
+    missing = tuple(name for name, status in statuses.items() if status is OperationalCriterionResult.UNKNOWN)
+    if failures:
+        result = OperationalResult.OUTSIDE_PROFILE
+    elif missing:
+        result = OperationalResult.NEEDS_INFO
+    else:
+        result = OperationalResult.FIT
+    return result, ", ".join(missing) or None, ", ".join(failures) or None
+
+
 def _record_from_row(
     *,
     source_type: SourceType,
@@ -438,6 +647,7 @@ def _record_from_row(
     source_filename: str,
     source_sha256: str,
     sheet: str,
+    profile: OperationalProfile = QI_TEAM_BID_PROFILE_V1,
 ) -> ScreeningRecord:
     identity_raw = _first(fields, "SỐ KẾ HOẠCH", "GÓI THẦU")
     package_raw = _first(fields, "TÊN GÓI THẦU", "GÓI THẦU")
@@ -457,13 +667,32 @@ def _record_from_row(
     if identity_obj is None:
         identity = _text(identity_raw) or None
     else:
-        identity = identity_obj.raw if source_type is SourceType.KHMT else identity_obj.raw_id
+        identity = identity_obj.raw if source_type is SourceType.KHMT else f"{identity_obj.base_id}-{identity_obj.revision}"
+    c07, rule_code, evidence_field, evidence_excerpt, c07_missing = _screen_c07(source_type, fields)
+    c09, price, price_raw = _screen_c09(_first(fields, "GIÁ GÓI THẦU"))
+    budget_priority = _budget_priority(price, profile)
+    selection_method = _text(_first(fields, "HÌNH THỨC LỰA CHỌN NHÀ THẦU", "HÌNH THỨC LỰA CHỌN")) or None
+    procurement_method = _text(_first(fields, "PHƯƠNG THỨC LỰA CHỌN NHÀ THẦU", "PHƯƠNG THỨC LỰA CHỌN")) or None
+    selection_status = _screen_selection_method(selection_method)
+    procurement_status = _screen_procurement_method(procurement_method)
+    location_status, location_evidence = _screen_execution_location(fields, profile)
+    operational_result, operational_missing, operational_failures = _evaluate_operational_profile(
+        c07=c07,
+        selection_status=selection_status,
+        procurement_status=procurement_status,
+        location_status=location_status,
+    )
     errors: list[tuple[str, str]] = []
     if identity_obj is None:
         errors.append(("INVALID_IDENTITY", "Identity is missing or malformed for detected source namespace"))
     if package_name is None:
         errors.append(("EMPTY_PACKAGE_NAME", "Package name is missing"))
     if errors:
+        operational_missing = ", ".join(
+            part
+            for part in (operational_missing, *(code for code, _message in errors))
+            if part
+        ) or None
         return ScreeningRecord(
             source_row=source_row,
             status=RecordStatus.READ_ERROR,
@@ -473,6 +702,7 @@ def _record_from_row(
             package_price=None,
             c07=None,
             c09=None,
+            budget_priority=BudgetPriority.UNKNOWN,
             c10=None,
             screening=None,
             priority=None,
@@ -491,10 +721,22 @@ def _record_from_row(
             source_row_error="; ".join(message for _code, message in errors),
             missing_information="; ".join(code for code, _message in errors),
             raw_fields=fields,
+            selection_method=selection_method,
+            procurement_method=procurement_method,
+            selection_status=selection_status,
+            procurement_status=procurement_status,
+            budget_status=OperationalCriterionResult.UNKNOWN,
+            location_status=location_status,
+            location_evidence=location_evidence,
+            operational_result=(
+                OperationalResult.OUTSIDE_PROFILE
+                if operational_failures
+                else OperationalResult.NEEDS_INFO
+            ),
+            operational_missing_information=operational_missing,
+            operational_failure_reasons=operational_failures,
         )
 
-    c07, rule_code, evidence_field, evidence_excerpt, missing = _screen_c07(source_type, fields)
-    c09, price, price_raw = _screen_c09(_first(fields, "GIÁ GÓI THẦU"))
     hints = _location_hint(fields, source_type)
     screening = ScreeningResult.SELECT if c07 is C07Result.PASS else ScreeningResult.NEEDS_REVIEW
     priority = Priority.MEDIUM if screening is ScreeningResult.SELECT else Priority.UNRANKED
@@ -507,6 +749,7 @@ def _record_from_row(
         package_price=price,
         c07=c07,
         c09=c09,
+        budget_priority=budget_priority,
         c10=C10Result.UNKNOWN,
         screening=screening,
         priority=priority,
@@ -521,12 +764,22 @@ def _record_from_row(
         source_filename=source_filename,
         source_sha256=source_sha256,
         source_sheet=sheet,
-        missing_information=missing,
+        missing_information=c07_missing,
         raw_fields=fields,
+        selection_method=selection_method,
+        procurement_method=procurement_method,
+        selection_status=selection_status,
+        procurement_status=procurement_status,
+        budget_status=OperationalCriterionResult(c09.value),
+        location_status=location_status,
+        location_evidence=location_evidence,
+        operational_result=operational_result,
+        operational_missing_information=operational_missing,
+        operational_failure_reasons=operational_failures,
     )
 
 
-def screen_excel_workbook(path: str | Path) -> ScreeningRun:
+def screen_excel_workbook(path: str | Path, *, profile: OperationalProfile = QI_TEAM_BID_PROFILE_V1) -> ScreeningRun:
     """Read one workbook into a complete, provenance-preserving screening run."""
 
     source_path = Path(path).resolve()
@@ -580,9 +833,11 @@ def screen_excel_workbook(path: str | Path) -> ScreeningRun:
                     source_filename=source_path.name,
                     source_sha256=source_sha256,
                     sheet=sheet.title,
+                    profile=profile,
                 )
             )
         return ScreeningRun(
+            profile=profile,
             source_path=source_path,
             source_filename=source_path.name,
             source_sha256=source_sha256,
@@ -611,7 +866,7 @@ _BUSINESS_HEADERS = (
     "Cần kiểm tra gì",
     "Mã PL/IB",
     "C07",
-    "C09",
+    "Budget Priority",
     "C10",
     "Screening Result",
     "Priority",
@@ -624,6 +879,15 @@ _BUSINESS_HEADERS = (
     "Source Sheet",
     "Source Row",
     "Source SHA256 / bounded trace reference",
+    "Suitability",
+    "Selection Method",
+    "Selection Status",
+    "Procurement Method",
+    "Procurement Status",
+    "Location Evidence",
+    "Location Status",
+    "Profile Missing Information",
+    "Profile Failure Reasons",
 )
 
 _AUDIT_HEADERS = (
@@ -634,6 +898,7 @@ _AUDIT_HEADERS = (
     "Giá gói",
     "C07",
     "C09",
+    "Budget Priority",
     "C10",
     "Screening Result",
     "Priority",
@@ -643,6 +908,16 @@ _AUDIT_HEADERS = (
     "Source Type",
     "Source Sheet",
     "Source SHA256",
+    "Operational Result",
+    "Budget Status",
+    "Selection Method",
+    "Selection Status",
+    "Procurement Method",
+    "Procurement Status",
+    "Location Evidence",
+    "Location Status",
+    "Profile Missing Information",
+    "Profile Failure Reasons",
 )
 
 
@@ -685,7 +960,60 @@ def _record_values(record: ScreeningRecord) -> tuple[Any, ...]:
         record.source_sheet,
         record.source_row,
         record.source_sha256,
+        record.operational_result.value if record.operational_result else None,
+        record.budget_status.value if record.budget_status else None,
+        record.selection_method,
+        record.selection_status.value if record.selection_status else None,
+        record.procurement_method,
+        record.procurement_status.value if record.procurement_status else None,
+        record.location_evidence,
+        record.location_status.value if record.location_status else None,
+        record.operational_missing_information,
+        record.operational_failure_reasons,
     )
+
+
+_BUSINESS_LABELS = {
+    "C07": "Phù hợp ngành công nghệ thông tin", "Budget Priority": "Ưu tiên ngân sách Team Bid",
+    "C10": "Địa bàn theo sàng lọc nguồn", "Screening Result": "Kết quả tìm cơ hội công nghệ",
+    "Priority": "Mức ưu tiên", "C07 Rule Code": "Nhóm căn cứ công nghệ",
+    "Evidence Field": "Trường chứa căn cứ", "Evidence Excerpt": "Trích dẫn căn cứ",
+    "Location Hint Basis": "Cơ sở gợi ý địa bàn (chưa xác nhận)",
+    "Source Type": "Loại nguồn", "Revision": "Phiên bản thông báo",
+    "Source Sheet": "Sheet nguồn", "Source Row": "Dòng nguồn",
+    "Source SHA256 / bounded trace reference": "Mã kiểm tra file nguồn (SHA256)",
+    "Suitability": "Mức phù hợp của gói thầu",
+    "Selection Method": "Hình thức lựa chọn nhà thầu", "Selection Status": "Đánh giá hình thức lựa chọn",
+    "Procurement Method": "Phương thức lựa chọn nhà thầu", "Procurement Status": "Đánh giá phương thức lựa chọn",
+    "Location Evidence": "Địa điểm thực hiện có căn cứ", "Location Status": "Đánh giá địa điểm thực hiện",
+    "Profile Missing Information": "Thông tin cần bổ sung", "Profile Failure Reasons": "Điều kiện chưa đáp ứng",
+}
+_DISPLAY_STATUS = {
+    "PASS": "Đáp ứng", "FAIL": "Không đáp ứng", "UNKNOWN": "Chưa đủ thông tin",
+    "FIT": "Phù hợp hồ sơ sàng lọc", "NEEDS_INFO": "Cần bổ sung thông tin", "OUTSIDE_PROFILE": "Ngoài hồ sơ sàng lọc",
+    "SELECT": "Có căn cứ công nghệ", "NEEDS_REVIEW": "Chưa rõ phạm vi công nghệ",
+    "MEDIUM": "Trung bình", "HIGH": "Cao", "UNRANKED": "Chưa xếp hạng",
+    "CURRENT_PRIORITY": "Trong mức ngân sách ưu tiên",
+    "EXPANSION_OPPORTUNITY": "Cơ hội mở rộng",
+}
+_CRITERION_LABELS = {"C07": "phạm vi công nghệ", "BUDGET": "giá gói thầu", "SELECTION_METHOD": "hình thức lựa chọn nhà thầu", "PROCUREMENT_METHOD": "phương thức lựa chọn nhà thầu", "LOCATION": "địa điểm thực hiện và cấu hình địa bàn được duyệt"}
+
+
+def _business_values(record: ScreeningRecord) -> tuple[Any, ...]:
+    values = list(_record_values(record))
+    values[7] = record.budget_priority.value if record.budget_priority else None
+    del values[21]
+    for index in (6, 7, 8, 9, 10, 20, 22, 24, 26):
+        values[index] = _DISPLAY_STATUS.get(values[index], values[index])
+    rules = {code: label for code, label, _patterns in _C07_RULES}
+    rules.update({"R07-COMPUTE": "Máy tính, thiết bị và linh kiện điện tử", "R07-NETWORK": "Mạng và kết nối", "R07-SOFTWARE-LICENSE": "Phần mềm và bản quyền", "R07-CYBERSECURITY": "An toàn thông tin", "R07-DIGITAL-SYSTEM": "Hệ thống thông tin và dữ liệu", "R07-SURVEILLANCE": "Camera và giám sát", "R07-IT-SERVICE": "Dịch vụ công nghệ thông tin", "R07-TECH-DELIVERABLE": "Cung cấp công nghệ kèm đào tạo"})
+    values[11] = rules.get(record.c07_rule_code, record.c07_rule_code)
+    for index in (27, 28):
+        if values[index]:
+            values[index] = "; ".join(_CRITERION_LABELS.get(part, part) for part in values[index].split(", "))
+    values[4] = values[27] or values[28]
+    values[14] = "Gợi ý từ văn bản nguồn; chưa xác nhận nơi thực hiện" if record.location_hint else None
+    return tuple(values)
 
 
 def _ordered_select(records: Iterable[ScreeningRecord]) -> list[ScreeningRecord]:
@@ -694,6 +1022,31 @@ def _ordered_select(records: Iterable[ScreeningRecord]) -> list[ScreeningRecord]
         (record for record in records if record.status is RecordStatus.READ_OK and record.screening is ScreeningResult.SELECT),
         key=lambda record: (c09_rank[record.c09], record.source_row),
     )
+
+
+def _ordered_operational_fit(records: Iterable[ScreeningRecord]) -> list[ScreeningRecord]:
+    return sorted(
+        (
+            record
+            for record in records
+            if record.status is RecordStatus.READ_OK
+            and record.operational_result is OperationalResult.FIT
+        ),
+        key=lambda record: record.source_row,
+    )
+
+
+def _ordered_operational_review(records: Iterable[ScreeningRecord]) -> list[ScreeningRecord]:
+    return sorted([
+        record
+        for record in records
+        if record.status is RecordStatus.READ_OK
+        and record.operational_result is OperationalResult.NEEDS_INFO
+    ], key=lambda record: (
+        0 if record.c07 is C07Result.PASS and record.operational_missing_information == "LOCATION"
+        else 1 if record.c07 is C07Result.PASS else 2,
+        record.source_row,
+    ))
 
 
 def _ordered_review(records: Iterable[ScreeningRecord]) -> list[ScreeningRecord]:
@@ -719,21 +1072,21 @@ def export_screening_workbook(run: ScreeningRun, output_path: str | Path) -> Pat
     header_font = Font(color="FFFFFF", bold=True)
 
     def write_business_sheet(sheet: Any, rows: Iterable[ScreeningRecord]) -> None:
-        sheet.append(_BUSINESS_HEADERS)
+        sheet.append(tuple(_BUSINESS_LABELS.get(header, header) for header in _BUSINESS_HEADERS))
         for cell in sheet[1]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(wrap_text=True, vertical="top")
         for record in rows:
-            sheet.append(safe_excel_row(_record_values(record)))
+            sheet.append(safe_excel_row(_business_values(record)))
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = sheet.dimensions
 
-    write_business_sheet(first, _ordered_select(run.records))
-    write_business_sheet(workbook["02_CAN_BO_SUNG"], _ordered_review(run.records))
+    write_business_sheet(first, _ordered_operational_fit(run.records))
+    write_business_sheet(workbook["02_CAN_BO_SUNG"], _ordered_operational_review(run.records))
 
     audit = workbook["03_AUDIT_TOAN_BO"]
-    audit.append(_AUDIT_HEADERS)
+    audit.append(tuple(_BUSINESS_LABELS.get(header, header) for header in _AUDIT_HEADERS))
     for cell in audit[1]:
         cell.fill = header_fill
         cell.font = header_font
@@ -749,6 +1102,7 @@ def export_screening_workbook(run: ScreeningRun, output_path: str | Path) -> Pat
                 record.package_price,
                 record.c07.value if record.c07 else None,
                 record.c09.value if record.c09 else None,
+                record.budget_priority.value if record.budget_priority else None,
                 record.c10.value if record.c10 else None,
                 record.screening.value if record.screening else None,
                 record.priority.value if record.priority else None,
@@ -758,6 +1112,16 @@ def export_screening_workbook(run: ScreeningRun, output_path: str | Path) -> Pat
                 record.source_type.value,
                 record.source_sheet,
                 record.source_sha256,
+                record.operational_result.value if record.operational_result else None,
+                record.budget_status.value if record.budget_status else None,
+                record.selection_method,
+                record.selection_status.value if record.selection_status else None,
+                record.procurement_method,
+                record.procurement_status.value if record.procurement_status else None,
+                record.location_evidence,
+                record.location_status.value if record.location_status else None,
+                record.operational_missing_information,
+                record.operational_failure_reasons,
                 )
             )
         )
@@ -775,12 +1139,23 @@ def export_screening_workbook(run: ScreeningRun, output_path: str | Path) -> Pat
                 None,
                 None,
                 None,
+                None,
                 non_record.reason_code,
                 "Row retained outside DATA_RECORD_ROWS",
                 None,
                 run.source_type.value,
                 run.sheet,
                 run.source_sha256,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
                 )
             )
         )
@@ -811,6 +1186,33 @@ def export_screening_workbook(run: ScreeningRun, output_path: str | Path) -> Pat
         ("EXCLUDE_COUNT", run.exclude_count),
         ("READ_ERROR_COUNT", run.read_error_count),
         ("PROFILE_VERSION", PROFILE_VERSION),
+        ("OPERATIONAL_PROFILE_ID", run.profile.profile_id),
+        ("OPERATIONAL_PROFILE_VERSION", OPERATIONAL_PROFILE_VERSION),
+        ("PREFERRED_MAX_BUDGET", run.profile.preferred_max_budget),
+        ("BUDGET_PRIORITY_MODE", run.profile.budget_priority_mode),
+        ("BUDGET_PRIORITY_AUTHORITY", "HUMAN_A0: current Team Bid priority, not crawler capability limit or default exclusion"),
+        ("ALLOWED_SELECTION_METHODS", ", ".join(run.profile.allowed_selection_methods)),
+        ("REQUIRED_PROCUREMENT_METHOD", run.profile.required_procurement_method),
+        ("GEOGRAPHY_POLICY", "AUTHORITATIVE_EXECUTION_LOCATION_ONLY"),
+        ("ALLOWED_EXECUTION_LOCATIONS", ", ".join(run.profile.allowed_execution_locations) or "Chưa cấu hình địa bàn được duyệt"),
+        ("Hướng dẫn tiêu chí", "C07: phạm vi công nghệ; C09: trạng thái canonical theo mốc 2 tỷ; C10: địa bàn theo sàng lọc nguồn. Ưu tiên ngân sách Team Bid là cấu hình, không loại gói mặc định."),
+        ("Hướng dẫn trạng thái", "FIT: phù hợp; NEEDS_INFO: cần bổ sung; OUTSIDE_PROFILE: ngoài hồ sơ. PASS: đáp ứng; FAIL: không đáp ứng; UNKNOWN: chưa đủ thông tin."),
+        ("OPERATIONAL_LOCATION_VERSION", OPERATIONAL_PROFILE_LOCATION_VERSION),
+        ("FIT_COUNT", run.fit_count),
+        ("NEEDS_INFO_COUNT", run.needs_info_count),
+        ("OUTSIDE_PROFILE_COUNT", run.outside_profile_count),
+        ("BUDGET_CURRENT_PRIORITY_COUNT", sum(record.budget_priority is BudgetPriority.CURRENT_PRIORITY for record in run.records)),
+        ("BUDGET_EXPANSION_OPPORTUNITY_COUNT", sum(record.budget_priority is BudgetPriority.EXPANSION_OPPORTUNITY for record in run.records)),
+        ("BUDGET_UNKNOWN_COUNT", sum(record.budget_priority is BudgetPriority.UNKNOWN for record in run.records)),
+        ("SELECTION_PASS_COUNT", sum(record.selection_status is OperationalCriterionResult.PASS for record in run.records)),
+        ("SELECTION_FAIL_COUNT", sum(record.selection_status is OperationalCriterionResult.FAIL for record in run.records)),
+        ("SELECTION_UNKNOWN_COUNT", sum(record.selection_status is OperationalCriterionResult.UNKNOWN for record in run.records)),
+        ("PROCUREMENT_PASS_COUNT", sum(record.procurement_status is OperationalCriterionResult.PASS for record in run.records)),
+        ("PROCUREMENT_FAIL_COUNT", sum(record.procurement_status is OperationalCriterionResult.FAIL for record in run.records)),
+        ("PROCUREMENT_UNKNOWN_COUNT", sum(record.procurement_status is OperationalCriterionResult.UNKNOWN for record in run.records)),
+        ("LOCATION_PASS_COUNT", sum(record.location_status is OperationalCriterionResult.PASS for record in run.records)),
+        ("LOCATION_FAIL_COUNT", sum(record.location_status is OperationalCriterionResult.FAIL for record in run.records)),
+        ("LOCATION_UNKNOWN_COUNT", sum(record.location_status is OperationalCriterionResult.UNKNOWN for record in run.records)),
         ("C07_RULESET_VERSION", C07_RULESET_VERSION),
         ("LOCATION_HINT_VERSION", LOCATION_HINT_VERSION),
         ("ACCOUNTING_INVARIANT_STATUS", run.accounting_invariant_status),
