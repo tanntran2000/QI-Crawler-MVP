@@ -1,54 +1,44 @@
 # QI-Crawler
 
-QI-Crawler là công cụ nội bộ hỗ trợ Team Bid thu thập, đọc, tổ chức, tìm kiếm và truy xuất thông tin đấu thầu.
+**QI-Crawler** là nền tảng nội bộ hỗ trợ Team Bid của QI Technologies thu thập, sàng lọc, tổ chức và truy xuất thông tin đấu thầu trong một quy trình làm việc thống nhất.
 
-**Nguyên tắc cốt lõi:** QI-Crawler cung cấp dữ liệu và bằng chứng; con người kiểm tra, tính toán, đánh giá và quyết định.
+> **Data supports decisions. People make decisions.**
 
-## Chức năng chính
+## Tổng quan
 
-- Thu thập dữ liệu từ nguồn được cấu hình, gồm nguồn công khai và nguồn cần người dùng đăng nhập.
-- Tiếp nhận tài liệu PDF, DOCX, XLSX và ZIP; lưu SHA, định danh, revision và provenance.
-- Tìm kiếm, lọc và xuất dữ liệu TBMT/Excel phục vụ kiểm tra nghiệp vụ.
-- Nhập KHMT Excel, giữ nguyên dữ liệu nguồn, tách PL base/revision và chuẩn hóa các trường có thể kiểm chứng.
-- Tổng hợp Discovery theo tỉnh/thành, ngân sách và phương thức lựa chọn.
-- Targeted Search theo ngân sách, tỉnh/thành, từ khóa và phương thức lựa chọn với reason codes giải thích kết quả.
-- Ghi log chẩn đoán có cấu trúc và hỗ trợ sao chép thông tin kỹ thuật đã che dữ liệu nhạy cảm.
+QI-Crawler giúp giảm khối lượng xử lý dữ liệu thủ công và tạo một workspace nhất quán cho việc theo dõi cơ hội, tài liệu và thông tin liên quan đến hồ sơ đấu thầu.
 
-## Ranh giới an toàn
+Các nhóm chức năng chính:
 
-QI-Crawler không:
+- **Data Intake** — tiếp nhận và tổ chức dữ liệu từ các nguồn nghiệp vụ được hỗ trợ.
+- **Opportunity Screening** — hỗ trợ tìm kiếm, sàng lọc và ưu tiên các cơ hội cần quan tâm.
+- **Tender Workspace** — tập hợp tài liệu và thông tin liên quan theo từng gói thầu.
+- **Document Intelligence** — hỗ trợ đọc, trích xuất và truy xuất thông tin từ tài liệu.
+- **Reporting & Export** — tạo các đầu ra phục vụ Team Bid kiểm tra và làm việc tiếp.
 
-- tự vượt CAPTCHA, OTP hoặc cơ chế bảo mật;
-- tự suy diễn mã IB từ mã PL;
-- tự chọn nhà cung cấp, model hoặc SKU;
-- tự đưa ra GO/HOLD/NO-GO, xác suất trúng thầu hoặc quyết định tham dự;
-- coi dữ liệu máy xử lý là dữ liệu đã được con người phê duyệt.
+## Nguyên tắc
 
-`Machine Verified != Human Approved`.
+**Traceable**  
+Thông tin quan trọng cần có khả năng truy ngược về nguồn.
 
-SQLite là System of Record. Excel là nguồn nhập hoặc artifact xuất, không phải nguồn sự thật nội bộ thay thế database.
+**Human-in-the-loop**  
+Kết quả xử lý của hệ thống hỗ trợ con người, không thay thế quyết định nghiệp vụ.
 
-## Chạy từ source trên Windows
+**Source-preserving**  
+Dữ liệu nguồn và bằng chứng được ưu tiên bảo toàn trong suốt quá trình xử lý.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-python -m playwright install chromium
-QI-Crawler db-upgrade
-python -m qi_crawler.gui
-```
+## Phạm vi
 
-Nếu dùng launcher nội bộ đã được cài đặt, có thể khởi động QI-Crawler trực tiếp mà không cần chạy các lệnh trên.
+QI-Crawler là công cụ nội bộ đang được phát triển liên tục cho quy trình Bid Intelligence của QI Technologies.
 
-## Tài liệu
+Một số khả năng vẫn đang trong giai đoạn thử nghiệm hoặc hoàn thiện và không được xem là quyết định nghiệp vụ cuối cùng.
 
-- [Hướng dẫn sử dụng](HUONG_DAN_SU_DUNG.md)
-- [Changelog](CHANGELOG.md)
-- [Quy tắc phát triển](AGENTS.md)
-- [KHMT data contract](docs/KHMT_DATA_CONTRACT.md)
-- [Agent handoff hiện tại](docs/agent_handoff/CURRENT.md)
+## Development
 
-## Trạng thái
+Project được phát triển chủ yếu bằng **Python** và có quy trình kiểm thử, review và kiểm soát thay đổi trước khi tích hợp.
 
-QI-Crawler đang được phát triển theo các Work Package nhỏ, có regression test, CI và independent audit trước khi merge. Dữ liệu runtime, session đăng nhập, tài liệu người dùng và file nghiệp vụ thật không được commit vào Git.
+Tài liệu kỹ thuật và hướng dẫn vận hành chi tiết được quản lý trong phạm vi nội bộ của dự án.
+
+---
+
+**QI Technologies · Internal Use**
