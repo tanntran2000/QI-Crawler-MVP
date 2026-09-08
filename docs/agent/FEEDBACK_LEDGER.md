@@ -914,4 +914,28 @@ Superseded local state: WP-GOV-QI-WORKBENCH-01A is preserved as an unpromoted hi
 Disposition: ACCEPTED / ROUTED_TO_QI_AGENT_WORKBENCH_PARENT
 Promoted to: docs/agent_handoff/CURRENT.md
 ```
+
+### FB-0033 — Budget is Team Bid priority, not crawler exclusion ceiling
+
+```text
+State: ACCEPTED
+Author: Human
+Role: HUMAN_AUTHORITY
+WP: WP-BID-RADAR-OPERATIONAL-PROFILE-01 / WORK_ORDER_VERSION=3
+Type: BUSINESS / PRODUCT / WORKFLOW
+Authority: A0 HUMAN_DECISION
+Observation: 2,000,000,000 VND is the current Team Bid budget priority. It is
+not the crawler's capability ceiling and must not be a default exclusion rule.
+Evidence: Explicit Human A0 decision in Work Order v3.
+Impact: The operational shortlist retains packages above the preferred amount
+as expansion opportunities. Budget priority is configurable and separate from
+technology, method, procurement and authoritative execution-location checks.
+Suggestion: Show “Mức phù hợp của gói thầu” and “Ưu tiên ngân sách Team Bid”
+separately in Team Bid business sheets; preserve canonical audit provenance.
+Scope change required: YES — authorized by Work Order v3.
+Response: Builder implementation and local verification pending Planner review.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT; PROJECT_MEMORY promotion is blocked
+until the change is merged.
+Promoted to: docs/agent_handoff/CURRENT.md
+```
 ```
