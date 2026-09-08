@@ -80,6 +80,16 @@ from .opportunity_workspace_handoff import (
     OpportunityWorkspaceHandoffService,
 )
 from .source_filter import active_source_domains, active_source_names
+from .tender_completeness import (
+    CORE_ROLE_LABELS,
+    CoreCoverageAssertion,
+    CoreCoverageState,
+    CoreReadiness,
+    CoreRole,
+    PublicationExpectationBasis,
+    PublicationSummary,
+    TenderCompletenessService,
+)
 from .tender_workspace import (
     RevisionWorkspaceStatus,
     TeamBidZone,
@@ -165,6 +175,15 @@ class DatabaseReadinessResult:
     database_path: Path | None
     revision: str
     backup_path: Path | None
+
+
+@dataclass(frozen=True, slots=True)
+class TenderCompletenessView:
+    """UI-facing projection; all completeness decisions remain domain-owned."""
+
+    core_readiness: CoreReadiness
+    publication_summary: PublicationSummary
+    role_labels: tuple[tuple[str, str, str], ...]
 
 
 def resolve_database_path(database_url: str) -> Path | None:
@@ -690,6 +709,126 @@ def run_tender_workspace_manifest(
     database = Database(config.storage.database_url)
     database.require_current_schema()
     return TenderWorkspaceService(database, config.storage.document_dir).manifest(case_id, release_id)
+
+
+def _tender_completeness_service(config: AppConfig) -> TenderCompletenessService:
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderCompletenessService(database, config.storage.document_dir)
+
+
+def run_tender_core_readiness(
+    config: AppConfig, release_id: int
+) -> CoreReadiness:
+    """Read exact-release core readiness through the thin application seam."""
+    return _tender_completeness_service(config).core_readiness(release_id)
+
+
+def run_tender_publication_summary(
+    config: AppConfig, release_id: int
+) -> PublicationSummary:
+    """Read exact-release publication completeness without inferring membership."""
+    return _tender_completeness_service(config).publication_summary(release_id)
+
+
+def run_tender_completeness_view(
+    config: AppConfig, release_id: int
+) -> TenderCompletenessView:
+    """Build the compact Team Bid view from domain projections only."""
+    service = _tender_completeness_service(config)
+    readiness = service.core_readiness(release_id)
+    role_labels = tuple(
+        (role.value, CORE_ROLE_LABELS[role], readiness.role_states[role].value)
+        for role in CoreRole
+    )
+    return TenderCompletenessView(
+        core_readiness=readiness,
+        publication_summary=service.publication_summary(release_id),
+        role_labels=role_labels,
+    )
+
+
+def run_tender_core_confirmation(
+    config: AppConfig,
+    release_id: int,
+    membership_id: int,
+    role: CoreRole | str,
+    state: CoreCoverageState | str,
+    content_locator: str,
+    evidence: str,
+    actor: str,
+    dependency_note: str | None = None,
+) -> CoreCoverageAssertion:
+    """Persist one explicit Human core-coverage assertion."""
+    return _tender_completeness_service(config).confirm_core_role(
+        release_id,
+        membership_id,
+        role,
+        state=state,
+        content_locator=content_locator,
+        evidence=evidence,
+        actor=actor,
+        dependency_note=dependency_note,
+    )
+
+
+def run_tender_publication_expectation(
+    config: AppConfig,
+    release_id: int,
+    basis: PublicationExpectationBasis | str,
+    authority: str,
+    evidence: str,
+    actor: str,
+) -> int:
+    """Create an explicit publication expectation set."""
+    return _tender_completeness_service(config).create_publication_expectation(
+        release_id,
+        basis=basis,
+        authority=authority,
+        evidence=evidence,
+        actor=actor,
+    )
+
+
+def run_tender_publication_item(
+    config: AppConfig,
+    expectation_set_id: int,
+    logical_key: str,
+    description: str,
+) -> int:
+    """Add one publication expectation item without auto-discovery."""
+    return _tender_completeness_service(config).add_publication_item(
+        expectation_set_id, logical_key, description
+    )
+
+
+def run_tender_publication_reconcile(
+    config: AppConfig,
+    release_id: int,
+    expectation_set_id: int,
+    observed_logical_keys: dict[str, int],
+    evidence: str = "exact-release membership reconciliation",
+) -> PublicationSummary:
+    """Reconcile only explicitly observed exact-release memberships."""
+    return _tender_completeness_service(config).reconcile_publication(
+        release_id,
+        expectation_set_id,
+        observed_logical_keys=observed_logical_keys,
+        evidence=evidence,
+    )
+
+
+def run_tender_completeness_retrieve(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    membership_id: int,
+    destination: Path,
+) -> Path:
+    """Retrieve one exact-release managed original with domain guards."""
+    return _tender_completeness_service(config).retrieve_document(
+        case_id, release_id, membership_id, destination
+    )
 
 
 def run_tender_workspace_search(config: AppConfig, query: str):

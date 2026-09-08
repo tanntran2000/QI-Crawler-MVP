@@ -308,6 +308,95 @@ class TenderDocumentMembershipRecord(Base):
     document: Mapped[Document] = relationship()
 
 
+class TenderCoreCoverageRecord(Base):
+    """Append-only Human assertion that a membership covers a core HSMT role."""
+
+    __tablename__ = "tender_core_coverage"
+    __table_args__ = (
+        Index(
+            "ix_tender_core_coverage_release_role",
+            "release_id",
+            "role_code",
+        ),
+        Index(
+            "ix_tender_core_coverage_membership",
+            "membership_id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    release_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_releases.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    membership_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_document_memberships.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role_code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    state: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    content_locator: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    actor: Mapped[str] = mapped_column(String(255), nullable=False)
+    dependency_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class TenderPublicationExpectationSetRecord(Base):
+    """One source-backed or Human-provided publication expectation set."""
+
+    __tablename__ = "tender_publication_expectation_sets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    release_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_releases.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    basis: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    authority: Mapped[str] = mapped_column(String(255), nullable=False)
+    evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    actor: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    items: Mapped[list[TenderPublicationExpectationItemRecord]] = relationship(
+        back_populates="expectation_set", cascade="all, delete-orphan"
+    )
+
+
+class TenderPublicationExpectationItemRecord(Base):
+    """Logical source item and its current reconciliation observation."""
+
+    __tablename__ = "tender_publication_expectation_items"
+    __table_args__ = (
+        UniqueConstraint(
+            "expectation_set_id",
+            "logical_key",
+            name="uq_tender_publication_expectation_item",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    expectation_set_id: Mapped[int] = mapped_column(
+        ForeignKey("tender_publication_expectation_sets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    logical_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False, default="EXPECTED", index=True)
+    matched_membership_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tender_document_memberships.id", ondelete="SET NULL"), index=True
+    )
+    evidence: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    expectation_set: Mapped[TenderPublicationExpectationSetRecord] = relationship(
+        back_populates="items"
+    )
+
+
 class TenderWorkspaceEntryRecord(Base):
     """Explicit logical Team Bid zone assignment for one document membership."""
 

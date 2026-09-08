@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .keywords import normalize_keyword
 from .models import Base
 
-CURRENT_SCHEMA_REVISION = "0020_add_tender_operational_revision_events"
+CURRENT_SCHEMA_REVISION = "0021_add_tender_completeness"
 
 
 class SchemaNotReady(click.ClickException):
