@@ -90,6 +90,8 @@ from .tender_completeness import (
     PublicationSummary,
     TenderCompletenessService,
 )
+from .tender_recovery import RecoveryReport, RecoveryResult
+from .tender_recovery_service import TenderRecoveryService
 from .tender_workspace import (
     RevisionWorkspaceStatus,
     TeamBidZone,
@@ -849,6 +851,41 @@ def run_tender_workspace_dashboard(
     database.require_current_schema()
     return TenderWorkspaceService(database, config.storage.document_dir).release_dashboard(
         case_id, release_id, verify_integrity=verify_integrity
+    )
+
+
+def run_tender_recovery_scan(
+    config: AppConfig, case_id: str, release_id: int
+) -> RecoveryReport:
+    """Scan one exact release and expose fail-closed managed-source states."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderRecoveryService(database, config.storage.document_dir).reconcile(
+        case_id, release_id
+    )
+
+
+def run_tender_recovery(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+    membership_id: int,
+    candidate_path: Path,
+    actor: str,
+    reason: str,
+    evidence: str,
+) -> RecoveryResult:
+    """Perform one explicit Human-authorized exact-SHA recovery action."""
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    return TenderRecoveryService(database, config.storage.document_dir).recover(
+        case_id,
+        release_id,
+        membership_id,
+        candidate_path,
+        actor=actor,
+        reason=reason,
+        evidence=evidence,
     )
 
 

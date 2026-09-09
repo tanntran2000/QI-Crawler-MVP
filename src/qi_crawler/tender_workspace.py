@@ -70,6 +70,10 @@ class ManagedIntegrityState(StrEnum):
     VERIFIED = "VERIFIED"
     MISSING = "MISSING"
     MISMATCH = "MISMATCH"
+    ORPHANED = "ORPHANED"
+    RECOVERABLE = "RECOVERABLE"
+    RECOVERED = "RECOVERED"
+    QUARANTINED = "QUARANTINED"
 
 
 class WorkspaceOperationalState(StrEnum):
