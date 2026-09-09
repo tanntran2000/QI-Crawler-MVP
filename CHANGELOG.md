@@ -4,6 +4,10 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased
 
+- Add bounded Tender Warehouse managed-source integrity and exact-SHA
+  recovery workflow with explicit missing, mismatch, orphan, recoverable,
+  recovered and quarantine states.
+
 ## 0.9.0 - 2026-09-02
 - Human A0 operationally accepted v0.9.0 after exact-source release-candidate
   audit and in-place acceptance at D:\QI-Crawler.
