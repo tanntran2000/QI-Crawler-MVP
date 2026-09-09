@@ -3,28 +3,23 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = FINAL-HUMAN-A0-DIRECTION-CHECKPOINT
+HANDOFF_ID = POSTMERGE-WP-WH-RECOVERY-01-CLOSEOUT
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 ACTIVE_PARENT_WP = NONE
 ACTIVE_PRODUCT_WP = NONE
 ACTIVE_ENGINEERING_WP = NONE
 ACTIVE_BRANCH = NONE
 PARENT_STATE = CLOSED_POST_MERGE_VERIFIED
-LIVE_MAIN_BASE = a3bbb612c52e52a541726c189aa4bb26c1f288d6
-BASE_SHA = a3bbb612c52e52a541726c189aa4bb26c1f288d6
+LIVE_MAIN_BASE = 961498b49992376a9d2aef97daec9d40043fa5d0
+BASE_SHA = 961498b49992376a9d2aef97daec9d40043fa5d0
 AUDIT_TARGET_CODE_HEAD = 8e6442a2d59d9dac83401e4592d15f9c7590d654
-LIVE_GIT_HEAD_PRE_DOC_SYNC = a3bbb612c52e52a541726c189aa4bb26c1f288d6
+LIVE_GIT_HEAD_PRE_DOC_SYNC = 961498b49992376a9d2aef97daec9d40043fa5d0
 PRODUCT_COMMIT = 4e02b4b32e758f1773b30cdb6e07b5dc207fbe91
 PR99 = MERGED_VERIFIED
 PR99_AUDITED_HEAD = 8e6442a2d59d9dac83401e4592d15f9c7590d654
 PR99_MERGE_COMMIT = 961498b49992376a9d2aef97daec9d40043fa5d0
 POST_MERGE_CI = PASS
 POST_MERGE_CI_RUN = 34312849224
-
-PR101 = MERGED_VERIFIED
-PR101_FEATURE_HEAD = e320665be5ef7e2487765193bbf31d1e96efc5ba
-PR101_MERGE_COMMIT = a3bbb612c52e52a541726c189aa4bb26c1f288d6
-PR101_POST_MERGE_CI = PASS / 34323205473
 
 WP_BID_RADAR_OPERATIONAL_PROFILE_01 = MERGED_VERIFIED
 PR94 = MERGED
@@ -83,11 +78,11 @@ MASTER_ROADMAP_DELTA = RD-0008_ACTIVE_MERGED_VERIFIED
 KNOWN_FAILURE_MODES = CHECKED_NO_CHANGE_REQUIRED_UNLESS_NEW_FINDING
 LESSONS = CHECKED_NO_CHANGE_REQUIRED_UNLESS_NEW_FINDING
 SPINE_IMPACT = CURRENT; MASTER_ROADMAP; MASTER_ROADMAP_DELTA; PROJECT_MEMORY; FEEDBACK; HISTORY
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_pre_final_human_a0_checkpoint.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/MASTER_ROADMAP.md; docs/agent/PROJECT_MEMORY.md; docs/agent/FEEDBACK_LEDGER.md
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_pre_postmerge_wh_recovery_closeout.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/MASTER_ROADMAP.md; docs/agent/PROJECT_MEMORY.md; docs/agent/FEEDBACK_LEDGER.md
 SCHEMA_HEAD = 0022_add_tender_recovery_events
 PRE_WP_TARGETED_BASELINE = PASS_74_TESTS_COLLECTION_1037
 TEMP_WORKAROUND = REPO_LOCAL_BASETEMP
-LOCAL_VERIFICATION = PASS_1049_TESTS_RUFF_DIFF_CHECK
+LOCAL_VERIFICATION = PASS_1048_TESTS_RUFF_DIFF_CHECK
 REAL_ACCEPTANCE = PASS_34_FILES_31_EXACT_MEMBERSHIPS_3_QUARANTINED
 RECOVERY_REAL_ACCEPTANCE = EVIDENCE_GAP
 REAL_RECOVERY_SPECIMEN = EVIDENCE_GAP
@@ -102,36 +97,28 @@ SPINE_SYNC_STATE = PASS
 HANDOFF_READY = YES
 LAST_COMPLETED_PARENT_WP = WP-WH-RECOVERY-01
 HUMAN_A0_CHECKPOINT = REACHED
-PROJECT_STATE = HUMAN_A0_DECISION_CHECKPOINT
 NEXT_PRODUCT_WP = NONE
-NEXT_ENGINEERING_WP = NONE
-NEXT_WP_AUTHORIZED = NO_NEXT_WP
-P0_B1_REGRESSION_PORT = MERGED_VERIFIED
-P0_B1_HISTORICAL_PR = #13 / REFERENCE_ONLY / DO_NOT_MERGE
-P0_B1_HISTORICAL_BRANCH = DELETED_VERIFIED
-P0_B1_HISTORICAL_BRANCH_SHA = b55f144ad9727634de08be67b3fb67e1fb93fb89
-P0_B1_RECONCILIATION = CLOSED
-NEXT_ACTION = STOP_FOR_HUMAN_A0_DIRECTION
-EXACTLY_ONE_NEXT_ACTION = STOP_FOR_HUMAN_A0_DIRECTION
-NEXT_AUTHORITY = HUMAN_A0
+NEXT_WP_AUTHORIZED = NO_NEXT_PRODUCT_WP
+P0_B1_STALE_BRANCH = AUTHORIZED_FOR_RECONCILIATION_AFTER_RECOVERY_CLOSEOUT
+NEXT_ACTION = PLANNER_PREPARES_P0_B1_STALE_BRANCH_RECONCILIATION
+EXACTLY_ONE_NEXT_ACTION = PLANNER_PREPARES_P0_B1_STALE_BRANCH_RECONCILIATION
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 AFTER_P0_B1_RECONCILIATION = STOP_FOR_HUMAN_A0_DIRECTION
 ```
 
 ## Terminal boundary
 
-WP-WH-RECOVERY-01 and the P0-B1 managed-storage regression port are closed
-post-merge on live `main` at `a3bbb612c52e52a541726c189aa4bb26c1f288d6`.
-PR #101 merged the regression port and post-merge CI run `34323205473` passed.
-The historical PR #13 remains reference-only and its stale branch was deleted
-after the missing regression was ported and verified. The bounded managed
-source recovery capability is merged and verified, while the Unified Tender
-Warehouse remains `PARTIAL`: archive lifecycle, retention cleanup, capacity
-management, disaster recovery and safe real-specimen recovery evidence remain
-outstanding. Plugin invocation evidence remains `USAGE_NOT_PROVEN`;
-historical TDD evidence remains `PARTIAL_PROCESS_EVIDENCE`;
-`RECOVERY_REAL_ACCEPTANCE` remains `EVIDENCE_GAP`.
-
-No next Product or Engineering WP has been selected or authorized. The
-repository is parked at Human A0 decision checkpoint. No merge, release, live
-e-GP, R2B, Ground Truth promotion or HSMT/SOP/controlled-learning intelligence
-start is authorized by this handoff.
+WP-WH-RECOVERY-01 is closed post-merge on live `main` at
+`961498b49992376a9d2aef97daec9d40043fa5d0`. The independently audited
+candidate head was `8e6442a2d59d9dac83401e4592d15f9c7590d654`; PR #99 merged
+that candidate and post-merge CI run `34312849224` passed. The bounded managed
+source recovery capability is therefore merged and verified, while the
+Unified Tender Warehouse remains `PARTIAL`: archive lifecycle, retention
+cleanup, capacity management, disaster recovery and safe real-specimen
+recovery evidence remain outstanding. Plugin invocation evidence remains
+`USAGE_NOT_PROVEN`; historical TDD evidence remains
+`PARTIAL_PROCESS_EVIDENCE`; `RECOVERY_REAL_ACCEPTANCE` remains `EVIDENCE_GAP`.
+No next Product WP is authorized. The next governed action is Planner's
+bounded P0-B1 stale-branch reconciliation, followed by a stop for Human A0
+direction. No merge, release, live e-GP, R2B, Ground Truth promotion or HSMT
+intelligence start is authorized by this handoff.
