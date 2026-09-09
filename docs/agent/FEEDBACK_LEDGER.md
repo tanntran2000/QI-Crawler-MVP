@@ -976,7 +976,7 @@ Promoted to: docs/agent_handoff/CURRENT.md;
 ### FB-0035 — Warehouse completeness entry contract
 
 ```text
-State: ACCEPTED / IN_IMPLEMENTATION
+State: ACCEPTED / PROMOTED / MERGED_VERIFIED
 Author: Human / Planner
 Role: HUMAN_AUTHORITY / PLANNER_ARCHITECT
 WP: WP-WH-COMPLETE-01
@@ -999,5 +999,13 @@ No PL lifecycle, live e-GP, deep HSMT extraction, solution recommendation,
 GO/HOLD/NO-GO, Ground Truth promotion, Recovery, release or broad GUI redesign.
 Impact: Establishes the bounded Warehouse completeness entry state and keeps
 Team Bid usability fail-closed without requiring a fixed file count.
-Disposition: ACCEPTED / ROUTED_TO_WP-WH-COMPLETE-01
+Disposition: PROMOTED / MERGED_AUTHORITY
+Evidence:
+PR #97 merged at c3924ca7a61bbaf800f3912014db5fa286e30eb3 from audited head
+b352f0e0752422dcd87d3ad3aa579c38b9f48e76; post-merge CI run 34298017061
+passed. Real acceptance used IB2600502358-00 with 31 exact memberships and
+3 identity-conflicting files fail-closed/quarantined; all 3 core roles were
+confirmed and managed retrieval SHA verification passed.
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP.md;
+docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md / MEM-029
 ```

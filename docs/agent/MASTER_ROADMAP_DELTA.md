@@ -269,14 +269,14 @@ SOURCE_CHILD_RECONCILIATION_MERGE = 823e33dd34c43dccece8a2d70d248db12c9ee516
 POST_MERGE_CI = PASS
 HISTORICAL_ACTIVE_PRODUCT_PRIORITY = WP-BID-RADAR-HARDENING-01
 HISTORICAL_NEXT_PARENT_CANDIDATE = WP-BID-RADAR-HARDENING-01
-ACTIVE_PRODUCT_PRIORITY = WP-WH-COMPLETE-01
-NEXT_PARENT_CANDIDATE = WP-WH-COMPLETE-01
+ACTIVE_PRODUCT_PRIORITY = WP-WH-RECOVERY-01
+NEXT_PARENT_CANDIDATE = WP-WH-RECOVERY-01
 NEXT_WP_AUTHORIZED = YES_HUMAN_A0
 HUMAN_PRIORITY_AFTER_RELIABILITY_INTERLUDE = WP-WH-COMPLETE-01
 HISTORICAL_WP_WH_COMPLETE_01 = PARKED_NOT_AUTHORIZED
 HISTORICAL_WP_WH_RECOVERY_01 = PARKED_NOT_AUTHORIZED
-WP_WH_COMPLETE_01 = AUTHORIZED_NEXT
-WP_WH_RECOVERY_01 = AUTHORIZED_AFTER_WP_WH_COMPLETE_01
+WP_WH_COMPLETE_01 = CLOSED_POST_MERGE_VERIFIED
+WP_WH_RECOVERY_01 = AUTHORIZED_NEXT_PARENT
 HUMAN_PRIORITY_SEQUENCE = SPINE_CLOSEOUT → WP-WH-COMPLETE-01 →
   WP-WH-RECOVERY-01 → STOP_FOR_HUMAN_A0_CHECK
 SOURCE = Human A0 / product sequencing decision
@@ -296,7 +296,7 @@ WHY_IT_MATTERS = Team Bid needs a usable vertical slice early, while HSMT
   analyzing incomplete or contaminated packages.
 ROADMAP_IMPACT = ROADMAP_STATUS_UPDATE
 HISTORICAL_RELEVANT_CURRENT_WP = WP-BID-RADAR-HARDENING-01 / PRE_IMPLEMENTATION
-RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / AUTHORIZED_NEXT_PARENT
+RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / AUTHORIZED_NEXT_PARENT
 WP_WH_OPS_01_STATE = MERGED_CLOSED
 WP_WH_OPS_01_MERGED_FEATURE_HEAD = 196a693e4765be0bcde7460a27685d031553c92d
 WP_WH_OPS_01_MERGE_COMMIT = fcb394a6ee0926c1a355c486a72dc001e07d0096
@@ -345,9 +345,9 @@ PLANNER_NOTES = The future maturity sequence is planning context, not current
   samples parse. Human must select the next product priority after Parent-03.
 SOURCE_CHILD_RECONCILIATION_BOUNDARY = SOURCE_CHILD_RECONCILIATION != TENDER_PACKAGE_COMPLETENESS_RECONCILIATION
 HISTORICAL_NEXT_PRODUCT_CANDIDATE = WP-BID-RADAR-HARDENING-01
-NEXT_PRODUCT_CANDIDATE = WP-WH-COMPLETE-01
-WP_WH_COMPLETE_01 = AUTHORIZED_NEXT
-WP_WH_RECOVERY_01 = AUTHORIZED_AFTER_WP_WH_COMPLETE_01
+NEXT_PRODUCT_CANDIDATE = WP-WH-RECOVERY-01
+WP_WH_COMPLETE_01 = CLOSED_POST_MERGE_VERIFIED
+WP_WH_RECOVERY_01 = AUTHORIZED_NEXT_PARENT
 NEXT_WP_AUTHORIZED = YES_HUMAN_A0
 PARKED != CANCELLED
 ```
@@ -389,7 +389,7 @@ PLANNER_NOTES = No implementation in Planner Continuity M0.
 ID = RD-0008
 TITLE = PROTECTED MANAGED SOURCE AUTHORITY / VAULT / RECOVERY
 STATUS = APPROVED_ACTIVE
-EXECUTION_STATE = AUTHORIZED_AFTER_WP_WH_COMPLETE_01
+EXECUTION_STATE = AUTHORIZED_NEXT_PARENT
 ENTRY_DEPENDENCY = WP-WH-COMPLETE-01 CLOSED_AND_RECONCILED
 SOURCE = Human A0 / Team Bid storage-risk requirement / existing managed-store evidence
 CRAWLER_VALUE = CRITICAL
@@ -410,7 +410,7 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   comparison. Source authority must therefore belong to the managed copy after
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / DEPENDENCY_BEFORE_RECOVERY
+RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / NEXT_PARENT
 NEXT_PARENT_CANDIDATE = WP-WH-RECOVERY-01
 WP_WH_OPS_01_VERIFIED = managed-source use; SHA integrity projection;
   external-source deletion survival; controlled retrieval/export
@@ -441,55 +441,6 @@ PLANNER_NOTES = `ORIGINAL USER FILE DELETED != MANAGED COPY LOST`;
   Bid export may use an appropriate business filename while preserving bytes
   and SHA. Do not equate the existing analytical `warehouse.py` DuckDB manager
   with the Unified Tender Warehouse product capability.
-```
-
-### RD-0009 — Tender Package completeness and source reconciliation
-
-```text
-ID = RD-0009
-TITLE = TENDER PACKAGE COMPLETENESS & SOURCE RECONCILIATION
-STATUS = IN_IMPLEMENTATION
-EXECUTION_STATE = BUILDER_RUNNING
-EXECUTION_STATE = AUTHORIZED_NEXT_PARENT
-NEXT_PARENT_CANDIDATE = WP-WH-COMPLETE-01
-NEXT_WP_AUTHORIZED = YES_HUMAN_A0
-SOURCE = Human A0 / HSMT workflow evidence / false-complete risk analysis
-CRAWLER_VALUE = CRITICAL
-PRODUCT_AREA = E-HSMT source bundle integrity and completeness
-PRODUCT_HOUSE_LAYERS = DOMAIN CORE; APPLICATION BACKEND; SOURCE ADAPTERS;
-  INFRASTRUCTURE / PERSISTENCE; EVIDENCE; DELIVERY SURFACE
-OBSERVATION = A set of stored files is not proof that a tender revision's
-  source package is complete. HSMT chapters may be embedded or separate;
-  amendments/clarifications may supersede earlier material; some attachments
-  lack self-identifying IB text; and reference specimens may have the same
-  document role while belonging to another package.
-WHY_IT_MATTERS = Deep extraction or Requirement Register generation over an
-  incomplete, wrong-revision or contaminated source package can yield a
-  false-safe answer despite green parsers. Completeness must be an explicit
-  accounted state rather than inferred from file count.
-ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / IN_IMPLEMENTATION
-TARGET_STATE = For each exact package revision, reconcile expected versus
-  observed source material using explicit states `EXPECTED`, `FOUND`, `MISSING`,
-  `CONFLICT`, `UNKNOWN`, `SUPERSEDED`, `QUARANTINED`; retain evidence/provenance
-  for membership and distinguish `SOURCE_DOCUMENT_MISSING` from extraction or
-  crawler failure.
-PROMOTION_TARGET = MASTER_ROADMAP
-PROMOTION_CONDITION = Package completeness/reconciliation semantics and their
-  evidence contract are implemented, independently audited and exercised on
-  real HSMT package specimens.
-COMPLETION_EVIDENCE = Real-package accounting where every expected source item
-  has an explicit outcome; cross-revision and foreign-package contamination
-  regressions; source-missing versus extraction-failed tests; evidence locators
-  for membership/reconciliation decisions.
-REMOVE_FROM_DELTA_WHEN = Completeness/reconciliation is promoted to the Roadmap
-  and HSMT work consumes the verified contract rather than inferring complete.
-PLANNER_NOTES = `FILE STORED != PACKAGE COMPLETE`; `DOCUMENT_ROLE !=
-  PACKAGE_MEMBERSHIP`; `REFERENCE_EXAMPLE != SOURCE_AUTHORITY`. The supplied
-  Chapter III and Chapter V examples are valuable structure/evidence specimens
-  but, because Human identified them as belonging to another HSMT, they must not
-  become members of the current PL2600272581 source package. A future parser may
-  identify their role, but package membership requires separate evidence.
 ```
 
 ### RD-0010 — Team Bid SOP workspace and minimum operational usability
@@ -665,8 +616,7 @@ EVIDENCE_GAP != PRODUCT_DEFECT
 FALSE_SAFE = 0
 FABRICATED_IDENTITY = 0
 CROSS_TENDER_SOURCE_CONTAMINATION = 0
-RD-0008 = AUTHORIZED_AFTER_WP_WH_COMPLETE_01
-RD-0009 = AUTHORIZED_NEXT_PARENT
+RD-0008 = AUTHORIZED_NEXT_PARENT
 DEEP_HSMT = NOT_AUTHORIZED
 API_EVOLUTION = HOLD
 SOURCE_CRAWLER_REWRITE = NOT_AUTHORIZED
@@ -860,7 +810,7 @@ REFERENCE_EXAMPLE = reference only; never source authority by role alone
 ARCHITECTURE_OPTION = B_DOMAIN_FIRST_TENDERCASE
 PRIMARY_DELTA_IDS = RD-0001; RD-0004; RD-0010
 PRIMARY_PARTIAL_DELTA_IDS = RD-0008
-BOUNDARY_ONLY_DELTA_IDS = RD-0009
+BOUNDARY_ONLY_DELTA_IDS = NONE
 OUT_OF_PARENT_DELTA_IDS = RD-0007
 EXECUTION_MODEL = 2_LARGE_BOUNDED_BATCHES
 

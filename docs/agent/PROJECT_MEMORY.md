@@ -559,6 +559,41 @@ Do not add RD-0011 as implemented memory.
 - **Boundary:** no v0.9.0 tag; no GitHub Release v0.9.0; no Team Bid pilot
   expansion; Unified Tender Warehouse remains PARTIAL; RD/Warehouse/NotebookLM
   next work is not authorized; next authority is Human A0.
+
+## MEM-029 — Tender Package Completeness & Core HSMT Research Readiness
+
+- **State:** ACTIVE
+- **Since main commit:** `c3924ca7a61bbaf800f3912014db5fa286e30eb3`.
+- **Contract:** PR #97 merged `WP-WH-COMPLETE-01` and provides a bounded
+  completeness and research-readiness capability for exact IB tender
+  revisions. Direct exact-IB intake works without a mandatory PL. Three
+  logical core roles are tracked independently: Phạm vi cung cấp và khối
+  lượng, Yêu cầu kỹ thuật và giải pháp, and Tiêu chuẩn đánh giá kỹ thuật.
+  Partial research remains readable and retrievable; three confirmed roles
+  yield `FULL_RESEARCH_READY`. Supporting documents may supplement a core
+  role, while publication accounting remains independent from core readiness.
+- **Authority and integrity:** Exact release/membership authority is kept
+  separate from document SHA content integrity. Managed retrieval verifies
+  SHA and fails closed for missing or mismatched managed bytes. Publication
+  expectations account for `EXPECTED`, `FOUND`, `MISSING`, `CONFLICT`,
+  `UNKNOWN`, `SUPERSEDED` and `QUARANTINED` states without inferring complete
+  publication from observed files alone.
+- **Evidence:** Real acceptance used `IB2600502358-00`: 34 source PDFs were
+  read, 31 exact memberships were accepted, three identity-conflicting files
+  were quarantined, all three core roles were confirmed and managed retrieval
+  SHA verification passed. No authoritative complete publication list was
+  available, so real publication state remains `UNKNOWN`.
+- **Verification:** Audited head `b352f0e0752422dcd87d3ad3aa579c38b9f48e76`;
+  PR #97 merge `c3924ca7a61bbaf800f3912014db5fa286e30eb3`; post-merge CI
+  `34298017061 / PASS`; local full suite `1037 passed`; Ruff and diff-check
+  passed. Schema head is `0021_add_tender_completeness`.
+- **Boundary:** This does not complete the Unified Tender Warehouse. Vault,
+  recovery, archive, disaster recovery, deep HSMT extraction, live e-GP,
+  Ground Truth promotion, bid eligibility, release and AI/learning remain
+  outside this capability. `WP-WH-RECOVERY-01` is authorized next but has
+  not started; after it, stop for Human A0 check.
+- **Last verified:** `c3924ca7a61bbaf800f3912014db5fa286e30eb3`.
+
 ## Explicitly not promoted
 
 Vault/Shelf/Recovery, future storage hardening, HSNL, AI/Learning, legal

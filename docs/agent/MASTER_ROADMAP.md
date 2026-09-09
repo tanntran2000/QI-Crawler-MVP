@@ -555,10 +555,10 @@ GUI EVOLUTION   |   API EVOLUTION   |   CI EVOLUTION
 | KHMT Bid Radar | `OPERATIONAL` | Import, targeted search, explicit Human review and derived confirmed outputs. | Future lifecycle expansion and richer operational workflows. | Human-approved scope after current handoff reconciliation. |
 | TBMT source-neutral intake | `OPERATIONAL` | TBMT XLSX importer produces IB `OpportunityCandidate` records with SHA/sheet/row provenance; source-neutral filter/search, Human Review persistence, confirmed XLSX, backend integrity, thin GUI wiring and vertical acceptance are merged. | Broader source variants and future lifecycle expansion. | Unified Tender Warehouse reliability and source evidence. |
 | TBMT Bid Radar | `OPERATIONAL` | TBMT intake → source-neutral filtering/search → Human Review → persistence → confirmed XLSX → thin existing GUI → vertical KHMT/TBMT acceptance. | Broader workflow/reporting and API integration remain future scope; TBMT Legal DOCX is unsupported. | Unified Tender Warehouse reliability and Human authority. |
-| Unified Tender Warehouse | `PARTIAL` | The merged Minimum Safe Warehouse slice provides domain-first TenderCase identity, exact revision semantics, managed source preservation, restart/reopen, SHA retrieval, seven Team Bid zones and controlled derived export. | Full package/revision completeness, reconciliation, recovery, archive/integrity and broader source lifecycle remain open. | Storage reliability, completeness and protected-data verification. |
-| Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence and bounded HSMT source-fact foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
+| Unified Tender Warehouse | `PARTIAL` | The merged Minimum Safe Warehouse slice provides domain-first TenderCase identity, exact revision semantics, managed source preservation, restart/reopen, SHA retrieval, seven Team Bid zones and controlled derived export. WP-WH-COMPLETE-01 adds bounded exact-package completeness accounting, three core HSMT readiness roles, publication expectation states and exact membership retrieval guards. | Full Vault/recovery/archive/integrity lifecycle, authoritative complete-publication proof and broader source lifecycle remain open. | WP-WH-RECOVERY-01, storage reliability and protected-data verification. |
+| Tender Package & HSMT Intelligence | `PARTIAL` | Native intake, identity/revision boundaries, evidence persistence, bounded package completeness and three-role core HSMT research-readiness foundations. | Complete package continuity, bundle coverage and reliable structured requirements. | Unified Tender Warehouse, Evidence and Human review contracts. |
 | Native Evidence / Requirement Extraction | `PARTIAL` | Native PDF/DOCX/XLSX extraction, evidence rows and bounded source-fact parsers exist. | Broader requirement coverage, item linkage and completeness controls. | Tender Package continuity and Golden acceptance. |
-| Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags and explicit uncertainty concepts exist in bounded areas. | Bundle completeness and false-safe prevention across full HSMT sets. | Evidence coverage and deterministic regression corpus. |
+| Completeness / Extraction Integrity | `PARTIAL` | Fail-closed flags, explicit uncertainty concepts, package expectation accounting and evidence locators exist in the bounded Warehouse slice. | Authoritative complete-list ingestion, full HSMT bundle coverage and broader false-safe prevention. | Evidence coverage, deterministic regression corpus and Recovery. |
 | Evidence Locator | `PARTIAL` | Page/sheet/section/table provenance is retained where available. | Consistent locators and reviewable source context across all facts. | Structured extraction and integrity gates. |
 | SOP Bid Intelligence | `PLANNED` | Legacy/pilot bid analysis code and Human review foundations exist; no approved SOP evaluation engine is claimed. | Requirement Register → Cross-check → Gate readiness → Freeze/change-control workflow with Human authority. | Tender Package & HSMT Intelligence + Evidence + Human review contracts. |
 | Human Ground Truth | `PARTIAL` | Human review concepts and source/revision boundaries exist. | Durable HSMT correction corpus and review workflow. | Structured extraction and exact revision identity. |
@@ -579,10 +579,14 @@ UNIFIED_TENDER_WAREHOUSE = PARTIAL
 The merged Minimum Safe Warehouse slice is proven through domain-first
 TenderCase identity, exact `(base_id, revision)` semantics, managed source
 preservation, restart/reopen, SHA-verified retrieval, seven Team Bid zones,
-controlled derived export and the Real Golden Bài 2 evidence. Full package
-completeness/reconciliation, recovery/archive/integrity and deep HSMT
-intelligence remain future work; this maturity update does not declare the
-Unified Tender Warehouse complete.
+controlled derived export and the Real Golden Bài 2 evidence. The merged
+completeness slice adds explicit package expectation/reconciliation states,
+three core HSMT research-readiness roles and exact membership retrieval, with
+real acceptance proving fail-closed foreign-identity handling. An authoritative
+complete publication list was not available in the real specimen, so full
+publication completeness remains unproven. Vault/recovery/archive/integrity
+and deep HSMT intelligence remain future work; this maturity update does not
+declare the Unified Tender Warehouse complete.
 
 ### Capability layer maturity example — TBMT Bid Radar
 
