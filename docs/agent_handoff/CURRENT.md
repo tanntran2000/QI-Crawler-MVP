@@ -3,18 +3,18 @@
 ## Active machine-readable checkpoint
 
 ```text
-HANDOFF_ID = PRE-WP-WH-RECOVERY-01
+HANDOFF_ID = POST-WP-WH-RECOVERY-01-BUILDER-RETURN
 CANONICAL_CHECKOUT = D:\QI Technology\QI Crawler\egp-crawler-python
 ACTIVE_PARENT_WP = WP-WH-RECOVERY-01
 ACTIVE_PRODUCT_WP = WP-WH-RECOVERY-01
 ACTIVE_ENGINEERING_WP = WP-WH-RECOVERY-01
-PARENT_STATE = BUILDER_RUNNING
+PARENT_STATE = BUILDER_RETURNED_LOCAL_COMMIT_PENDING_REVIEW
 LIVE_MAIN_BASE = f050d60a6ff1b0bd7230a07791ed36a853666ed4
 BASE_SHA = f050d60a6ff1b0bd7230a07791ed36a853666ed4
 ACTIVE_BRANCH = feat/wp-wh-recovery-01
-AUDIT_TARGET_CODE_HEAD = f050d60a6ff1b0bd7230a07791ed36a853666ed4
-LIVE_GIT_HEAD_PRE_DOC_SYNC = f050d60a6ff1b0bd7230a07791ed36a853666ed4
-PRODUCT_COMMIT = NOT_YET_COMMITTED
+AUDIT_TARGET_CODE_HEAD = 4e02b4b32e758f1773b30cdb6e07b5dc207fbe91
+LIVE_GIT_HEAD_PRE_DOC_SYNC = 4e02b4b32e758f1773b30cdb6e07b5dc207fbe91
+PRODUCT_COMMIT = 4e02b4b32e758f1773b30cdb6e07b5dc207fbe91
 PR97 = MERGED_VERIFIED
 PR97_AUDITED_HEAD = b352f0e0752422dcd87d3ad3aa579c38b9f48e76
 PR97_MERGE_COMMIT = c3924ca7a61bbaf800f3912014db5fa286e30eb3
@@ -55,8 +55,8 @@ MINIMUM_SAFE_WAREHOUSE = OPERATIONAL
 WAREHOUSE_OPERATIONS = OPERATIONAL
 WP_WH_COMPLETE_01 = CLOSED_POST_MERGE_VERIFIED
 RD-0009 = PROMOTED_TO_MASTER_ROADMAP
-WP_WH_RECOVERY_01 = IN_IMPLEMENTATION
-WP_WH_RECOVERY_IMPLEMENTATION = IN_IMPLEMENTATION
+WP_WH_RECOVERY_01 = BUILDER_RETURNED_LOCAL_COMMIT_PENDING_REVIEW
+WP_WH_RECOVERY_IMPLEMENTATION = BUILDER_RETURNED_LOCAL_COMMIT_PENDING_REVIEW
 RD-0008 = IN_IMPLEMENTATION
 AFTER_WP_WH_RECOVERY_01 = STOP_FOR_HUMAN_A0_CHECK
 
@@ -77,32 +77,36 @@ KNOWN_FAILURE_MODES = CHECKED_NO_CHANGE_REQUIRED_UNLESS_NEW_FINDING
 LESSONS = CHECKED_NO_CHANGE_REQUIRED_UNLESS_NEW_FINDING
 SPINE_IMPACT = CURRENT; MASTER_ROADMAP_DELTA; HISTORY
 SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent_handoff/history/CURRENT_pre_wp_wh_recovery_01.md; docs/agent/MASTER_ROADMAP_DELTA.md
-SCHEMA_HEAD = 0021_add_tender_completeness
+SCHEMA_HEAD = 0022_add_tender_recovery_events
 PRE_WP_TARGETED_BASELINE = PASS_74_TESTS_COLLECTION_1037
 TEMP_WORKAROUND = REPO_LOCAL_BASETEMP
-LOCAL_VERIFICATION = BASELINE_ONLY
+LOCAL_VERIFICATION = PASS_1048_TESTS_RUFF_DIFF_CHECK
 REAL_ACCEPTANCE = PASS_34_FILES_31_EXACT_MEMBERSHIPS_3_QUARANTINED
+RECOVERY_REAL_ACCEPTANCE = EVIDENCE_GAP_NO_SAFE_REAL_SPECIMEN_AVAILABLE
 CORE_HSMT_READINESS = PASS_3_OF_3_CONFIRMED
 MANAGED_RETRIEVAL_SHA = PASS
 RAW_SOURCE_SHA_UNCHANGED = PASS
-PROVEN_COMPLETE = Exact IB intake without PL; append-only core coverage and publication expectation ledgers; exact release/membership retrieval guards; migration 0021; thin Team Bid service adapters
-SCOPE_BOUNDARIES = No tender identity/membership/completeness mutation; no source-adapter work; no deep HSMT extraction; no AI/Ground Truth; no live e-GP/browser/CAPTCHA; no release
-SPINE_SYNC_STATE = PASS_BUILDER_ENTRY
-HANDOFF_READY = NO_BUILDER_RUNNING
+PROVEN_COMPLETE = Exact IB intake without PL; append-only core coverage and publication expectation ledgers; exact release/membership retrieval guards; migration 0021; thin Team Bid service adapters; managed-source integrity scan, orphan reconciliation, exact-SHA recovery, quarantine-before-replace, append-only recovery events, migration 0022, and thin Team Bid recovery action
+SCOPE_BOUNDARIES = No TenderCase identity/revision/membership/completeness mutation; no source-adapter work; no deep HSMT extraction; no AI/Ground Truth; no live e-GP/browser/CAPTCHA; no release
+SPINE_SYNC_STATE = PASS_BUILDER_RETURNED
+HANDOFF_READY = NO_PENDING_PLANNER_BUILDER_RESULT_REVIEW
 LAST_COMPLETED_PARENT_WP = WP-WH-COMPLETE-01
-NEXT_PRODUCT_WP = WP-WH-RECOVERY-01
-NEXT_WP_AUTHORIZED = YES_HUMAN_A0
-NEXT_ACTION = BUILDER_EXECUTES_WP-WH-RECOVERY-01
-EXACTLY_ONE_NEXT_ACTION = BUILDER_EXECUTES_WP-WH-RECOVERY-01
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+NEXT_PRODUCT_WP = NONE_UNTIL_HUMAN_A0_CHECK
+NEXT_WP_AUTHORIZED = NO_NEXT_PRODUCT_WP
+NEXT_ACTION = PLANNER_BUILDER_RESULT_REVIEW
+EXACTLY_ONE_NEXT_ACTION = PLANNER_BUILDER_RESULT_REVIEW
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
 
 ## Terminal boundary
 
-PR #97 is merged and verified on live `main` at
+WP-WH-RECOVERY-01 has a verified local Builder implementation commit
+4e02b4b32e758f1773b30cdb6e07b5dc207fbe91 on the bounded feature branch;
+the product capability is pending Planner builder-result review and independent
+audit. No remote transport, PR, merge, release, or next Recovery WP has been
+authorized. PR #97 is merged and verified on live `main` at
 c3924ca7a61bbaf800f3912014db5fa286e30eb3, with post-merge CI run
 34298017061 passing. WP-WH-COMPLETE-01 is closed post-merge; the bounded
 completeness/core-readiness capability remains distinct from full Warehouse
-completion. WP-WH-RECOVERY-01 is now running on the bounded Builder branch
-from live main `f050d60a6ff1b0bd7230a07791ed36a853666ed4`. After Recovery,
-stop for the required Human A0 check.
+completion. After Planner/Reviewer processing of Recovery, stop for the
+required Human A0 check.
