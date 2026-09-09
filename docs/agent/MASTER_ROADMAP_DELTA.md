@@ -389,7 +389,7 @@ PLANNER_NOTES = No implementation in Planner Continuity M0.
 ID = RD-0008
 TITLE = PROTECTED MANAGED SOURCE AUTHORITY / VAULT / RECOVERY
 STATUS = APPROVED_ACTIVE
-EXECUTION_STATE = AUTHORIZED_NEXT_PARENT
+EXECUTION_STATE = IN_IMPLEMENTATION
 ENTRY_DEPENDENCY = WP-WH-COMPLETE-01 CLOSED_AND_RECONCILED
 SOURCE = Human A0 / Team Bid storage-risk requirement / existing managed-store evidence
 CRAWLER_VALUE = CRITICAL
@@ -410,7 +410,7 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   comparison. Source authority must therefore belong to the managed copy after
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / NEXT_PARENT
+RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / IN_IMPLEMENTATION
 NEXT_PARENT_CANDIDATE = WP-WH-RECOVERY-01
 WP_WH_OPS_01_VERIFIED = managed-source use; SHA integrity projection;
   external-source deletion survival; controlled retrieval/export
