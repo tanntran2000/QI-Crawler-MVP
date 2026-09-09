@@ -231,6 +231,37 @@ def test_native_extraction_preserves_source_trace(
     assert json.loads(evidence[0].metadata_json or "{}")
 
 
+def test_native_extraction_uses_managed_copy_after_external_source_deleted(
+    services: tuple[DocumentIntakeService, NativeHSMTExtractionService, Database],
+    tmp_path: Path,
+) -> None:
+    intake, extractor, _database = services
+    source = _text_pdf(tmp_path / "external.pdf", "Managed source extraction")
+    original_bytes = source.read_bytes()
+    original_sha256 = sha256(original_bytes).hexdigest()
+
+    document = intake.intake_file(source)
+    managed_path = document.stored_path
+
+    assert managed_path.resolve() != source.resolve()
+    assert managed_path.is_file()
+    assert managed_path.read_bytes() == original_bytes
+    assert sha256(managed_path.read_bytes()).hexdigest() == original_sha256 == document.sha256
+
+    source.unlink()
+
+    assert not source.exists()
+    assert managed_path.is_file()
+    assert managed_path.read_bytes() == original_bytes
+    assert sha256(managed_path.read_bytes()).hexdigest() == original_sha256
+
+    result = extractor.extract_document(document.document_id)
+
+    assert result.outcome == "EXTRACTED"
+    assert result.status == NATIVE_OK
+    assert result.evidence_count >= 1
+
+
 def test_docx_heading_and_table_cells_are_preserved(
     services: tuple[DocumentIntakeService, NativeHSMTExtractionService, Database], tmp_path: Path
 ) -> None:
