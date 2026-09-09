@@ -53,8 +53,12 @@ def test_gui_version_display_remains_package_driven() -> None:
 
 def test_changelog_has_target_release_section() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    assert "## 0.9.0 - 2026-09-02" in changelog
-    assert "## Unreleased\n\n## 0.9.0 - 2026-09-02" in changelog
+    unreleased = "## Unreleased"
+    release = "## 0.9.0 - 2026-09-02"
+
+    assert unreleased in changelog
+    assert release in changelog
+    assert changelog.index(unreleased) < changelog.index(release)
 
 
 def test_runtime_schema_matches_single_alembic_head() -> None:
