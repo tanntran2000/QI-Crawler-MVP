@@ -448,7 +448,8 @@ PLANNER_NOTES = `ORIGINAL USER FILE DELETED != MANAGED COPY LOST`;
 ```text
 ID = RD-0009
 TITLE = TENDER PACKAGE COMPLETENESS & SOURCE RECONCILIATION
-STATUS = APPROVED_ACTIVE
+STATUS = IN_IMPLEMENTATION
+EXECUTION_STATE = BUILDER_RUNNING
 EXECUTION_STATE = AUTHORIZED_NEXT_PARENT
 NEXT_PARENT_CANDIDATE = WP-WH-COMPLETE-01
 NEXT_WP_AUTHORIZED = YES_HUMAN_A0
@@ -467,7 +468,7 @@ WHY_IT_MATTERS = Deep extraction or Requirement Register generation over an
   false-safe answer despite green parsers. Completeness must be an explicit
   accounted state rather than inferred from file count.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / AUTHORIZED_NEXT_PARENT
+RELEVANT_CURRENT_WP = WP-WH-COMPLETE-01 / IN_IMPLEMENTATION
 TARGET_STATE = For each exact package revision, reconcile expected versus
   observed source material using explicit states `EXPECTED`, `FOUND`, `MISSING`,
   `CONFLICT`, `UNKNOWN`, `SUPERSEDED`, `QUARANTINED`; retain evidence/provenance

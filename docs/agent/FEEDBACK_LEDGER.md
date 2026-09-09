@@ -972,3 +972,32 @@ Disposition: ACCEPTED / ACTIVE_HUMAN_SEQUENCE
 Promoted to: docs/agent_handoff/CURRENT.md;
   docs/agent/MASTER_ROADMAP_DELTA.md
 ```
+
+### FB-0035 — Warehouse completeness entry contract
+
+```text
+State: ACCEPTED / IN_IMPLEMENTATION
+Author: Human / Planner
+Role: HUMAN_AUTHORITY / PLANNER_ARCHITECT
+WP: WP-WH-COMPLETE-01
+Type: PRODUCT / WAREHOUSE / HSMT_READINESS
+Authority: A0 HUMAN_DECISION + APPROVED WORK ORDER
+Decision:
+PL is optional for direct exact-IB/revision intake.
+The Team Bid research priority is three logical core content roles:
+  1. Phạm vi cung cấp và khối lượng
+  2. Yêu cầu kỹ thuật và giải pháp
+  3. Tiêu chuẩn đánh giá kỹ thuật
+Partial research with one or two confirmed roles remains readable and
+retrievable; three of three roles is FULL_RESEARCH_READY.
+Supporting material may contain or supplement a core role.
+Publication completeness is independent from core research readiness.
+SHA proves content integrity, while exact membership governs package authority
+and retrieval. Recovery remains a separate Parent WP.
+Boundary:
+No PL lifecycle, live e-GP, deep HSMT extraction, solution recommendation,
+GO/HOLD/NO-GO, Ground Truth promotion, Recovery, release or broad GUI redesign.
+Impact: Establishes the bounded Warehouse completeness entry state and keeps
+Team Bid usability fail-closed without requiring a fixed file count.
+Disposition: ACCEPTED / ROUTED_TO_WP-WH-COMPLETE-01
+```
