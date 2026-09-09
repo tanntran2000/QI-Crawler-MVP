@@ -661,3 +661,33 @@ unless a later Work Package is merged and verified.
   Truth promotion, GO/HOLD/NO-GO, automatic Team Bid decision, HSMT
   Intelligence, Warehouse completeness/recovery, or any of the following
   implementation steps without a separate approved Work Package.
+
+## MEM-030 — Bounded Managed Source Recovery
+
+- **State:** ACTIVE
+- **Since main commit:** `961498b49992376a9d2aef97daec9d40043fa5d0`.
+- **Contract:** `WP-WH-RECOVERY-01` is merged and verified as a bounded
+  managed-source integrity/recovery capability. The merged behavior scans
+  integrity, reconciles orphaned objects without auto-adoption, retrieves and
+  recovers by exact SHA, quarantines before replacement, rejects wrong
+  package/revision identity, records append-only recovery events, and remains
+  restart/idempotence safe. A thin Team Bid recovery action is available
+  through the backend boundary; the GUI does not own recovery truth.
+- **Evidence:** PR #99 merged the independently audited candidate
+  `8e6442a2d59d9dac83401e4592d15f9c7590d654` at
+  `961498b49992376a9d2aef97daec9d40043fa5d0`; PR and post-merge CI passed,
+  including post-merge run `34312849224`. Local verification recorded
+  `1048` passing tests, Ruff PASS and diff-check PASS. Migration `0022` is the
+  recovery-event schema. Human A0 granted a one-off process-evidence
+  exception for this exact candidate; plugin invocation evidence remains
+  `USAGE_NOT_PROVEN` and historical TDD evidence remains
+  `PARTIAL_PROCESS_EVIDENCE`.
+- **Acceptance boundary:** `RECOVERY_REAL_ACCEPTANCE = EVIDENCE_GAP` because
+  no safe disposable real specimen was authorized. Regression evidence does
+  not become real-source acceptance. The Unified Tender Warehouse remains
+  `PARTIAL`; archive lifecycle, retention cleanup, capacity management,
+  disaster recovery and full Vault/archive completion remain unproven.
+- **Boundary:** This memory does not authorize a next Product WP, live e-GP,
+  R2B, release, Ground Truth promotion, deep HSMT extraction, AI/learning,
+  automatic Team Bid decisions or a claim that the full RD-0008 objective is
+  promoted. Human A0 direction is required after closeout.
