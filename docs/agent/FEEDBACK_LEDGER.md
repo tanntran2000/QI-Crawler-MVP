@@ -1009,3 +1009,32 @@ confirmed and managed retrieval SHA verification passed.
 Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP.md;
 docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md / MEM-029
 ```
+
+### FB-0036 — One-off process-evidence exception for Recovery
+
+```text
+State: ACCEPTED / CLOSED_NON_PRECEDENT
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION
+Type: GOVERNANCE / PROCESS-EVIDENCE / EXCEPTION
+WP: WP-WH-RECOVERY-01
+Decision:
+Human A0 accepted a bounded one-off process-evidence exception for the exact
+Recovery candidate head 8e6442a2d59d9dac83401e4592d15f9c7590d654. The
+exception allows integration of the already independently audited Recovery
+implementation despite historical plugin invocation evidence not being
+available for reconstruction.
+Evidence:
+Reviewer audit PASS on the exact local range f050d60...8e6442a; full local
+suite 1048 passed; PR #99 merged at 961498b49992376a9d2aef97daec9d40043fa5d0;
+post-merge CI 34312849224 PASS. Plugin evidence remains USAGE_NOT_PROVEN;
+historical TDD evidence remains PARTIAL_PROCESS_EVIDENCE; recovery real-source
+acceptance remains EVIDENCE_GAP.
+Non-precedent: YES. This exception waives no CI gate, independent review,
+merge authority, Roadmap promotion condition, release gate or Human business
+decision. It applies only to the named candidate and WP.
+Disposition: ACCEPTED / CONSUMED_BY_MERGED_RECOVERY_CLOSEOUT
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md / MEM-030
+```
