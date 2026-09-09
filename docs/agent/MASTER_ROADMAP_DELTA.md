@@ -389,7 +389,7 @@ PLANNER_NOTES = No implementation in Planner Continuity M0.
 ID = RD-0008
 TITLE = PROTECTED MANAGED SOURCE AUTHORITY / VAULT / RECOVERY
 STATUS = APPROVED_ACTIVE
-EXECUTION_STATE = AUTHORIZED_NEXT_PARENT
+EXECUTION_STATE = IN_IMPLEMENTATION
 ENTRY_DEPENDENCY = WP-WH-COMPLETE-01 CLOSED_AND_RECONCILED
 SOURCE = Human A0 / Team Bid storage-risk requirement / existing managed-store evidence
 CRAWLER_VALUE = CRITICAL
@@ -410,11 +410,20 @@ WHY_IT_MATTERS = A database record pointing at an unavailable file, a file that
   comparison. Source authority must therefore belong to the managed copy after
   successful intake, not to the user's original path.
 ROADMAP_IMPACT = ROADMAP_UPGRADE
-RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / NEXT_PARENT
-NEXT_PARENT_CANDIDATE = WP-WH-RECOVERY-01
+RELEVANT_CURRENT_WP = WP-WH-RECOVERY-01 / BUILDER_RETURNED_LOCAL_COMMIT_PENDING_REVIEW
+NEXT_PARENT_CANDIDATE = STOP_FOR_HUMAN_A0_CHECK_AFTER_RECOVERY_REVIEW
 WP_WH_OPS_01_VERIFIED = managed-source use; SHA integrity projection;
   external-source deletion survival; controlled retrieval/export
-STILL_OUTSTANDING = full recovery; archive lifecycle; retention cleanup;
+WP_WH_RECOVERY_01_LOCAL_HEAD = 4e02b4b32e758f1773b30cdb6e07b5dc207fbe91
+INTEGRITY_SCAN = PROVEN_LOCAL
+ORPHAN_RECONCILIATION = PROVEN_LOCAL_NO_AUTO_ADOPTION
+EXACT_SHA_RECOVERY = PROVEN_LOCAL
+QUARANTINE_BEFORE_REPLACE = PROVEN_LOCAL
+RECOVERY_EVENT_HISTORY = PROVEN_LOCAL_APPEND_ONLY
+RECOVERY_MIGRATION = 0022_add_tender_recovery_events
+TEAM_BID_RECOVERY_ACTION = PROVEN_LOCAL_THIN_GUI_SURFACE
+REAL_RECOVERY_ACCEPTANCE = EVIDENCE_GAP_NO_SAFE_REAL_SPECIMEN_AVAILABLE
+STILL_OUTSTANDING = independent review; archive lifecycle; retention cleanup;
   capacity management; disaster recovery
 MANAGED_COPY_SURVIVAL = PROVEN
 SHA_RETRIEVAL = PROVEN
@@ -428,10 +437,11 @@ PROMOTION_TARGET = MASTER_ROADMAP
 PROMOTION_CONDITION = Managed source authority, Vault/Shelf boundary,
   retrieval/export, integrity checking and bounded recovery behavior are
   implemented and independently verified.
-COMPLETION_EVIDENCE = Real and regression evidence proving source deletion or
-  move does not destroy the managed copy; byte-identical retrieval by SHA;
-  missing-Shelf/Vault reconciliation; no silent overwrite; backup/recovery
-  evidence where required by the approved WP.
+COMPLETION_EVIDENCE = Regression evidence proving source deletion or move does
+  not destroy the managed copy; byte-identical retrieval by SHA;
+  missing-Shelf/Vault reconciliation; no silent overwrite; quarantine and
+  append-only recovery evidence. Safe real-specimen recovery evidence remains
+  an explicit gap until a disposable source is authorized.
 REMOVE_FROM_DELTA_WHEN = The managed source authority and recovery model is
   promoted to the Roadmap and the material preservation gap is closed.
 PLANNER_NOTES = `ORIGINAL USER FILE DELETED != MANAGED COPY LOST`;

@@ -10,6 +10,8 @@ from qi_crawler.config import AppConfig
 from qi_crawler.db import Database
 from qi_crawler.gui_services import (
     run_bid_radar_workspace_handoff,
+    run_tender_recovery,
+    run_tender_recovery_scan,
     run_tender_revision_accept,
     run_tender_revision_status,
     run_tender_workspace_add_confirmed_candidates,
@@ -210,6 +212,42 @@ def test_gui_service_adapters_search_dashboard_and_exact_export(tmp_path: Path) 
     assert dashboard.release_raw_id == "IB2600000202-00"
     assert dashboard.zones[6].entries[0].integrity_state.value == "VERIFIED"
     assert exported.entry_count == 1
+
+
+def test_gui_service_adapters_expose_recovery_scan_and_action(tmp_path: Path) -> None:
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'gui-recovery.db'}"
+    config.storage.document_dir = tmp_path / "managed"
+    database = Database(config.storage.database_url)
+    service = TenderWorkspaceService(database, config.storage.document_dir)
+    service.create_case("case-gui-recovery")
+    release = service.add_release("case-gui-recovery", "IB2600000204-00")
+    source = tmp_path / "recovery.pdf"
+    source.write_bytes(b"gui recovery")
+    entry = service.add_path_to_zone(
+        "case-gui-recovery", release.release_id, source,
+        zone=TeamBidZone.SOURCE_E_HSMT,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="GUI recovery source",
+    )[0]
+    candidate = tmp_path / "recovery-candidate.pdf"
+    candidate.write_bytes(source.read_bytes())
+    Path(entry.stored_path).unlink()
+
+    report = run_tender_recovery_scan(config, "case-gui-recovery", release.release_id)
+    result = run_tender_recovery(
+        config,
+        "case-gui-recovery",
+        release.release_id,
+        entry.membership_id,
+        candidate,
+        "Team Bid GUI",
+        "restore missing managed source",
+        "explicit GUI recovery action",
+    )
+
+    assert report.entries[0].state.value == "MISSING"
+    assert result.state.value == "RECOVERED"
 
 
 def test_bid_radar_workspace_handoff_adapter_uses_persisted_review(tmp_path: Path) -> None:

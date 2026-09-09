@@ -108,6 +108,8 @@ from .gui_services import (
     run_search,
     run_single_crawl,
     run_tender_document_workspace,
+    run_tender_recovery,
+    run_tender_recovery_scan,
     run_tender_revision_accept,
     run_tender_revision_activate,
     run_tender_revision_compare,
@@ -2417,6 +2419,23 @@ class QICrawlerWindow(QMainWindow):
         workspace_actions.addStretch()
         workspace_layout.addLayout(workspace_actions)
 
+        recovery_row = QHBoxLayout()
+        self.workspace_recovery_path = QLineEdit()
+        self.workspace_recovery_path.setReadOnly(True)
+        self.workspace_recovery_path.setPlaceholderText(
+            "Chọn candidate có SHA đúng để khôi phục bản lưu quản lý"
+        )
+        self.workspace_recovery_file_button = QPushButton("CHỌN CANDIDATE KHÔI PHỤC")
+        self.workspace_recovery_file_button.clicked.connect(
+            self._choose_workspace_recovery_file
+        )
+        self.workspace_recovery_button = self._primary_button("KHÔI PHỤC EXACT-SHA")
+        self.workspace_recovery_button.clicked.connect(self.start_tender_workspace_recovery)
+        recovery_row.addWidget(self.workspace_recovery_path, 1)
+        recovery_row.addWidget(self.workspace_recovery_file_button)
+        recovery_row.addWidget(self.workspace_recovery_button)
+        workspace_layout.addLayout(recovery_row)
+
         workspace_scan_actions = QHBoxLayout()
         self.workspace_scan_button = QPushButton("QUÉT THƯ MỤC")
         self.workspace_scan_button.clicked.connect(self.start_tender_workspace_scan_folder)
@@ -2573,6 +2592,16 @@ class QICrawlerWindow(QMainWindow):
         )
         if selected:
             self.workspace_path.setText(selected)
+
+    def _choose_workspace_recovery_file(self) -> None:
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Chọn candidate khôi phục exact-SHA",
+            str(self.config.storage.document_dir),
+            "Tài liệu hỗ trợ (*.*)",
+        )
+        if selected:
+            self.workspace_recovery_path.setText(selected)
 
     def _revision_ids(self) -> tuple[str, int] | None:
         values = self._workspace_case_and_release()
@@ -2816,6 +2845,75 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_status.setText(
             f"Dashboard {dashboard.case_id} / {dashboard.release_raw_id} — {counts}"
         )
+
+    @Slot()
+    def start_tender_workspace_recovery(self) -> None:
+        values = self._workspace_case_and_release()
+        if values is None or self._workspace_release_record_id is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi khôi phục.")
+            return
+        membership_text = self.workspace_entry_id.text().strip()
+        candidate_text = self.workspace_recovery_path.text().strip()
+        reason = self.workspace_correction_reason.text().strip()
+        evidence = self.workspace_evidence.text().strip()
+        if not membership_text.isdigit() or not candidate_text or not reason or not evidence:
+            self.workspace_status.setText(
+                "Membership ID, candidate, reason và evidence là bắt buộc cho recovery."
+            )
+            return
+        case_id, _release_text = values
+        self.workspace_status.setText("Đang quét integrity trước khi khôi phục exact-SHA...")
+        self._submit(
+            run_tender_recovery_scan,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            on_success=lambda report: self._submit_recovery_action(
+                report, case_id, int(membership_text), Path(candidate_text), reason, evidence
+            ),
+            button=self.workspace_recovery_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_recovery_scan",
+            long_operation=True,
+        )
+
+    def _submit_recovery_action(
+        self,
+        report: Any,
+        case_id: str,
+        membership_id: int,
+        candidate: Path,
+        reason: str,
+        evidence: str,
+    ) -> None:
+        if not any(item.membership_id == membership_id for item in report.entries):
+            self.workspace_status.setText("Membership không thuộc exact release đang mở.")
+            return
+        self.workspace_status.setText("Đang khôi phục candidate theo SHA kỳ vọng...")
+        self._submit(
+            run_tender_recovery,
+            self.config,
+            case_id,
+            self._workspace_release_record_id,
+            membership_id,
+            candidate,
+            "Team Bid GUI",
+            reason,
+            evidence,
+            on_success=self._render_tender_workspace_recovery,
+            button=self.workspace_recovery_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_recovery",
+            long_operation=True,
+        )
+
+    def _render_tender_workspace_recovery(self, result: Any) -> None:
+        self.workspace_status.setText(
+            f"Đã khôi phục exact-SHA: {result.state.value}. Đang tải manifest..."
+        )
+        QTimer.singleShot(0, self.start_tender_workspace_manifest)
 
     @Slot()
     def start_tender_workspace_replace(self) -> None:

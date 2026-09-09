@@ -308,6 +308,38 @@ class TenderDocumentMembershipRecord(Base):
     document: Mapped[Document] = relationship()
 
 
+class TenderRecoveryEventRecord(Base):
+    """Append-only managed-source integrity and recovery evidence."""
+
+    __tablename__ = "tender_recovery_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tender_cases.id", ondelete="SET NULL"), index=True
+    )
+    release_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tender_releases.id", ondelete="SET NULL"), index=True
+    )
+    membership_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tender_document_memberships.id", ondelete="SET NULL"), index=True
+    )
+    document_id: Mapped[int | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    expected_sha256: Mapped[str | None] = mapped_column(String(64), index=True)
+    observed_sha256: Mapped[str | None] = mapped_column(String(64), index=True)
+    candidate_sha256: Mapped[str | None] = mapped_column(String(64), index=True)
+    managed_path: Mapped[str | None] = mapped_column(Text)
+    candidate_path: Mapped[str | None] = mapped_column(Text)
+    quarantine_path: Mapped[str | None] = mapped_column(Text)
+    actor: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    result: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class TenderCoreCoverageRecord(Base):
     """Append-only Human assertion that a membership covers a core HSMT role."""
 
