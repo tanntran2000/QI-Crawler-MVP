@@ -691,3 +691,16 @@ unless a later Work Package is merged and verified.
   R2B, release, Ground Truth promotion, deep HSMT extraction, AI/learning,
   automatic Team Bid decisions or a claim that the full RD-0008 objective is
   promoted. Human A0 direction is required after closeout.
+## MEM-031 — A3 Paused for Storage Relief
+
+- **State:** ACTIVE
+- **Decision:** Human A0 paused A3 after independently verified Phase-Guard C1
+  to recover operational disk headroom before any sandbox rearm or RealF5.
+- **Boundary:** Storage relief is read-only inventory first. A3 is not closed;
+  the next resume point is authorized sandbox rearm, followed by independent
+  rearm audit, fresh phase-aware preflight, exactly one RealF5 and final A3
+  audit. No deletion is authorized by this memory entry.
+- **Retention:** Unknown artifacts remain KEEP/HOLD. A 3–4 recent-Parent
+  policy applies only after reference, uniqueness and rebuildability analysis;
+  it does not cover contracts, manifests, fixtures, rollback or cited failure
+  evidence.

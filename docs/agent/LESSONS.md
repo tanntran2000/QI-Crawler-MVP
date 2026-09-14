@@ -50,3 +50,8 @@ fixes.
     membership, but it must not silently delete retained evidence or
     downloaded provenance. Keep current membership lifecycle separate from
     evidence-retention lifecycle.
+15. **A storage preflight is not a storage reservation.** Safety-critical
+    trial harnesses must bound artifact creation and retries, enforce capacity
+    at the point of material writes, and keep lifecycle ownership outside any
+    process tree intentionally killed by the experiment. Byte reconstruction or
+    duplicate-runtime manifests do not recreate historical execution evidence.

@@ -1,0 +1,772 @@
+{
+  "schema_version": 1,
+  "revision": "1.0.0",
+  "enforcement": {
+    "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
+    "machine_gate": "NOT_IMPLEMENTED",
+    "cleanup_executor": "NOT_IMPLEMENTED",
+    "coverage": "INITIAL_FAMILIES_AND_SELECTED_HISTORICAL_WP; NOT_FULL_DISK_CENSUS"
+  },
+  "roots": [
+    {
+      "id": "ROOT.REPO",
+      "resolver": "Verified git show-toplevel and canonical checkout authority",
+      "allowed_overrides": "Explicit Human canonical-checkout reassignment only"
+    },
+    {
+      "id": "ROOT.STANDALONE",
+      "resolver": "src/qi_crawler/standalone.py: default_user_root / standalone_paths; inspect effective configuration",
+      "allowed_overrides": "QI_CRAWLER_DATA_DIR or explicitly supplied user_root; record resolved path"
+    },
+    {
+      "id": "ROOT.CONFIGURED",
+      "resolver": "Each effective StorageConfig path and verified process cwd; source default DB is data/egp.db",
+      "allowed_overrides": "Authorized application configuration; record each resolved location"
+    },
+    {
+      "id": "ROOT.SELECTION",
+      "resolver": "Exact Human-selected absolute path; never enumerate the volume as owned root",
+      "allowed_overrides": "Exact explicit selection only"
+    }
+  ],
+  "profiles": {
+    "PRODUCT": {
+      "owner": "Capability owner",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "TRACKED_REQUIRED",
+      "persistence": "DURABLE",
+      "retention": "Maintain while part of approved product",
+      "cleanup_policy": "PROTECTED",
+      "sensitivity": "SOURCE_OR_FIXTURE",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Exact Human request for tracked deletion"
+    },
+    "GOVERNANCE": {
+      "owner": "Applicable Spine authority",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "TRACKED_REQUIRED",
+      "persistence": "DURABLE",
+      "retention": "Canonical contract or retained evidence reference",
+      "cleanup_policy": "PROTECTED",
+      "sensitivity": "SANITIZED_GOVERNANCE",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Explicit governed document retirement; tracked deletion needs exact Human request"
+    },
+    "EPHEMERAL": {
+      "owner": "WP Single Writer",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "IGNORED_REQUIRED",
+      "persistence": "EPHEMERAL",
+      "retention": "Until evidence captured and authorized cleanup gate passes",
+      "cleanup_policy": "MANIFEST_GATED",
+      "sensitivity": "SYNTHETIC_OR_TASK_DATA",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Express cleanup scope plus dependency/process/containment checks"
+    },
+    "EVIDENCE": {
+      "owner": "WP evidence custodian",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "LOCAL_ONLY_UNLESS_SANITIZED_APPROVAL",
+      "persistence": "DURABLE_EVIDENCE",
+      "retention": "While audit, failure, reconstruction, release or recovery references remain",
+      "cleanup_policy": "KEEP_UNTIL_REVIEWED",
+      "sensitivity": "MAY_CONTAIN_SENSITIVE_EVIDENCE",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Separate audited disposition; never age-only deletion"
+    },
+    "RUNTIME": {
+      "owner": "Human/operator",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "LOCAL_ONLY",
+      "persistence": "PERSISTENT_USER_DATA",
+      "retention": "User/data lifecycle; no developer TTL",
+      "cleanup_policy": "PROTECTED",
+      "sensitivity": "BUSINESS_OR_AUTHENTICATION_DATA",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Explicit data-lifecycle authority; never developer cleanup"
+    },
+    "TOOL": {
+      "owner": "Tool owner",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "LOCAL_ONLY",
+      "persistence": "MANAGED",
+      "retention": "While tool/environment is needed; bounded owner review",
+      "cleanup_policy": "OWNER_GATED",
+      "sensitivity": "MAY_CONTAIN_LOCAL_STATE",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Exact owner-approved target; active/shared use must be resolved"
+    },
+    "EXTERNAL": {
+      "owner": "External Human owner",
+      "consumers": "Named in Work Order or verified runtime contract",
+      "git_policy": "NEVER_AUTO_COMMIT",
+      "persistence": "EXTERNAL_OWNED",
+      "retention": "External owner determines lifecycle",
+      "cleanup_policy": "NO_RECURSIVE_CLEANUP",
+      "sensitivity": "USER_SELECTED_DATA",
+      "backup_requirement": "Preserve unique data and required recovery dependencies before disposition",
+      "recovery_requirement": "Do not remove the sole recovery or reproduction input",
+      "creation_authority": "Approved scope; existing verified runtime contract for runtime writes",
+      "mutation_authority": "Single Writer within lease or authorized application operation",
+      "deletion_authority": "Explicit exact-target Human authority"
+    }
+  },
+  "paths": [
+    {
+      "id": "PATH.REPO.SOURCE",
+      "root_id": "ROOT.REPO",
+      "relative_template": "src/qi_crawler/{relative_path}",
+      "purpose": "Capability-owned production modules; no WP copies",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.TESTS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "tests/{relative_path}",
+      "purpose": "Reusable regression tests and labeled fixtures",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.MIGRATIONS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "alembic/{relative_path}",
+      "purpose": "Schema migrations and configuration",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.PACKAGING",
+      "root_id": "ROOT.REPO",
+      "relative_template": "packaging/{relative_path}",
+      "purpose": "Installer/build definitions",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.SCRIPTS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "scripts/{relative_path}",
+      "purpose": "Reusable developer and verification utilities",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.TEMPLATES",
+      "root_id": "ROOT.REPO",
+      "relative_template": "templates/{relative_path}",
+      "purpose": "Approved product output templates",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.PLUGINS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "plugins/{relative_path}",
+      "purpose": "Repository-owned agent tooling",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.CI",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".github/{relative_path}",
+      "purpose": "Existing CI and repository workflows",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.REPO.ROOT_HELPERS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "{filename}",
+      "purpose": "Existing tracked root helpers/configuration; exact tracked names or approved additions only",
+      "profile": "PRODUCT",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order",
+      "allowed_values": [
+        ".env.example",
+        ".gitignore",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "DATA_WAREHOUSE.md",
+        "HUONG_DAN_SU_DUNG.md",
+        "KE_HOACH_KHOI_PHUC_BAO_MAT.md",
+        "Makefile",
+        "QI-Crawler.bat",
+        "README.md",
+        "alembic.ini",
+        "build_installer.ps1",
+        "build_windows.ps1",
+        "config.example.yaml",
+        "docker-compose.yml",
+        "evaluate_qi_crawler.py",
+        "keyword-groups.yaml",
+        "monitoring.example.yaml",
+        "pyproject.toml"
+      ]
+    },
+    {
+      "id": "PATH.GOV.DOCUMENT",
+      "root_id": "ROOT.REPO",
+      "relative_template": "docs/agent/{filename}",
+      "purpose": "Canonical governance including this registry and contract",
+      "profile": "GOVERNANCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.GOV.HANDOFF",
+      "root_id": "ROOT.REPO",
+      "relative_template": "docs/agent_handoff/{relative_path}",
+      "purpose": "Active handoff and governed historical snapshots",
+      "profile": "GOVERNANCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.GOV.DESIGN",
+      "root_id": "ROOT.REPO",
+      "relative_template": "docs/superpowers/specs/{filename}",
+      "purpose": "Design/specification under existing docs convention",
+      "profile": "GOVERNANCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.GOV.PLAN",
+      "root_id": "ROOT.REPO",
+      "relative_template": "docs/superpowers/plans/{filename}",
+      "purpose": "Approved plan/Work Order locator under existing convention",
+      "profile": "GOVERNANCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.GOV.DOCS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "docs/{relative_path}",
+      "purpose": "Other existing documentation; specialized child policies take precedence",
+      "profile": "GOVERNANCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.TEST_TEMP",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".tmp/{wp_id}/{run_id}/{relative_path}",
+      "purpose": "All new task-owned scratch, pytest basetemp and temporary logs",
+      "profile": "EPHEMERAL",
+      "status": "RESERVED",
+      "producer": "Approved Builder",
+      "naming": "UTC run_id; exact bounded family; no alternate .tmp_* roots"
+    },
+    {
+      "id": "PATH.EVIDENCE.WP_RUN",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/evidence/{wp_id}-{run_id}/{relative_path}",
+      "purpose": "Retained run manifests, results and audit evidence",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.SANDBOX",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/sandbox/{wp_id}-{run_id}/{relative_path}",
+      "purpose": "Explicitly authorized isolated runtime/DB; not automatically disposable",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.CONTROL",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/control/{relative_path}",
+      "purpose": "Lifecycle/locks; identity independent of disposable run roots",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.RELEASE_STAGING",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/{relative_path}",
+      "purpose": "Existing candidate/installer material; specific child policies take precedence",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.BUILD",
+      "root_id": "ROOT.REPO",
+      "relative_template": "build/{relative_path}",
+      "purpose": "Serialized rebuildable build intermediates; preserve referenced outputs",
+      "profile": "EPHEMERAL",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.DIST",
+      "root_id": "ROOT.REPO",
+      "relative_template": "dist/{relative_path}",
+      "purpose": "Build output; promotion to release/evidence forbids scratch cleanup",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.DEV.RELEASE_TOOLS",
+      "root_id": "ROOT.REPO",
+      "relative_template": "tools/release/{relative_path}",
+      "purpose": "Existing local release harness; no presumption untracked means disposable",
+      "profile": "EVIDENCE",
+      "status": "OBSERVED",
+      "producer": "Approved Builder",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.VENV",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".venv/{relative_path}",
+      "purpose": "Shared Python environment",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.GIT",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".git/{relative_path}",
+      "purpose": "Git object/history store; no agent manual cleanup",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.CODEGRAPH",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".codegraph/{relative_path}",
+      "purpose": "Code intelligence index",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.PYTEST_CACHE",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".pytest_cache/{relative_path}",
+      "purpose": "Shared pytest cache",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.RUFF_CACHE",
+      "root_id": "ROOT.REPO",
+      "relative_template": ".ruff_cache/{relative_path}",
+      "purpose": "Shared Ruff cache",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.TOOL.PYTHON_CACHE",
+      "root_id": "ROOT.REPO",
+      "relative_template": "{module_path}/__pycache__/{filename}",
+      "purpose": "Interpreter bytecode beside registered modules",
+      "profile": "TOOL",
+      "status": "OBSERVED",
+      "producer": "Named tool; no blanket agent write permission",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.DB",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/database/egp.db",
+      "purpose": "Standalone SQLite database",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.DOCUMENTS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/documents/{relative_path}",
+      "purpose": "Managed documents; filenames are not business identity",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.REPORTS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/reports/{relative_path}",
+      "purpose": "Derived user reports",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.SESSIONS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/sessions/{relative_path}",
+      "purpose": "Authentication sessions; confidential",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.DOWNLOADS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/downloads/{relative_path}",
+      "purpose": "Downloaded source inputs",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.DISCOVERY",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/discovery/{relative_path}",
+      "purpose": "Discovery state",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.RAW",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/raw/{relative_path}",
+      "purpose": "Retained source observations",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.REJECTS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/rejects/{relative_path}",
+      "purpose": "Rejected inputs and diagnosis",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.BACKUPS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/backups/{relative_path}",
+      "purpose": "Database recovery backups",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.SOURCES",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "data/sources/{relative_path}",
+      "purpose": "Local source profiles",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.LOGS",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "logs/{relative_path}",
+      "purpose": "Runtime logs; no implicit log TTL",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.RUNTIME.CONFIG",
+      "root_id": "ROOT.STANDALONE",
+      "relative_template": "{filename}",
+      "purpose": "Existing config.yaml and keyword-groups.yaml; no arbitrary root files",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Existing standalone/application resolver; approved product changes only",
+      "naming": "Existing convention; exact file/family declared in Work Order",
+      "allowed_values": [
+        "config.yaml",
+        "keyword-groups.yaml"
+      ]
+    },
+    {
+      "id": "PATH.RUNTIME.SOURCE_DATA",
+      "root_id": "ROOT.CONFIGURED",
+      "relative_template": "{relative_path}",
+      "purpose": "Source-run/configured storage; resolve each StorageConfig value, not standalone defaults",
+      "profile": "RUNTIME",
+      "status": "OBSERVED",
+      "producer": "Verified StorageConfig/application contract",
+      "naming": "Existing convention; exact file/family declared in Work Order"
+    },
+    {
+      "id": "PATH.EXTERNAL.IMPORT",
+      "root_id": "ROOT.SELECTION",
+      "relative_template": "{selected_path}",
+      "purpose": "Read external input chosen by Human",
+      "profile": "EXTERNAL",
+      "status": "OBSERVED",
+      "producer": "Human selection",
+      "naming": "Existing convention; exact file/family declared in Work Order",
+      "operation": "READ"
+    },
+    {
+      "id": "PATH.EXTERNAL.EXPORT",
+      "root_id": "ROOT.SELECTION",
+      "relative_template": "{selected_path}",
+      "purpose": "Write only selected export target; temp siblings require explicit mapping/budget",
+      "profile": "EXTERNAL",
+      "status": "OBSERVED",
+      "producer": "Authorized export operation",
+      "naming": "Existing convention; exact file/family declared in Work Order",
+      "operation": "WRITE"
+    }
+  ],
+  "roadmap_bindings": [
+    {
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "related_delta_ids": [
+        "RD-0007"
+      ],
+      "path_ids": [
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DESIGN",
+        "PATH.REPO.SCRIPTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.EVIDENCE.WP_RUN"
+      ]
+    },
+    {
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#lane-3--unified-tender-warehouse",
+      "related_delta_ids": [
+        "RD-0008"
+      ],
+      "path_ids": [
+        "PATH.REPO.SOURCE",
+        "PATH.REPO.TESTS",
+        "PATH.REPO.MIGRATIONS",
+        "PATH.RUNTIME.DOCUMENTS",
+        "PATH.RUNTIME.DB",
+        "PATH.RUNTIME.BACKUPS",
+        "PATH.RUNTIME.SOURCE_DATA"
+      ]
+    },
+    {
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery",
+      "related_delta_ids": [],
+      "path_ids": [
+        "PATH.REPO.PACKAGING",
+        "PATH.DEV.RELEASE_TOOLS",
+        "PATH.DEV.BUILD",
+        "PATH.DEV.DIST",
+        "PATH.DEV.SANDBOX",
+        "PATH.EVIDENCE.WP_RUN"
+      ]
+    }
+  ],
+  "wp_bindings": [
+    {
+      "wp_id": "AO-04-C3",
+      "authority_ref": "release_staging/evidence/AO-04-C3-A3-CLOSURE-01-R5-20260914T013943Z/R5_FAILURE_EVIDENCE_MANIFEST.json",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery",
+      "path_ids": [
+        "PATH.EVIDENCE.WP_RUN",
+        "PATH.DEV.SANDBOX",
+        "PATH.DEV.CONTROL",
+        "PATH.DEV.RELEASE_TOOLS"
+      ],
+      "artifact_inventory_ref": "release_staging/evidence/AO-04-C3-A3-CLOSURE-01-R5-20260914T013943Z/R5_FAILURE_EVIDENCE_MANIFEST.json",
+      "scope_paths": [
+        "tools/release/",
+        "release_staging/evidence/AO-04-C3-A3-CLOSURE-01-R5-20260914T013943Z/",
+        "release_staging/sandbox/AO-04-C3-PREFLIGHT-20260911T034909695Z/"
+      ],
+      "relation": "SELECTED_HISTORICAL_EVIDENCE_ONLY; not new execution authority or complete Parent inventory"
+    }
+  ],
+  "legacy_locations": [
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp_pytest",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp_pytest_c1_contract",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp_pytest_c1_guard",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp_pytest_c1_obs",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp_pytest_check",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "tmp",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "output",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "outputs",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "evaluation_output",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "scratch",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "prep_data",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": "markers",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "new_family_creation": "FORBIDDEN",
+      "owner": "Planner to attribute during inventory"
+    },
+    {
+      "root_id": "ROOT.REPO",
+      "path": ".tmp/a3_s2_full",
+      "status": "OBSERVED_LEGACY",
+      "disposition": "KEEP_PENDING_AUTHORIZED_CLEANUP",
+      "owner": "AO-04-C3 historical S2 regression evidence custodian",
+      "purpose": "Historical full-suite temp; not a naming precedent"
+    },
+    {
+      "reported_absolute_path": "C:/t/b2migration",
+      "status": "HUMAN_REPORTED_NOT_RESCANNED",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "owner": "Planner to attribute during read-only inventory"
+    },
+    {
+      "reported_absolute_path": "D:/QI Technology/Temp",
+      "status": "HUMAN_REPORTED_NOT_RESCANNED",
+      "disposition": "KEEP_PENDING_ATTRIBUTION",
+      "owner": "Shared host ownership must be resolved; not all files belong to crawler"
+    }
+  ]
+}

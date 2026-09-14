@@ -68,6 +68,16 @@ Each horizontal capability is built vertically through the Product House
 technical layers defined below. A layer can be mature while another remains
 unwired; neither alone proves the complete Team Bid capability.
 
+### Where a capability or WP writes files
+
+Use [the address catalog](PATH_REGISTRY.yaml) and
+[path/lifecycle contract](PATH_REGISTRY_CONTRACT.md) to trace a Roadmap heading
+or RD-ID through a WP's Work Order and artifact inventory to its `PATH_ID` and
+resolved physical paths. `roadmap_bindings` and `wp_bindings` are locator-only
+indexes; they do not declare capability maturity or grant execution authority.
+The initial catalog covers families and selected historical evidence; an
+unmapped old WP must be reported as such rather than assigned invented paths.
+
 ## Product House model
 
 ```text

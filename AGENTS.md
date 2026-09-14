@@ -137,6 +137,32 @@ Historical tags and releases must never be silently moved.
     decision, and must independently reconcile Reviewer evidence before
     recommending merge or next work.
 
+16. **LAW 16 — CANONICAL PATH & ARTIFACT LIFECYCLE**: Every new governed
+    file/directory family must use a registered `PATH_ID` in
+    `docs/agent/PATH_REGISTRY.yaml` and comply with
+    `docs/agent/PATH_REGISTRY_CONTRACT.md`. Before writing, bind the
+    Roadmap/RD reference, approved WP or direct Human governance authority,
+    artifact purpose, exact resolved destination, owner, lifecycle and finite
+    storage budget. Existing registered templates may be instantiated within
+    an approved lease without per-file approval; registration never expands
+    scope. Unregistered destinations, fabricated WPs/output evidence and
+    unexplained duplicate implementations are `HOLD`.
+
+    New Work Orders must be discoverable through the catalog's locator-only
+    WP bindings. Reuse capability-owned source modules; never create a source
+    tree or speculative empty scaffolding per WP. At closeout, audit every
+    new artifact's disposition and account for retained/reclaimed bytes.
+    Remove only explicitly authorized, verified task-owned transient targets;
+    defer uncertain targets with an owner and review condition. Unknown is
+    KEEP. Existing protected/tracked/evidence/data deletion rules still apply.
+    A name, age, ignored status or registered address is not deletion authority.
+
+    This rule applies prospectively to new work in this checkout. Existing
+    frozen WPs reconcile at their next governed transition without rewriting
+    evidence. Root/retention/data migrations require Human material authority.
+    The initial catalog is partial; automated enforcement is not yet built.
+    `PATH_REGISTRY_ROLLOUT.md` records the remaining adoption stages.
+
 ### ROLE BOOT / ACTION-FIRST / MUTUAL CHALLENGE
 
 The canonical detailed boot and prompt contract is

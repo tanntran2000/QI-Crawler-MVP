@@ -1038,3 +1038,74 @@ Disposition: ACCEPTED / CONSUMED_BY_MERGED_RECOVERY_CLOSEOUT
 Promoted to: docs/agent_handoff/CURRENT.md;
   docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md / MEM-030
 ```
+
+### FB-0037 — F5 guard before real F5 and bounded retention direction
+
+```text
+State: ACCEPTED / ROUTED / NON_POLICY_PRECEDENT
+Author: Human A0 / Planner
+Role: HUMAN_AUTHORITY / PLANNER_ARCHITECT
+Authority: A0 HUMAN_DECISION + APPROVED WORK ORDER
+Type: RELEASE ENGINEERING / STORAGE SAFETY / GOVERNANCE DIRECTION
+WP: AO-04-C3-F5-GUARD-01-SPINE
+Decision:
+- F5-GUARD must be independently audited before any real F5 execution.
+- Real F5 requires a subsequent explicit Work Order.
+- Default future retention direction requires evidence for active/open Parent WPs
+  and the four most recently closed Parent WPs.
+- The four-Parent window does not authorize unlimited duplicate runtime storage.
+- Older Parents become compaction candidates, not automatic deletion targets.
+- Protected business, HSMT, Warehouse, Ground Truth, release, rollback and
+  open-finding evidence remains exception-based.
+- Formal retention/capacity policy is deferred to a separate governance WP
+  after the current A3 boundary.
+GENERAL_GOVERNANCE_LAW_ACTIVE = NO
+FORMAL_POLICY_IMPLEMENTED = NO
+Boundary: This direction records the accepted transition and does not authorize
+real F5, production access, production safety, deletion, or a general retention
+policy.
+Evidence: AO-04-C3-F5-GUARD-01-SPINE Work Order; guard evidence freeze
+fa29c15ab1db933dcbeb345164693968a64c04cd821396b415fc8eccec29561c.
+Disposition: ACCEPTED / DEFERRED_TO_SEPARATE_GOVERNANCE_WP
+Promoted to: docs/agent_handoff/CURRENT.md;
+  docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/LESSONS.md
+```
+### FB-0038 — Storage headroom is an A3 execution constraint
+
+State: ACCEPTED / ROUTED / NON-POLICY PRECEDENT
+
+- Disk headroom is a hard execution constraint; full-test and component
+  evidence can create material temporary storage.
+- Do not run a full pytest without an explicit storage budget and reserve.
+- Directory name, age, WP number or apparent obsolescence never establishes
+  deletion authority.
+- Heavy rebuildable artifacts may use a 3–4 recent-Parent retention direction
+  only after reference, uniqueness and rebuildability analysis.
+- This record authorizes no deletion and does not create a general retention
+  policy.
+
+### FB-0039 — Canonical path map and post-WP artifact ownership
+
+State: HUMAN_REQUEST_CAPTURED / LOCAL_GOVERNANCE_AUTHORED / AUDIT_PENDING
+
+Source: direct Human request, 2026-09-14, following Planner's path-registry
+proposal. This records the requested direction, not approval of every authored
+detail or an independent verdict.
+
+- Every new WP must be traceable from Master Roadmap/Delta to the folders and
+  exact destinations serving it; new names follow one stable registry.
+- Agents reuse capability-owned modules, prevent unnecessary code/artifact
+  growth, and never fabricate authorized WPs or output existence.
+- At WP closeout, audit all new artifacts; retain purposeful product/evidence
+  assets and remove only authorized, verified unnecessary transient outputs.
+  Unknown/protected/shared data remains KEEP with an owner and review condition.
+- Favor stable logical IDs and additive map evolution over repeated physical
+  relocation. Actual C:/D: paths are still resolved and reported per run.
+
+Routed to: AGENTS.md LAW 16; docs/agent/PATH_REGISTRY_CONTRACT.md;
+docs/agent/PATH_REGISTRY.yaml; docs/agent/PATH_REGISTRY_ROLLOUT.md;
+Memory Index, Role Boot and Master Roadmap navigation references.
+
+Boundary: local governance authoring only. No existing-file deletion,
+production migration, test rerun, new A3 trial, role takeover of active A3 work,
+merge, release or claim that automated enforcement is implemented.

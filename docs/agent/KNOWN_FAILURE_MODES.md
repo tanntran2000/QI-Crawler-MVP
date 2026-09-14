@@ -461,6 +461,306 @@ INDEPENDENT_AUDIT = PASS
 CURRENT_EVIDENCE = Correction audited head 4f8d4bb666622de4c4c372796ac114480a524d84; PR #88 merged; merge commit bf46dbce7501ddf0ae0a7115ddde28eb3b137f62; post-merge Python CI 33645881211 / SUCCESS_4_OF_4; post-merge CodeQL 33645880242 / SUCCESS; REL-B fresh candidate from main independently audited; foreign Poppler ICU absent; frozen Qt 6.11.2 PASS; real smoke ExitCode 0; REL-C installed the exact audited EXE into D:\QI-Crawler; clean second independent REL-C re-audit PASS; no unexplained production data change.
 PERMANENT_PREVENTION = Native dependencies with colliding names must be admitted according to package ownership rather than host discovery accident; candidate acceptance must depend on the real frozen process exit result.
 ```
+
+## FM-016 — Repeated F5 runtime copies exhausted development storage
+
+```text
+ID = FM-016
+TITLE = Repeated F5 runtime copies exhausted development storage
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = GUARD_IMPLEMENTED_LOCALLY / NOT_MERGED
+DETECTED_BY = AO-04-C3 capacity preflight and F5-GUARD transition
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = Repeated full runtime copies accumulated across sandbox and evidence trials, causing material development-disk exhaustion and requiring emergency cleanup before AO-04-C3 could continue.
+ROOT_CAUSE = Trial tooling allowed repeated runtime or sandbox materialization without sufficient lifecycle and capacity enforcement.
+WHY_EXISTING_GATES_MISSED_IT = A storage preflight described available capacity but did not reserve or bound later artifact creation, retries, or concurrent trial materialization.
+CI_IMPLICATION = Capacity and artifact-lifecycle claims require point-of-write evidence; a dry-run or available-space snapshot is not proof that a real F5 trial is safe.
+FIX = F5-only existing-sandbox route; no new runtime copy; one concurrent trial; zero automatic retries; pre-trial and pre-material-write capacity checks; mid-write failure terminalization; execution-identity binding; external orchestrator lock.
+FIX_HEAD = BASE_GIT_HEAD e7dea5c6e07662e963401f795da0cff623be832c6 + LOCAL_FROZEN_WORKTREE_FALLBACK
+REGRESSION_GUARD = Independent audit must verify the frozen guard files, exact input identity, capacity gates, no-copy route, single-trial/retry bounds, lock ownership outside the killed process tree, and fail-closed terminalization before any real F5 authorization.
+INDEPENDENT_AUDIT = PENDING
+CURRENT_EVIDENCE = AO-04-C3-F5-GUARD-01 evidence directory release_staging/evidence/AO-04-C3-F5-GUARD-20260911T043852887Z; frozen guard patch fa29c15ab1db933dcbeb345164693968a64c04cd821396b415fc8eccec29561c; REAL_F5 remains NOT_RUN.
+PERMANENT_PREVENTION = Treat preflight capacity as a gate, not a reservation; bound materialization, concurrency and retries at the write point; keep lifecycle ownership outside any process intentionally killed by the experiment; defer general retention/capacity law to a separate governance WP.
+```
+
+## FM-017 — Windows PowerShell 5.1 relative-path API incompatibility in F5 guard
+
+```text
+ID = FM-017
+TITLE = Windows PowerShell 5.1 relative-path API incompatibility in F5 guard
+STATE = AUDITED
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = RESOLVED_VERIFIED_BY_INDEPENDENT_REVIEWER
+DETECTED_BY = INDEPENDENT_REVIEWER AO-04-C3-F5-GUARD-01
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = F5 guard and probe failed under the target Windows PowerShell 5.1 runtime before corrected dry-run verification.
+ROOT_CAUSE = The guard/probe invoked System.IO.Path.GetRelativePath, which is unavailable in Windows PowerShell 5.1, instead of using a bounded compatibility helper.
+WHY_EXISTING_TESTS_MISSED_IT = Earlier tests could select pwsh or did not force the target powershell.exe host, so the target runtime API surface was not exercised.
+CI_IMPLICATION = No hosted-CI or production claim; the corrected target-runtime regression must remain a required local gate before independent F5 audit.
+FIX = Replace the unavailable relative-path call with canonical path-boundary helpers and a .NET SHA-256 stream helper; add powershell.exe boundary, sibling-prefix, nested-descendant and trailing-root regressions while preserving fail-closed containment.
+FIX_HEAD = BASE_GIT_HEAD e7dea5c6e07662e963401f795da0cff623be832c + AO-04-C3-F5-GUARD-C1 LOCAL FROZEN WORKTREE FALLBACK
+REGRESSION_GUARD = 17-test F5 guard targeted suite under powershell.exe; three-script Windows PowerShell 5.1 parse; full 1088-test suite; no active GetRelativePath/Get-FileHash runtime uses.
+INDEPENDENT_AUDIT = AO-04-C3-F5-GUARD-C1 INDEPENDENT RE-AUDIT PASS FOR POWERSHELL_5_1 CORRECTION
+CURRENT_EVIDENCE = AO-04-C3-F5-GUARD-C1 independently verified compatibility correction; REAL_F5 remains NOT_RUN; A3 production and power-loss safety remain NOT_PROVEN.
+PERMANENT_PREVENTION = Treat the declared Windows PowerShell 5.1 host as an explicit compatibility contract; test actual powershell.exe, keep path containment fail-closed, and require independent audit of the frozen correction before F5 authorization.
+```
+
+## FM-018 — Incomplete sandbox reuse bypass through caller-selected EvidenceRoot
+
+```text
+ID = FM-018
+TITLE = Incomplete sandbox reuse bypass through caller-selected EvidenceRoot
+STATE = OPEN
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = CORRECTION_LOCALLY_VERIFIED / NOT_MERGED / PENDING_INDEPENDENT_REAUDIT
+DETECTED_BY = AO-04-C3-F5-GUARD-C1 independent review / AO-04-C3-F5-GUARD-C2 I1 reproduction
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = An incomplete trial could be retried against the same sandbox by changing EvidenceRoot and RunId because lifecycle state was stored only under the caller-selected evidence directory.
+ROOT_CAUSE = Trial lifecycle authority was keyed by per-run EvidenceRoot instead of a stable sandbox resource identity outside the evidence root.
+WHY_EXISTING_TESTS_MISSED_IT = Existing coverage exercised incomplete state only within one evidence root and did not vary both the evidence root and run identifier for the same sandbox.
+CI_IMPLICATION = No F5, production, or hosted-CI claim; independent audit must verify stable state authority, atomic persistence, fail-closed corruption handling and real filesystem failure behavior.
+FIX = Derive a normalized sandbox_resource_id, store lifecycle state and the sandbox lock under the stable control root, atomically replace state files, reject unresolved/corrupt/mismatched state, and keep EvidenceRoot as per-run evidence only.
+FIX_HEAD = BASE_GIT_HEAD e7dea5c6e07662e963401f795da0cff623be832c + AO-04-C3-F5-GUARD-C2 LOCAL FROZEN WORKTREE FALLBACK
+REGRESSION_GUARD = Same sandbox/different EvidenceRoot and RunId; stale RUNNING; stale POST_KILL_VERIFICATION; corrupt state; different-sandbox isolation; completed reuse; real test-owned filesystem failure with persisted incomplete state; Windows PowerShell 5.1 parse/runtime; input and point-of-use revalidation.
+INDEPENDENT_AUDIT = PENDING
+CURRENT_EVIDENCE = AO-04-C3-F5-GUARD-C2 local correction evidence; REAL_F5 remains NOT_RUN; A3 production and power-loss safety remain NOT_PROVEN.
+PERMANENT_PREVENTION = Lifecycle state must be derived from canonical sandbox identity and never from caller-selected EvidenceRoot; unresolved or unreadable state fails closed and no automatic reconciliation unblocks a sandbox.
+```
+
+## FM-019 — Real F5 route unavailable behind the audited existing-sandbox guard
+
+```text
+ID = FM-019
+TITLE = Real F5 route unavailable behind the audited existing-sandbox guard
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = CANONICAL_ROUTE_CORRECTION_INDEPENDENTLY_VERIFIED / REAL_F5_TRIAL_AUTHORIZED_SEPARATELY
+DETECTED_BY = AO-04-C3-F5-01 execution-route review
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = The audited guard and probe could select only DryRun; direct RealF5 entry was unavailable, while Sequential mode created forbidden runtime copies.
+ROOT_CAUSE = The guard had no explicit handoff object binding lifecycle RUNNING, sandbox, manifest, guard/probe identities and the outer lock to the probe dispatch boundary.
+FIX = Add one explicit Invoke-F5CanonicalRoute implementation behind the guard-issued execution context; route F5Only through the existing sandbox without New-Trial, sandbox creation or runtime copy; keep Sequential setup outside the canonical function and call the same P1-P5 implementation after setup; retain context, RUNNING lifecycle, manifest, point-of-use and outer-lock guards; keep the test checkpoint inside the canonical function before real effects.
+FIX_HEAD = BASE_GIT_HEAD e7dea5c6e07662e963401f795da0cff623be832c + AO-04-C3-F5-RUNNER-C1 LOCAL FROZEN WORKTREE FALLBACK
+REGRESSION_GUARD = RED/GREEN canonical reachability; one-function source proof; Sequential/F5Only shared-call proof; canonical failure propagation; direct-probe context negatives; context drift; lifecycle-not-running; lock-not-held; guarded existing-sandbox dispatch without runtime copy; exclusive-lock contention; C1/C2 guard suite; PowerShell 5.1 parse.
+INDEPENDENT_AUDIT = AO-04-C3-F5-RUNNER-C1 INDEPENDENT_PASS
+CURRENT_EVIDENCE = AO-04-C3-F5-RUNNER-C1 exact frozen snapshot independently reconciled; AO-04-C3-F5-01-R2 was terminalized before probe dispatch because the nested guard capacity authority returned free=0; production and power-loss safety remain NOT_PROVEN.
+PERMANENT_PREVENTION = Real F5 may enter only through a fresh external Work Order using a newly revalidated guard-issued context and the single canonical route; no caller-selected EvidenceRoot, RunId, sandbox or script identity may bypass the outer guard, and F5Only must never fall back to historical setup or create a runtime copy.
+```
+
+## FM-020 — Nested PowerShell capacity authority returns a false zero
+
+```text
+ID = FM-020
+TITLE = Nested Windows PowerShell reports zero free bytes on an otherwise available volume
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = R2_TERMINALIZED_FAIL_CLOSED / CAPACITY_C1_INDEPENDENTLY_VERIFIED / R3_AUTHORIZED_SEPARATELY
+DETECTED_BY = AO-04-C3-F5-01-R2; AO-04-C3-F5-CAPACITY-C1
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = The outer preflight observed 25913290752 free bytes on D:, while the nested guard process returned Get-PSDrive D Free=0 and rejected the trial at CAPACITY_INSUFFICIENT.
+ROOT_CAUSE = The nested guard used Get-PSDrive, whose PowerShell-drive view was not a stable authority for the filesystem volume used by the outer preflight; the same D: volume was available through System.IO.DriveInfo.
+FIX = AO-04-C3-F5-CAPACITY-C1 replaces the PowerShell-drive lookup with the Windows PowerShell 5.1-compatible System.IO.DriveInfo.AvailableFreeSpace authority, canonicalized from the absolute filesystem path; invalid/unavailable measurements fail closed as CAPACITY_MEASUREMENT_ERROR and numeric zero remains valid.
+CURRENT_EVIDENCE = AO-04-C3-F5-01-R2 terminal evidence; AO-04-C3-F5-CAPACITY-C1 independently verified with targeted guard tests 44 PASS, PowerShell 5.1 parse PASS, and nested outer/child capacity probe PASS. The later R3 one-trial authority was consumed and failed closed at P0; no new RealF5 trial is authorized.
+PERMANENT_PREVENTION = Treat contradictory capacity observations as UNKNOWN/FAIL-CLOSED; bind the exact filesystem authority and execution context used at the write gate, require nested Windows PowerShell regression coverage, and require independent review before retrying a critical trial.
+```
+
+## FM-021 — RealF5 pre-execution contract incomplete
+
+```text
+ID = FM-021
+TITLE = RealF5 invocation lacks a complete sandbox-layout and material-write contract
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DISPOSITION = C2_RECOVERY_AND_FIXTURE_AUTHORITY_CORRECTED_INDEPENDENTLY_VERIFIED
+DETECTED_BY = AO-04-C3-F5-01-R3 pre-execution rejection
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = RealF5 reached the guard without a frozen finite capacity peak contract, while the assigned existing sandbox contained runtime/ only and lacked install/, data/, and transaction/.
+ROOT_CAUSE = The pre-execution seam did not bind the canonical route's substantive layout and all material write peaks to one audited trial object.
+WHY_EXISTING_TESTS_MISSED_IT = Earlier guard tests exercised synthetic dispatch and capacity values but did not require a frozen contract or validate the actual existing-sandbox layout before any real route.
+FIX = Bind logical schema-0020 authority to the unchanged C1 seed spec and one exact frozen C1-generated artifact (size/SHA/logical digest); prove the exact historical v0.9 smoke command in child-only isolated roots; enforce six material-write classes; remove development pytest temp from P5; bind fixture, seed spec, recovery semantics, layout, capacity, tool and route identities in one FM021 contract. F5 recovery restores pre-migration executable/control state while DB schema 0020 and generation remain unchanged; 0022-to-0020 downgrade is out of scope.
+FIX_HEAD = BASE_GIT_HEAD e7dea5c6e07662e963401f795da0cff623be832c + AO-04-C3-FM021-RESOLUTION-01-C2 LOCAL WORKING OBJECT
+REGRESSION_GUARD = Seed logical reproducibility plus frozen-artifact SHA; isolated v0.9 compatibility; bounded JSON/text/process output and census; recovery journal bound; exact schema-0020, seed-spec, physical/logical DB and write-class contract negatives; exact 0022 recovery input fails closed without downgrade; existing guard/observer/recovery regressions; Windows PowerShell 5.1 parse/runtime; full Ruff and full pytest once on C2; no RealF5.
+INDEPENDENT_AUDIT = PASS_FOR_AO-04-C3-FM021-RESOLUTION-01-C2 / PLANNER_RECONCILED
+CURRENT_EVIDENCE = C1's exact historical v0.9 isolated smoke remains valid for the same frozen artifact. C2 independently re-hashed that artifact and recomputed its 0020 logical digest, corrected the contract to distinguish future disposable 0020-to-0022 compatibility from F5 pre-migration recovery, and proved 0022 input fails closed. Cross-environment physical reproducibility is not required. Six bounded material-write classes and capacity values are unchanged. No RealF5, designated-sandbox mutation or production access occurred.
+C1_REVIEW_FINDING = HOLD / RECOVERY_CONTRACT_OVERCONSTRAINED_TO_SCHEMA_DOWNGRADE / PHYSICAL_SQLITE_REPRODUCIBILITY_MODEL_OVERCONSTRAINED
+PERMANENT_PREVENTION = RealF5 cannot start without one immutable contract whose exact sandbox, route identity, runtime identity, layout, finite material-write peaks, reserves, and bounded copy/retry/concurrency policy are revalidated at point of use; unknown or drifted inputs fail closed and do not create scaffold directories.
+DIAGNOSTIC_BOUNDARY_PREVENTION = Any frozen-runtime compatibility launch must bind a disposable QI_CRAWLER_DATA_DIR and QI_CRAWLER_CONFIG_PATH before process creation; an unbound launch is a production-boundary violation and must stop the active phase even when the attempted write is denied.
+```
+
+## FM-022 — Canonical RealF5 controller was outside the dedicated Job Object
+
+```text
+ID = FM-022
+TITLE = Canonical RealF5 used PID/tree termination while its Job Object proof covered a separate helper process
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DETECTED_BY = AO-04-C3-A3-CLOSURE-01 pre-materialization review
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c plus frozen local A3 route
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = Invoke-F5CanonicalRoute called Stop-SandboxTree on a controller PID, but never assigned that controller to the Job proven by the independent positive-control helper.
+ROOT_CAUSE = The Job Object self-test and the RealF5 controller launch were separate paths; PID-descendant discovery was mistaken for termination authority.
+FIX = AO-04-C3-F5-JOB-BARRIER-C1 launches the actual controller suspended, assigns it to a dedicated kill-on-close Job, confirms membership before resume, retains the Job handle in the surviving probe, and uses TerminateJobObject with Job-derived active counts. P2 precedes writer/process and stub revalidation, which precede Job kill and P3.
+REGRESSION_GUARD = Synthetic controller-child-grandchild containment and termination; owner-exit kill-on-close; canonical route integration and sequence assertions; guard, observer, preexecution-contract, bounded-I/O and recovery tests; no RealF5.
+INDEPENDENT_AUDIT = RESOLVED_VERIFIED_PER_AUTHORIZING_WORK_ORDER
+CURRENT_EVIDENCE = FM-022 is resolved per the authoritative Planner work order. RealF5 was not run; A3 sandbox feasibility and production/power-loss safety remain unproven.
+PERMANENT_PREVENTION = Bind execution-controller identity and Job-helper identity in the trial contract; require Job membership/count evidence for the same controller that drives the canonical route; never accept PID kill or a separate helper self-test as substitute.
+```
+
+## FM-023 — RealF5 observer escaped the sandbox-only observation boundary
+
+```text
+ID = FM-023
+TITLE = Canonical RealF5 observer could hash production executable and classify production process input
+STATE = RESOLVED_VERIFIED
+SEVERITY_AT_DETECTION = CRITICAL
+DETECTED_BY = AO-04-C3-A3-CLOSURE-01-R2 pre-materialization review
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c plus local A3 route
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = Get-RawCensus iterated every Get-Process result and explicitly included D:\QI-Crawler\QI-Crawler.exe in its hash condition; observer config carried production_paths.
+ROOT_CAUSE = Sandbox feasibility process evidence was incorrectly coupled to global-machine and production executable identity.
+FIX = AO-04-C3-F5-OBSERVER-BOUNDARY-C1 restricts detailed census to owned Job/route PID trees; generic OS discovery uses PID/PPID only; sandbox file hashes require boundary-aware containment and reparse rejection; Python config rejects production_paths; guard binds observer SHA at point of use.
+REGRESSION_GUARD = RED/green synthetic production sentinel, outside/sibling path, disposable external process, mocked census no-outside-hash, FM-021 contract identity, FM-022 Job/barrier, guard and full pytest; no RealF5.
+INDEPENDENT_AUDIT = PASS_PER_AO-04-C3-A3-CLOSURE-01-R3_PLANNER_RECONCILIATION
+CURRENT_EVIDENCE = Observer Boundary C1 exact eight-file snapshot in release_staging/evidence/AO-04-C3-F5-OBSERVER-BOUNDARY-C1-20260913T040125Z independently accepted under the R3 Work Order. That historical one-trial authority was consumed; the successor native-lineage implementation is pending independent re-audit. A3 production and power-loss safety remain NOT_PROVEN.
+PERMANENT_PREVENTION = Treat sandbox observer scope as explicit authority; never infer production safety from sandbox census; bind probe/observer/guard bytes and reject out-of-scope paths before read or hash.
+```
+
+## FM-024 — Valid empty P0 process census rejected by bounded I/O binding
+
+```text
+ID = FM-024
+TITLE = Explicit zero-record P0 census rejected before shared bounded-I/O validation
+STATE = RESOLVED_VERIFIED
+DETECTED_BY = AO-04-C3-A3-CLOSURE-01-R3 failed sandbox trial at P0
+AFFECTED_BASELINE = release/v0.10-recon-01 at e7dea5c6e07662e963401f795da0cff623be832c plus frozen local A3 route
+PRODUCT_HOUSE_LAYER = DELIVERY / RELEASE ENGINEERING / TEST INFRASTRUCTURE
+SYMPTOM = Windows PowerShell 5.1 rejected an explicit empty object[] at the mandatory Records parameter before Assert-F5BoundedRecords could enforce limits. R3 failed closed at P0; P1-P5 were not reached; its one-trial authorization was consumed.
+ROOT_CAUSE = The shared bounded-record parameter lacked AllowEmptyCollection, and an empty result from Get-RawCensus could disappear through PowerShell pipeline enumeration. The empty JSON receipt also serialized as a newline rather than a JSON array.
+FIX = Accept only an explicit empty collection at the shared bounded helper, preserve the empty array at Get-RawCensus, serialize zero records as [] through the existing byte and write-class ceilings, and continue to reject null, malformed, over-count and over-byte records. Rebind the changed probe/bounded-helper identities in a new technical contract and fixture-set copy without rewriting historical R3 evidence.
+REGRESSION_GUARD = Windows PowerShell 5.1 RED/GREEN parameter binding; zero-record bounded JSON; synthetic P0 observer to next pre-P1 boundary; one/max/max+1/null/malformed/byte-overflow; affected guard/observer/Job/preexecution/recovery tests; full pytest and Ruff. P2 controller/Job activity and P3 Job-zero requirements remain unchanged.
+CURRENT_EVIDENCE = AO-04-C3-F5-P0-EMPTY-CENSUS-C1 correction resolved per the subsequent authoritative AO-04-C3-F5-FINAL-INTEGRITY-C1 Work Order. Historical R3 evidence remains immutable with P0 FAILED and lifecycle FAILED. A fresh F5 trial is not authorized by this resolution.
+PERMANENT_PREVENTION = Model empty collection separately from null at PowerShell parameter boundaries; keep valid empty data inside shared bounded validation and valid JSON serialization. Technical contracts bind inputs but do not grant execution authority; each RealF5 trial requires a fresh external Planner Work Order.
+```
+
+## FM-025 — Zero-byte P1 marker rejected at PowerShell parameter binding
+
+```text
+ID = FM-025
+STATE = RESOLVED_VERIFIED
+SYMPTOM = Canonical P1 cannot persist a valid empty marker because mandatory byte[] binding rejects @() before bounded validation.
+ROOT_CAUSE = The shared bounded-byte parameter did not distinguish an explicit empty collection from null.
+CORRECTION = Allow an explicit empty byte collection through the same path, count, and write-class checks; null and over-limit content remain fail-closed.
+EVIDENCE = Native Windows PowerShell 5.1 RED/GREEN and zero-byte, null, over-limit regressions under AO-04-C3-F5-FINAL-INTEGRITY-C1.
+LIMIT = Native-lineage C1 synthetic canonical P0-P5 passed with no skip. This failure mode is resolved by Planner reconciliation; historical R5 remains FAIL and any new RealF5 requires separate authority.
+```
+
+## FM-026 — Windows command route fails when path contains spaces
+
+```text
+ID = FM-026
+STATE = RESOLVED_VERIFIED
+SYMPTOM = Canonical P4 CMD launch did not preserve a path containing spaces and an argument containing whitespace.
+ROOT_CAUSE = Command invocation lacked an identity-preserving process boundary for .cmd artifacts.
+CORRECTION = Launch the exact command artifact through Start-Process with bounded argument conversion and propagate non-zero exit/timeout as failure.
+EVIDENCE = Native path-with-spaces and plain-path controls, whitespace argument, and distinctive exit 17 regression.
+LIMIT = Native-lineage C1 synthetic canonical P0-P5 passed with no skip. This failure mode is resolved by Planner reconciliation; production execution remains unproven.
+```
+
+## FM-027 — Recovery evidence was not fully bound to aggregate verdict
+
+```text
+ID = FM-027
+STATE = RESOLVED_VERIFIED
+SYMPTOM = A recovery outcome could be described without proving same-trial receipt, expected post-barrier refusal, final stub, schema 0020, and physical/logical DB invariance together.
+ROOT_CAUSE = Canonical aggregate lacked a complete recovery identity and final DB gate.
+CORRECTION = Verify same-trial process and P3 observer receipts, expected MAINTENANCE_RECOVERY_REQUIRED exit 2, canonical stub SHA, DB physical manifest, logical digest, and schema before recovery_verified can enter the aggregate.
+EVIDENCE = Positive native disposable receipt and negative missing/malformed/stale, bad exit, DB/digest/schema regressions.
+LIMIT = This is pre-migration F5; no schema downgrade or production DB mutation. The failure mode is resolved by Planner reconciliation, without production acceptance.
+```
+
+## FM-028 — Shortcut persisted before write-budget gate
+
+```text
+ID = FM-028
+STATE = RESOLVED_VERIFIED
+SYMPTOM = Canonical P4 could create a shortcut before checking the route-artifact budget.
+ROOT_CAUSE = Write validation occurred after COM Save.
+CORRECTION = Validate a conservative prospective bound and destination first, save to a bounded temporary artifact, verify its actual size, then move into place; remove partial temp on fault.
+EVIDENCE = Native Windows shortcut positive, insufficient-budget negative with no artifact, and injected partial-write cleanup regression.
+LIMIT = The failure mode is resolved by Planner reconciliation. Capacity values and six write classes are unchanged; no production acceptance follows.
+```
+
+## FM-029 — Manifest completeness declared before persistence and verification
+
+```text
+ID = FM-029
+STATE = RESOLVED_VERIFIED
+SYMPTOM = Canonical gate could report evidence_manifest_complete before a persisted manifest was read back and matched to required evidence.
+ROOT_CAUSE = Completeness was asserted from an in-memory intent, not an authoritative persisted identity.
+CORRECTION = Build, bounded-write, read back, verify trial ID, exact pre-aggregate file set, required paths, sizes and SHA-256, then set verified=true. Post-manifest aggregate/summary outputs are separately excluded to avoid a circular manifest.
+EVIDENCE = Native persistence/readback plus missing, truncated, malformed, missing-required, SHA-mismatch, and write-budget negatives.
+LIMIT = The failure mode is resolved by Planner reconciliation. Any new F5 trial requires separate authorization and exact evidence.
+```
+
+## FM-030 — CIM process lineage access denied before canonical P1
+
+```text
+ID = FM-030
+STATE = RESOLVED_VERIFIED
+SYMPTOM = The canonical synthetic route could not obtain PID/PPID lineage through CIM and held before P1 with access denied.
+ROOT_CAUSE = Canonical process observation depended on Win32_Process CIM access outside the disposable sandbox's reliable authority boundary.
+CORRECTION = Replace canonical CIM lineage calls with native Toolhelp32 PID/PPID observation; bind the helper identity in the successor technical contract. Use launch ownership and Windows Job Objects, not observation alone, for containment and zero authority.
+EVIDENCE = AO-04-C3-F5-NATIVE-LINEAGE-P4-C1 source freeze, native adapter regressions, canonical synthetic P0-P5 PASS with no skip, and S1 non-RealF5 contract validation.
+LIMIT = CIM access denial is a historical root trigger, not a claim that production is safe. The failure mode is resolved by Planner reconciliation; RealF5 remains prohibited.
+```
+
+## FM-031 — Exited parent creates a false-zero P4 lineage observation
+
+```text
+ID = FM-031
+STATE = RESOLVED_VERIFIED
+SYMPTOM = A launcher or intermediate parent can exit while its child remains alive; a fresh rooted PID/PPID snapshot omits that survivor.
+ROOT_CAUSE = Process ancestry is observational and cannot by itself prove termination or absence after a parent exits.
+CORRECTION = Launch EXE/CMD/shortcut routes through dedicated Job containment, require route Job active-count and target identity evidence, and refuse false zero even when Toolhelp snapshot succeeds.
+EVIDENCE = AO-04-C3-F5-NATIVE-LINEAGE-P4-C1 disposable parent-exit and grandchild reproducers, no-false-zero negative controls, 10-case fail-closed matrix, and S1 code-hash freeze.
+LIMIT = An escaped or brokered shortcut on another host remains HOLD. The failure mode is resolved by Planner reconciliation, while sandbox completion and production safety remain unproven.
+```
+
+## FM-032 — Frozen maintenance stub companion missing at canonical P4
+
+```text
+ID = FM-032
+STATE = RESOLVED_VERIFIED
+SYMPTOM = R5 reached P3 then first canonical P4 exited 1 before a success receipt.
+ROOT_CAUSE = Frozen maintenance stub reads adjacent maintenance_stub_state.json; canonical runner had no producer. Hostname-based rehearsal did not exercise this dependency. P4 did not retain child stderr on failure.
+CORRECTION = Bound immutable TX_STATE publication and readback before controller start; verify companion/controller hashes at point of use; capture bounded route output and persist failure receipt; exercise exact frozen stub in disposable regression.
+EVIDENCE = release_staging/evidence/FM032-HUMAN-CORRECTION-20260914; exact stub SHA 6f6a4cfdb43d6a63236ee707ddf74ac43b65a49cb2d20e371bb920cd81932f34; missing-state A/B exit 1 versus valid-state exit 0; canonical five-route disposable rehearsal and fail-closed regressions.
+LIMIT = R5 remains FAIL and authority consumed. No new RealF5, designated-sandbox reset, production access, migration or release. Old immutable contracts require successor rebind and independent review before a separately authorized trial. Default stub entry proof is not resume/controller-recovery or production safety proof.
+PLANNER_EVIDENCE_RECONCILIATION = Eight tests cover exact binary A/B, exact-stub rehearsal, bounded diagnostics, four producer negatives (wrong controller SHA; pre-existing state; changed controller; 1-byte write budget), and overflow. Separate malformed-JSON, missing-key and actual 64-KiB boundary tests were not established by that file. Actual errors are immutable bounded artifact already exists and MATERIAL_WRITE_BOUND_EXCEEDED. Companion contains controller_path and controller_sha256; RunId is in STUB_DEPENDENCY receipt. Exact-stub rehearsal requires -UseFrozenStub. Historical manifest is R5_FAILURE_EVIDENCE_MANIFEST.json.
+S2_R1_FINDING = Full 1221-test regression passed with no skip and unchanged execution hashes. Candidate successor contract and fixture include state_max_bytes=65536 even though current producer is bounded by TX_STATE max_per_file_bytes=1048576 with no separate 65536 enforcement. Candidate input manifest also retains an execution_code_freeze pointer to historical S1; a separate S2 freeze is present. Do not promote this S2 candidate to final trial input without bounded successor evidence correction and independent audit. Sandbox remains post-R5 FAILED and needs separately authorized recovery.
+S2_R2_CORRECTION = New immutable successor fixture and contract bind the effective stub-state limit to TX_STATE.max_per_file_bytes=1048576, companion fields to controller_path/controller_sha256, RunId to receipts/STUB_DEPENDENCY.json, and exact frozen-stub rehearsal to -UseFrozenStub. New non-RealF5 manifest points to the S2 execution freeze, not historical S1. PreflightOnly identity/write-bound/layout/capacity checks passed with no RealF5 or sandbox mutation; historical S1/R1/R5/FM032 evidence hashes remain unchanged. This is Builder evidence pending independent audit, not trial/recovery/production authority; post-R5 sandbox reentry remains REQUIRES_AUTHORIZED_RECOVERY.
+S2_R3_CORRECTION = R2 retained historical S1 paths in untracked_execution_inputs and stale R5 one-trial authorization in route metadata. New R3 manifest reconciles current input lists to 19 validation inputs, binds immutable R2 fixture/contract and S2 freeze, and records R5 as HISTORICAL_FAIL / CONSUMED / RETRY_FORBIDDEN with no current execution authority. Metadata assertions and actual PreflightOnly passed. Full 1221/no-skip regression is evidence on the S2-R1 execution object, reusable only for verified frozen execution scope; exact full-test-tree byte identity was not independently proven. R3 manifest is pending independent audit; sandbox still requires authorized recovery.
+```
+
+## FM-033 — Pretrial and post-barrier executable identities conflated
+
+```text
+ID = FM-033
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+SYMPTOM = R2 preexecution identity accepted the maintenance stub at the canonical install path, while authorized rearm requires frozen v0.9 at that same path. A contract-only phase declaration would be ignored by the guard.
+ROOT_CAUSE = The historical guard schema had one canonical executable fixture identity and no observed phase enforcement. The controller correctly stages/verifies the stub before BARRIER_CONFIRMED, so stub presence alone cannot mean post-barrier authority.
+CORRECTION = Add a successor phase-aware schema and shared read-only phase observer. Fresh preflight requires PRETRIAL v0.9 with no companion/journal; the canonical route asserts CUTOVER_STUB_STAGED at the pre-barrier marker and POST_BARRIER_MAINTENANCE only after barrier confirmation, retaining FM032 and all Job/writer/DB/recovery gates. Historical contracts are preserved as evidence but cannot authorize a new RealF5 trial.
+EVIDENCE = release_staging/evidence/AO-04-C3-A3-PHASE-GUARD-C1-20260914T062343Z; RED 3 cases, targeted phase/route regressions, exact frozen-stub disposable rehearsal, full 1238-pass no-skip suite, 12/12 post-test execution hashes, and current R5 sandbox PRETRIAL preflight refusal.
+LIMIT = Builder evidence pending independent audit. Current sandbox remains POST_BARRIER_FAILED and requires separately authorized rearm. No RealF5, production access, DB migration or release was authorized or performed.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

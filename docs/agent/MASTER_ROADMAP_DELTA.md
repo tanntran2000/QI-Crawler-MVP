@@ -975,3 +975,15 @@ This companion stages unresolved evolution; it does not authorize production
 implementation, override `MASTER_ROADMAP.md`, replace `CURRENT.md`, change
 Human authority, or close a failure. Promotion/removal requires the applicable
 Planner/Human decision and independent evidence.
+## Storage Relief Sequencing Delta — WP-ENG-QI-CRAWLER-STORAGE-RELIEF-01A
+
+PHASE-GUARD COMPLETE
+→ STORAGE RELIEF HOLD
+→ RESUME AT SANDBOX REARM
+→ FRESH PRETRIAL PREFLIGHT
+→ ONE REALF5
+→ FINAL A3 AUDIT
+→ HUMAN A0
+→ A3 CLOSED
+
+This sequencing does not change product architecture or authorize deletion.
