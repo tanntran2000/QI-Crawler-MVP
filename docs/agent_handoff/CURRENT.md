@@ -7,11 +7,11 @@ HANDOFF_ID = QI-PR103-CI-PORTABILITY-GATES-01-TERMINAL-SYNC
 ROLE = BUILDER_SINGLE_WRITER
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
-HANDOFF_CAPTURE_BASE = a0526d744726c2d4ddd999e2123ef08749d01c55
+HANDOFF_CAPTURE_BASE = 54c18ad17482110a98e5bf2655e2b7a809ffcf14
 LIVE_GIT_HEAD = RE_RESOLVE_AT_ENTRY
 AUDIT_TARGET_CODE_HEAD = a0526d744726c2d4ddd999e2123ef08749d01c55
 LAST_AUDITED_CODE_HEAD = a0526d744726c2d4ddd999e2123ef08749d01c55
-LAST_AUDITED_DOC_HEAD = a0526d744726c2d4ddd999e2123ef08749d01c55
+LAST_AUDITED_DOC_HEAD = 54c18ad17482110a98e5bf2655e2b7a809ffcf14
 LAST_AUDIT_SCOPE = CORRECTION_AND_FORWARD_CODE_PASS_CUMULATIVE_PASS_WITH_DECLARED_LIMITS
 ACTIVE_PARENT_WP = QI-PR103-CI-HARDENING-01
 ACTIVE_PRODUCT_WP = NONE
@@ -26,8 +26,9 @@ REMOTE_CHECKPOINT = LIVE_GITHUB_REVERIFY_TERMINAL_PUSH
 PR_STATE = PR103_OPEN_AT_PLANNER_READBACK_REVERIFY_LIVE
 MERGE_STATE = NOT_MERGED
 VERIFICATION_STATE = LOCAL_WINDOWS_FULL_1266_PASSED_583.31S_RUFF_AND_DIFF_PASS
-HOSTED_CI_STATE = d713f05_RUN34942520804_PASS_PER_PLANNER_READBACK_FORWARD_CORRECTION_PENDING
-DOC_SYNC_STATE = TERMINAL_SYNC_PENDING_DOC_REVIEW
+HOSTED_CI_STATE = LIVE_GITHUB_AUTHORITY_FOR_TERMINAL_HEAD
+LAST_VERIFIED_HOSTED_BASELINE = d713f05_RUN34942520804_PASS_HISTORICAL_PLANNER_READBACK
+DOC_SYNC_STATE = PASS_AUDITED_SUPPORTING_DOCS_TERMINAL_RECORD_VERIFIED
 PATH_REGISTRY_REVISION = 1.0.8
 PATH_REGISTRY_MACHINE_GATE = NOT_IMPLEMENTED
 PATH_REGISTRY_CLEANUP_EXECUTOR = NOT_IMPLEMENTED
@@ -36,7 +37,7 @@ SPINE_TARGET_FILES = AGENTS.md;CI_CONTRACT.md;PATH_REGISTRY.yaml;FEEDBACK_LEDGER
 SPINE_SYNC_STATE = PASS
 A3_REARM = NOT_AUTHORIZED
 REAL_F5 = NOT_AUTHORIZED
-HANDOFF_READY = CONDITIONAL_ON_TERMINAL_DOC_REVIEW_AND_FINAL_LIVE_GATES
+HANDOFF_READY = CONDITIONAL_ON_LIVE_GATES
 EXACTLY_ONE_NEXT_ACTION = PLANNER_VERIFY_FINAL_HOSTED_GATES_AND_RULESET_THEN_PRESENT_TO_HUMAN
 NEXT_AUTHORITY = HUMAN_AFTER_PLANNER_FINAL_LIVE_VERIFICATION
 ```
@@ -47,13 +48,15 @@ pytest passed in583.31s with no skips/deselection/not-executed tests. Ruff and
 diff checks passed. Prior CI correction has independent correction-scope PASS
 and hosted run34942520804 PASS per Planner readback; cumulative C1/C2 verdict
 is PASS_WITH_DECLARED_SCOPE_LIMITS at a0526d7; Reviewer closed C1/C2.
-Source/tests remain frozen at that audited code head.
+Source/tests remain frozen at that audited code head. Supporting-document review
+PASS covers a0526d7..54c18ad; this final CURRENT-only record preserves those heads.
 
-OPEN_BLOCKERS: terminal document review, fresh final hosted matrix and ruleset
-enforcement readback. Resolve terminal commit/run identity from LIVE_GITHUB;
-this pre-sync handoff does not predict its own commit or final hosted outcome.
-Earlier failures
-and all current verification evidence remain in the Builder report.
+OPEN_BLOCKERS: no remaining code or supporting-document audit blocker within
+the declared review scope. Final live conditions are required: successful checks
+for the terminal head, active ruleset with exact contexts/bypass settings, and
+current PR state. Planner evaluates these through GitHub and the Planner report;
+this handoff does not claim those predicates are satisfied or predict its own
+commit/run identity. Earlier failures and evidence remain in the Builder report.
 
 SCOPE_BOUNDARIES: approved engineering correction plus only
 src/qi_crawler/update_transaction.py and its tests for C1/C2. No observed runtime
