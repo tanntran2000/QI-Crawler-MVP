@@ -51,8 +51,11 @@ when explicitly labeled, scoped and never represented as real acceptance.
   tool/framework naming conventions and stable public entry points.
 - For new owned generated runs, use the registered template, not `tmp2`,
   `final_final`, `backup_old`, personal names or unexplained numeric folders.
-- A registry record uses `OBSERVED`, `RESERVED` or `LEGACY`; a planned path
-  must not be claimed to exist. Never mkdir empty future roadmap scaffolding.
+- `paths[].status` uses the field-specific enum `OBSERVED | RESERVED`.
+  `legacy_locations[].status` uses the separate enum
+  `OBSERVED_LEGACY | HUMAN_REPORTED_NOT_RESCANNED`. These status schemas are
+  not one common enum. `UNKNOWN` remains fail-closed/HOLD; a planned path must
+  not be claimed to exist. Never mkdir empty future roadmap scaffolding.
 - Generated inventory states: `PLANNED`, `PRESENT_VERIFIED`, `MISSING`,
   `DELETED_VERIFIED`. A path string alone is never proof of output or success.
 
@@ -84,6 +87,12 @@ the actual operation must match, and export may not overwrite an input without
 separate explicit authority. Ancestor registration cannot
 weaken child protection. Fail closed on unknown roots or unresolved templates.
 
+Broad parent entries remain registration/locator records only:
+`PARENT_REGISTERED != ARBITRARY_CHILD_WRITE_AUTHORITY`. Stage C machine
+enforcement requires an explicit machine-readable containment/ownership mode
+before automatic validation; this correction does not invent that field or
+schema.
+
 Never manually clean `.git` object/history storage under a cache policy;
 ordinary authorized Git operations retain their separate governance.
 External inputs/exports are user-selected locations, not repo-owned scratch.
@@ -107,6 +116,15 @@ persistence, retention, cleanup_policy, sensitivity, backup/recovery and
 creation/mutation/deletion authority. Profile fields apply to every entry;
 they cannot be weakened implicitly. Entry-specific restrictions are additive.
 `UNKNOWN` is a hold/keep condition, never a permission default.
+
+`TRACKED_REPO` is the repository storage/lifecycle profile for tracked source,
+tests, migrations, packaging, scripts, templates, plugins, CI and approved
+root helpers. It retains `git_policy = TRACKED_REQUIRED`,
+`persistence = DURABLE`, `cleanup_policy = PROTECTED`, and exact governed or
+Human authority for tracked deletion. This lifecycle classification does not
+describe Product House membership. `TOOL` remains the profile for local/tool-
+managed state such as caches, `.git` and `.venv`; this foundation introduces no
+per-layer profiles.
 
 Root records declare resolver and allowed_overrides. Snapshot examples are
 informational and never replace fresh resolution. No credentials in the map.

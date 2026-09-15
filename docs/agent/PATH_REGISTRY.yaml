@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.0",
+  "revision": "1.0.1",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -30,7 +30,7 @@
     }
   ],
   "profiles": {
-    "PRODUCT": {
+    "TRACKED_REPO": {
       "owner": "Capability owner",
       "consumers": "Named in Work Order or verified runtime contract",
       "git_policy": "TRACKED_REQUIRED",
@@ -135,7 +135,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "src/qi_crawler/{relative_path}",
       "purpose": "Capability-owned production modules; no WP copies",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -145,7 +145,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "tests/{relative_path}",
       "purpose": "Reusable regression tests and labeled fixtures",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -155,7 +155,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "alembic/{relative_path}",
       "purpose": "Schema migrations and configuration",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -165,7 +165,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "packaging/{relative_path}",
       "purpose": "Installer/build definitions",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -175,7 +175,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "scripts/{relative_path}",
       "purpose": "Reusable developer and verification utilities",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -185,7 +185,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "templates/{relative_path}",
       "purpose": "Approved product output templates",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -195,7 +195,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "plugins/{relative_path}",
       "purpose": "Repository-owned agent tooling",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -205,7 +205,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": ".github/{relative_path}",
       "purpose": "Existing CI and repository workflows",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order"
@@ -215,7 +215,7 @@
       "root_id": "ROOT.REPO",
       "relative_template": "{filename}",
       "purpose": "Existing tracked root helpers/configuration; exact tracked names or approved additions only",
-      "profile": "PRODUCT",
+      "profile": "TRACKED_REPO",
       "status": "OBSERVED",
       "producer": "Approved Builder",
       "naming": "Existing convention; exact file/family declared in Work Order",
