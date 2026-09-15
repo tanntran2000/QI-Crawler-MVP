@@ -780,7 +780,9 @@
         "tests/test_ci_contract.py",
         "tests/test_a3_native_lineage.py",
         "tests/a3_p4_characterize.ps1",
-        "tests/test_a3_p4_containment.py"
+        "tests/test_a3_p4_containment.py",
+        "src/qi_crawler/update_transaction.py",
+        "tests/test_update_transaction.py"
       ],
       "relation": "Bounded clean-checkout CI correction and durable contract. Compact local test-temp alias CI103 maps only to this WP; CI alias is workflow-owned under CI_CONTRACT. Neither alias creates a new WP or execution grant."
     }

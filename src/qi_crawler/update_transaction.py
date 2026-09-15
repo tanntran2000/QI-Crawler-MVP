@@ -88,6 +88,25 @@ def _write_json_durable(path: Path, payload: dict[str, object]) -> None:
     os.replace(temporary, path)
 
 
+def _release_resources(connection, owner_lock: _ExclusiveFileLock, error: BaseException | None = None) -> None:
+    """Attempt each release independently; retain the operation's original error."""
+    cleanup_error = None
+    actions = [] if connection is None else [connection.rollback, connection.close]
+    actions.append(owner_lock.release)
+    for action in actions:
+        try:
+            action()
+        except BaseException as failure:  # noqa: BLE001 - finish all cleanup, then preserve/raise
+            if error is not None:
+                error.add_note(f"Maintenance cleanup failed: {failure!r}")
+            elif cleanup_error is None:
+                cleanup_error = failure
+            else:
+                cleanup_error.add_note(f"Additional maintenance cleanup failure: {failure!r}")
+    if error is None and cleanup_error is not None:
+        raise cleanup_error
+
+
 def legacy_write(database_path: Path, value: str) -> None:
     """Represent a legacy writer that knows nothing about the journal."""
     connection = sqlite3.connect(database_path, timeout=0.0)
@@ -116,6 +135,7 @@ class MaintenanceTransaction:
         owner_lock = _ExclusiveFileLock(root / "maintenance" / "maintenance.lock")
         owner_lock.acquire()
         journal_dir = root / "maintenance" / "updates" / transaction_id
+        connection = None
         try:
             journal_dir.mkdir(parents=True, exist_ok=False)
             journal_path = journal_dir / "state.json"
@@ -139,61 +159,44 @@ class MaintenanceTransaction:
             # RESERVED blocks other writers while allowing legacy readers to
             # inspect schema and reach their write attempt.
             connection.execute("BEGIN IMMEDIATE")
-        except Exception:
-            owner_lock.release()
+            state["phase"] = "APPLICATION_QUIESCED"
+            state["barrier_acquired"] = True
+            _write_json_durable(journal_path, state)
+            return cls(root, database, transaction_id, journal_path, connection, owner_lock, state)
+        except BaseException as error:
+            _release_resources(connection, owner_lock, error)
             raise
-        state["phase"] = "APPLICATION_QUIESCED"
-        state["barrier_acquired"] = True
-        _write_json_durable(journal_path, state)
-        return cls(root, database, transaction_id, journal_path, connection, owner_lock, state)
 
     @classmethod
     def resume(cls, data_root: Path, database_path: Path) -> MaintenanceTransaction:
         root = Path(data_root).resolve()
         database = Path(database_path).resolve()
-        update_root = root / "maintenance" / "updates"
-        journals = sorted(update_root.glob("*/state.json"))
-        candidates = []
-        for journal in journals:
-            state = json.loads(journal.read_text(encoding="utf-8"))
-            if state.get("database_path") == str(database) and state.get("phase") != "COMPLETE":
-                candidates.append((journal, state))
-        if len(candidates) != 1:
-            raise MaintenanceStateError("expected exactly one incomplete maintenance transaction")
-        journal_path, state = candidates[0]
-        transaction = cls._resume_existing(root, database, journal_path, state)
-        return transaction
-
-    @classmethod
-    def _resume_existing(
-        cls,
-        root: Path,
-        database: Path,
-        journal_path: Path,
-        state: dict[str, object],
-    ) -> MaintenanceTransaction:
         owner_lock = _ExclusiveFileLock(root / "maintenance" / "maintenance.lock")
         owner_lock.acquire()
+        connection = None
         try:
+            # Selection and reads share ownership with completion. A pre-lock
+            # snapshot could otherwise reopen a concurrently completed journal.
+            candidates = []
+            for journal in sorted((root / "maintenance" / "updates").glob("*/state.json")):
+                state = json.loads(journal.read_text(encoding="utf-8"))
+                if state.get("database_path") == str(database) and state.get("phase") != "COMPLETE":
+                    candidates.append((journal, state))
+            if len(candidates) != 1:
+                raise MaintenanceStateError("expected exactly one incomplete maintenance transaction")
+            journal_path, state = candidates[0]
             connection = sqlite3.connect(database, timeout=0.0, isolation_level=None)
             connection.execute("PRAGMA busy_timeout=0")
             connection.execute("BEGIN IMMEDIATE")
-        except Exception:
-            owner_lock.release()
+            state["phase"] = "RECOVERY_REQUIRED"
+            state["barrier_acquired"] = True
+            state["owner_pid"] = os.getpid()
+            _write_json_durable(journal_path, state)
+            return cls(root, database, str(state["transaction_id"]), journal_path,
+                       connection, owner_lock, state)
+        except BaseException as error:
+            _release_resources(connection, owner_lock, error)
             raise
-        state["phase"] = "RECOVERY_REQUIRED"
-        state["barrier_acquired"] = True
-        state["owner_pid"] = os.getpid()
-        _write_json_durable(journal_path, state)
-        return cls(
-            root,
-            database,
-            str(state["transaction_id"]),
-            journal_path,
-            connection,
-            owner_lock,
-            state,
-        )
 
     def write(self, statement: str, parameters: tuple[object, ...] = ()) -> None:
         self._connection.execute(statement, parameters)
@@ -211,16 +214,18 @@ class MaintenanceTransaction:
     def complete(self) -> None:
         if self.state.get("phase") == "COMPLETE":
             return
-        self.state["phase"] = "POSTCHECKING"
-        _write_json_durable(self.journal_path, self.state)
         try:
-            self._connection.commit()
-            self.state["postcheck_completed"] = True
-            self.state["phase"] = "COMPLETE"
+            self.state["phase"] = "POSTCHECKING"
             _write_json_durable(self.journal_path, self.state)
-        finally:
-            self._connection.close()
-            self._owner_lock.release()
+            self._connection.commit()
+            completed = dict(self.state, postcheck_completed=True, phase="COMPLETE")
+            _write_json_durable(self.journal_path, completed)
+            self.state = completed
+        except BaseException as error:
+            _release_resources(self._connection, self._owner_lock, error)
+            raise
+        else:
+            _release_resources(self._connection, self._owner_lock)
 
     def __enter__(self) -> Self:
         return self
@@ -229,9 +234,7 @@ class MaintenanceTransaction:
         if exc_type is None:
             self.complete()
             return
-        self._connection.rollback()
-        self._connection.close()
-        self._owner_lock.release()
+        _release_resources(self._connection, self._owner_lock, exc_value)
 
 
 __all__ = ["MaintenanceBusy", "MaintenanceStateError", "MaintenanceTransaction", "legacy_write"]

@@ -789,6 +789,19 @@ EVIDENCE = QI-PR103-CI-PORTABILITY-GATES-01 full.xml failure and retained full-r
 LIMIT = No RealF5/release acceptance; no claim that all process identity races are eliminated. Independent audit and fresh hosted verification remain required.
 ```
 
+## FM-036 — Maintenance ownership outlives failed journal I/O
+
+```text
+ID = FM-036
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / FUTURE MAINTENANCE PRIMITIVE
+ROOT_CAUSE = Journal writes after SQLite/owner acquisition escaped cleanup; serial rollback/close/release could strand later resources. Recovery selected a pre-lock journal that a current owner could complete before acquisition.
+CORRECTION = Protect fallible acquired-resource paths, attempt each cleanup independently while retaining the original exception, publish in-memory COMPLETE only after durable write, and select/read recovery journal under the owner lock.
+PREVENTION = Lock ownership covers both decision inputs and writes. Storage-failure tests must prove DB and owner reacquisition, incomplete durable state, independent cleanup and completion interleavings.
+EVIDENCE = Independent cumulative review C1/C2 and forward correction tests/test_update_transaction.py; Builder report follow-up.
+LIMIT = No runtime caller beyond tests discovered; unintegrated primitive, no current release/data corruption or fully atomic DB+journal commit claim.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

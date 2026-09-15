@@ -195,3 +195,38 @@ Add deterministic absent-parent evidence coverage in the scoped native tests.
 Allow at most 10 local run directories and 14 evidence files, retaining the same
 4 GiB local / 16 MiB evidence limits and free-space reserves. Retain both failed
 full results; subsequent results use distinct names. No blanket retries.
+
+## Forward correction from independent cumulative review
+
+Correction commit d713f0525ca0546995c3c956b45309d0d49b1ce5 independently passed;
+cumulative PR review found C1/C2 in the preexisting maintenance primitive.
+To satisfy the Human request for a merge-reviewable branch, Planner authorizes
+the same single Builder to correct only src/qi_crawler/update_transaction.py
+and tests/test_update_transaction.py, plus the already scoped registry, failure
+memory, feedback/lesson and transition handoff if triggered. This explicit
+follow-up supersedes the earlier product-source exclusion for this one module;
+no other product source, migration, installer or API expansion is authorized.
+
+C1: journal I/O failure after resource acquisition must release SQLite and owner
+lock independently, even when cleanup itself fails, without falsely recording
+COMPLETE or losing the original error. C2: recovery journal selection/content
+must be revalidated under ownership so concurrent completion cannot be reopened
+from a stale pre-lock snapshot. Preserve exactly-one-incomplete and hard-crash
+recovery semantics. Use existing module, no parallel implementation.
+
+Baseline is exact d713f05; record fresh collection. Required TDD RED/GREEN:
+start/resume/complete journal failure, resource reacquisition, cleanup failure
+independence, and deterministic completion-between-read-and-lock interleaving.
+Run targeted transaction regressions, then full default pytest, Ruff/diff; retain
+all previous CI evidence. Independent Reviewer rechecks the forward Git range
+and reconciles cumulative verdict before merge recommendation. No merge/release.
+
+RELEASE_IMPACT_ASSESSMENT: current references are module/tests only, no observed
+product caller. This is failure-safety correction of an unintegrated primitive;
+no user-visible feature/schema/package behavior or version bump is claimed.
+If new runtime exposure is discovered, return to Planner before broader edits.
+Register the two exact paths; route C1/C2 prevention without promoting unmerged
+facts to PROJECT_MEMORY. Allow at most 12 local run directories / 16 evidence
+files with unchanged 4 GiB temp,16 MiB evidence and10 GiB free-space limits.
+Update existing Builder/Reviewer reports with distinct follow-up evidence; never
+overwrite earlier full results. Final hosted CI must correspond to final code.

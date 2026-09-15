@@ -64,3 +64,10 @@ fixes.
     an older process still records it as PPID. Validate creation chronology
     before treating that edge as ancestry; unavailable identity remains
     unresolved. Containment membership must not hide unknown descendants.
+
+### 18. Ownership must cover decision reads and failure cleanup
+
+A journal read before a lock can become stale before the write it authorizes.
+Acquire ownership before selecting recovery state. Every operation after resource
+acquisition needs cleanup; release each independent resource even if another
+release fails, retaining the primary error and incomplete durable state.

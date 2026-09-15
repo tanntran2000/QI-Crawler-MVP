@@ -3,15 +3,16 @@
 ## Builder return awaiting Planner reconciliation
 
 ```text
-HANDOFF_ID = QI-PR103-CI-PORTABILITY-GATES-01-BUILDER-RETURN
+HANDOFF_ID = QI-PR103-CI-PORTABILITY-GATES-01-C1-C2-BUILDER-RETURN
 ROLE = BUILDER_SINGLE_WRITER
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
-HANDOFF_CAPTURE_BASE = 6069980d343c46e1a3022859dcf67dc3bcadd170
+HANDOFF_CAPTURE_BASE = d713f0525ca0546995c3c956b45309d0d49b1ce5
 LIVE_GIT_HEAD = RE_RESOLVE_AT_ENTRY
 AUDIT_TARGET_CODE_HEAD = PENDING_PLANNER_COMMIT
-LAST_AUDITED_CODE_HEAD = UNRESOLVED_PRIOR_A2
-LAST_AUDITED_DOC_HEAD = UNRESOLVED_PRIOR_A2
+LAST_AUDITED_CODE_HEAD = d713f0525ca0546995c3c956b45309d0d49b1ce5
+LAST_AUDITED_DOC_HEAD = d713f0525ca0546995c3c956b45309d0d49b1ce5
+LAST_AUDIT_SCOPE = CI_CORRECTION_ONLY_CUMULATIVE_C1_C2_PENDING
 ACTIVE_PARENT_WP = QI-PR103-CI-HARDENING-01
 ACTIVE_PRODUCT_WP = NONE
 ACTIVE_ENGINEERING_WP = QI-PR103-CI-PORTABILITY-GATES-01
@@ -21,11 +22,11 @@ PARENT_STATE = BUILDER_RETURNED_PENDING_PLANNER_BUILDER_RESULT_REVIEW
 ROADMAP_REVISION = 1.3
 ROADMAP_BASELINE_SHA = SHA256:E097156C9C5F18D4DB28A23D957A3C49750D69948AE1F4A309D5DBD2573D4D2D
 PRODUCT_FRONTIER = UNIFIED_TENDER_WAREHOUSE_PARTIAL_UNCHANGED
-REMOTE_CHECKPOINT = 6069980_EXISTING_CHECKPOINT_NO_CORRECTION_PUSH
+REMOTE_CHECKPOINT = d713f05_PUSHED_C1_C2_FORWARD_CORRECTION_NOT_PUSHED
 PR_STATE = PR103_OPEN_AT_PLANNER_READBACK_REVERIFY_LIVE
 MERGE_STATE = NOT_MERGED
-VERIFICATION_STATE = LOCAL_WINDOWS_FULL_1258_PASSED_579.74S_RUFF_AND_DIFF_PASS
-HOSTED_CI_STATE = PENDING_CORRECTION_COMMIT_PUSH_AND_FRESH_RUN
+VERIFICATION_STATE = LOCAL_WINDOWS_FULL_1266_PASSED_583.31S_RUFF_AND_DIFF_PASS
+HOSTED_CI_STATE = d713f05_RUN34942520804_PASS_PER_PLANNER_READBACK_FORWARD_CORRECTION_PENDING
 DOC_SYNC_STATE = BUILDER_SCOPE_SYNCED_PENDING_REVIEW
 PATH_REGISTRY_REVISION = 1.0.7
 PATH_REGISTRY_MACHINE_GATE = NOT_IMPLEMENTED
@@ -40,20 +41,22 @@ EXACTLY_ONE_NEXT_ACTION = PLANNER_BUILDER_RESULT_REVIEW
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
 
-PROVEN_COMPLETE: bounded CI correction is implemented; fresh collection 1258
-(+20 from verified local baseline 1238), full Windows pytest passed with no
-skips/deselection/not-executed tests. Ruff and diff checks passed. Earlier
-failures and their corrections remain in the Builder evidence report.
+PROVEN_COMPLETE: forward C1/C2 maintenance failure-safety correction implemented;
+fresh collection 1266 (+8 from verified d713f05 baseline 1258), full Windows
+pytest passed in583.31s with no skips/deselection/not-executed tests. Ruff and
+diff checks passed. Prior CI correction has independent correction-scope PASS
+and hosted run34942520804 PASS per Planner readback; cumulative C1/C2 verdict
+still awaits exact forward-diff independent review.
 
-OPEN_BLOCKERS: exact correction commit, independent cumulative audit, fresh
-hosted matrix and ruleset enforcement readback remain pending. No prior A2
-cumulative audit PASS is inferred. No product maturity or release promotion.
+OPEN_BLOCKERS: forward correction commit, independent review/reconciliation,
+fresh final hosted matrix and ruleset enforcement readback. Earlier failures
+and all current verification evidence remain in the Builder report.
 
-SCOPE_BOUNDARIES: engineering CI/test portability, evidence, process-identity
-correction and approved governance only; real release paths remain fail-closed.
-No product/schema change, RealF5 trial, rearm, merge or release performed.
+SCOPE_BOUNDARIES: approved engineering correction plus only
+src/qi_crawler/update_transaction.py and its tests for C1/C2. No observed runtime
+caller beyond tests; no schema/package/version change or product maturity
+promotion. No RealF5, rearm, merge or release performed.
 
 Evidence: `release_staging/evidence/QI-PR103-CI-PORTABILITY-GATES-01-20260915T070000Z/BUILDER_REPORT.md`
-and `full3.xml`; final local log
-`.tmp/CI103/20260915T071300Z/full.txt`. Work Order:
-`docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md`.
+and `followup-full.xml`; local log `.tmp/CI103/20260915T080100Z/full.txt`.
+Work Order: `docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md`.
