@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.1",
+  "revision": "1.0.2",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -649,6 +649,19 @@
         "release_staging/sandbox/AO-04-C3-PREFLIGHT-20260911T034909695Z/"
       ],
       "relation": "SELECTED_HISTORICAL_EVIDENCE_ONLY; not new execution authority or complete Parent inventory"
+    },
+    {
+      "wp_id": "QI-FRAMEWORK-RECON-AUDIT-01",
+      "authority_ref": "DIRECT_HUMAN_GOVERNANCE_REQUEST_20260915 / WO-GOV-QI-FRAMEWORK-RECON-AUDIT-01",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#blueprint-use-and-adaptive-navigation",
+      "path_ids": [
+        "PATH.EVIDENCE.WP_RUN"
+      ],
+      "artifact_inventory_ref": "release_staging/evidence/QI-FRAMEWORK-RECON-AUDIT-01-{run_id}/QI_FRAMEWORK_RECONCILIATION_REPORT.md",
+      "scope_paths": [
+        "release_staging/evidence/QI-FRAMEWORK-RECON-AUDIT-01-{run_id}/"
+      ],
+      "relation": "GOVERNANCE_AUDIT_LOCATOR_ONLY; DIRECT_HUMAN_AUTHORITY_PLUS_PLANNER_WORK_ORDER; NO_PRODUCT_IMPLEMENTATION_AUTHORITY"
     }
   ],
   "legacy_locations": [
