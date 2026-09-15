@@ -1109,3 +1109,21 @@ Memory Index, Role Boot and Master Roadmap navigation references.
 Boundary: local governance authoring only. No existing-file deletion,
 production migration, test rerun, new A3 trial, role takeover of active A3 work,
 merge, release or claim that automated enforcement is implemented.
+
+### FB-0040 — Reproducible CI and durable Crawler-wide protection
+
+State: HUMAN_AUTHORIZED / IMPLEMENTATION_PENDING_INDEPENDENT_REVIEW
+
+Source: Human request, 2026-09-15, to fix repeated CI failures, prepare the
+branch for GitHub push/merge review, and establish enduring CI law.
+
+Planner disposition: preserve existing supported-platform gates; correct
+developer-artifact dependencies; add a fail-closed final gate and diagnostic
+evidence. Future capability work evolves risk-specific gates through the CI
+Fitness Contract. Synthetic engineering verification is separate from real
+release acceptance. A green workflow does not itself establish protection
+settings or authorize merge/release.
+
+Routed to: AGENTS.md, CI_CONTRACT.md, Work Order
+`docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md` and CURRENT.
+Scope excludes new A3 trials, product changes and automatic merge/release.

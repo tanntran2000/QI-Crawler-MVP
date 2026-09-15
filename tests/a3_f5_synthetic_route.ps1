@@ -69,8 +69,14 @@ $canonical=Join-Path $app 'QI-Crawler.exe'
 Copy-Item -LiteralPath $legacy -Destination $canonical
 $python=(Resolve-Path -LiteralPath '.venv/Scripts/python.exe').Path
 $observer=(Resolve-Path -LiteralPath 'tools/release/a3_process_observer.py').Path
-$controllerSource=(Resolve-Path -LiteralPath 'release_staging/evidence/WP-REL-RECON-01/AO-03/controller/ao03_controller.py').Path
-$controller=(Resolve-Path -LiteralPath 'release_staging/evidence/WP-REL-RECON-01/AO-03/controller/dist/AO03-Controller.exe').Path
+if ($UseFrozenStub) {
+    $controllerSource=(Resolve-Path -LiteralPath 'release_staging/evidence/WP-REL-RECON-01/AO-03/controller/ao03_controller.py').Path
+    $controller=(Resolve-Path -LiteralPath 'release_staging/evidence/WP-REL-RECON-01/AO-03/controller/dist/AO03-Controller.exe').Path
+} else {
+    # The actor is test-owned. No historical release material is a CI dependency.
+    $controllerSource=(Resolve-Path -LiteralPath 'tests/a3_ci_controller.py').Path
+    $controller=$python
+}
 $ao03ControllerHash=Get-Sha256 $controller
 $seedProcess=Start-Process -FilePath $python -ArgumentList (ConvertTo-F5CommandLine @('-m','tools.release.a3_f5_seed_db','--output',(Join-Path $db 'egp.db'))) -WorkingDirectory $repo -WindowStyle Hidden -PassThru -Wait
 if ($seedProcess.ExitCode -ne 0) { throw 'SYNTHETIC_DB_SEED_FAILED' }

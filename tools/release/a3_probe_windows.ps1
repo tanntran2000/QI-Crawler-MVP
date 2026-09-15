@@ -206,17 +206,25 @@ if ($Mode -eq 'F5Only') {
 }
 
 $evidence = if ([IO.Path]::IsPathRooted($EvidenceRoot)) { Get-CanonicalPath $EvidenceRoot } else { Join-Path $repo $EvidenceRoot }
+if ($f5OnlyTestCheckpoint) {
+    # Context, manifest, lifecycle and held lock have already been validated.
+    # The checkpoint does not execute P1-P5 and must not load release payloads.
+    $stub = Join-Path $f5OnlySandbox 'install\QI-Crawler\QI-Crawler.exe'
+    $legacyHash = 'NOT_RUN'
+    $stubHash = 'NOT_RUN'
+} else {
 $candidate = (Resolve-Path -LiteralPath 'release_staging\candidate\QI-Crawler\QI-Crawler.exe').Path
 $controller = (Resolve-Path -LiteralPath 'release_staging\evidence\WP-REL-RECON-01\AO-03\controller\dist\AO03-Controller.exe').Path
 $stub = (Resolve-Path -LiteralPath 'release_staging\evidence\WP-REL-RECON-01\AO-03\stub\dist\QI-Crawler-Maintenance-Stub.exe').Path
 $prep = (Resolve-Path -LiteralPath 'release_staging\evidence\WP-REL-RECON-01\AO-03\transaction\prep_data').Path
-$python = (Resolve-Path -LiteralPath '.venv\Scripts\python.exe').Path
-$observer = (Resolve-Path -LiteralPath 'tools\release\a3_process_observer.py').Path
-$recovery = (Resolve-Path -LiteralPath 'tools\release\a3_recovery.py').Path
     $legacyHash = Get-Sha256 $candidate
     $ao03ControllerHash = Get-Sha256 $controller
     $stubHash = Get-Sha256 $stub
 $controllerSource = (Resolve-Path -LiteralPath 'release_staging\evidence\WP-REL-RECON-01\AO-03\controller\ao03_controller.py').Path
+}
+$python = (Resolve-Path -LiteralPath '.venv\Scripts\python.exe').Path
+$observer = (Resolve-Path -LiteralPath 'tools\release\a3_process_observer.py').Path
+$recovery = (Resolve-Path -LiteralPath 'tools\release\a3_recovery.py').Path
 
 function Write-Json([string]$Path, $Value) {
     $class = Resolve-F5WriteClass $Path
@@ -286,16 +294,51 @@ function Get-ProcessTreeEvidence([int[]]$Roots) {
         $rootStatuses += [ordered]@{pid=$root;exists=$(if($status -eq 'SUCCESS'){@($all | Where-Object pid -eq $root).Count -gt 0}else{$null})}
     }
     if ($status -ne 'SUCCESS') {
-        return [pscustomobject]@{ids=@($ids);enumeration_status=$status;enumeration_source='TOOLHELP32';root_pid_status=$rootStatuses;descendant_discovery_status='UNRESOLVED';unresolved_descendants=$errorText}
+        return [pscustomobject]@{ids=@($ids);snapshot_status=$status;enumeration_status=$status;enumeration_source='TOOLHELP32';root_pid_status=$rootStatuses;descendant_discovery_status='UNRESOLVED';unresolved_descendants=$errorText}
     }
+    # Toolhelp PPIDs outlive their parents and may refer to a reused PID.
+    # A child created before the current parent is a proven stale edge, not
+    # a descendant. Unknown creation identity remains unresolved/fail-closed.
+    $creationTimes = @{}
+    $examined = [Collections.Generic.HashSet[int]]::new()
+    $rejected = [Collections.Generic.List[object]]::new()
+    $unresolved = [Collections.Generic.List[object]]::new()
     $changed = $true
     while ($changed) {
         $changed = $false
         foreach ($proc in $all) {
-            if ($proc.ppid -in $ids -and $ids.Add([int]$proc.pid)) { $changed = $true }
+            if ($proc.ppid -notin $ids -or $ids.Contains([int]$proc.pid) -or
+                -not $examined.Add([int]$proc.pid)) { continue }
+            try {
+                foreach ($identityPid in @([int]$proc.ppid, [int]$proc.pid)) {
+                    if (-not $creationTimes.ContainsKey($identityPid)) {
+                        $identityProcess = Get-Process -Id $identityPid -ErrorAction Stop
+                        $created = $identityProcess.StartTime.ToUniversalTime()
+                        if ($created.Year -lt 1970) { throw 'PROCESS_CREATION_TIME_INVALID' }
+                        $creationTimes[$identityPid] = $created
+                    }
+                }
+                if ($creationTimes[[int]$proc.pid] -lt $creationTimes[[int]$proc.ppid]) {
+                    $rejected.Add([ordered]@{
+                        pid=[int]$proc.pid;ppid=[int]$proc.ppid
+                        reason='CHILD_PREDATES_PARENT'
+                        child_created_utc=$creationTimes[[int]$proc.pid].ToString('o')
+                        parent_created_utc=$creationTimes[[int]$proc.ppid].ToString('o')
+                    })
+                    continue
+                }
+                if ($ids.Add([int]$proc.pid)) { $changed = $true }
+            } catch {
+                $unresolved.Add([ordered]@{pid=[int]$proc.pid;ppid=[int]$proc.ppid;reason='PROCESS_CREATION_IDENTITY_UNAVAILABLE'})
+            }
         }
     }
-    return [pscustomobject]@{ids=@($ids);enumeration_status=$status;enumeration_source='TOOLHELP32';root_pid_status=$rootStatuses;descendant_discovery_status='COMPLETE';unresolved_descendants=@()}
+    return [pscustomobject]@{
+        ids=@($ids);snapshot_status=$status;enumeration_status=$(if($unresolved.Count){'PARTIAL'}else{$status})
+        enumeration_source='TOOLHELP32';root_pid_status=$rootStatuses
+        descendant_discovery_status=$(if($unresolved.Count){'UNRESOLVED'}else{'COMPLETE'})
+        unresolved_descendants=$unresolved.ToArray();rejected_parent_edges=$rejected.ToArray()
+    }
 }
 
 function Test-ProcessTreeFailClosed([string]$TrialRoot) {

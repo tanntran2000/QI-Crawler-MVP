@@ -67,7 +67,8 @@ function Run-Case([string]$Kind) {
             job_members=$members
             child_in_job=($child -in $members)
             native_lineage_contains_child=($child -in @($nativeLineage.ids))
-            native_snapshot_status=$nativeLineage.enumeration_status
+            native_snapshot_status=$nativeLineage.snapshot_status
+            native_tree=$nativeLineage
             breakaway_ok_enabled=$false
             silent_breakaway_ok_enabled=$false
         }

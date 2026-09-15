@@ -73,3 +73,40 @@ def test_canonical_tree_uses_native_snapshot_on_cim_denied_host() -> None:
         "contains_own": True,
         "discovery": "COMPLETE",
     }
+
+
+@pytest.mark.parametrize("case", ["valid", "older_child", "unknown_child", "unknown_parent", "absent_parent"])
+def test_native_parent_edges_require_compatible_creation_times(case: str) -> None:
+    result = _run(
+        f"$ErrorActionPreference='Stop'; $case='{case}'; "
+        f"$source=Get-Content -Raw -LiteralPath {_ps(PROBE)}; "
+        "$tokens=$null;$parseErrors=$null;"
+        "$ast=[Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$parseErrors);"
+        "$fn=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$true));"
+        "foreach($f in $fn){. ([scriptblock]::Create($f.Extent.Text))};"
+        "function Get-A3NativeProcessSnapshot { [pscustomobject]@{processes=@("
+        "$(if($case -ne 'absent_parent'){@{pid=100;ppid=1}}),@{pid=200;ppid=100},@{pid=300;ppid=200})} };"
+        "function Get-Process { param($Id,$ErrorAction) "
+        "if (($case -eq 'unknown_child' -and $Id -eq 200) -or "
+        "($case -in @('unknown_parent','absent_parent') -and $Id -eq 100)) { throw 'METADATA_UNAVAILABLE' };"
+        "$offset=switch($Id){100{10}200{20}300{30}};"
+        "if ($case -eq 'older_child' -and $Id -eq 200) {$offset=1};"
+        "[pscustomobject]@{StartTime=([datetime]'2026-01-01T00:00:00Z').AddSeconds($offset)} };"
+        "Get-ProcessTreeEvidence @(100) | ConvertTo-Json -Depth 8 -Compress"
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload["snapshot_status"] == "SUCCESS"
+    if case == "absent_parent":
+        assert payload["root_pid_status"][0]["exists"] is False
+    if case == "valid":
+        assert set(payload["ids"]) == {100, 200, 300}
+        assert payload["descendant_discovery_status"] == "COMPLETE"
+    elif case == "older_child":
+        assert payload["ids"] == [100]
+        assert payload["descendant_discovery_status"] == "COMPLETE"
+        assert payload["rejected_parent_edges"][0]["reason"] == "CHILD_PREDATES_PARENT"
+    else:
+        assert payload["enumeration_status"] != "SUCCESS"
+        assert payload["descendant_discovery_status"] == "UNRESOLVED"
+        assert payload["unresolved_descendants"]

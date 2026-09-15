@@ -319,6 +319,24 @@ The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this
 
 ## CI runtime & triage governance
 
+### Durable CI protection contract
+
+`docs/agent/CI_CONTRACT.md` is the detailed CI design and evolution authority.
+Every future capability Work Order must preserve clean-checkout reproducibility,
+explicit test ownership (product, engineering, release acceptance), collection
+accounting, strict required-job success, exact-SHA evidence, finite runtime and
+artifact budgets. Missing local artifacts must not be hidden with skips, fake
+release results, or `continue-on-error`. Runtime dependency changes require
+review and supported-platform verification. CI changes must prove that rejected,
+missing, skipped and cancelled required jobs cannot produce a passing final gate.
+Keep existing baseline coverage until a reviewed CI Fitness Contract proves a
+replacement. New capability risks add the minimum relevant regression gates;
+future roadmap features do not become mandatory before implementation.
+GitHub ruleset enforcement must be verified separately from workflow contents.
+CI PASS is machine evidence; independent review and Human merge/release authority
+remain separate. Detailed budgets, ownership and implemented limitations live in
+the supporting contract rather than being copied into each Work Order.
+
 1. **Finite Adaptive Budgets:** Every required CI job must have a finite, job-specific, evidence-based runtime budget defined by the active CI Fitness Contract.
 2. **Timeout / Stall Triage:** If a required job reaches its configured finite budget or stalls, HOLD verification and begin root-cause triage:
    - **HOLD** verification immediately.

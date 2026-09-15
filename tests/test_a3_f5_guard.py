@@ -26,6 +26,36 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@WINDOWS_REALF5_PROBE_ONLY
+@pytest.mark.parametrize("checkpoint", [True, False])
+def test_dispatch_checkpoint_does_not_resolve_release_artifacts(
+    tmp_path: Path, checkpoint: bool,
+) -> None:
+    """Execute the real initialization block with historical staging unavailable."""
+    source = PROBE.read_text(encoding="utf-8")
+    initialization = source.split("$evidence = if", 1)[1].split("function Write-Json", 1)[0]
+    script = (
+        "$ErrorActionPreference='Stop'; $f5OnlyTestCheckpoint="
+        + ("$true; " if checkpoint else "$false; ")
+        + "$repo=(Get-Location).Path; $EvidenceRoot='evidence'; $f5OnlySandbox=$repo; "
+        "function Resolve-Path { param($LiteralPath) "
+        "if ($LiteralPath -like '*release_staging*') { throw 'RELEASE_ARTIFACT_ACCESS_FORBIDDEN' }; "
+        "@{Path=$LiteralPath} }; "
+        "function Get-Sha256 { throw 'RELEASE_ARTIFACT_ACCESS_FORBIDDEN' }; "
+        "$evidence = if" + initialization + "; 'DISPATCH_INIT=PASS'"
+    )
+    result = subprocess.run(
+        [_powershell(), "-NoProfile", "-NonInteractive", "-Command", script],
+        cwd=tmp_path, capture_output=True, text=True, check=False,
+    )
+    if checkpoint:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "DISPATCH_INIT=PASS" in result.stdout
+    else:
+        assert result.returncode != 0
+        assert "RELEASE_ARTIFACT_ACCESS_FORBIDDEN" in result.stdout + result.stderr
+
+
 def _powershell() -> str:
     for candidate in ("powershell.exe", "powershell", "pwsh.exe", "pwsh"):
         executable = shutil.which(candidate)

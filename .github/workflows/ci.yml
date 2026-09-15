@@ -11,6 +11,16 @@ on:
 permissions:
   contents: read
 
+# New commits supersede old PR runs; main verification is never cancelled here.
+concurrency:
+  group: python-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/scripts
+  PYTEST_ADDOPTS: -p ci_test_evidence
+  CI_SOURCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   code-quality:
     name: Code Quality
@@ -40,6 +50,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Allocate bounded CI run paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          root="$GITHUB_WORKSPACE/.tmp/CI/$stamp"
+          mkdir -p "$root/temp" "$root/evidence"
+          echo "CI_TEST_ROOT=$root" >> "$GITHUB_ENV"
+          echo "TEMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMPDIR=$root/temp" >> "$GITHUB_ENV"
 
       - name: Bind CI-local merge-preview branch identity
         shell: bash
@@ -100,7 +122,28 @@ jobs:
       - run: python -m pip install -e ".[dev]"
 
       - name: Full regression
-        run: python -m pytest -q
+        shell: bash
+        run: |
+          "python" -m pytest --collect-only -q --ci-evidence-dir "$CI_TEST_ROOT/evidence/baseline"
+          "python" -m pip freeze > "$CI_TEST_ROOT/evidence/dependencies.txt"
+          "python" -m pytest -q --durations=25 --basetemp "$CI_TEST_ROOT/pytest" --junitxml "$CI_TEST_ROOT/evidence/junit.xml" --ci-evidence-dir "$CI_TEST_ROOT/evidence/run" --ci-collection-baseline "$CI_TEST_ROOT/evidence/baseline/collection.json"
+
+      - name: Check diagnostic artifact budget
+        if: ${{ always() }}
+        id: evidence-budget
+        shell: bash
+        run: |
+          python -c "import os,pathlib; p=pathlib.Path(os.environ['CI_TEST_ROOT'])/'evidence'; files=list(p.rglob('*')); assert not any(f.is_symlink() for f in files); sizes=[f.stat().st_size for f in files if f.is_file()]; assert 0 < len(sizes) <= 12 and sum(sizes) <= 16777216, 'CI_EVIDENCE_BUDGET_EXCEEDED_OR_MISSING'"
+
+      - name: Retain test diagnostics
+        if: ${{ always() && steps.evidence-budget.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_TEST_ROOT }}/evidence/
+          retention-days: 7
+          if-no-files-found: error
+
 
   tests-windows-312:
     name: Tests Windows 3.12
@@ -111,6 +154,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Allocate bounded CI run paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          root="$GITHUB_WORKSPACE/.tmp/CI/$stamp"
+          mkdir -p "$root/temp" "$root/evidence"
+          echo "CI_TEST_ROOT=$root" >> "$GITHUB_ENV"
+          echo "TEMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMPDIR=$root/temp" >> "$GITHUB_ENV"
 
       - name: Bind CI-local merge-preview branch identity
         shell: bash
@@ -141,8 +196,29 @@ jobs:
       - name: Full regression
         env:
           PYTHONPATH: ${{ github.workspace }}\scripts
-          PYTEST_ADDOPTS: -p ci_windows_runtime_attribution
-        run: .\.venv\Scripts\python.exe -m pytest -q
+          PYTEST_ADDOPTS: -p ci_windows_runtime_attribution -p ci_test_evidence
+        shell: bash
+        run: |
+          "./.venv/Scripts/python.exe" -m pytest --collect-only -q --ci-evidence-dir "$CI_TEST_ROOT/evidence/baseline"
+          "./.venv/Scripts/python.exe" -m pip freeze > "$CI_TEST_ROOT/evidence/dependencies.txt"
+          "./.venv/Scripts/python.exe" -m pytest -q --durations=25 --basetemp "$CI_TEST_ROOT/pytest" --junitxml "$CI_TEST_ROOT/evidence/junit.xml" --ci-evidence-dir "$CI_TEST_ROOT/evidence/run" --ci-collection-baseline "$CI_TEST_ROOT/evidence/baseline/collection.json"
+
+      - name: Check diagnostic artifact budget
+        if: ${{ always() }}
+        id: evidence-budget
+        shell: bash
+        run: |
+          python -c "import os,pathlib; p=pathlib.Path(os.environ['CI_TEST_ROOT'])/'evidence'; files=list(p.rglob('*')); assert not any(f.is_symlink() for f in files); sizes=[f.stat().st_size for f in files if f.is_file()]; assert 0 < len(sizes) <= 12 and sum(sizes) <= 16777216, 'CI_EVIDENCE_BUDGET_EXCEEDED_OR_MISSING'"
+
+      - name: Retain test diagnostics
+        if: ${{ always() && steps.evidence-budget.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_TEST_ROOT }}/evidence/
+          retention-days: 7
+          if-no-files-found: error
+
 
   compatibility-ubuntu-311:
     name: Compatibility Ubuntu 3.11
@@ -153,6 +229,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Allocate bounded CI run paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          root="$GITHUB_WORKSPACE/.tmp/CI/$stamp"
+          mkdir -p "$root/temp" "$root/evidence"
+          echo "CI_TEST_ROOT=$root" >> "$GITHUB_ENV"
+          echo "TEMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMP=$root/temp" >> "$GITHUB_ENV"
+          echo "TMPDIR=$root/temp" >> "$GITHUB_ENV"
 
       - name: Bind CI-local merge-preview branch identity
         shell: bash
@@ -213,4 +301,41 @@ jobs:
       - run: python -m pip install -e ".[dev]"
 
       - name: Compatibility regression
-        run: python -m pytest -q
+        shell: bash
+        run: |
+          "python" -m pytest --collect-only -q --ci-evidence-dir "$CI_TEST_ROOT/evidence/baseline"
+          "python" -m pip freeze > "$CI_TEST_ROOT/evidence/dependencies.txt"
+          "python" -m pytest -q --durations=25 --basetemp "$CI_TEST_ROOT/pytest" --junitxml "$CI_TEST_ROOT/evidence/junit.xml" --ci-evidence-dir "$CI_TEST_ROOT/evidence/run" --ci-collection-baseline "$CI_TEST_ROOT/evidence/baseline/collection.json"
+
+      - name: Check diagnostic artifact budget
+        if: ${{ always() }}
+        id: evidence-budget
+        shell: bash
+        run: |
+          python -c "import os,pathlib; p=pathlib.Path(os.environ['CI_TEST_ROOT'])/'evidence'; files=list(p.rglob('*')); assert not any(f.is_symlink() for f in files); sizes=[f.stat().st_size for f in files if f.is_file()]; assert 0 < len(sizes) <= 12 and sum(sizes) <= 16777216, 'CI_EVIDENCE_BUDGET_EXCEEDED_OR_MISSING'"
+
+      - name: Retain test diagnostics
+        if: ${{ always() && steps.evidence-budget.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_TEST_ROOT }}/evidence/
+          retention-days: 7
+          if-no-files-found: error
+
+
+  required-ci-gate:
+    name: Required CI Gate
+    if: ${{ always() }}
+    needs: [code-quality, tests-ubuntu-312, tests-windows-312, compatibility-ubuntu-311]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Require every baseline job to succeed
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python scripts/ci_gate.py

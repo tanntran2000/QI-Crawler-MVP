@@ -310,9 +310,16 @@ def test_synthetic_canonical_route_rehearsal(tmp_path: Path) -> None:
     """Exercise the on-disk canonical P0→P5 function with only disposable assets."""
     environment = os.environ.copy()
     environment.pop("QI_CRAWLER_DATA_DIR", None)
+    # Refuse historical artifacts even on a developer machine where they exist.
+    command = (
+        "function Resolve-Path { param($LiteralPath) "
+        "if ($LiteralPath -like '*release_staging*') { throw 'HISTORICAL_ARTIFACT_FORBIDDEN' }; "
+        "Microsoft.PowerShell.Management\\Resolve-Path -LiteralPath $LiteralPath }; "
+        f"& {_ps(SYNTHETIC_ROUTE)} -Root {_ps(tmp_path / 'one-run')}"
+    )
     result = subprocess.run(
         [shutil.which("powershell.exe") or "powershell.exe", "-NoProfile", "-NonInteractive",
-         "-File", str(SYNTHETIC_ROUTE), "-Root", str(tmp_path / "one-run")],
+         "-Command", command],
         cwd=REPO,
         capture_output=True,
         text=True,

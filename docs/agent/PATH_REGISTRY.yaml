@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.6",
+  "revision": "1.0.7",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -741,6 +741,48 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "PR103_FOLLOWUP_A2_WINDOWS_REALF5_TEST_SCOPE_ONLY; TEST_PLATFORM_ROUTING_CORRECTION; NO_PRODUCTION_IMPLEMENTATION_CHANGE; NO_REAL_F5_AUTHORITY"
+    },
+    {
+      "wp_id": "QI-PR103-CI-PORTABILITY-GATES-01",
+      "authority_ref": "docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--quality--ci--release-governance",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.CI",
+        "PATH.REPO.SCRIPTS",
+        "PATH.REPO.TESTS",
+        "PATH.REPO.ROOT_HELPERS",
+        "PATH.DEV.RELEASE_TOOLS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.EVIDENCE.WP_RUN"
+      ],
+      "artifact_inventory_ref": "release_staging/evidence/QI-PR103-CI-PORTABILITY-GATES-01-20260915T070000Z/BUILDER_REPORT.md",
+      "scope_paths": [
+        ".github/workflows/ci.yml",
+        "tools/release/a3_probe_windows.ps1",
+        "tests/a3_f5_synthetic_route.ps1",
+        "tests/a3_ci_controller.py",
+        "tests/test_a3_f5_guard.py",
+        "tests/test_a3_f5_final_integrity.py",
+        "scripts/ci_gate.py",
+        "scripts/ci_test_evidence.py",
+        "tests/test_ci_gate.py",
+        "tests/test_ci_test_evidence.py",
+        "docs/agent/CI_CONTRACT.md",
+        "AGENTS.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
+        "docs/agent/LESSONS.md",
+        "docs/agent_handoff/CURRENT.md",
+        "tests/test_ci_contract.py",
+        "tests/test_a3_native_lineage.py",
+        "tests/a3_p4_characterize.ps1",
+        "tests/test_a3_p4_containment.py"
+      ],
+      "relation": "Bounded clean-checkout CI correction and durable contract. Compact local test-temp alias CI103 maps only to this WP; CI alias is workflow-owned under CI_CONTRACT. Neither alias creates a new WP or execution grant."
     }
   ],
   "legacy_locations": [

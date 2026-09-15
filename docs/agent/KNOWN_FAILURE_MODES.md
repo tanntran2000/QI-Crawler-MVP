@@ -761,6 +761,34 @@ EVIDENCE = release_staging/evidence/AO-04-C3-A3-PHASE-GUARD-C1-20260914T062343Z;
 LIMIT = Builder evidence pending independent audit. Current sandbox remains POST_BARRIER_FAILED and requires separately authorized rearm. No RealF5, production access, DB migration or release was authorized or performed.
 ```
 
+## FM-034 — CI tests implicitly require developer release artifacts
+
+```text
+ID = FM-034
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / CI / TEST INFRASTRUCTURE
+SYMPTOM = Hosted Windows run 34935783050 at 6069980 failed 23 tests while Linux jobs passed; historical controller and candidate EXE paths did not exist on the runner.
+ROOT_CAUSE = Probe release initialization preceded a validated no-execution dispatch checkpoint; synthetic tests loaded an untracked historical controller even without UseFrozenStub.
+CORRECTION = Isolate the existing dispatch checkpoint from release payload loading after context/held-lock validation; use a tracked synthetic handshake actor for synthetic canonical tests. Real release and UseFrozenStub paths retain their artifact checks.
+PREVENTION = Ordinary product/engineering tests must reproduce from tracked inputs and declared dependencies; inject historical-path refusal in portability regression. Never replace release acceptance with a synthetic PASS.
+EVIDENCE = QI-PR103-CI-PORTABILITY-GATES-01 Work Order and Builder report; hosted final verification belongs to live GitHub and integration handoff.
+LIMIT = No RealF5, production safety or release acceptance claim. Local artifact presence can mask runner failures; cross-platform CI remains required.
+```
+
+## FM-035 — Reused Windows PID creates false process ancestry
+
+```text
+ID = FM-035
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / PROCESS OBSERVATION
+SYMPTOM = Local full CI-correction suite failed p4_unknown before P1; native tree listed four IDs while the new controller Job Object held two active processes.
+ROOT_CAUSE = Bare Toolhelp PPID traversal treated a long-lived unrelated process as a descendant of a newly reused PID. Observed PID 8688 started at 2026-09-15T05:22:03+07:00, before controller Job receipt 2026-09-15T06:53:40Z; that ancestry is impossible.
+CORRECTION = Validate candidate parent-child creation chronology in Get-ProcessTreeEvidence. A proven older child is excluded with a rejected-edge receipt; unavailable creation metadata yields PARTIAL/UNRESOLVED. Job membership is not used to suppress unknown ancestry. Raw Toolhelp snapshot success is reported separately from ancestry completeness; an exited parent with unavailable creation identity remains UNRESOLVED.
+PREVENTION = PID and PPID alone are not stable process identity. Preserve lifetime evidence and keep unknown metadata fail-closed; retain real Job containment and fault-specific assertions.
+EVIDENCE = QI-PR103-CI-PORTABILITY-GATES-01 full.xml failure and retained full-run temp tree; deterministic valid/older-child/unknown-child/unknown-parent regressions in test_a3_native_lineage.py.
+LIMIT = No RealF5/release acceptance; no claim that all process identity races are eliminated. Independent audit and fresh hosted verification remain required.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
