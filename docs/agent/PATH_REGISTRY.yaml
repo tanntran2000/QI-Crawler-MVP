@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.5",
+  "revision": "1.0.6",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -723,6 +723,24 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "PR103_FOLLOWUP_A_CROSS_PLATFORM_PATH_GUARD_ONLY; PRODUCTION_CONTAINMENT_PORTABILITY_FIX; NO_REAL_F5_AUTHORITY; NO_PRODUCT_FEATURE_AUTHORITY"
+    },
+    {
+      "wp_id": "QI-PR103-WINDOWS-PROBE-TEST-SCOPE-01",
+      "authority_ref": "WO-ENG-QI-PR103-WINDOWS-PROBE-TEST-SCOPE-01 / PR103_PATH_GUARD_INDEPENDENT_AUDIT / PLANNER_PR103_PATH_GUARD_RECONCILIATION_20260915",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--quality--ci--release-governance",
+      "path_ids": [
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "tests/test_a3_f5_guard.py",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md"
+      ],
+      "relation": "PR103_FOLLOWUP_A2_WINDOWS_REALF5_TEST_SCOPE_ONLY; TEST_PLATFORM_ROUTING_CORRECTION; NO_PRODUCTION_IMPLEMENTATION_CHANGE; NO_REAL_F5_AUTHORITY"
     }
   ],
   "legacy_locations": [

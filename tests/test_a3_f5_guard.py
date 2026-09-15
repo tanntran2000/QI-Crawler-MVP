@@ -16,6 +16,11 @@ GUARD = REPO / "tools" / "release" / "a3_f5_guard.ps1"
 JOB_HELPER = REPO / "tools" / "release" / "a3_job_object.ps1"
 PROBE = REPO / "tools" / "release" / "a3_probe_windows.ps1"
 
+WINDOWS_REALF5_PROBE_ONLY = pytest.mark.skipif(
+    sys.platform != "win32" or shutil.which("powershell.exe") is None,
+    reason="Windows RealF5 probe contract",
+)
+
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -1144,6 +1149,7 @@ def test_probe_f5_only_invalid_context_refused(tmp_path: Path) -> None:
     assert "EXECUTION_CONTEXT_INVALID" in result.stdout + result.stderr
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_guarded_real_dispatch_boundary_uses_existing_sandbox_only(tmp_path: Path) -> None:
     sandbox, marker = _sandbox(tmp_path)
     _canonical_layout(sandbox)
@@ -1167,6 +1173,7 @@ def test_guarded_real_dispatch_boundary_uses_existing_sandbox_only(tmp_path: Pat
     assert (tmp_path / "evidence" / "F5_EXECUTION_CONTEXT.json").is_file()
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_f5only_canonical_failure_propagates_to_guard(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     _canonical_layout(sandbox)
@@ -1201,6 +1208,7 @@ def test_f5only_canonical_failure_propagates_to_guard(tmp_path: Path) -> None:
     assert state["execution_state"] == "FAILED"
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_guarded_real_path_reaches_canonical_f5_checkpoint(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     _canonical_layout(sandbox)
@@ -1242,6 +1250,7 @@ def test_sequential_and_f5only_call_the_same_canonical_route() -> None:
     assert "SEQUENTIAL_FALLBACK=NO" in f5only_dispatch
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 @pytest.mark.parametrize(
     ("field", "replacement", "expected"),
     [
@@ -1296,6 +1305,7 @@ def test_guarded_context_drift_is_refused(
     assert expected in result.stdout + result.stderr
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_direct_probe_refuses_when_lifecycle_is_not_running(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     input_path = tmp_path / "controller.ps1"
@@ -1331,6 +1341,7 @@ def test_direct_probe_refuses_when_lifecycle_is_not_running(tmp_path: Path) -> N
     assert "LIFECYCLE_STATE" in result.stdout + result.stderr
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_direct_probe_refuses_without_outer_lock(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     input_path = tmp_path / "controller.ps1"
@@ -1370,6 +1381,7 @@ def test_direct_probe_refuses_without_outer_lock(tmp_path: Path) -> None:
     assert "LOCK_NOT_HELD" in result.stdout + result.stderr
 
 
+@WINDOWS_REALF5_PROBE_ONLY
 def test_guarded_real_dispatch_keeps_outer_lock_held(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     input_path = tmp_path / "controller.ps1"
