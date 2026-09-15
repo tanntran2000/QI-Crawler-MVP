@@ -69,6 +69,42 @@ function Normalize-Relative([string]$Path) {
     return ([string]$Path).Replace('\', '/').TrimStart('/')
 }
 
+function Get-PathComparison() {
+    if ([IO.Path]::DirectorySeparatorChar -eq [char]'\') {
+        return [StringComparison]::OrdinalIgnoreCase
+    }
+    return [StringComparison]::Ordinal
+}
+
+function Test-DirectorySeparator([char]$Character) {
+    return $Character -eq [IO.Path]::DirectorySeparatorChar -or
+        $Character -eq [IO.Path]::AltDirectorySeparatorChar
+}
+
+function Trim-TrailingDirectorySeparators([string]$Path) {
+    $rootName = [IO.Path]::GetPathRoot($Path)
+    $trimmed = $Path
+    while ($rootName -and $trimmed.Length -gt $rootName.Length -and
+        (Test-DirectorySeparator $trimmed[$trimmed.Length - 1])) {
+        $trimmed = $trimmed.Substring(0, $trimmed.Length - 1)
+    }
+    return $trimmed
+}
+
+function Get-ContainmentPrefix([string]$CanonicalRoot) {
+    $rootName = [IO.Path]::GetPathRoot($CanonicalRoot)
+    if (-not $rootName) { Fail-Guard 'PATH_CONTAINMENT_INVALID' 'root has no path root' }
+    $comparison = Get-PathComparison
+    if ([string]::Equals($CanonicalRoot, $rootName, $comparison)) {
+        return $CanonicalRoot
+    }
+    return (Trim-TrailingDirectorySeparators $CanonicalRoot) + [string][IO.Path]::DirectorySeparatorChar
+}
+
+function Convert-ToNativeRelativePath([string]$Path) {
+    return ([string]$Path).Replace('/', [string][IO.Path]::DirectorySeparatorChar)
+}
+
 function Get-CanonicalPath([string]$Path) {
     if (-not $Path -or -not [IO.Path]::IsPathRooted($Path)) {
         Fail-Guard 'PATH_CONTAINMENT_INVALID' 'path must be absolute'
@@ -81,8 +117,8 @@ function Get-CanonicalPath([string]$Path) {
             $canonical = [IO.Path]::GetFullPath($Path)
         }
         $rootName = [IO.Path]::GetPathRoot($canonical)
-        if (-not [string]::Equals($canonical, $rootName, [StringComparison]::OrdinalIgnoreCase)) {
-            $canonical = $canonical.TrimEnd('\')
+        if (-not [string]::Equals($canonical, $rootName, (Get-PathComparison))) {
+            $canonical = Trim-TrailingDirectorySeparators $canonical
         }
         return $canonical
     } catch {
@@ -95,15 +131,12 @@ function Get-SafeRelativePath([string]$Root, [string]$Target) {
     $fullTarget = Get-CanonicalPath $Target
     $rootName = [IO.Path]::GetPathRoot($fullRoot)
     if (-not $rootName) { Fail-Guard 'PATH_CONTAINMENT_INVALID' 'root has no path root' }
-    if ([string]::Equals($fullRoot, $fullTarget, [StringComparison]::OrdinalIgnoreCase)) {
+    $comparison = Get-PathComparison
+    if ([string]::Equals($fullRoot, $fullTarget, $comparison)) {
         return ''
     }
-    $rootPrefix = if ([string]::Equals($fullRoot, $rootName, [StringComparison]::OrdinalIgnoreCase)) {
-        $fullRoot
-    } else {
-        $fullRoot.TrimEnd('\') + '\'
-    }
-    if (-not $fullTarget.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    $rootPrefix = Get-ContainmentPrefix $fullRoot
+    if (-not $fullTarget.StartsWith($rootPrefix, $comparison)) {
         Fail-Guard 'PATH_CONTAINMENT_VIOLATION' "target is outside root: $fullTarget"
     }
     return Normalize-Relative $fullTarget.Substring($rootPrefix.Length)
@@ -127,11 +160,12 @@ function Get-RelativeFiles([string]$Root) {
 }
 
 function Test-RuntimeManifest($Manifest, [string]$Sandbox) {
+    $pathComparison = Get-PathComparison
     $runtime = Join-Path $Sandbox 'runtime'
     if (-not (Test-Path -LiteralPath $runtime -PathType Container)) {
         Fail-Guard 'EXISTING_SANDBOX_INVALID' 'runtime directory is missing'
     }
-    if (-not [string]::Equals((Get-CanonicalPath ([string]$Manifest.runtime_root)), (Get-CanonicalPath $runtime), [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not [string]::Equals((Get-CanonicalPath ([string]$Manifest.runtime_root)), (Get-CanonicalPath $runtime), $pathComparison)) {
         Fail-Guard 'RUNTIME_MANIFEST_INVALID' 'runtime_root does not match existing sandbox'
     }
     if (-not $Manifest.runtime_build_identity) {
@@ -224,6 +258,7 @@ function Test-ExecutionInputs($Manifest) {
 }
 
 function Test-ContractInputBound($Manifest, [string]$ContractPath) {
+    $pathComparison = Get-PathComparison
     if (-not $ContractPath) { Fail-Guard 'PREEXECUTION_CONTRACT_REQUIRED' 'contract path is required' }
     if (-not (Test-AbsolutePath $ContractPath)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_REQUIRED' 'contract path must be absolute'
@@ -233,7 +268,7 @@ function Test-ContractInputBound($Manifest, [string]$ContractPath) {
     }
     $canonicalContract = Get-CanonicalPath $ContractPath
     $bound = @($Manifest.execution_inputs | Where-Object {
-        $_.path -and [string]::Equals((Get-CanonicalPath ([string]$_.path)), $canonicalContract, [StringComparison]::OrdinalIgnoreCase)
+        $_.path -and [string]::Equals((Get-CanonicalPath ([string]$_.path)), $canonicalContract, $pathComparison)
     })
     if ($bound.Count -ne 1) {
         Fail-Guard 'PREEXECUTION_CONTRACT_UNBOUND' $canonicalContract
@@ -251,6 +286,7 @@ function Test-ContractInputBound($Manifest, [string]$ContractPath) {
 }
 
 function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeResult) {
+    $pathComparison = Get-PathComparison
     $schema = [string]$Contract.schema
     $phaseAware = $schema -eq 'AO-04-C3-F5-PREEXECUTION-CONTRACT-PHASE-V1'
     if (-not $Contract -or $schema -notin @('AO-04-C3-F5-PREEXECUTION-CONTRACT-V1','AO-04-C3-F5-PREEXECUTION-CONTRACT-FM021-V1','AO-04-C3-F5-PREEXECUTION-CONTRACT-PHASE-V1')) {
@@ -260,14 +296,14 @@ function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeR
     if ([string]$Contract.contract_status -ne $expectedStatus) {
         Fail-Guard 'PREEXECUTION_CONTRACT_HOLD' ([string]$Contract.contract_status)
     }
-    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.sandbox_path)), $Sandbox, [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.sandbox_path)), $Sandbox, $pathComparison)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_SANDBOX_MISMATCH' ([string]$Contract.sandbox_path)
     }
     if ([string]$Contract.sandbox_resource_id -ne (Get-SandboxResourceId $Sandbox)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_SANDBOX_MISMATCH' 'resource id differs'
     }
     $volume = [IO.Path]::GetPathRoot($Sandbox)
-    if (-not [string]::Equals([string]$Contract.volume_root, $volume, [StringComparison]::OrdinalIgnoreCase)) {
+    if (-not [string]::Equals([string]$Contract.volume_root, $volume, $pathComparison)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_VOLUME_MISMATCH' ([string]$Contract.volume_root)
     }
     $route = $Contract.canonical_route_identity
@@ -280,11 +316,11 @@ function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeR
     if (-not $Contract.guard_identity -or -not $Contract.probe_identity) {
         Fail-Guard 'PREEXECUTION_CONTRACT_INVALID' 'guard/probe identity is absent'
     }
-    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.guard_identity.path)), $guardPath, [StringComparison]::OrdinalIgnoreCase) -or
+    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.guard_identity.path)), $guardPath, $pathComparison) -or
         ([string]$Contract.guard_identity.sha256).ToLowerInvariant() -ne (Get-Hash $guardPath)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_ROUTE_MISMATCH' 'guard identity differs'
     }
-    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.probe_identity.path)), (Get-CanonicalPath $probePath), [StringComparison]::OrdinalIgnoreCase) -or
+    if (-not [string]::Equals((Get-CanonicalPath ([string]$Contract.probe_identity.path)), (Get-CanonicalPath $probePath), $pathComparison) -or
         ([string]$Contract.probe_identity.sha256).ToLowerInvariant() -ne (Get-Hash $probePath)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_ROUTE_MISMATCH' 'probe identity differs'
     }
@@ -294,7 +330,7 @@ function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeR
     }
     $runtime = $Contract.runtime_identity
     if (-not $runtime -or -not [string]$runtime.build_identity -or
-        -not [string]::Equals((Get-CanonicalPath ([string]$runtime.runtime_root)), (Get-CanonicalPath (Join-Path $Sandbox 'runtime')), [StringComparison]::OrdinalIgnoreCase)) {
+        -not [string]::Equals((Get-CanonicalPath ([string]$runtime.runtime_root)), (Get-CanonicalPath (Join-Path $Sandbox 'runtime')), $pathComparison)) {
         Fail-Guard 'PREEXECUTION_CONTRACT_RUNTIME_MISMATCH' 'runtime identity is incomplete'
     }
     if ([string]$runtime.build_identity -ne [string]$Manifest.runtime_build_identity -or
@@ -311,7 +347,7 @@ function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeR
     if ($phaseAware) {
         $helperIdentity = $Contract.phase_helper_identity
         if (-not $helperIdentity -or
-            -not [string]::Equals((Get-CanonicalPath ([string]$helperIdentity.path)), (Get-CanonicalPath $phaseHelper), [StringComparison]::OrdinalIgnoreCase) -or
+            -not [string]::Equals((Get-CanonicalPath ([string]$helperIdentity.path)), (Get-CanonicalPath $phaseHelper), $pathComparison) -or
             ([string]$helperIdentity.sha256).ToLowerInvariant() -ne (Get-Hash $phaseHelper)) {
             Fail-Guard 'A3_PHASE_INVALID' 'phase helper identity differs'
         }
@@ -329,21 +365,21 @@ function Test-ContractIdentity($Contract, [string]$Sandbox, $Manifest, $RuntimeR
         $observerPath = Join-Path $PSScriptRoot 'a3_process_observer.py'
         $observerIdentity = $Contract.observer_identity
         if (-not $observerIdentity -or
-            -not [string]::Equals((Get-CanonicalPath ([string]$observerIdentity.path)), (Get-CanonicalPath $observerPath), [StringComparison]::OrdinalIgnoreCase) -or
+            -not [string]::Equals((Get-CanonicalPath ([string]$observerIdentity.path)), (Get-CanonicalPath $observerPath), $pathComparison) -or
             ([string]$observerIdentity.sha256).ToLowerInvariant() -ne (Get-Hash $observerPath)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_OBSERVER_IDENTITY_MISMATCH' 'sandbox observer identity differs'
         }
         $jobPath = Join-Path $PSScriptRoot 'a3_job_object.ps1'
         $jobIdentity = $Contract.job_helper_identity
         if (-not $jobIdentity -or
-            -not [string]::Equals((Get-CanonicalPath ([string]$jobIdentity.path)), (Get-CanonicalPath $jobPath), [StringComparison]::OrdinalIgnoreCase) -or
+            -not [string]::Equals((Get-CanonicalPath ([string]$jobIdentity.path)), (Get-CanonicalPath $jobPath), $pathComparison) -or
             ([string]$jobIdentity.sha256).ToLowerInvariant() -ne (Get-Hash $jobPath)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_JOB_IDENTITY_MISMATCH' 'Job helper identity differs'
         }
         $nativePath = Join-Path $PSScriptRoot 'a3_native_lineage.ps1'
         $nativeIdentity = $Contract.native_lineage_identity
         if (-not $nativeIdentity -or
-            -not [string]::Equals((Get-CanonicalPath ([string]$nativeIdentity.path)), (Get-CanonicalPath $nativePath), [StringComparison]::OrdinalIgnoreCase) -or
+            -not [string]::Equals((Get-CanonicalPath ([string]$nativeIdentity.path)), (Get-CanonicalPath $nativePath), $pathComparison) -or
             ([string]$nativeIdentity.sha256).ToLowerInvariant() -ne (Get-Hash $nativePath)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_NATIVE_LINEAGE_IDENTITY_MISMATCH' 'native lineage identity differs'
         }
@@ -382,14 +418,15 @@ function Test-Fm021FixtureIdentity($Contract, [string]$Sandbox) {
         [bool]$seedSpec.business_data_required) {
         Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'seed specification contradicts the frozen fixture'
     }
-    $sandboxPrefix = $Sandbox.TrimEnd('\') + '\'
+    $pathComparison = Get-PathComparison
+    $sandboxPrefix = Get-ContainmentPrefix $Sandbox
     foreach ($fixture in $fixtures) {
         $relative = Normalize-Relative ([string]$fixture.relative_path)
         if (-not $relative -or $relative.StartsWith('../') -or [IO.Path]::IsPathRooted($relative)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'fixture path is invalid'
         }
-        $path = Get-CanonicalPath (Join-Path $Sandbox $relative.Replace('/','\'))
-        if (-not $path.StartsWith($sandboxPrefix, [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        $path = Get-CanonicalPath (Join-Path $Sandbox (Convert-ToNativeRelativePath $relative))
+        if (-not $path.StartsWith($sandboxPrefix, $pathComparison) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' $relative
         }
         $item = Get-Item -LiteralPath $path
@@ -409,8 +446,20 @@ function Test-Fm021FixtureIdentity($Contract, [string]$Sandbox) {
                 ([string]$tool.sha256).ToLowerInvariant() -ne (Get-Hash ([string]$tool.path))) {
                 Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'logical digest tool'
             }
-            $python = Join-Path $repo '.venv\Scripts\python.exe'
-            if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'python unavailable' }
+            $pythonRelative = if ([IO.Path]::DirectorySeparatorChar -eq [char]'\') {
+                '.venv\Scripts\python.exe'
+            } else {
+                '.venv/bin/python'
+            }
+            $python = Join-Path $repo $pythonRelative
+            if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+                $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+                if ($pythonCommand) {
+                    $python = $pythonCommand.Source
+                } else {
+                    Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'python unavailable'
+                }
+            }
             try { $digestRaw = @(& $python ([string]$tool.path) '--digest' $path 2>&1); $digestExit = $LASTEXITCODE; $digest = (($digestRaw -join "`n") | ConvertFrom-Json) }
             catch { Fail-Guard 'PREEXECUTION_CONTRACT_FIXTURE_MISMATCH' 'logical digest failed' }
             if ($digestExit -ne 0 -or [string]$digest.revision -ne $expectedSchema) {
@@ -452,7 +501,7 @@ function Test-Fm021WriteBounds($Contract) {
     )) {
         $identity = $Contract.($binding[0])
         $expectedPath = Get-CanonicalPath $binding[1]
-        if (-not $identity -or -not [string]::Equals((Get-CanonicalPath ([string]$identity.path)), $expectedPath, [StringComparison]::OrdinalIgnoreCase) -or
+        if (-not $identity -or -not [string]::Equals((Get-CanonicalPath ([string]$identity.path)), $expectedPath, (Get-PathComparison)) -or
             ([string]$identity.sha256).ToLowerInvariant() -ne (Get-Hash $expectedPath)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_WRITE_BOUND_IDENTITY_MISMATCH' ([string]$binding[0])
         }
@@ -473,7 +522,7 @@ function Test-ExistingSandboxLayout($Contract, [string]$Sandbox) {
         if ($relative.StartsWith('../') -or $relative -eq '..' -or [IO.Path]::IsPathRooted($relative)) {
             Fail-Guard 'PREEXECUTION_CONTRACT_LAYOUT_UNBOUND' 'layout path escapes sandbox'
         }
-        $target = Join-Path $Sandbox ($relative.Replace('/', '\'))
+        $target = Join-Path $Sandbox (Convert-ToNativeRelativePath $relative)
         $exists = Test-Path -LiteralPath $target
         if (-not $exists) {
             if ([bool]$entry.must_exist_before_dispatch) {
@@ -525,7 +574,7 @@ function Test-CapacityContract($Contract, [string]$Sandbox) {
         if ([Int64]$operation.max_write_bytes + [Int64]$operation.temporary_overhead_bytes -gt [Int64]$operation.peak_bytes) {
             Fail-Guard 'PREEXECUTION_CONTRACT_CAPACITY_UNBOUND' "$($operation.operation_id) peak is below write plus overhead"
         }
-        if (-not [string]::Equals([string]$operation.target_volume, [string]$Contract.volume_root, [StringComparison]::OrdinalIgnoreCase)) {
+        if (-not [string]::Equals([string]$operation.target_volume, [string]$Contract.volume_root, (Get-PathComparison))) {
             Fail-Guard 'PREEXECUTION_CONTRACT_VOLUME_MISMATCH' ([string]$operation.target_volume)
         }
     }
@@ -644,7 +693,7 @@ function Get-TextSha256([string]$Value) {
 }
 
 function Get-SandboxResourceId([string]$Sandbox) {
-    $canonical = (Get-CanonicalPath $Sandbox).TrimEnd('\').ToLowerInvariant().Replace('\', '/')
+    $canonical = (Trim-TrailingDirectorySeparators (Get-CanonicalPath $Sandbox)).ToLowerInvariant().Replace('\', '/')
     return Get-TextSha256 $canonical
 }
 
@@ -672,7 +721,7 @@ function Read-LifecycleState([string]$Path, [string]$ResourceId, [string]$Canoni
         }
     }
     if ([string]$state.sandbox_resource_id -ne $ResourceId -or
-        -not [string]::Equals([string]$state.canonical_sandbox_path, $CanonicalSandbox, [StringComparison]::OrdinalIgnoreCase)) {
+        -not [string]::Equals([string]$state.canonical_sandbox_path, $CanonicalSandbox, (Get-PathComparison))) {
         Fail-Guard 'STATE_RESOURCE_MISMATCH' $Path
     }
     $allowed = @('PREPARED', 'RUNNING', 'POST_BARRIER', 'POST_KILL_VERIFICATION', 'INCOMPLETE', 'INCOMPLETE_STORAGE_FAILURE', 'COMPLETED', 'FAILED')
@@ -814,7 +863,7 @@ try {
     if (-not (Test-Path -LiteralPath $InputManifestPath -PathType Leaf)) { Fail-Guard 'INPUT_MANIFEST_INVALID' 'manifest does not exist' }
     $manifest = Get-Json $InputManifestPath
     $manifestSha = Get-Hash $InputManifestPath
-    if (-not [string]::Equals((Get-CanonicalPath ([string]$manifest.sandbox_path)), $sandbox, [StringComparison]::OrdinalIgnoreCase)) { Fail-Guard 'EXISTING_SANDBOX_INVALID' 'manifest sandbox identity differs' }
+    if (-not [string]::Equals((Get-CanonicalPath ([string]$manifest.sandbox_path)), $sandbox, (Get-PathComparison))) { Fail-Guard 'EXISTING_SANDBOX_INVALID' 'manifest sandbox identity differs' }
     if (-not $manifest.head -or -not $manifest.branch -or $null -eq $manifest.git_status) { Fail-Guard 'INPUT_MANIFEST_INVALID' 'Git identity fields are incomplete' }
     Test-GitIdentity $manifest
     $runtimeResult = Test-RuntimeManifest $manifest $sandbox
@@ -949,8 +998,8 @@ try {
     $probePath = Join-Path $PSScriptRoot 'a3_probe_windows.ps1'
     if (-not (Test-Path -LiteralPath $probePath -PathType Leaf)) { Fail-Guard 'EXECUTION_CONTEXT_INVALID' 'probe is missing' }
     $contextPath = if ($ExecutionContextPath) { Get-CanonicalPath $ExecutionContextPath } else { Join-Path $evidence 'F5_EXECUTION_CONTEXT.json' }
-    $evidencePrefix = $evidence.TrimEnd('\') + '\'
-    if (-not $contextPath.StartsWith($evidencePrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    $evidencePrefix = Get-ContainmentPrefix $evidence
+    if (-not $contextPath.StartsWith($evidencePrefix, (Get-PathComparison))) {
         Fail-Guard 'EXECUTION_CONTEXT_INVALID' 'context must be under evidence root'
     }
     try {

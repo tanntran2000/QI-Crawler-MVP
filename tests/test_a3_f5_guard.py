@@ -540,10 +540,6 @@ def test_nested_descendant_runtime_identity_is_accepted(tmp_path: Path) -> None:
     assert "F5_ONLY_ROUTE_SELECTED" in result.stdout
 
 
-@pytest.mark.skipif(
-    sys.platform != "win32" or shutil.which("powershell.exe") is None,
-    reason="Windows PowerShell 5.1 path semantics",
-)
 def test_trailing_separator_on_root_is_accepted(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     input_path = tmp_path / "controller.ps1"
@@ -581,7 +577,7 @@ def test_different_root_runtime_identity_fails_closed(tmp_path: Path) -> None:
     input_path.write_text("guard\n", encoding="utf-8")
     manifest = _manifest(tmp_path, sandbox, input_path)
     data = json.loads(manifest.read_text(encoding="utf-8"))
-    data["runtime_root"] = "C:/outside/runtime"
+    data["runtime_root"] = str((tmp_path / "outside-runtime").resolve())
     manifest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
     result = _run(tmp_path, sandbox, manifest)

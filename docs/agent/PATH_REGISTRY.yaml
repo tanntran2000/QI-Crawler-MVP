@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.4",
+  "revision": "1.0.5",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -702,6 +702,27 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "PR103_CI_INTEGRATION_HARDENING_ONLY; TEST_AND_CI_PORTABILITY; NO_PRODUCT_IMPLEMENTATION_AUTHORITY; NO_A3_REAL_EXECUTION_AUTHORITY"
+    },
+    {
+      "wp_id": "QI-PR103-PATH-GUARD-01",
+      "authority_ref": "WO-ENG-QI-PR103-PATH-GUARD-01 / PR103_CI_HARDENING_INDEPENDENT_AUDIT / PLANNER_PR103_CI_HARDENING_RECONCILIATION_20260915",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--quality--ci--release-governance",
+      "path_ids": [
+        "PATH.DEV.RELEASE_TOOLS",
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "tools/release/a3_f5_guard.ps1",
+        "tests/test_a3_f5_guard.py",
+        "tests/test_a3_f5_preexecution_contract.py",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md"
+      ],
+      "relation": "PR103_FOLLOWUP_A_CROSS_PLATFORM_PATH_GUARD_ONLY; PRODUCTION_CONTAINMENT_PORTABILITY_FIX; NO_REAL_F5_AUTHORITY; NO_PRODUCT_FEATURE_AUTHORITY"
     }
   ],
   "legacy_locations": [
