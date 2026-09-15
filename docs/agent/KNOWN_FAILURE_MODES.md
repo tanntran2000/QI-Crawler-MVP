@@ -765,7 +765,7 @@ LIMIT = Builder evidence pending independent audit. Current sandbox remains POST
 
 ```text
 ID = FM-034
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+STATE = INDEPENDENTLY_REVIEWED_CANDIDATE_AWAITING_HUMAN_INTEGRATION
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / CI / TEST INFRASTRUCTURE
 SYMPTOM = Hosted Windows run 34935783050 at 6069980 failed 23 tests while Linux jobs passed; historical controller and candidate EXE paths did not exist on the runner.
 ROOT_CAUSE = Probe release initialization preceded a validated no-execution dispatch checkpoint; synthetic tests loaded an untracked historical controller even without UseFrozenStub.
@@ -779,7 +779,7 @@ LIMIT = No RealF5, production safety or release acceptance claim. Local artifact
 
 ```text
 ID = FM-035
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+STATE = INDEPENDENTLY_REVIEWED_CANDIDATE_AWAITING_HUMAN_INTEGRATION
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / PROCESS OBSERVATION
 SYMPTOM = Local full CI-correction suite failed p4_unknown before P1; native tree listed four IDs while the new controller Job Object held two active processes.
 ROOT_CAUSE = Bare Toolhelp PPID traversal treated a long-lived unrelated process as a descendant of a newly reused PID. Observed PID 8688 started at 2026-09-15T05:22:03+07:00, before controller Job receipt 2026-09-15T06:53:40Z; that ancestry is impossible.
@@ -789,11 +789,11 @@ EVIDENCE = QI-PR103-CI-PORTABILITY-GATES-01 full.xml failure and retained full-r
 LIMIT = No RealF5/release acceptance; no claim that all process identity races are eliminated. Independent audit and fresh hosted verification remain required.
 ```
 
-## FM-036 — Maintenance ownership outlives failed journal I/O
+## FM-036 - Maintenance ownership outlives failed journal I/O
 
 ```text
 ID = FM-036
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+STATE = INDEPENDENTLY_REVIEWED_CANDIDATE_AWAITING_HUMAN_INTEGRATION
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / FUTURE MAINTENANCE PRIMITIVE
 ROOT_CAUSE = Journal writes after SQLite/owner acquisition escaped cleanup; serial rollback/close/release could strand later resources. Recovery selected a pre-lock journal that a current owner could complete before acquisition.
 CORRECTION = Protect fallible acquired-resource paths, attempt each cleanup independently while retaining the original exception, publish in-memory COMPLETE only after durable write, and select/read recovery journal under the owner lock.

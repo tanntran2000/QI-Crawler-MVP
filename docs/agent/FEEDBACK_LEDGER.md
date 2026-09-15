@@ -1112,7 +1112,7 @@ merge, release or claim that automated enforcement is implemented.
 
 ### FB-0040 — Reproducible CI and durable Crawler-wide protection
 
-State: HUMAN_AUTHORIZED / IMPLEMENTATION_PENDING_INDEPENDENT_REVIEW
+State: HUMAN_AUTHORIZED / INDEPENDENTLY_REVIEWED_CANDIDATE_AWAITING_HUMAN_INTEGRATION
 
 Source: Human request, 2026-09-15, to fix repeated CI failures, prepare the
 branch for GitHub push/merge review, and establish enduring CI law.
@@ -1126,4 +1126,8 @@ settings or authorize merge/release.
 
 Routed to: AGENTS.md, CI_CONTRACT.md, Work Order
 `docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md` and CURRENT.
-Scope excludes new A3 trials, product changes and automatic merge/release.
+Scope excludes new A3 trials and automatic merge/release. Independent cumulative
+review C1/C2 authorized the bounded forward failure-safety correction in
+update_transaction.py and its tests; no observed product caller or maturity
+promotion. Final hosted gates and live protection readback precede Human
+integration; reviewed candidate status does not mean merged or released.

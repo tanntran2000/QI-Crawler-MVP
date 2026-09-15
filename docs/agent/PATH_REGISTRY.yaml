@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.7",
+  "revision": "1.0.8",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -751,6 +751,7 @@
         "PATH.GOV.DOCUMENT",
         "PATH.GOV.HANDOFF",
         "PATH.REPO.CI",
+        "PATH.REPO.SOURCE",
         "PATH.REPO.SCRIPTS",
         "PATH.REPO.TESTS",
         "PATH.REPO.ROOT_HELPERS",

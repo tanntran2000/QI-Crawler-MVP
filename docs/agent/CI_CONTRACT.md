@@ -30,7 +30,9 @@ Required-check names in GitHub must agree with workflow job names. Repository
 ruleset activation, bypass permissions and branch coverage must be read back
 from GitHub at integration. A workflow file alone does not enforce branch
 protection. Existing CodeQL/default-setup checks remain a separate protection.
-Ruleset enforcement is pending Planner integration readback, not claimed here.
+Before merge, verify live ruleset activation, exact required-check contexts and
+bypass permissions against the final commit. Preserve the readback as integration
+evidence; neither this durable contract nor an earlier run proves current enforcement.
 
 ## Test ownership and clean runner rule
 
