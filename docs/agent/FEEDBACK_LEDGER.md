@@ -1127,7 +1127,7 @@ settings or authorize merge/release.
 Routed to: AGENTS.md, CI_CONTRACT.md, Work Order
 `docs/superpowers/plans/2026-09-15-ci-portability-and-gates.md` and CURRENT.
 Scope excludes new A3 trials and automatic merge/release. Independent cumulative
-review C1/C2 authorized the bounded forward failure-safety correction in
-update_transaction.py and its tests; no observed product caller or maturity
+review identified C1/C2; Planner authorized the bounded forward failure-safety
+correction under Human intent in update_transaction.py and its tests; no observed product caller or maturity
 promotion. Final hosted gates and live protection readback precede Human
 integration; reviewed candidate status does not mean merged or released.
