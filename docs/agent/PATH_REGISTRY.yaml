@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.2",
+  "revision": "1.0.3",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -662,6 +662,23 @@
         "release_staging/evidence/QI-FRAMEWORK-RECON-AUDIT-01-{run_id}/"
       ],
       "relation": "GOVERNANCE_AUDIT_LOCATOR_ONLY; DIRECT_HUMAN_AUTHORITY_PLUS_PLANNER_WORK_ORDER; NO_PRODUCT_IMPLEMENTATION_AUTHORITY"
+    },
+    {
+      "wp_id": "QI-FRAMEWORK-RECON-CORRECTION-01",
+      "authority_ref": "WO-GOV-QI-FRAMEWORK-RECON-CORRECTION-01 / QI-FRAMEWORK-RECON-AUDIT-01 / PLANNER_FRAMEWORK_AUDIT_RECONCILIATION_20260915",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#blueprint-use-and-adaptive-navigation",
+      "path_ids": [
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/agent/MASTER_ROADMAP.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md"
+      ],
+      "relation": "BOUNDED_POST_AUDIT_GOVERNANCE_CORRECTION_LOCATOR_ONLY; P1_P2_P3_ONLY; NO_PRODUCT_IMPLEMENTATION_AUTHORITY"
     }
   ],
   "legacy_locations": [
