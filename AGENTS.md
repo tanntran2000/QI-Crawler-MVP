@@ -137,6 +137,32 @@ Historical tags and releases must never be silently moved.
     decision, and must independently reconcile Reviewer evidence before
     recommending merge or next work.
 
+16. **LAW 16 — CANONICAL PATH & ARTIFACT LIFECYCLE**: Every new governed
+    file/directory family must use a registered `PATH_ID` in
+    `docs/agent/PATH_REGISTRY.yaml` and comply with
+    `docs/agent/PATH_REGISTRY_CONTRACT.md`. Before writing, bind the
+    Roadmap/RD reference, approved WP or direct Human governance authority,
+    artifact purpose, exact resolved destination, owner, lifecycle and finite
+    storage budget. Existing registered templates may be instantiated within
+    an approved lease without per-file approval; registration never expands
+    scope. Unregistered destinations, fabricated WPs/output evidence and
+    unexplained duplicate implementations are `HOLD`.
+
+    New Work Orders must be discoverable through the catalog's locator-only
+    WP bindings. Reuse capability-owned source modules; never create a source
+    tree or speculative empty scaffolding per WP. At closeout, audit every
+    new artifact's disposition and account for retained/reclaimed bytes.
+    Remove only explicitly authorized, verified task-owned transient targets;
+    defer uncertain targets with an owner and review condition. Unknown is
+    KEEP. Existing protected/tracked/evidence/data deletion rules still apply.
+    A name, age, ignored status or registered address is not deletion authority.
+
+    This rule applies prospectively to new work in this checkout. Existing
+    frozen WPs reconcile at their next governed transition without rewriting
+    evidence. Root/retention/data migrations require Human material authority.
+    The initial catalog is partial; automated enforcement is not yet built.
+    `PATH_REGISTRY_ROLLOUT.md` records the remaining adoption stages.
+
 ### ROLE BOOT / ACTION-FIRST / MUTUAL CHALLENGE
 
 The canonical detailed boot and prompt contract is
@@ -292,6 +318,24 @@ The Reviewer must not ask only *"Does the code pass CI?"*, but first *"Does this
   - *AI:* authority boundary, deterministic fallback, confidence-gated routing.
 
 ## CI runtime & triage governance
+
+### Durable CI protection contract
+
+`docs/agent/CI_CONTRACT.md` is the detailed CI design and evolution authority.
+Every future capability Work Order must preserve clean-checkout reproducibility,
+explicit test ownership (product, engineering, release acceptance), collection
+accounting, strict required-job success, exact-SHA evidence, finite runtime and
+artifact budgets. Missing local artifacts must not be hidden with skips, fake
+release results, or `continue-on-error`. Runtime dependency changes require
+review and supported-platform verification. CI changes must prove that rejected,
+missing, skipped and cancelled required jobs cannot produce a passing final gate.
+Keep existing baseline coverage until a reviewed CI Fitness Contract proves a
+replacement. New capability risks add the minimum relevant regression gates;
+future roadmap features do not become mandatory before implementation.
+GitHub ruleset enforcement must be verified separately from workflow contents.
+CI PASS is machine evidence; independent review and Human merge/release authority
+remain separate. Detailed budgets, ownership and implemented limitations live in
+the supporting contract rather than being copied into each Work Order.
 
 1. **Finite Adaptive Budgets:** Every required CI job must have a finite, job-specific, evidence-based runtime budget defined by the active CI Fitness Contract.
 2. **Timeout / Stall Triage:** If a required job reaches its configured finite budget or stalls, HOLD verification and begin root-cause triage:

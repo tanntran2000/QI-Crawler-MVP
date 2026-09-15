@@ -68,6 +68,16 @@ Each horizontal capability is built vertically through the Product House
 technical layers defined below. A layer can be mature while another remains
 unwired; neither alone proves the complete Team Bid capability.
 
+### Where a capability or WP writes files
+
+Use [the address catalog](PATH_REGISTRY.yaml) and
+[path/lifecycle contract](PATH_REGISTRY_CONTRACT.md) to trace a Roadmap heading
+or RD-ID through a WP's Work Order and artifact inventory to its `PATH_ID` and
+resolved physical paths. `roadmap_bindings` and `wp_bindings` are locator-only
+indexes; they do not declare capability maturity or grant execution authority.
+The initial catalog covers families and selected historical evidence; an
+unmapped old WP must be reported as such rather than assigned invented paths.
+
 ## Product House model
 
 ```text
@@ -356,6 +366,18 @@ Machine Verifier
 → external evidence gate
 → NOT a fourth business-authority pole
 ```
+
+"Planning & Audit Pole" is a high-level responsibility-family abstraction
+only. Canonical operational authority is defined by
+`docs/agent/OPERATING_MODEL.md` and
+`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. Operationally:
+
+```text
+PLANNER_ARCHITECT != REVIEWER_AUDITOR
+Reviewer verdict != Planner reconciliation != Human material authority
+```
+
+Reviewer independence remains mandatory wherever governance requires it.
 
 ```text
 ROLE > MODEL NAME
@@ -862,6 +884,51 @@ the broader shelf, completeness and recovery lifecycle remains future work:
 06_OUTCOME_ARCHIVE
   clarification | reconciliation | result | Win/Loss | lessons/handoff evidence
 ```
+
+The diagram keeps six conceptual SOP lifecycle groups while the operational
+export uses seven TeamBidZone directories:
+
+```text
+CONCEPTUAL SOP SHELF
+====================
+
+01_SOURCE
+← 01_Source_E-HSMT
+
+02_REQUIREMENTS
+← 02_Requirement_Register
+
+03_EVIDENCE
+← 03_Legal_Capability
+← 04_Technical_Vendor
+
+04_SOP_WORKING
+← 05_Commercial_Price
++ Master Bid Data
++ Cross-check records
++ Gate evidence
++ Change Control
++ Freeze records
+
+05_SUBMISSION
+← 06_Submission_FINAL
+
+06_OUTCOME_ARCHIVE
+← 07_Evidence_Archive
+```
+
+```text
+SIX CONCEPTUAL LIFECYCLE GROUPS
+!=
+SEVEN OPERATIONAL TEAMBIDZONE DIRECTORIES
+```
+
+The six groups describe the conceptual SOP / Team Bid lifecycle organization;
+the seven TeamBidZone directories are the operational/export layout, and the
+mapping is not required to be one-to-one. Legal, Technical/Vendor and
+Commercial concerns are separated more granularly operationally than in the
+conceptual shelf diagram. Neither representation overrides source authority or
+package revision identity.
 
 ## Lane 4 — Tender Package & HSMT Intelligence
 

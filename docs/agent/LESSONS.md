@@ -50,3 +50,24 @@ fixes.
     membership, but it must not silently delete retained evidence or
     downloaded provenance. Keep current membership lifecycle separate from
     evidence-retention lifecycle.
+15. **A storage preflight is not a storage reservation.** Safety-critical
+    trial harnesses must bound artifact creation and retries, enforce capacity
+    at the point of material writes, and keep lifecycle ownership outside any
+    process tree intentionally killed by the experiment. Byte reconstruction or
+    duplicate-runtime manifests do not recreate historical execution evidence.
+16. **A synthetic test must own its inputs.** A test that silently reads an
+    old release/controller on a developer machine is not a reproducible CI
+    contract. Keep synthetic actors tracked and labeled, exercise the actual
+    orchestration and negative faults, and preserve strict real-release checks
+    at their compatibility boundary. A synthetic PASS is never release acceptance.
+17. **A PID is not a process lifetime.** Windows may reuse a parent PID while
+    an older process still records it as PPID. Validate creation chronology
+    before treating that edge as ancestry; unavailable identity remains
+    unresolved. Containment membership must not hide unknown descendants.
+
+### 18. Ownership must cover decision reads and failure cleanup
+
+A journal read before a lock can become stale before the write it authorizes.
+Acquire ownership before selecting recovery state. Every operation after resource
+acquisition needs cleanup; release each independent resource even if another
+release fails, retaining the primary error and incomplete durable state.

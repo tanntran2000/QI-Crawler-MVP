@@ -47,6 +47,16 @@ Boot resolves repository identity, role evidence, current state, scope and
 entry gates, then reports `READY` or `ENTRY_HOLD`. A `READY` result does not
 authorize edits, implementation, merge, release or any Human decision.
 
+## Path and artifact entry gate
+
+For new write scope, read `docs/agent/PATH_REGISTRY_CONTRACT.md` and resolve
+the applicable entries in `docs/agent/PATH_REGISTRY.yaml` after Roadmap/Delta
+and role reconciliation. Report `PATH_REGISTRY_GATE` before the first write
+and `PATH_AUDIT` plus artifact disposition at closeout. The registry is an
+address catalog, not a second Spine or execution grant. Existing frozen WPs
+retain their bound paths; adoption limitations are in
+`docs/agent/PATH_REGISTRY_ROLLOUT.md`.
+
 ## Checkout identity gate
 
 Before interpreting branch, head, audit range or object absence, resolve the

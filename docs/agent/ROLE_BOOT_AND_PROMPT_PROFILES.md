@@ -89,6 +89,16 @@ that context and entry checks are coherent enough for the next governed step.
 It does not authorize implementation, edits, merge, release or Human approval.
 `NEEDS_REPLAN` is an execution/replanning state, not a Boot readiness state.
 
+### Path addressing for new work
+
+After Roadmap/Delta and role entry, apply the PRE/RUN/POST path gate in
+`docs/agent/PATH_REGISTRY_CONTRACT.md`, using `PATH_REGISTRY.yaml` as the
+canonical address catalog. A Work Order binds concrete destinations and
+artifact lifecycles before creation; Reviewer checks path/disposition evidence
+before closeout. Do not claim a machine-enforced gate until its implementation
+is verified. This extension does not reassign active roles or rewrite frozen
+audit objects.
+
 ## 2. Universal ROLE_BOOT_PROFILE
 
 Every boot profile consumes the canonical role contract from
