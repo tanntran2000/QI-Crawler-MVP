@@ -41,6 +41,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Bind CI-local merge-preview branch identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$GITHUB_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$expected_sha" ]]; then
+            echo "Checkout SHA $checked_out_sha does not match merge-preview SHA $expected_sha" >&2
+            exit 1
+          fi
+          ci_branch="ci/merge-preview-${expected_sha}"
+          git switch --create "$ci_branch" "$expected_sha"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          test -n "$(git branch --show-current)"
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -97,19 +112,37 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Bind CI-local merge-preview branch identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$GITHUB_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$expected_sha" ]]; then
+            echo "Checkout SHA $checked_out_sha does not match merge-preview SHA $expected_sha" >&2
+            exit 1
+          fi
+          ci_branch="ci/merge-preview-${expected_sha}"
+          git switch --create "$ci_branch" "$expected_sha"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          test -n "$(git branch --show-current)"
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
 
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e ".[dev]"
+      - name: Create test virtual environment
+        run: python -m venv .venv
+
+      - run: .\.venv\Scripts\python.exe -m pip install --upgrade pip
+      - run: .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 
       - name: Full regression
         env:
           PYTHONPATH: ${{ github.workspace }}\scripts
           PYTEST_ADDOPTS: -p ci_windows_runtime_attribution
-        run: python -m pytest -q
+        run: .\.venv\Scripts\python.exe -m pytest -q
 
   compatibility-ubuntu-311:
     name: Compatibility Ubuntu 3.11
@@ -120,6 +153,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Bind CI-local merge-preview branch identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha="$GITHUB_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$expected_sha" ]]; then
+            echo "Checkout SHA $checked_out_sha does not match merge-preview SHA $expected_sha" >&2
+            exit 1
+          fi
+          ci_branch="ci/merge-preview-${expected_sha}"
+          git switch --create "$ci_branch" "$expected_sha"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          test -n "$(git branch --show-current)"
 
       - uses: actions/setup-python@v6
         with:

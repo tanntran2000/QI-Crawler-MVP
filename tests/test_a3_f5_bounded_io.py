@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -117,10 +118,13 @@ Assert-F5BoundedRecords -Records @(@{{command_line=('x' * 80)}}) -MaxRecords 2 -
     assert "MATERIAL_WRITE_BOUND_EXCEEDED" in (result.stdout + result.stderr)
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32" or shutil.which("powershell.exe") is None,
+    reason="Windows PowerShell 5.1 is required",
+)
 def test_explicit_empty_census_is_bounded_under_windows_powershell_51() -> None:
     powershell = shutil.which("powershell.exe")
-    if powershell is None:
-        pytest.skip("Windows PowerShell 5.1 is required")
+    assert powershell is not None
     script = f"""
 $ErrorActionPreference = 'Stop'
 . {_quote(BOUNDED_IO)}
@@ -209,6 +213,10 @@ Assert-F5BoundedRecords -Records $records -MaxRecords {max_records} -MaxFieldByt
         assert "CENSUS_ACCEPTED=YES" not in result.stdout
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32" or shutil.which("powershell.exe") is None,
+    reason="Windows PowerShell 5.1 synthetic P0 route",
+)
 def test_synthetic_canonical_p0_observer_reaches_pre_p1_boundary(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence"
     trial = tmp_path / "trial"

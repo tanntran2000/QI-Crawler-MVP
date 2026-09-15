@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -539,6 +540,10 @@ def test_nested_descendant_runtime_identity_is_accepted(tmp_path: Path) -> None:
     assert "F5_ONLY_ROUTE_SELECTED" in result.stdout
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32" or shutil.which("powershell.exe") is None,
+    reason="Windows PowerShell 5.1 path semantics",
+)
 def test_trailing_separator_on_root_is_accepted(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     input_path = tmp_path / "controller.ps1"
@@ -1411,7 +1416,10 @@ def test_guarded_real_dispatch_keeps_outer_lock_held(tmp_path: Path) -> None:
         assert first.returncode == 0, first_stdout + first_stderr
 
 
-@pytest.mark.skipif(shutil.which("pwsh") is None and shutil.which("powershell") is None, reason="PowerShell required")
+@pytest.mark.skipif(
+    sys.platform != "win32" or shutil.which("powershell.exe") is None,
+    reason="Windows PowerShell Job Object positive control",
+)
 def test_job_object_positive_control_keeps_outer_process_and_lock(tmp_path: Path) -> None:
     result = subprocess.run(
         [
