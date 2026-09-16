@@ -9,7 +9,7 @@ ROOT = Path(__file__).parent.parent
 
 
 def test_approved_release_version_is_canonical_package_value() -> None:
-    assert __version__ == "0.9.0"
+    assert __version__ == "0.9.1"
 
 
 def test_pyproject_derives_distribution_version_from_package() -> None:
@@ -54,10 +54,12 @@ def test_gui_version_display_remains_package_driven() -> None:
 def test_changelog_has_target_release_section() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     unreleased = "## Unreleased"
-    release = "## 0.9.0 - 2026-09-02"
+    release = "## 0.9.1 - 2026-09-16"
+    historical_release = "## 0.9.0 - 2026-09-02"
 
     assert unreleased in changelog
     assert release in changelog
+    assert historical_release in changelog
     assert changelog.index(unreleased) < changelog.index(release)
 
 

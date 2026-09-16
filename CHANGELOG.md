@@ -8,6 +8,15 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
   recovery workflow with explicit missing, mismatch, orphan, recoverable,
   recovered and quarantine states.
 
+## 0.9.1 - 2026-09-16
+
+- Human A0 designated 0.9.1 as the next QI-Crawler runtime-restoration
+  candidate.
+- This version identity distinguishes the forthcoming restored/current-main
+  candidate from the operational v0.9.0 build.
+- Version designation alone does not constitute operational acceptance,
+  production installation, GitHub Release or Team Bid release authorization.
+
 ## 0.9.0 - 2026-09-02
 - Human A0 operationally accepted v0.9.0 after exact-source release-candidate
   audit and in-place acceptance at D:\QI-Crawler.
