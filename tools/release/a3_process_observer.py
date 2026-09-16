@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -29,6 +30,103 @@ class ProcessClass(StrEnum):
     IRRELEVANT = "IRRELEVANT"
 
 
+_IDENTITY_BINDING_FIELDS = frozenset(
+    {"pid", "start_time_utc", "role", "executable_sha256", "identity_source"}
+)
+_IDENTITY_BINDING_ROLES = frozenset(
+    {ProcessClass.SANDBOX_LEGACY, ProcessClass.SANDBOX_STUB}
+)
+_IDENTITY_BINDING_SOURCES = frozenset({"PROCESS_HANDLE", "LAUNCH_RECEIPT"})
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+
+def _parse_utc_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None or parsed.year < 1970:
+        return None
+    return parsed.astimezone(UTC)
+
+
+def _normalize_sha256(value: object) -> str | None:
+    if not isinstance(value, str) or not _SHA256_RE.fullmatch(value.strip()):
+        return None
+    return value.strip().lower()
+
+
+@dataclass(frozen=True)
+class ProcessIdentityBinding:
+    """Immutable process-lifetime authority for a role-sensitive executable."""
+
+    pid: int
+    start_time_utc: str
+    role: ProcessClass | str
+    executable_sha256: str
+    identity_source: str
+
+    def __post_init__(self) -> None:
+        if isinstance(self.pid, bool) or not isinstance(self.pid, int):
+            raise TypeError("PROCESS_IDENTITY_BINDING: pid")
+        pid = self.pid
+        if pid <= 0:
+            raise ValueError("PROCESS_IDENTITY_BINDING: pid")
+
+        parsed = _parse_utc_timestamp(self.start_time_utc)
+        if parsed is None:
+            raise ValueError("PROCESS_IDENTITY_BINDING: start_time_utc")
+
+        try:
+            role = (
+                self.role
+                if isinstance(self.role, ProcessClass)
+                else ProcessClass(str(self.role))
+            )
+        except ValueError as exc:
+            raise ValueError("PROCESS_IDENTITY_BINDING: role") from exc
+        if role not in _IDENTITY_BINDING_ROLES:
+            raise ValueError("PROCESS_IDENTITY_BINDING: role")
+
+        digest = _normalize_sha256(self.executable_sha256)
+        if digest is None:
+            raise ValueError("PROCESS_IDENTITY_BINDING: executable_sha256")
+
+        if (
+            not isinstance(self.identity_source, str)
+            or self.identity_source not in _IDENTITY_BINDING_SOURCES
+        ):
+            raise ValueError("PROCESS_IDENTITY_BINDING: identity_source")
+
+        object.__setattr__(self, "pid", pid)
+        object.__setattr__(self, "start_time_utc", parsed.isoformat())
+        object.__setattr__(self, "role", role)
+        object.__setattr__(self, "executable_sha256", digest)
+
+    @classmethod
+    def from_mapping(cls, raw: Mapping[str, object]) -> ProcessIdentityBinding:
+        if not isinstance(raw, Mapping) or set(raw) != _IDENTITY_BINDING_FIELDS:
+            raise ValueError("PROCESS_IDENTITY_BINDING: fields")
+        return cls(
+            pid=raw["pid"],
+            start_time_utc=raw["start_time_utc"],
+            role=raw["role"],
+            executable_sha256=raw["executable_sha256"],
+            identity_source=raw["identity_source"],
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "pid": self.pid,
+            "start_time_utc": self.start_time_utc,
+            "role": self.role.value,
+            "executable_sha256": self.executable_sha256,
+            "identity_source": self.identity_source,
+        }
+
+
 @dataclass(frozen=True)
 class ObserverConfig:
     trial_root: Path | None = None
@@ -40,6 +138,7 @@ class ObserverConfig:
     legacy_sha256: str | None = None
     controller_sha256: str | None = None
     stub_sha256: str | None = None
+    authoritative_process_identities: tuple[ProcessIdentityBinding | Mapping[str, object], ...] = ()
 
     def __post_init__(self) -> None:
         if self.trial_root is None:
@@ -58,6 +157,25 @@ class ObserverConfig:
                 field_name,
                 paths,
             )
+
+        try:
+            raw_bindings = tuple(self.authoritative_process_identities)
+        except TypeError as exc:
+            raise TypeError("PROCESS_IDENTITY_BINDING: collection") from exc
+        bindings: list[ProcessIdentityBinding] = []
+        seen_pids: set[int] = set()
+        for raw_binding in raw_bindings:
+            if isinstance(raw_binding, ProcessIdentityBinding):
+                binding = raw_binding
+            elif isinstance(raw_binding, Mapping):
+                binding = ProcessIdentityBinding.from_mapping(raw_binding)
+            else:
+                raise TypeError("PROCESS_IDENTITY_BINDING: object")
+            if binding.pid in seen_pids:
+                raise ValueError("PROCESS_IDENTITY_BINDING: duplicate")
+            seen_pids.add(binding.pid)
+            bindings.append(binding)
+        object.__setattr__(self, "authoritative_process_identities", tuple(bindings))
 
 
 @dataclass(frozen=True)
@@ -151,6 +269,42 @@ class A3ProcessObserver:
         self.config = config
         self.known_pids = known_pids
 
+    def _binding_for_pid(self, pid: int | None) -> ProcessIdentityBinding | None:
+        if pid is None:
+            return None
+        return next(
+            (binding for binding in self.config.authoritative_process_identities if binding.pid == pid),
+            None,
+        )
+
+    def _resolve_binding(
+        self,
+        binding: ProcessIdentityBinding,
+        *,
+        image_path: str | None,
+        in_sandbox: bool,
+        record_start_time: object,
+    ) -> ProcessClass | None:
+        if not in_sandbox or image_path is None:
+            return None
+        record_created = _parse_utc_timestamp(record_start_time)
+        binding_created = _parse_utc_timestamp(binding.start_time_utc)
+        if record_created is None or binding_created is None or record_created != binding_created:
+            return None
+        expected_sha = {
+            ProcessClass.SANDBOX_LEGACY: self.config.legacy_sha256,
+            ProcessClass.SANDBOX_STUB: self.config.stub_sha256,
+        }[binding.role]
+        if _normalize_sha256(expected_sha) != binding.executable_sha256:
+            return None
+        role_paths = {
+            ProcessClass.SANDBOX_LEGACY: self.config.legacy_paths,
+            ProcessClass.SANDBOX_STUB: self.config.stub_paths,
+        }[binding.role]
+        if not any(_same_path(image_path, candidate) for candidate in role_paths):
+            return None
+        return binding.role
+
     def classify_record(self, raw: Mapping[str, Any]) -> ProcessEvidence:
         pid = _int_or_none(raw.get("pid"))
         parent_pid = _int_or_none(raw.get("parent_pid"))
@@ -164,14 +318,26 @@ class A3ProcessObserver:
         explicitly_relevant = bool(raw.get("relevant") or raw.get("child_of_known_pid"))
 
         in_sandbox = bool(image_path is not None and _is_under(_norm(image_path), self.config.trial_root))
+        binding = self._binding_for_pid(pid)
         if not readable and (known_pid or explicitly_relevant):
             classification = ProcessClass.UNRESOLVED_RELEVANT
         elif pid in self.config.controller_pids:
             classification = ProcessClass.SANDBOX_CONTROLLER
         elif pid in self.config.route_pids:
             classification = ProcessClass.SANDBOX_OTHER
+        elif binding is not None:
+            classification = self._resolve_binding(
+                binding,
+                image_path=image_path,
+                in_sandbox=in_sandbox,
+                record_start_time=raw.get("start_time_utc"),
+            ) or ProcessClass.UNRESOLVED_RELEVANT
         elif in_sandbox:
-            if any(_same_path(image_path, candidate) for candidate in self.config.legacy_paths) or (
+            legacy_path = any(_same_path(image_path, candidate) for candidate in self.config.legacy_paths)
+            stub_path = any(_same_path(image_path, candidate) for candidate in self.config.stub_paths)
+            if legacy_path and stub_path:
+                classification = ProcessClass.UNRESOLVED_RELEVANT
+            elif legacy_path or (
                 self.config.legacy_sha256 and digest == self.config.legacy_sha256.lower()
             ):
                 classification = ProcessClass.SANDBOX_LEGACY
@@ -179,7 +345,7 @@ class A3ProcessObserver:
                 self.config.controller_sha256 and digest == self.config.controller_sha256.lower()
             ):
                 classification = ProcessClass.SANDBOX_CONTROLLER
-            elif any(_same_path(image_path, candidate) for candidate in self.config.stub_paths) or (
+            elif stub_path or (
                 self.config.stub_sha256 and digest == self.config.stub_sha256.lower()
             ):
                 classification = ProcessClass.SANDBOX_STUB
@@ -287,8 +453,14 @@ def _cli() -> int:
         parser.error("--records-json, --config-json and --event are required unless --aggregate-gates-json is used")
     records = json.loads(args.records_json.read_text(encoding="utf-8"))
     raw = json.loads(args.config_json.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError("OBSERVER_CONFIG_INVALID")
     if raw.get("production_paths"):
         raise ValueError("OBSERVER_SCOPE_VIOLATION: production_paths")
+    raw_bindings = raw.get("authoritative_process_identities", [])
+    if not isinstance(raw_bindings, list):
+        raise TypeError("PROCESS_IDENTITY_BINDING: collection")
+    bindings = tuple(ProcessIdentityBinding.from_mapping(item) for item in raw_bindings)
     config = ObserverConfig(
         trial_root=Path(raw["trial_root"]) if raw.get("trial_root") else None,
         legacy_paths=frozenset(Path(item) for item in raw.get("legacy_paths", [])),
@@ -299,6 +471,7 @@ def _cli() -> int:
         legacy_sha256=raw.get("legacy_sha256"),
         controller_sha256=raw.get("controller_sha256"),
         stub_sha256=raw.get("stub_sha256"),
+        authoritative_process_identities=bindings,
     )
     observer = A3ProcessObserver(config, known_pids=frozenset(int(item) for item in raw.get("known_pids", [])))
     snapshot = observer.census(

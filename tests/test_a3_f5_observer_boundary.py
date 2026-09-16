@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -145,3 +146,110 @@ if ($result.Count -ne 1 -or $result[0].image_sha256) {{ throw 'CENSUS_RESULT_INV
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "SANDBOX_CENSUS_ONLY" in result.stdout
+
+
+def test_observer_cli_rejects_extra_identity_authority_field(tmp_path: Path) -> None:
+    records = tmp_path / "records.json"
+    config = tmp_path / "config.json"
+    records.write_text(
+        json.dumps([{
+            "pid": 100,
+            "image_path": str(tmp_path / "install" / "QI-Crawler" / "QI-Crawler.exe"),
+            "image_sha256": "b" * 64,
+            "start_time_utc": "2026-09-10T00:00:00Z",
+            "access_status": "PASS",
+            "relevant": True,
+        }]),
+        encoding="utf-8",
+    )
+    config.write_text(
+        json.dumps({
+            "trial_root": str(tmp_path),
+            "legacy_paths": [str(tmp_path / "install" / "QI-Crawler" / "QI-Crawler.exe")],
+            "stub_paths": [str(tmp_path / "install" / "QI-Crawler" / "QI-Crawler.exe")],
+            "legacy_sha256": "a" * 64,
+            "stub_sha256": "b" * 64,
+            "authoritative_process_identities": [{
+                "pid": 100,
+                "start_time_utc": "2026-09-10T00:00:00Z",
+                "role": "SANDBOX_STUB",
+                "executable_sha256": "b" * 64,
+                "identity_source": "LAUNCH_RECEIPT",
+                "extra_authority": "reject-me",
+            }],
+        }),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.release.a3_process_observer",
+         "--records-json", str(records), "--config-json", str(config), "--event", "c2b"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "PROCESS_IDENTITY_BINDING" in result.stderr
+
+
+def test_observer_cli_applies_valid_process_handle_binding(tmp_path: Path) -> None:
+    canonical = tmp_path / "install" / "QI-Crawler" / "QI-Crawler.exe"
+    records = tmp_path / "records.json"
+    config = tmp_path / "config.json"
+    records.write_text(
+        json.dumps([{
+            "pid": 100,
+            "image_path": str(canonical),
+            "image_sha256": "a" * 64,
+            "start_time_utc": "2026-09-10T00:00:00Z",
+            "access_status": "PASS",
+            "relevant": True,
+        }]),
+        encoding="utf-8",
+    )
+    config.write_text(
+        json.dumps({
+            "trial_root": str(tmp_path),
+            "legacy_paths": [str(canonical)],
+            "stub_paths": [str(canonical)],
+            "legacy_sha256": "a" * 64,
+            "stub_sha256": "b" * 64,
+            "authoritative_process_identities": [{
+                "pid": 100,
+                "start_time_utc": "2026-09-10T00:00:00Z",
+                "role": "SANDBOX_STUB",
+                "executable_sha256": "b" * 64,
+                "identity_source": "PROCESS_HANDLE",
+            }],
+        }),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.release.a3_process_observer",
+         "--records-json", str(records), "--config-json", str(config), "--event", "c2b"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    snapshot = json.loads(result.stdout)
+    assert snapshot["records"][0]["classification"] == "SANDBOX_STUB"
+
+
+def test_invoke_observer_transports_bounded_authoritative_identities() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    section = source.split("function Invoke-Observer", 1)[1].split(
+        "$script:observerSequence", 1
+    )[0]
+    assert "AuthoritativeProcessIdentities" in section
+    assert "authoritative_process_identities" in section
+
+
+def test_legacy_positive_control_builds_a_launch_receipt_binding() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    section = source.split("# Real positive control", 1)[1].split(
+        "$controllerResults", 1
+    )[0]
+    assert "$legacyIdentity" in section
+    assert "positive_running" in section and "positive_terminated" in section
