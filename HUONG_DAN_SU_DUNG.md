@@ -785,6 +785,15 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
+## Co gi moi trong 0.9.1
+
+- Human A0 da chi dinh 0.9.1 la ung vien phuc hoi runtime tiep theo cua
+  QI-Crawler.
+- Danh tinh phien ban nay phan biet ung vien tren main hien tai voi ban van
+  hanh v0.9.0.
+- Gan danh tinh phien ban khong dong nghia voi chap nhan van hanh, cai dat
+  production, GitHub Release hay phat hanh Team Bid.
+
 ## Co gi moi trong 0.9.0
 
 - Bid Radar co hoi da xac nhan co the chuyen an toan sang Tender Workspace,
