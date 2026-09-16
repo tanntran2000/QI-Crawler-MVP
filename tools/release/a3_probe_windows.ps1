@@ -488,7 +488,7 @@ function Get-RawCensus([int[]]$KnownPids, [string]$TrialRoot) {
     return ,$boundedRecords
 }
 
-function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [bool]$RootsAbsent, [string]$TrialRoot, [string]$TrialId = '', [int]$ControllerRootPid = 0, [string]$ControllerTreeStatus = '', [int[]]$ContainedPids = @()) {
+function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [bool]$RootsAbsent, [string]$TrialRoot, [string]$TrialId = '', [int]$ControllerRootPid = 0, [string]$ControllerTreeStatus = '', [int[]]$ContainedPids = @(), [object[]]$AuthoritativeProcessIdentities = @()) {
     $rawPath = Join-Path $evidence "observer\$Name.raw.json"
     $configPath = Join-Path $evidence "observer\$Name.config.json"
     $outPath = Join-Path $evidence "observer\$Name.snapshot.json"
@@ -497,12 +497,25 @@ function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [boo
     $controllerIds=[Collections.Generic.HashSet[int]]::new()
     if ($ControllerRootPid) { [void]$controllerIds.Add($ControllerRootPid) }
     foreach ($containedPid in $ContainedPids) { [void]$controllerIds.Add($containedPid) }
+    $identityBindings=@(
+        foreach ($identity in @($AuthoritativeProcessIdentities)) {
+            if ($null -eq $identity) { throw 'PROCESS_IDENTITY_BINDING_INVALID' }
+            [ordered]@{
+                pid=[int]$identity.pid
+                start_time_utc=[string]$identity.start_time_utc
+                role=[string]$identity.role
+                executable_sha256=[string]$identity.executable_sha256
+                identity_source=[string]$identity.identity_source
+            }
+        }
+    )
     $config = [ordered]@{
         trial_root=$TrialRoot; legacy_paths=@((Join-Path $TrialRoot 'install\QI-Crawler\QI-Crawler.exe'))
         controller_paths=@(); stub_paths=@((Join-Path $TrialRoot 'install\QI-Crawler\QI-Crawler.exe'))
         legacy_sha256=$legacyHash; stub_sha256=$stubHash; known_pids=@($KnownPids)
         controller_pids=@($controllerIds)
         route_pids=@($(if($Name -like 'F5_route_*'){$KnownPids}))
+        authoritative_process_identities=$identityBindings
     }
     Write-Json $configPath $config
     $args = @($observer, '--records-json', $rawPath, '--config-json', $configPath, '--event', $Name)
@@ -522,6 +535,27 @@ function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [boo
 }
 
 $script:observerSequence = 0
+
+function New-A3LaunchIdentityBinding([Diagnostics.Process]$Process, [string]$Role, [string]$ExecutableSha256) {
+    if ($null -eq $Process -or $Process.Id -lt 1 -or
+        $Role -notin @('SANDBOX_LEGACY','SANDBOX_STUB') -or
+        $ExecutableSha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw 'PROCESS_IDENTITY_BINDING_INVALID'
+    }
+    try {
+        $created=$Process.StartTime.ToUniversalTime()
+        if ($created.Year -lt 1970) { throw 'PROCESS_CREATION_TIME_INVALID' }
+    } catch {
+        throw 'PROCESS_IDENTITY_BINDING_INVALID'
+    }
+    return [pscustomobject]@{
+        pid=[int]$Process.Id
+        start_time_utc=$created.ToString('o')
+        role=$Role
+        executable_sha256=$ExecutableSha256.ToLowerInvariant()
+        identity_source='LAUNCH_RECEIPT'
+    }
+}
 
 function Get-DbManifest([string]$DataRoot, [string]$ObservationRoot = '') {
     $dbRoot = Join-Path $DataRoot 'data\database'
@@ -862,8 +896,10 @@ $configText = (Get-Content -Raw -LiteralPath $sourceConfig).Replace($prep, $tria
 $legacyPath = Join-Path $trialInstall 'QI-Crawler.exe'
 $start = [Diagnostics.ProcessStartInfo]::new(); $start.FileName=$legacyPath; $start.WorkingDirectory=(Split-Path -Parent $legacyPath); $start.UseShellExecute=$false
 $start.Environment['QI_CRAWLER_DATA_DIR']=$trialData; $start.Environment['QI_CRAWLER_CONFIG_PATH']=$config
-$legacyProcess=[Diagnostics.Process]::Start($start); Start-Sleep -Milliseconds 1000
-$running=Invoke-Observer 'positive_running' @($legacyProcess.Id) $true $false $trialInstall
+$legacyProcess=[Diagnostics.Process]::Start($start)
+$legacyIdentity=New-A3LaunchIdentityBinding $legacyProcess 'SANDBOX_LEGACY' $legacyHash
+Start-Sleep -Milliseconds 1000
+$running=Invoke-Observer 'positive_running' @($legacyProcess.Id) $true $false $trialInstall '' 0 '' @() @($legacyIdentity)
 if ($running.legacy_count -lt 1) { Stop-SandboxTree @($legacyProcess.Id); throw 'real v0.9 positive control did not observe legacy' }
 Stop-SandboxTree @($legacyProcess.Id)
 $terminated=Invoke-Observer 'positive_terminated' @($legacyProcess.Id) $true $true $trialInstall
