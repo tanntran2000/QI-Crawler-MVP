@@ -34,6 +34,14 @@ Before merge, verify live ruleset activation, exact required-check contexts and
 bypass permissions against the final commit. Preserve the readback as integration
 evidence; neither this durable contract nor an earlier run proves current enforcement.
 
+## Final pre-CI head stability
+
+After the final pre-CI handoff/code head is pushed, terminal hosted-CI evidence
+is attached to that exact SHA. Do not advance the PR head solely to record the
+CI result inside the same PR. A changed SHA is a new audit object and requires
+new exact-head verification. Post-merge Spine reconciliation may record the
+terminal integration result without rewriting the merged feature PR.
+
 ## Test ownership and clean runner rule
 
 1. **Product regression:** source discovery, pagination, retry/resume, dedup,
