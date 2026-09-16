@@ -488,7 +488,65 @@ function Get-RawCensus([int[]]$KnownPids, [string]$TrialRoot) {
     return ,$boundedRecords
 }
 
-function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [bool]$RootsAbsent, [string]$TrialRoot, [string]$TrialId = '', [int]$ControllerRootPid = 0, [string]$ControllerTreeStatus = '', [int[]]$ContainedPids = @(), [object[]]$AuthoritativeProcessIdentities = @()) {
+function New-ObserverScopeProof {
+    param(
+        [Parameter(Mandatory=$true)] [string]$ObservedScope,
+        [ValidateSet('COMPLETE_PID_TREE','JOB_OBJECT_CONTAINMENT','JOB_OBJECT_DRAINED','COMPOSITE_JOB_DRAINED')]
+        [string]$Authority = '',
+        [hashtable]$Evidence = @{}
+    )
+    if ([string]::IsNullOrWhiteSpace($ObservedScope)) { throw 'SCOPE_PROOF_SCOPE_INVALID' }
+    $complete = $false
+    switch ($Authority) {
+        'COMPLETE_PID_TREE' {
+            $complete = ([bool]$Evidence['process_tree_complete'] -and
+                [bool]$Evidence['root_absent'] -and [bool]$Evidence['tree_dead'])
+        }
+        'JOB_OBJECT_CONTAINMENT' {
+            $complete = ([bool]$Evidence['root_identity_bound'] -and
+                [bool]$Evidence['process_tree_complete'] -and
+                [bool]$Evidence['job_membership_complete'])
+        }
+        'JOB_OBJECT_DRAINED' {
+            $receipt = $Evidence.Contains('receipt_persisted') -and [bool]$Evidence['receipt_persisted']
+            $completion = $Evidence.Contains('route_completion_observed') -and [bool]$Evidence['route_completion_observed']
+            $complete = ([bool]$Evidence['job_terminated'] -and
+                $Evidence['job_active_after'] -eq 0 -and ($receipt -or $completion))
+            if ($Evidence.Contains('route_job_complete')) { $complete = $complete -and [bool]$Evidence['route_job_complete'] }
+            if ($Evidence.Contains('lineage_complete')) { $complete = $complete -and [bool]$Evidence['lineage_complete'] }
+            if ($Evidence.Contains('launcher_exit_code')) { $complete = $complete -and ($Evidence['launcher_exit_code'] -eq 0) }
+            if ($Evidence.Contains('total_job_processes')) { $complete = $complete -and ($Evidence['total_job_processes'] -ge 1) }
+        }
+        'COMPOSITE_JOB_DRAINED' {
+            $complete = ([bool]$Evidence['controller_job_drained'] -and
+                [bool]$Evidence['route_jobs_drained'] -and
+                [bool]$Evidence['route_contract_intact'] -and
+                [bool]$Evidence['receipt_persisted'] -and
+                $Evidence['expected_route_count'] -eq $Evidence['completed_route_count'] -and
+                $Evidence['expected_route_count'] -gt 0)
+        }
+    }
+    $scopeEvidence = [ordered]@{}
+    foreach ($key in @(
+        'root_identity_bound','process_tree_complete','job_membership_complete',
+        'job_terminated','job_active_before','job_active_after','receipt_persisted',
+        'route_completion_observed','route_job_complete','lineage_complete',
+        'root_absent','tree_dead','total_job_processes','launcher_exit_code',
+        'expected_route_count','completed_route_count','controller_job_drained',
+        'route_jobs_drained','route_contract_intact','enumeration_status',
+        'descendant_discovery_status','tree_pid_count','job_membership_count','root_pid'
+    )) {
+        if ($Evidence.Contains($key)) { $scopeEvidence[$key] = $Evidence[$key] }
+    }
+    return [ordered]@{
+        observed_scope=$ObservedScope
+        scope_complete=$complete
+        zero_proof_authority=$(if($Authority){$Authority}else{$null})
+        scope_evidence=$scopeEvidence
+    }
+}
+
+function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [bool]$RootsAbsent, [string]$TrialRoot, [string]$TrialId = '', [int]$ControllerRootPid = 0, [string]$ControllerTreeStatus = '', [int[]]$ContainedPids = @(), [object[]]$AuthoritativeProcessIdentities = @(), [hashtable]$ScopeProof = $null) {
     $rawPath = Join-Path $evidence "observer\$Name.raw.json"
     $configPath = Join-Path $evidence "observer\$Name.config.json"
     $outPath = Join-Path $evidence "observer\$Name.snapshot.json"
@@ -497,6 +555,10 @@ function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [boo
     $controllerIds=[Collections.Generic.HashSet[int]]::new()
     if ($ControllerRootPid) { [void]$controllerIds.Add($ControllerRootPid) }
     foreach ($containedPid in $ContainedPids) { [void]$controllerIds.Add($containedPid) }
+    $scopePayload=if($ScopeProof){$ScopeProof}else{New-ObserverScopeProof -ObservedScope 'UNSPECIFIED'}
+    if (-not $scopePayload.Contains('scope_complete') -or
+        -not $scopePayload.Contains('zero_proof_authority') -or
+        -not $scopePayload.Contains('scope_evidence')) { throw 'SCOPE_PROOF_INVALID' }
     $identityBindings=@(
         foreach ($identity in @($AuthoritativeProcessIdentities)) {
             if ($null -eq $identity) { throw 'PROCESS_IDENTITY_BINDING_INVALID' }
@@ -516,6 +578,7 @@ function Invoke-Observer([string]$Name, [int[]]$KnownPids, [bool]$Positive, [boo
         controller_pids=@($controllerIds)
         route_pids=@($(if($Name -like 'F5_route_*'){$KnownPids}))
         authoritative_process_identities=$identityBindings
+        scope_proof=$scopePayload
     }
     Write-Json $configPath $config
     $args = @($observer, '--records-json', $rawPath, '--config-json', $configPath, '--event', $Name)
@@ -814,6 +877,10 @@ function Add-F5Event([string]$Event, [string]$TrialId, [int]$RelevantPid, [strin
         process_records=if($snapshot){@($snapshot.records)}else{@()}
         legacy_count=if($snapshot){$snapshot.legacy_count}else{$null}
         unresolved_relevant_count=if($snapshot){$snapshot.unresolved_relevant_count}else{$null}
+        observed_scope=if($snapshot){$snapshot.observed_scope}else{$null}
+        scope_complete=if($snapshot){$snapshot.scope_complete}else{$null}
+        zero_proof_authority=if($snapshot){$snapshot.zero_proof_authority}else{$null}
+        scope_evidence=if($snapshot){$snapshot.scope_evidence}else{$null}
         legacy_zero_proven=if($snapshot){$snapshot.legacy_zero_proven}else{$null}
         DB_generation_manifest_sha256=$script:f5CurrentDbManifestSha
         controller_process_tree_count=$script:f5ControllerTreeCount
@@ -868,7 +935,15 @@ function Invoke-ControllerTrial([string]$Name, [string]$Failpoint) {
     $proc=Start-Python @($controllerSource,'--install-root',$trial.install,'--tx-root',$trial.tx,'--stub',$stub,'--db-root',$trial.data,'--failpoint',$Failpoint)
     if (-not (Wait-File $marker)) { Stop-SandboxTree @($proc.Id); throw "$Name controller did not reach $Failpoint" }
     $treeIds=Get-DescendantIds @($proc.Id); $treeEvidence=$script:lastProcessTreeEvidence; Write-Json (Join-Path $evidence "observer\${Name}_tree.json") $treeEvidence; Stop-SandboxTree @($proc.Id); $treeDead=Test-ProcessIdsGone $treeIds
-    $observerSnapshot=Invoke-Observer "${Name}_zero" @($proc.Id) $true $true $trial.root
+    $controllerScopeProof=New-ObserverScopeProof -ObservedScope 'CONTROLLER_PROCESS_TREE' -Authority 'COMPLETE_PID_TREE' -Evidence @{
+        process_tree_complete=($treeEvidence.enumeration_status -eq 'SUCCESS' -and $treeEvidence.descendant_discovery_status -eq 'COMPLETE')
+        root_absent=$treeDead
+        tree_dead=$treeDead
+        enumeration_status=[string]$treeEvidence.enumeration_status
+        descendant_discovery_status=[string]$treeEvidence.descendant_discovery_status
+        tree_pid_count=@($treeIds).Count
+    }
+    $observerSnapshot=Invoke-Observer "${Name}_zero" @() $true $true $trial.root '' 0 'DEAD' @() @() $controllerScopeProof
     $observerJson=Join-Path $evidence "observer\${Name}_zero.snapshot.json"
     $legacyBefore=Get-TreeManifest $trial.install
     $first=Invoke-RecoveryCli $trial $observerJson
@@ -901,8 +976,19 @@ $legacyIdentity=New-A3LaunchIdentityBinding $legacyProcess 'SANDBOX_LEGACY' $leg
 Start-Sleep -Milliseconds 1000
 $running=Invoke-Observer 'positive_running' @($legacyProcess.Id) $true $false $trialInstall '' 0 '' @() @($legacyIdentity)
 if ($running.legacy_count -lt 1) { Stop-SandboxTree @($legacyProcess.Id); throw 'real v0.9 positive control did not observe legacy' }
+$positiveTreeEvidence=Get-ProcessTreeEvidence @($legacyProcess.Id) ([pscustomobject]@{pid=$legacyIdentity.pid;creation_time_utc=$legacyIdentity.start_time_utc;identity_source='PROCESS_HANDLE'})
+Write-Json (Join-Path $evidence 'observer\positive_running.tree.json') $positiveTreeEvidence
 Stop-SandboxTree @($legacyProcess.Id)
-$terminated=Invoke-Observer 'positive_terminated' @($legacyProcess.Id) $true $true $trialInstall
+$positiveTreeDead=Test-ProcessIdsGone @($positiveTreeEvidence.ids)
+$positiveScopeProof=New-ObserverScopeProof -ObservedScope 'POSITIVE_CONTROL_PROCESS_TREE' -Authority 'COMPLETE_PID_TREE' -Evidence @{
+    process_tree_complete=($positiveTreeEvidence.enumeration_status -eq 'SUCCESS' -and $positiveTreeEvidence.descendant_discovery_status -eq 'COMPLETE')
+    root_absent=$positiveTreeDead
+    tree_dead=$positiveTreeDead
+    enumeration_status=[string]$positiveTreeEvidence.enumeration_status
+    descendant_discovery_status=[string]$positiveTreeEvidence.descendant_discovery_status
+    tree_pid_count=@($positiveTreeEvidence.ids).Count
+}
+$terminated=Invoke-Observer 'positive_terminated' @() $true $true $trialInstall '' 0 'DEAD' @() @() $positiveScopeProof
 if (-not $terminated.legacy_zero_proven) { throw 'legacy zero proof failed after sandbox termination' }
 
 $controllerResults=@{}
@@ -915,7 +1001,15 @@ foreach($point in @('R0','R1','R2','R3')) {
     $rtrial=New-Trial "recovery_$point"; $recoveryRoot=Join-Path $rtrial.root 'recovery'; New-Item -ItemType Directory -Force -Path $recoveryRoot | Out-Null
     $recoveryPath=Join-Path $rtrial.tx 'legacy\QI-Crawler.exe'; New-Item -ItemType Directory -Force -Path (Split-Path -Parent $recoveryPath) | Out-Null
     Copy-Item -LiteralPath $candidate -Destination $recoveryPath -Force; Copy-Item -LiteralPath $stub -Destination $rtrial.canonical -Force
-    $obs=Invoke-Observer "recovery_${point}_zero" @() $true $true $rtrial.root; $obsJson=Join-Path $evidence "observer\recovery_${point}_zero.snapshot.json"
+    $recoveryScopeProof=New-ObserverScopeProof -ObservedScope "RECOVERY_${point}_CONTROLLED_SCOPE" -Authority 'COMPLETE_PID_TREE' -Evidence @{
+        process_tree_complete=$true
+        root_absent=$true
+        tree_dead=$true
+        enumeration_status='SUCCESS'
+        descendant_discovery_status='COMPLETE'
+        tree_pid_count=0
+    }
+    $obs=Invoke-Observer "recovery_${point}_zero" @() $true $true $rtrial.root '' 0 'DEAD' @() @() $recoveryScopeProof; $obsJson=Join-Path $evidence "observer\recovery_${point}_zero.snapshot.json"
     $pause=Join-Path $rtrial.tx "markers\$point.pause"; $recoveryProc=Start-RecoveryProcess $rtrial $obsJson $point $pause
     if (-not (Wait-File $pause)) { Stop-SandboxTree @($recoveryProc.Id); throw "recovery $point did not reach pause" }
     $recoveryTreeIds=Get-DescendantIds @($recoveryProc.Id); $recoveryTreeEvidence=$script:lastProcessTreeEvidence; Write-Json (Join-Path $evidence "observer\recovery_${point}_tree.json") $recoveryTreeEvidence; Stop-SandboxTree @($recoveryProc.Id); $recoveryTreeDead=Test-ProcessIdsGone $recoveryTreeIds; Remove-Item -LiteralPath $pause -Force -ErrorAction SilentlyContinue
@@ -1008,26 +1102,38 @@ $f5MarkerP2=Join-Path $f5.tx 'markers\A3-F5.ready'
 $f5Journal=Join-Path $f5.tx 'cutover.json'
 Add-F5Event 'F5_START' $trialId 0 (Get-F5Phase $f5Journal) 'recovery\F5.json'
 Add-F5Event 'P0_BEFORE_CUTOVER_TRIAL' $trialId 0 (Get-F5Phase $f5Journal) 'trials\F5\transaction\cutover.json'
-$p0=Invoke-Observer 'P0_BEFORE_CUTOVER_TRIAL' @() $true $true $f5.root $trialId 0 'NOT_STARTED'
+$p0ScopeProof=New-ObserverScopeProof -ObservedScope 'P0_PRE_LAUNCH' -Evidence @{}
+$p0=Invoke-Observer 'P0_BEFORE_CUTOVER_TRIAL' @() $true $true $f5.root $trialId 0 'NOT_STARTED' @() @() $p0ScopeProof
 $f5Job = Start-A3ContainedProcess -FilePath $python -Arguments @($f5HandshakeController,'--install-root',$f5.install,'--tx-root',$f5.tx,'--stub',$stub,'--db-root',$f5.data,'--failpoint','A3-F4-F5') -WorkingDirectory $repo
 $f5Proc = [pscustomobject]@{ Id = $f5Job.ProcessId }
 try {
 $jobCreated = (Get-A3JobActiveCount -Session $f5Job) -gt 0
 $jobMembership = @(Get-A3JobProcessIds -Session $f5Job)
 if (-not $jobCreated -or $f5Proc.Id -notin $jobMembership) { throw 'F5_CONTROLLER_JOB_ASSIGNMENT_UNPROVEN' }
+$f5RootIdentity=Get-A3ContainedProcessIdentity -Session $f5Job
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\JOB_CREATED.json') ([ordered]@{trial_id=$trialId;job_created=$jobCreated;controller_pid=$f5Proc.Id;controller_assigned=($f5Proc.Id -in $jobMembership);job_active_process_count=(Get-A3JobActiveCount -Session $f5Job);timestamp_utc=(Get-Date).ToUniversalTime().ToString('o')})
 if(-not (Wait-File $f5MarkerP1)){throw 'F5 did not reach explicit pre-barrier handshake'}
 if ($phaseModel) {
     [void](Assert-A3Phase -Sandbox $f5.root -Model $phaseModel -ExpectedPhase 'CUTOVER_STUB_STAGED')
     Write-Output 'A3_PHASE_CUTOVER_STUB_STAGED=PASS'
 }
-$positiveTree=Get-ProcessTreeEvidence @($f5Proc.Id)
+$positiveTree=Get-ProcessTreeEvidence @($f5Proc.Id) $f5RootIdentity
 Write-Json (Join-Path $f5Evidence 'observer\positive_running.tree.json') $positiveTree
 $positiveTreePass=($positiveTree.enumeration_status -eq 'SUCCESS' -and @($positiveTree.ids).Count -ge 1 -and $positiveTree.root_pid_status[0].exists -eq $true -and $positiveTree.descendant_discovery_status -eq 'COMPLETE')
 $p1JobMembers=@(Get-A3JobProcessIds -Session $f5Job)
 if (-not $positiveTreePass -or @($positiveTree.ids | Where-Object { $_ -notin $p1JobMembers }).Count -gt 0) { throw 'F5_P1_JOB_LINEAGE_UNPROVEN' }
+$p1ScopeProof=New-ObserverScopeProof -ObservedScope 'P1_CONTROLLER_JOB' -Authority 'JOB_OBJECT_CONTAINMENT' -Evidence @{
+    root_identity_bound=$true
+    process_tree_complete=$positiveTreePass
+    job_membership_complete=(@($positiveTree.ids | Where-Object { $_ -notin $p1JobMembers }).Count -eq 0)
+    enumeration_status=[string]$positiveTree.enumeration_status
+    descendant_discovery_status=[string]$positiveTree.descendant_discovery_status
+    tree_pid_count=@($positiveTree.ids).Count
+    job_membership_count=@($p1JobMembers).Count
+    root_pid=$f5Proc.Id
+}
 Add-F5Event 'P1_CENSUS_START' $trialId $f5Proc.Id (Get-F5Phase $f5Journal) 'observer\F5_P1_BEFORE_BARRIER.snapshot.json'
-$p1=Invoke-Observer 'F5_P1_BEFORE_BARRIER' @($f5Proc.Id) $true $true $f5.root $trialId $f5Proc.Id 'ALIVE_BARRIER_CANDIDATE' $p1JobMembers
+$p1=Invoke-Observer 'F5_P1_BEFORE_BARRIER' @($f5Proc.Id) $true $true $f5.root $trialId $f5Proc.Id 'ALIVE_BARRIER_CANDIDATE' $p1JobMembers @() $p1ScopeProof
 $script:f5CurrentSnapshot=$p1
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\P1.json') $p1
 Add-F5Event 'P1_CENSUS_FROZEN' $trialId $f5Proc.Id (Get-F5Phase $f5Journal) 'observer\F5_P1_BEFORE_BARRIER.snapshot.json'
@@ -1042,10 +1148,20 @@ if ($phaseModel) {
 Add-F5Event 'BARRIER_CONFIRMED_PERSISTED' $trialId $f5Proc.Id (Get-F5Phase $f5Journal) 'trials\F5\transaction\cutover.json'
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\BARRIER_CONFIRMED.json') ([ordered]@{trial_id=$trialId;event_name='BARRIER_CONFIRMED';transaction_phase=(Get-F5Phase $f5Journal);controller_root_pid=$f5Proc.Id;controller_alive=$true;receipt_flush_method='FileStream.Flush(true)';timestamp_utc=(Get-Date).ToUniversalTime().ToString('o')})
 Add-F5Event 'P2_CENSUS_START' $trialId $f5Proc.Id (Get-F5Phase $f5Journal) 'observer\F5_P2_AFTER_BARRIER.snapshot.json'
-$p2JobTree=Get-ProcessTreeEvidence @($f5Proc.Id)
+$p2JobTree=Get-ProcessTreeEvidence @($f5Proc.Id) $f5RootIdentity
 $p2JobMembers=@(Get-A3JobProcessIds -Session $f5Job)
 if ($p2JobTree.enumeration_status -ne 'SUCCESS' -or @($p2JobTree.ids | Where-Object { $_ -notin $p2JobMembers }).Count -gt 0) { throw 'F5_P2_JOB_LINEAGE_UNPROVEN' }
-$p2=Invoke-Observer 'F5_P2_AFTER_BARRIER' @($f5Proc.Id) $true $true $f5.root $trialId $f5Proc.Id 'ALIVE_BARRIER_CONFIRMED' $p2JobMembers
+$p2ScopeProof=New-ObserverScopeProof -ObservedScope 'P2_CONTROLLER_JOB' -Authority 'JOB_OBJECT_CONTAINMENT' -Evidence @{
+    root_identity_bound=$true
+    process_tree_complete=($p2JobTree.descendant_discovery_status -eq 'COMPLETE' -and $p2JobTree.enumeration_status -eq 'SUCCESS')
+    job_membership_complete=(@($p2JobTree.ids | Where-Object { $_ -notin $p2JobMembers }).Count -eq 0)
+    enumeration_status=[string]$p2JobTree.enumeration_status
+    descendant_discovery_status=[string]$p2JobTree.descendant_discovery_status
+    tree_pid_count=@($p2JobTree.ids).Count
+    job_membership_count=@($p2JobMembers).Count
+    root_pid=$f5Proc.Id
+}
+$p2=Invoke-Observer 'F5_P2_AFTER_BARRIER' @($f5Proc.Id) $true $true $f5.root $trialId $f5Proc.Id 'ALIVE_BARRIER_CONFIRMED' $p2JobMembers @() $p2ScopeProof
 $p2ControllerAlive=[bool](Get-Process -Id $f5Proc.Id -ErrorAction SilentlyContinue)
 $jobActiveAtP2=Get-A3JobActiveCount -Session $f5Job
 $jobMembersAtP2=@(Get-A3JobProcessIds -Session $f5Job)
@@ -1097,7 +1213,14 @@ Write-FsyncJson (Join-Path $f5Evidence 'receipts\CONTROLLER_TREE_DEAD.json') ([o
 Add-F5Event 'CONTROLLER_TREE_DEAD' $trialId 0 (Get-F5Phase $f5Journal) 'recovery\F5.json'
 Add-F5Event 'P3_CENSUS_START' $trialId 0 (Get-F5Phase $f5Journal) 'observer\F5_P3_AFTER_CONTROLLER_KILL.snapshot.json'
 $p3TreeStatus=if($f5TreeDead){'DEAD'}else{'UNRESOLVED_ENUMERATION'}
-$p3=Invoke-Observer 'F5_P3_AFTER_CONTROLLER_KILL' @() $true $true $f5.root $trialId $f5Proc.Id $p3TreeStatus
+$p3ScopeProof=New-ObserverScopeProof -ObservedScope 'P3_CONTROLLER_JOB_DRAINED' -Authority 'JOB_OBJECT_DRAINED' -Evidence @{
+    job_terminated=($jobTermination.active_after -eq 0)
+    job_active_after=[int]$jobActiveAfter
+    receipt_persisted=(Test-Path -LiteralPath (Join-Path $f5Evidence 'receipts\JOB_OBJECT.json') -PathType Leaf)
+    process_tree_complete=($f5TreeEvidence.enumeration_status -eq 'SUCCESS' -and $f5TreeEvidence.descendant_discovery_status -eq 'COMPLETE')
+    tree_dead=$f5TreeDead
+}
+$p3=Invoke-Observer 'F5_P3_AFTER_CONTROLLER_KILL' @() $true $true $f5.root $trialId $f5Proc.Id $p3TreeStatus @() @() $p3ScopeProof
 $script:f5CurrentSnapshot=$p3
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\P3.json') $p3
 Add-F5Event 'P3_CENSUS_FROZEN' $trialId 0 (Get-F5Phase $f5Journal) 'observer\F5_P3_AFTER_CONTROLLER_KILL.snapshot.json'
@@ -1143,7 +1266,19 @@ foreach($definition in $routeDefinitions) {
         } finally {
             Remove-Variable -Scope Script -Name a3AuthoritativeRootIdentity -ErrorAction SilentlyContinue
         }
-        $routeObs=Invoke-Observer "F5_route_$routeName" @() $true $true $f5.root $trialId 0 'JOB_ZERO'
+        $routeScopeProof=New-ObserverScopeProof -ObservedScope "P4_ROUTE_JOB_$routeName" -Authority 'JOB_OBJECT_DRAINED' -Evidence @{
+            job_terminated=($routeCompletion.active_after -eq 0)
+            job_active_after=[int]$routeCompletion.active_after
+            route_completion_observed=$true
+            route_job_complete=$true
+            lineage_complete=($routeTreeEvidence.enumeration_status -eq 'SUCCESS' -and $routeTreeEvidence.descendant_discovery_status -eq 'COMPLETE')
+            total_job_processes=[int]$routeCompletion.total_job_processes
+            launcher_exit_code=[int]$routeCompletion.launcher_exit_code
+            enumeration_status=[string]$routeTreeEvidence.enumeration_status
+            descendant_discovery_status=[string]$routeTreeEvidence.descendant_discovery_status
+            tree_pid_count=@($routeTreeEvidence.ids).Count
+        }
+        $routeObs=Invoke-Observer "F5_route_$routeName" @() $true $true $f5.root $trialId 0 'JOB_ZERO' @() @() $routeScopeProof
         $routeResult=if($resolvedSha -eq $stubHash -and $routeCompletion.active_after -eq 0 -and
             $routeCompletion.launcher_exit_code -eq 0 -and $routeObs.legacy_zero_proven -and
             $routeTreeEvidence.enumeration_status -eq 'SUCCESS'){'STUB'}else{'HOLD'}
@@ -1159,7 +1294,26 @@ foreach($definition in $routeDefinitions) {
         if ($routeJob) { Close-A3ContainedProcess -Session $routeJob }
     }
 }
-$p5=Invoke-Observer 'P5_BEFORE_MECHANICAL_RESTORE' @() $true $true $f5.root $trialId 0 'DEAD'
+$routeContractEvidencePass=(@($routes).Count -eq 5 -and @($routes | Where-Object {
+    $_.result -ne 'STUB' -or $_.resolved_target -ne $canonicalRoute
+}).Count -eq 0)
+$routeReceiptsPersisted=(@($routes | Where-Object {
+    -not (Test-Path -LiteralPath (Join-Path $f5Evidence ("receipts\P4_{0}.json" -f $_.route_type)) -PathType Leaf)
+}).Count -eq 0)
+$routeJobsDrained=(@($routes).Count -eq 5 -and @($routes | Where-Object {
+    $_.job_active_after -ne 0 -or $_.launcher_exit_code -ne 0 -or
+    $_.process_tree_evidence.enumeration_status -ne 'SUCCESS' -or
+    $_.process_tree_evidence.descendant_discovery_status -ne 'COMPLETE'
+}).Count -eq 0)
+$p5ScopeProof=New-ObserverScopeProof -ObservedScope 'P5_COMPOSITE_JOB_SCOPE' -Authority 'COMPOSITE_JOB_DRAINED' -Evidence @{
+    controller_job_drained=($jobActiveAfter -eq 0 -and (Test-Path -LiteralPath (Join-Path $f5Evidence 'receipts\JOB_OBJECT.json') -PathType Leaf))
+    route_jobs_drained=$routeJobsDrained
+    route_contract_intact=$routeContractEvidencePass
+    receipt_persisted=$routeReceiptsPersisted
+    expected_route_count=5
+    completed_route_count=@($routes).Count
+}
+$p5=Invoke-Observer 'P5_BEFORE_MECHANICAL_RESTORE' @() $true $true $f5.root $trialId 0 'DEAD' @() @() $p5ScopeProof
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\P5.json') $p5
 $f5RecoveryBefore=Get-DbManifest $f5.data $f5.root
 Add-F5Event 'P5_BEFORE_MECHANICAL_RESTORE' $trialId 0 (Get-F5Phase $f5Journal) 'receipts\P5.json'

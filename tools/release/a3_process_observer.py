@@ -13,10 +13,11 @@ import json
 import os
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 
@@ -28,6 +29,192 @@ class ProcessClass(StrEnum):
     OBSERVER_SCOPE_VIOLATION = "OBSERVER_SCOPE_VIOLATION"
     UNRESOLVED_RELEVANT = "UNRESOLVED_RELEVANT"
     IRRELEVANT = "IRRELEVANT"
+
+
+class ScopeProofAuthority(StrEnum):
+    """Bounded authorities that can establish a complete zero-proof scope."""
+
+    COMPLETE_PID_TREE = "COMPLETE_PID_TREE"
+    JOB_OBJECT_CONTAINMENT = "JOB_OBJECT_CONTAINMENT"
+    JOB_OBJECT_DRAINED = "JOB_OBJECT_DRAINED"
+    COMPOSITE_JOB_DRAINED = "COMPOSITE_JOB_DRAINED"
+
+
+_SCOPE_PROOF_FIELDS = frozenset(
+    {"observed_scope", "scope_complete", "zero_proof_authority", "scope_evidence"}
+)
+_SCOPE_EVIDENCE_FIELDS = frozenset(
+    {
+        "root_identity_bound",
+        "process_tree_complete",
+        "job_membership_complete",
+        "job_terminated",
+        "job_active_before",
+        "job_active_after",
+        "receipt_persisted",
+        "route_completion_observed",
+        "route_job_complete",
+        "lineage_complete",
+        "root_absent",
+        "tree_dead",
+        "total_job_processes",
+        "launcher_exit_code",
+        "expected_route_count",
+        "completed_route_count",
+        "controller_job_drained",
+        "route_jobs_drained",
+        "route_contract_intact",
+        "enumeration_status",
+        "descendant_discovery_status",
+        "tree_pid_count",
+        "job_membership_count",
+        "root_pid",
+    }
+)
+_SCOPE_EVIDENCE_MAX_FIELDS = 24
+
+
+def _normalize_scope_evidence(value: object) -> MappingProxyType:
+    if value is None:
+        return MappingProxyType({})
+    if not isinstance(value, Mapping):
+        raise TypeError("SCOPE_PROOF: scope_evidence")
+    if len(value) > _SCOPE_EVIDENCE_MAX_FIELDS:
+        raise ValueError("SCOPE_PROOF: scope_evidence bound")
+    normalized: dict[str, bool | int | str] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or key not in _SCOPE_EVIDENCE_FIELDS:
+            raise ValueError("SCOPE_PROOF: scope_evidence field")
+        if isinstance(item, bool):
+            normalized[key] = item
+        elif isinstance(item, int):
+            if item < -1 or item > 2**31 - 1:
+                raise ValueError("SCOPE_PROOF: scope_evidence integer")
+            normalized[key] = item
+        elif isinstance(item, str) and len(item) <= 128:
+            normalized[key] = item
+        else:
+            raise TypeError("SCOPE_PROOF: scope_evidence value")
+    return MappingProxyType(dict(sorted(normalized.items())))
+
+
+def _authority_proves_zero(
+    authority: ScopeProofAuthority | None, evidence: Mapping[str, object]
+) -> bool:
+    if authority is ScopeProofAuthority.COMPLETE_PID_TREE:
+        return (
+            evidence.get("process_tree_complete") is True
+            and evidence.get("root_absent") is True
+            and evidence.get("tree_dead") is True
+        )
+    if authority is ScopeProofAuthority.JOB_OBJECT_CONTAINMENT:
+        return (
+            evidence.get("root_identity_bound") is True
+            and evidence.get("process_tree_complete") is True
+            and evidence.get("job_membership_complete") is True
+        )
+    if authority is ScopeProofAuthority.JOB_OBJECT_DRAINED:
+        if (
+            evidence.get("job_terminated") is not True
+            or type(evidence.get("job_active_after")) is not int
+            or evidence.get("job_active_after") != 0
+        ):
+            return False
+        if (
+            evidence.get("receipt_persisted") is not True
+            and evidence.get("route_completion_observed") is not True
+        ):
+            return False
+        if evidence.get("route_job_complete") is not None and evidence.get("route_job_complete") is not True:
+            return False
+        if evidence.get("lineage_complete") is not None and evidence.get("lineage_complete") is not True:
+            return False
+        if evidence.get("launcher_exit_code") is not None and evidence.get("launcher_exit_code") != 0:
+            return False
+        total_processes = evidence.get("total_job_processes")
+        return total_processes is None or (
+            type(total_processes) is int and total_processes >= 1
+        )
+    if authority is ScopeProofAuthority.COMPOSITE_JOB_DRAINED:
+        return (
+            evidence.get("controller_job_drained") is True
+            and evidence.get("route_jobs_drained") is True
+            and evidence.get("route_contract_intact") is True
+            and evidence.get("receipt_persisted") is True
+            and evidence.get("expected_route_count") == evidence.get("completed_route_count")
+                and type(evidence.get("expected_route_count")) is int
+                and evidence.get("expected_route_count", 0) > 0
+        )
+    return False
+
+
+@dataclass(frozen=True)
+class ScopeProof:
+    """Immutable, bounded evidence that a controlled observer scope is complete."""
+
+    observed_scope: str = "UNSPECIFIED"
+    scope_complete: bool = False
+    zero_proof_authority: ScopeProofAuthority | str | None = None
+    scope_evidence: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observed_scope, str) or not self.observed_scope.strip():
+            raise ValueError("SCOPE_PROOF: observed_scope")
+        if len(self.observed_scope) > 128:
+            raise ValueError("SCOPE_PROOF: observed_scope bound")
+        if not isinstance(self.scope_complete, bool):
+            raise TypeError("SCOPE_PROOF: scope_complete")
+        authority: ScopeProofAuthority | None
+        if self.zero_proof_authority is None:
+            authority = None
+        else:
+            try:
+                authority = (
+                    self.zero_proof_authority
+                    if isinstance(self.zero_proof_authority, ScopeProofAuthority)
+                    else ScopeProofAuthority(str(self.zero_proof_authority))
+                )
+            except ValueError as exc:
+                raise ValueError("SCOPE_PROOF: unrecognized zero_proof_authority") from exc
+        evidence = _normalize_scope_evidence(self.scope_evidence)
+        if self.scope_complete and authority is None:
+            raise ValueError("SCOPE_PROOF: complete scope needs authority")
+        if self.scope_complete and not _authority_proves_zero(authority, evidence):
+            # A proof that declares completeness without the measured
+            # authority evidence is itself incomplete.  Keep the receipt
+            # inspectable, but fail closed before it reaches a zero claim.
+            object.__setattr__(self, "scope_complete", False)
+        object.__setattr__(self, "observed_scope", self.observed_scope.strip())
+        object.__setattr__(self, "zero_proof_authority", authority)
+        object.__setattr__(self, "scope_evidence", evidence)
+
+    @classmethod
+    def from_mapping(cls, raw: Mapping[str, object]) -> ScopeProof:
+        if not isinstance(raw, Mapping) or not set(raw).issubset(_SCOPE_PROOF_FIELDS):
+            raise ValueError("SCOPE_PROOF: fields")
+        return cls(
+            observed_scope=raw.get("observed_scope", "UNSPECIFIED"),
+            scope_complete=raw.get("scope_complete", False),
+            zero_proof_authority=raw.get("zero_proof_authority"),
+            scope_evidence=raw.get("scope_evidence", {}),
+        )
+
+    def proves_zero(self) -> bool:
+        """Return whether the measured bounded evidence supports a zero claim."""
+
+        if not self.scope_complete or self.zero_proof_authority is None:
+            return False
+        return _authority_proves_zero(self.zero_proof_authority, self.scope_evidence)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "observed_scope": self.observed_scope,
+            "scope_complete": self.scope_complete,
+            "zero_proof_authority": (
+                self.zero_proof_authority.value if self.zero_proof_authority is not None else None
+            ),
+            "scope_evidence": dict(self.scope_evidence),
+        }
 
 
 _IDENTITY_BINDING_FIELDS = frozenset(
@@ -213,6 +400,50 @@ class CensusSnapshot:
     legacy_count: int
     unresolved_relevant_count: int
     legacy_zero_proven: bool
+    observed_scope: str = "UNSPECIFIED"
+    scope_complete: bool = False
+    zero_proof_authority: ScopeProofAuthority | str | None = None
+    scope_evidence: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        try:
+            proof = ScopeProof(
+                observed_scope=self.observed_scope,
+                scope_complete=self.scope_complete,
+                zero_proof_authority=self.zero_proof_authority,
+                scope_evidence=self.scope_evidence,
+            )
+        except (TypeError, ValueError):
+            # Snapshot receipts are evidence boundaries.  A malformed scope
+            # proof is retained only as an incomplete proof, never as authority.
+            proof = ScopeProof()
+        object.__setattr__(self, "observed_scope", proof.observed_scope)
+        object.__setattr__(self, "scope_complete", proof.scope_complete)
+        object.__setattr__(
+            self,
+            "zero_proof_authority",
+            proof.zero_proof_authority.value if proof.zero_proof_authority else None,
+        )
+        object.__setattr__(self, "scope_evidence", proof.scope_evidence)
+        object.__setattr__(
+            self,
+            "legacy_zero_proven",
+            bool(
+                self.legacy_zero_proven is True
+                and self.legacy_count == 0
+                and self.unresolved_relevant_count == 0
+                and proof.proves_zero()
+            ),
+        )
+
+    @property
+    def scope_proof(self) -> ScopeProof:
+        return ScopeProof(
+            observed_scope=self.observed_scope,
+            scope_complete=self.scope_complete,
+            zero_proof_authority=self.zero_proof_authority,
+            scope_evidence=self.scope_evidence,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -221,6 +452,10 @@ class CensusSnapshot:
             "records": [record.to_dict() for record in self.records],
             "legacy_count": self.legacy_count,
             "unresolved_relevant_count": self.unresolved_relevant_count,
+            "observed_scope": self.observed_scope,
+            "scope_complete": self.scope_complete,
+            "zero_proof_authority": self.zero_proof_authority,
+            "scope_evidence": dict(self.scope_evidence),
             "legacy_zero_proven": self.legacy_zero_proven,
         }
 
@@ -379,6 +614,7 @@ class A3ProcessObserver:
         positive_control_passed: bool,
         known_legacy_roots_absent: bool,
         timestamp_utc: str | None = None,
+        scope_proof: ScopeProof | Mapping[str, object] | None = None,
     ) -> CensusSnapshot:
         evidence = self.classify_records(records)
         legacy_count = sum(record.classification == ProcessClass.SANDBOX_LEGACY for record in evidence)
@@ -386,11 +622,24 @@ class A3ProcessObserver:
             record.classification in (ProcessClass.UNRESOLVED_RELEVANT, ProcessClass.OBSERVER_SCOPE_VIOLATION)
             for record in evidence
         )
+        try:
+            proof = (
+                scope_proof
+                if isinstance(scope_proof, ScopeProof)
+                else ScopeProof.from_mapping(scope_proof)
+                if isinstance(scope_proof, Mapping)
+                else ScopeProof()
+            )
+        except (TypeError, ValueError):
+            # Malformed or unrecognized authority is an incomplete scope.  A
+            # census remains inspectable, but it can never authorize zero.
+            proof = ScopeProof()
         zero_proven = bool(
             positive_control_passed
             and known_legacy_roots_absent
             and legacy_count == 0
             and unresolved_count == 0
+            and proof.proves_zero()
         )
         return CensusSnapshot(
             event_name=event_name,
@@ -399,6 +648,10 @@ class A3ProcessObserver:
             legacy_count=legacy_count,
             unresolved_relevant_count=unresolved_count,
             legacy_zero_proven=zero_proven,
+            observed_scope=proof.observed_scope,
+            scope_complete=proof.scope_complete,
+            zero_proof_authority=proof.zero_proof_authority,
+            scope_evidence=proof.scope_evidence,
         )
 
 
@@ -474,11 +727,21 @@ def _cli() -> int:
         authoritative_process_identities=bindings,
     )
     observer = A3ProcessObserver(config, known_pids=frozenset(int(item) for item in raw.get("known_pids", [])))
+    scope_proof = raw.get("scope_proof")
+    if scope_proof is None and any(
+        key in raw for key in ("observed_scope", "scope_complete", "zero_proof_authority", "scope_evidence")
+    ):
+        scope_proof = {
+            key: raw[key]
+            for key in ("observed_scope", "scope_complete", "zero_proof_authority", "scope_evidence")
+            if key in raw
+        }
     snapshot = observer.census(
         records,
         event_name=args.event,
         positive_control_passed=args.positive_control,
         known_legacy_roots_absent=args.roots_absent,
+        scope_proof=scope_proof,
     )
     print(json.dumps(snapshot.to_dict(), ensure_ascii=False, sort_keys=True))
     return 0

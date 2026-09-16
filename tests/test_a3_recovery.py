@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from tools.release.a3_process_observer import CensusSnapshot
+from tools.release.a3_process_observer import CensusSnapshot, ScopeProof, ScopeProofAuthority
 from tools.release.a3_recovery import (
     MaterialWriteBoundExceeded,
     RecoveryController,
@@ -16,11 +19,22 @@ from tools.release.a3_recovery import (
 )
 
 SCHEMA = "0020_add_tender_operational_revision_events"
+REPO = Path(__file__).resolve().parents[1]
 
 
 class _Observer:
-    def __init__(self, zero: bool = True) -> None:
+    def __init__(self, zero: bool = True, scope_proof: ScopeProof | None = None) -> None:
         self.zero = zero
+        self.scope_proof = scope_proof or ScopeProof(
+            observed_scope="SANDBOX_PROCESS_TREE",
+            scope_complete=True,
+            zero_proof_authority=ScopeProofAuthority.COMPLETE_PID_TREE,
+            scope_evidence={
+                "process_tree_complete": True,
+                "root_absent": True,
+                "tree_dead": True,
+            },
+        )
 
     def snapshot(self) -> CensusSnapshot:
         return CensusSnapshot(
@@ -30,6 +44,10 @@ class _Observer:
             legacy_count=0,
             unresolved_relevant_count=0 if self.zero else 1,
             legacy_zero_proven=self.zero,
+            observed_scope=self.scope_proof.observed_scope,
+            scope_complete=self.scope_proof.scope_complete,
+            zero_proof_authority=self.scope_proof.zero_proof_authority,
+            scope_evidence=self.scope_proof.scope_evidence,
         )
 
 
@@ -111,6 +129,133 @@ def test_unresolved_observer_fails_closed(tmp_path: Path) -> None:
 
     assert result.status == RecoveryStatus.RECOVERY_REQUIRED
     assert result.mutated is False
+
+
+def test_old_scope_less_zero_snapshot_fails_closed_without_mutation(tmp_path: Path) -> None:
+    old_snapshot = ScopeProof()
+
+    class _OldObserver:
+        def snapshot(self) -> CensusSnapshot:
+            return CensusSnapshot(
+                event_name="old",
+                timestamp_utc="2026-09-10T00:00:00Z",
+                records=(),
+                legacy_count=0,
+                unresolved_relevant_count=0,
+                legacy_zero_proven=True,
+                observed_scope=old_snapshot.observed_scope,
+                scope_complete=old_snapshot.scope_complete,
+                zero_proof_authority=old_snapshot.zero_proof_authority,
+                scope_evidence=old_snapshot.scope_evidence,
+            )
+
+    controller = _controller(tmp_path, observer=_OldObserver())
+    result = controller.recover()
+
+    assert result.status == RecoveryStatus.RECOVERY_REQUIRED
+    assert result.mutated is False
+    assert controller.canonical_path.read_bytes() == b"stub"
+
+
+def test_unrecognized_scope_authority_fails_closed_without_mutation(tmp_path: Path) -> None:
+    invalid = _Observer(
+        scope_proof=ScopeProof(
+            observed_scope="F5_CONTROLLER_JOB_DRAINED",
+            scope_complete=False,
+            zero_proof_authority=None,
+        )
+    )
+    snapshot = CensusSnapshot(
+        event_name="invalid",
+        timestamp_utc="2026-09-10T00:00:00Z",
+        records=(),
+        legacy_count=0,
+        unresolved_relevant_count=0,
+        legacy_zero_proven=True,
+        observed_scope="F5_CONTROLLER_JOB_DRAINED",
+        scope_complete=True,
+        zero_proof_authority="MACHINE_WIDE_SCAN",
+        scope_evidence={},
+    )
+
+    class _InvalidObserver:
+        def snapshot(self) -> CensusSnapshot:
+            return snapshot
+
+    controller = _controller(tmp_path, observer=_InvalidObserver())
+    result = controller.recover()
+
+    assert result.status == RecoveryStatus.RECOVERY_REQUIRED
+    assert result.mutated is False
+    assert invalid.scope_proof.scope_complete is False
+
+
+def test_valid_modern_scope_proof_passes_zero_proof_gate(tmp_path: Path) -> None:
+    controller = _controller(tmp_path)
+    result = controller.recover()
+
+    assert result.status == RecoveryStatus.LEGACY_READY
+
+
+@pytest.mark.parametrize("modern", [False, True])
+def test_recovery_cli_scope_contract_is_fail_closed_or_preserved(
+    tmp_path: Path, modern: bool
+) -> None:
+    controller = _controller(tmp_path)
+    observer_json = tmp_path / ("modern.json" if modern else "old.json")
+    payload: dict[str, object] = {
+        "event_name": "cli",
+        "timestamp_utc": "2026-09-10T00:00:00Z",
+        "records": [],
+        "legacy_count": 0,
+        "unresolved_relevant_count": 0,
+        "legacy_zero_proven": True,
+    }
+    if modern:
+        payload.update(
+            {
+                "observed_scope": "SANDBOX_PROCESS_TREE",
+                "scope_complete": True,
+                "zero_proof_authority": "COMPLETE_PID_TREE",
+                "scope_evidence": {
+                    "process_tree_complete": True,
+                    "root_absent": True,
+                    "tree_dead": True,
+                },
+            }
+        )
+    observer_json.write_text(json.dumps(payload), encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tools.release.a3_recovery",
+            "--canonical",
+            str(controller.canonical_path),
+            "--recovery",
+            str(controller.recovery_path),
+            "--transaction-root",
+            str(controller.transaction_root),
+            "--db-root",
+            str(controller.db_root),
+            "--legacy-sha256",
+            controller.expected_legacy_sha256,
+            "--expected-schema",
+            SCHEMA,
+            "--observer-json",
+            str(observer_json),
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == (0 if modern else 2), result.stderr
+    response = json.loads(result.stdout)
+    assert response["status"] == (
+        RecoveryStatus.LEGACY_READY.value if modern else RecoveryStatus.RECOVERY_REQUIRED.value
+    )
+    assert response["mutated"] is modern
 
 
 def test_schema_mismatch_fails_closed(tmp_path: Path) -> None:

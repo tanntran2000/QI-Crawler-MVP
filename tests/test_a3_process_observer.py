@@ -9,11 +9,68 @@ from tools.release.a3_process_observer import (
     A3ProcessObserver,
     ObserverConfig,
     ProcessClass,
+    ScopeProof,
+    ScopeProofAuthority,
     aggregate_mandatory_gates,
 )
 
 LEGACY_SHA = "a" * 64
 STUB_SHA = "b" * 64
+
+
+def _complete_tree_proof() -> ScopeProof:
+    return ScopeProof(
+        observed_scope="SANDBOX_PROCESS_TREE",
+        scope_complete=True,
+        zero_proof_authority=ScopeProofAuthority.COMPLETE_PID_TREE,
+        scope_evidence={
+            "process_tree_complete": True,
+            "root_absent": True,
+            "tree_dead": True,
+        },
+    )
+
+
+def _job_containment_proof() -> ScopeProof:
+    return ScopeProof(
+        observed_scope="F5_CONTROLLER_JOB",
+        scope_complete=True,
+        zero_proof_authority=ScopeProofAuthority.JOB_OBJECT_CONTAINMENT,
+        scope_evidence={
+            "root_identity_bound": True,
+            "process_tree_complete": True,
+            "job_membership_complete": True,
+        },
+    )
+
+
+def _job_drained_proof() -> ScopeProof:
+    return ScopeProof(
+        observed_scope="F5_CONTROLLER_JOB_DRAINED",
+        scope_complete=True,
+        zero_proof_authority=ScopeProofAuthority.JOB_OBJECT_DRAINED,
+        scope_evidence={
+            "job_terminated": True,
+            "job_active_after": 0,
+            "receipt_persisted": True,
+        },
+    )
+
+
+def _composite_proof(*, completed: int = 5) -> ScopeProof:
+    return ScopeProof(
+        observed_scope="F5_COMPOSITE_JOB_SCOPE",
+        scope_complete=True,
+        zero_proof_authority=ScopeProofAuthority.COMPOSITE_JOB_DRAINED,
+        scope_evidence={
+            "controller_job_drained": True,
+            "route_jobs_drained": completed == 5,
+            "route_contract_intact": completed == 5,
+            "receipt_persisted": completed == 5,
+            "expected_route_count": 5,
+            "completed_route_count": completed,
+        },
+    )
 
 
 def _config(tmp_path: Path) -> ObserverConfig:
@@ -243,11 +300,205 @@ def test_terminated_positive_control_proves_zero(tmp_path: Path) -> None:
         event_name="positive-control-terminated",
         positive_control_passed=True,
         known_legacy_roots_absent=True,
+        scope_proof=_complete_tree_proof(),
     )
 
     assert snapshot.legacy_count == 0
     assert snapshot.unresolved_relevant_count == 0
     assert snapshot.legacy_zero_proven is True
+
+
+def test_empty_census_with_incomplete_scope_does_not_prove_zero(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+
+    snapshot = observer.census(
+        [],
+        event_name="incomplete-scope",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=ScopeProof(
+            observed_scope="F5_CONTROLLER_JOB",
+            scope_complete=False,
+            zero_proof_authority=ScopeProofAuthority.JOB_OBJECT_CONTAINMENT,
+            scope_evidence={"job_membership_complete": False},
+        ),
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_empty_census_with_job_drained_scope_proves_zero(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+
+    snapshot = observer.census(
+        [],
+        event_name="job-drained-empty",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=_job_drained_proof(),
+    )
+
+    assert snapshot.scope_complete is True
+    assert snapshot.zero_proof_authority == ScopeProofAuthority.JOB_OBJECT_DRAINED.value
+    assert snapshot.legacy_zero_proven is True
+
+
+def test_legacy_record_blocks_zero_even_with_complete_scope(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+    snapshot = observer.census(
+        [_record(101, str(tmp_path / "legacy" / "QI-Crawler.exe"), image_sha256=LEGACY_SHA)],
+        event_name="legacy-with-complete-scope",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=_complete_tree_proof(),
+    )
+
+    assert snapshot.legacy_count == 1
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_unresolved_relevant_record_blocks_zero_with_complete_scope(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path), known_pids=frozenset({404}))
+    snapshot = observer.census(
+        [_record(404, None, access_status="ACCESS_DENIED")],
+        event_name="unresolved-with-complete-scope",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=_complete_tree_proof(),
+    )
+
+    assert snapshot.unresolved_relevant_count == 1
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_malformed_scope_authority_fails_closed(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+    snapshot = observer.census(
+        [],
+        event_name="malformed-authority",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof={
+            "observed_scope": "F5_CONTROLLER_JOB_DRAINED",
+            "scope_complete": True,
+            "zero_proof_authority": "JOB_OBJECT_DRAINED",
+            "scope_evidence": {"job_active_after": "zero"},
+        },
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.zero_proof_authority == ScopeProofAuthority.JOB_OBJECT_DRAINED.value
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_unrecognized_scope_authority_fails_closed(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+    snapshot = observer.census(
+        [],
+        event_name="unrecognized-authority",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof={
+            "observed_scope": "F5_CONTROLLER_JOB_DRAINED",
+            "scope_complete": True,
+            "zero_proof_authority": "MACHINE_WIDE_SCAN",
+            "scope_evidence": {},
+        },
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.zero_proof_authority is None
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_scope_proof_receipt_exposes_bounded_job_authority() -> None:
+    proof = _job_drained_proof()
+
+    assert proof.proves_zero() is True
+    assert proof.to_dict() == {
+        "observed_scope": "F5_CONTROLLER_JOB_DRAINED",
+        "scope_complete": True,
+        "zero_proof_authority": "JOB_OBJECT_DRAINED",
+        "scope_evidence": {
+            "job_active_after": 0,
+            "job_terminated": True,
+            "receipt_persisted": True,
+        },
+    }
+
+
+def test_scope_proof_metadata_is_bounded_and_immutable() -> None:
+    proof = _job_drained_proof()
+
+    with pytest.raises(TypeError):
+        proof.scope_evidence["job_active_after"] = 1  # type: ignore[index]
+    with pytest.raises(ValueError, match="SCOPE_PROOF"):
+        ScopeProof.from_mapping(
+            {
+                "observed_scope": "F5_CONTROLLER_JOB_DRAINED",
+                "scope_complete": False,
+                "zero_proof_authority": None,
+                "scope_evidence": {"unregistered": True},
+            }
+        )
+
+
+def test_incomplete_p4_route_job_cannot_prove_zero(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+    proof = ScopeProof(
+        observed_scope="P4_ROUTE_JOB",
+        scope_complete=True,
+        zero_proof_authority=ScopeProofAuthority.JOB_OBJECT_DRAINED,
+        scope_evidence={
+            "job_terminated": True,
+            "job_active_after": 1,
+            "route_completion_observed": True,
+            "route_job_complete": False,
+            "lineage_complete": False,
+            "total_job_processes": 2,
+            "launcher_exit_code": 0,
+        },
+    )
+    snapshot = observer.census(
+        [],
+        event_name="p4-incomplete",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=proof,
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_incomplete_p5_route_set_cannot_prove_zero(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+    proof = _composite_proof(completed=4)
+    snapshot = observer.census(
+        [],
+        event_name="p5-incomplete-routes",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+        scope_proof=proof,
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.legacy_zero_proven is False
+
+
+def test_empty_census_without_scope_proof_does_not_prove_zero(tmp_path: Path) -> None:
+    observer = A3ProcessObserver(_config(tmp_path))
+
+    snapshot = observer.census(
+        [],
+        event_name="scope-less-empty-census",
+        positive_control_passed=True,
+        known_legacy_roots_absent=True,
+    )
+
+    assert snapshot.scope_complete is False
+    assert snapshot.legacy_zero_proven is False
 
 
 def test_controller_stub_and_external_process_are_distinct(tmp_path: Path) -> None:
@@ -297,6 +548,7 @@ def test_unknown_sandbox_process_is_not_legacy_or_dropped(tmp_path: Path) -> Non
         event_name="child-shape",
         positive_control_passed=True,
         known_legacy_roots_absent=True,
+        scope_proof=_complete_tree_proof(),
     )
 
     assert snapshot.records[0].classification == ProcessClass.SANDBOX_OTHER

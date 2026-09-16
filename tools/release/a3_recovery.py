@@ -17,7 +17,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Protocol
 
-from tools.release.a3_process_observer import CensusSnapshot, sha256_file
+from tools.release.a3_process_observer import CensusSnapshot, ScopeProof, sha256_file
 
 
 class RecoveryStatus(StrEnum):
@@ -209,7 +209,13 @@ class RecoveryController:
             )
 
         snapshot = self.observer.snapshot()
-        if not snapshot.legacy_zero_proven or snapshot.unresolved_relevant_count:
+        scope_proof = getattr(snapshot, "scope_proof", ScopeProof())
+        if (
+            not snapshot.legacy_zero_proven
+            or not isinstance(scope_proof, ScopeProof)
+            or not scope_proof.proves_zero()
+            or snapshot.unresolved_relevant_count
+        ):
             return self._result(
                 RecoveryStatus.RECOVERY_REQUIRED,
                 mutated=False,
@@ -342,6 +348,22 @@ def _cli() -> int:
 
     class _CliObserver:
         def snapshot(self) -> CensusSnapshot:
+            scope_raw = raw.get("scope_proof")
+            if scope_raw is None:
+                scope_raw = {
+                    key: raw[key]
+                    for key in (
+                        "observed_scope",
+                        "scope_complete",
+                        "zero_proof_authority",
+                        "scope_evidence",
+                    )
+                    if key in raw
+                }
+            try:
+                proof = ScopeProof.from_mapping(scope_raw) if scope_raw else ScopeProof()
+            except (TypeError, ValueError):
+                proof = ScopeProof()
             return CensusSnapshot(
                 event_name=str(raw.get("event_name", "cli")),
                 timestamp_utc=str(raw.get("timestamp_utc", "")),
@@ -349,6 +371,10 @@ def _cli() -> int:
                 legacy_count=int(raw.get("legacy_count", 0)),
                 unresolved_relevant_count=int(raw.get("unresolved_relevant_count", 0)),
                 legacy_zero_proven=bool(raw.get("legacy_zero_proven", False)),
+                observed_scope=proof.observed_scope,
+                scope_complete=proof.scope_complete,
+                zero_proof_authority=proof.zero_proof_authority,
+                scope_evidence=proof.scope_evidence,
             )
 
     result = RecoveryController(
