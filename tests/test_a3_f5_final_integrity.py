@@ -51,6 +51,234 @@ foreach($function in @($ast.FindAll({{param($node) $node -is [Management.Automat
 """
 
 
+_FAILURE_ARTIFACT_MAX_BYTES = 256 * 1024
+_FAILURE_ARTIFACT_NAMES = (
+    "a3_synthetic_failure_core.json",
+    "a3_synthetic_gate_inputs.json",
+    "a3_synthetic_aggregates.json",
+    "a3_synthetic_route_failures.json",
+)
+
+
+def _read_json_or_missing(path: Path) -> object:
+    if not path.is_file():
+        return "MISSING"
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "MISSING"
+
+
+def _bounded_text(value: object, limit: int = 32 * 1024) -> object:
+    if value == "MISSING" or value is None:
+        return "MISSING"
+    text = str(value)
+    encoded = text.encode("utf-8", errors="replace")
+    if len(encoded) <= limit:
+        return text
+    return encoded[:limit].decode("utf-8", errors="replace") + "...[TRUNCATED]"
+
+
+def _classify_synthetic_failure(
+    core: object,
+    *,
+    positive_exit_code: object,
+    negative_control_pass: object,
+) -> dict[str, object]:
+    if not isinstance(core, dict):
+        return {
+            "classification": "VERDICT_EVIDENCE_MISSING",
+            "failed_or_non_true_gates": ["MISSING"],
+        }
+    gates = core.get("mandatory_gates")
+    if not isinstance(gates, dict):
+        return {
+            "classification": "VERDICT_EVIDENCE_MISSING",
+            "failed_or_non_true_gates": ["MISSING"],
+        }
+    failed = sorted(str(name) for name, value in gates.items() if value is not True)
+    if failed:
+        classification = "MANDATORY_GATE_HOLD"
+    elif positive_exit_code == "MISSING" or negative_control_pass == "MISSING":
+        classification = "VERDICT_EVIDENCE_MISSING"
+    elif positive_exit_code != 0:
+        classification = "POSITIVE_AGGREGATE_EXECUTION_FAILURE"
+    elif negative_control_pass is not True:
+        classification = "NEGATIVE_CONTROL_FAILURE"
+    else:
+        classification = "UNKNOWN_FAILURE"
+    return {
+        "classification": classification,
+        "failed_or_non_true_gates": failed or ["NONE"],
+    }
+
+
+def _project_aggregate(value: object) -> object:
+    if not isinstance(value, dict):
+        return "MISSING"
+    return {
+        "exit_code": value.get("exit_code", "MISSING"),
+        "stdout": _bounded_text(value.get("stdout", "MISSING")),
+        "stderr": _bounded_text(value.get("stderr", "MISSING")),
+    }
+
+
+def _project_route(value: object) -> object:
+    if not isinstance(value, dict):
+        return "MISSING"
+    process_result = value.get("process_result")
+    if not isinstance(process_result, dict):
+        process_result = {}
+    tree = value.get(
+        "process_tree_evidence",
+        process_result.get("process_tree_evidence", "MISSING"),
+    )
+    if isinstance(tree, dict):
+        tree = {
+            "ids": tree.get("ids", "MISSING"),
+            "enumeration_status": tree.get("enumeration_status", "MISSING"),
+            "descendant_discovery_status": tree.get(
+                "descendant_discovery_status", "MISSING"
+            ),
+            "root_pid_status": tree.get("root_pid_status", "MISSING"),
+            "unresolved_descendants": tree.get("unresolved_descendants", "MISSING"),
+            "rejected_parent_edges": tree.get("rejected_parent_edges", "MISSING"),
+        }
+    return {
+        "trial_id": value.get("trial_id", "MISSING"),
+        "route_type": value.get("route_type", "MISSING"),
+        "route_kind": value.get("route_kind", "MISSING"),
+        "result": value.get("result", "MISSING"),
+        "launcher_pid": value.get("launcher_pid", process_result.get("launcher_pid", "MISSING")),
+        "launcher_identity": value.get("launcher_identity", "MISSING"),
+        "observed_job_pids": value.get("observed_job_pids", process_result.get("observed_job_pids", "MISSING")),
+        "total_job_processes": value.get("total_job_processes", process_result.get("total_job_processes", "MISSING")),
+        "active_after": value.get("active_after", process_result.get("active_after", "MISSING")),
+        "launcher_exit_code": value.get("launcher_exit_code", process_result.get("launcher_exit_code", "MISSING")),
+        "process_tree_evidence": tree,
+    }
+
+
+def _retain_synthetic_failure_evidence(
+    run_root: Path,
+    result: subprocess.CompletedProcess[str],
+    *,
+    destination: Path | None = None,
+) -> tuple[Path, ...]:
+    """Retain only four small diagnostics when the canonical rehearsal fails."""
+    if result.returncode == 0:
+        return ()
+    if destination is None:
+        ci_root = os.environ.get("CI_TEST_ROOT")
+        if not ci_root:
+            return ()
+        destination = Path(ci_root).resolve() / "evidence"
+    destination.mkdir(parents=True, exist_ok=True)
+    source = Path(run_root) / "evidence" / "f5" / "synthetic-A"
+    core = _read_json_or_missing(source / "probe_verdict_core.json")
+    gate_inputs = _read_json_or_missing(source / "gate_inputs.json")
+    positive = _read_json_or_missing(source / "aggregate_positive.process.json")
+    negative = _read_json_or_missing(source / "aggregate_negative.process.json")
+    if isinstance(core, dict):
+        gates = core.get("mandatory_gates", "MISSING")
+        positive_exit = core.get("positive_exit_code", "MISSING")
+        negative_pass = core.get("negative_control_pass", "MISSING")
+    else:
+        gates = "MISSING"
+        positive_exit = "MISSING"
+        negative_pass = "MISSING"
+    diagnostic = _classify_synthetic_failure(
+        core,
+        positive_exit_code=positive_exit,
+        negative_control_pass=negative_pass,
+    )
+    if isinstance(gate_inputs, dict):
+        gate_payload: object = {
+            "trial_id": core.get("trial_id", "MISSING") if isinstance(core, dict) else "MISSING",
+            "gate_contract": gate_inputs.get("gate_contract", "MISSING"),
+            "mandatory_gates": gate_inputs.get("mandatory_gates", gates),
+            "failed_or_non_true_gates": diagnostic["failed_or_non_true_gates"],
+        }
+    else:
+        gate_payload = "MISSING"
+    route_files = sorted((source / "receipts").glob("P4_*.json"))
+    route_payload: object = (
+        [_project_route(_read_json_or_missing(path)) for path in route_files]
+        if route_files
+        else "MISSING"
+    )
+    core_payload = {
+        "trial_id": core.get("trial_id", "MISSING") if isinstance(core, dict) else "MISSING",
+        "final_probe_result": core.get("final_probe_result", "MISSING") if isinstance(core, dict) else "MISSING",
+        "mandatory_gates": gates,
+        "positive_exit_code": positive_exit,
+        "negative_control_pass": negative_pass,
+        "failed_or_non_true_gates": diagnostic["failed_or_non_true_gates"],
+        "diagnostic_classification": diagnostic["classification"],
+        "subprocess_stdout": _bounded_text(getattr(result, "stdout", "MISSING")),
+        "subprocess_stderr": _bounded_text(getattr(result, "stderr", "MISSING")),
+    }
+    aggregate_payload = {
+        "trial_id": core.get("trial_id", "MISSING") if isinstance(core, dict) else "MISSING",
+        "positive": _project_aggregate(positive),
+        "negative": _project_aggregate(negative),
+        "positive_exit_code": (
+            positive.get("exit_code", "MISSING") if isinstance(positive, dict) else "MISSING"
+        ),
+        "positive_stdout": (
+            _bounded_text(positive.get("stdout", "MISSING"))
+            if isinstance(positive, dict)
+            else "MISSING"
+        ),
+        "positive_stderr": (
+            _bounded_text(positive.get("stderr", "MISSING"))
+            if isinstance(positive, dict)
+            else "MISSING"
+        ),
+        "negative_exit_code": (
+            negative.get("exit_code", "MISSING") if isinstance(negative, dict) else "MISSING"
+        ),
+        "negative_stdout": (
+            _bounded_text(negative.get("stdout", "MISSING"))
+            if isinstance(negative, dict)
+            else "MISSING"
+        ),
+        "negative_stderr": (
+            _bounded_text(negative.get("stderr", "MISSING"))
+            if isinstance(negative, dict)
+            else "MISSING"
+        ),
+        "negative_control_pass": negative_pass,
+    }
+    payloads = (core_payload, gate_payload, aggregate_payload, {
+        "trial_id": core.get("trial_id", "MISSING") if isinstance(core, dict) else "MISSING",
+        "route_failures": route_payload,
+    })
+    retained: list[Path] = []
+    for name, payload in zip(_FAILURE_ARTIFACT_NAMES, payloads, strict=True):
+        path = destination / name
+        text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        if len(text.encode("utf-8")) > _FAILURE_ARTIFACT_MAX_BYTES:
+            text = json.dumps(
+                {
+                    "diagnostic_classification": diagnostic["classification"],
+                    "failed_or_non_true_gates": diagnostic["failed_or_non_true_gates"],
+                    "diagnostic_status": "BOUNDED_TRUNCATED",
+                },
+                indent=2,
+                sort_keys=True,
+            ) + "\n"
+        temporary = path.with_name(path.name + ".tmp")
+        try:
+            temporary.write_text(text, encoding="utf-8")
+            temporary.replace(path)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
+        retained.append(path)
+    return tuple(retained)
+
+
 def test_p1_zero_byte_marker_is_bounded_but_null_and_overlimit_fail(tmp_path: Path) -> None:
     marker = tmp_path / "continue-A3-F4"
     null_target = tmp_path / "null"
@@ -311,11 +539,12 @@ def test_synthetic_canonical_route_rehearsal(tmp_path: Path) -> None:
     environment = os.environ.copy()
     environment.pop("QI_CRAWLER_DATA_DIR", None)
     # Refuse historical artifacts even on a developer machine where they exist.
+    run_root = tmp_path / "one-run"
     command = (
         "function Resolve-Path { param($LiteralPath) "
         "if ($LiteralPath -like '*release_staging*') { throw 'HISTORICAL_ARTIFACT_FORBIDDEN' }; "
         "Microsoft.PowerShell.Management\\Resolve-Path -LiteralPath $LiteralPath }; "
-        f"& {_ps(SYNTHETIC_ROUTE)} -Root {_ps(tmp_path / 'one-run')}"
+        f"& {_ps(SYNTHETIC_ROUTE)} -Root {_ps(run_root)}"
     )
     result = subprocess.run(
         [shutil.which("powershell.exe") or "powershell.exe", "-NoProfile", "-NonInteractive",
@@ -327,6 +556,8 @@ def test_synthetic_canonical_route_rehearsal(tmp_path: Path) -> None:
         env=environment,
         check=False,
     )
+    if result.returncode != 0:
+        _retain_synthetic_failure_evidence(run_root, result)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "SYNTHETIC_AGGREGATE_VERDICT=PASS" in result.stdout
 
@@ -382,3 +613,85 @@ def test_final_receipt_keeps_same_gate_set_as_aggregate_input() -> None:
     after_input = source.split("$gateInput=Join-Path $f5Evidence 'gate_inputs.json'", 1)[1]
     before_core = after_input.split("$core=[ordered]@{", 1)[0]
     assert not re.search(r"\$gates\[[^]]+\]\s*=", before_core)
+
+
+def test_failure_diagnostics_name_false_mandatory_gate() -> None:
+    diagnostic = _classify_synthetic_failure(
+        {"mandatory_gates": {"route_contract": False, "job_created": True}},
+        positive_exit_code=2,
+        negative_control_pass=False,
+    )
+    assert diagnostic["classification"] == "MANDATORY_GATE_HOLD"
+    assert diagnostic["failed_or_non_true_gates"] == ["route_contract"]
+
+
+def test_failure_diagnostics_classify_positive_aggregate_failure() -> None:
+    diagnostic = _classify_synthetic_failure(
+        {"mandatory_gates": {"route_contract": True}},
+        positive_exit_code=7,
+        negative_control_pass=True,
+    )
+    assert diagnostic["classification"] == "POSITIVE_AGGREGATE_EXECUTION_FAILURE"
+
+
+def test_failure_diagnostics_classify_negative_control_failure() -> None:
+    diagnostic = _classify_synthetic_failure(
+        {"mandatory_gates": {"route_contract": True}},
+        positive_exit_code=0,
+        negative_control_pass=False,
+    )
+    assert diagnostic["classification"] == "NEGATIVE_CONTROL_FAILURE"
+
+
+def test_failure_diagnostics_mark_missing_core_verdict() -> None:
+    diagnostic = _classify_synthetic_failure(
+        "MISSING",
+        positive_exit_code="MISSING",
+        negative_control_pass="MISSING",
+    )
+    assert diagnostic["classification"] == "VERDICT_EVIDENCE_MISSING"
+
+
+def test_failure_retention_is_four_bounded_artifacts_and_marks_missing(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "run"
+    source = run_root / "evidence" / "f5" / "synthetic-A"
+    (source / "receipts").mkdir(parents=True)
+    (source / "probe_verdict_core.json").write_text(
+        json.dumps({
+            "trial_id": "trial-A",
+            "final_probe_result": "HOLD",
+            "mandatory_gates": {"route_contract": False},
+            "positive_exit_code": 2,
+            "negative_control_pass": True,
+        }),
+        encoding="utf-8",
+    )
+    (source / "gate_inputs.json").write_text(
+        json.dumps({"gate_contract": "F5_CANONICAL_V1", "mandatory_gates": {"route_contract": False}}),
+        encoding="utf-8",
+    )
+    (source / "aggregate_positive.process.json").write_text(
+        json.dumps({"exit_code": 2, "stdout": "HOLD", "stderr": ""}), encoding="utf-8"
+    )
+    (source / "receipts" / "P4_canonical.json").write_text(
+        json.dumps({"trial_id": "trial-A", "route_type": "canonical", "result": "HOLD"}),
+        encoding="utf-8",
+    )
+    result = subprocess.CompletedProcess([], 2, stdout="route output", stderr="route error")
+    destination = tmp_path / "ci" / "evidence"
+    paths = _retain_synthetic_failure_evidence(run_root, result, destination=destination)
+    assert [path.name for path in paths] == [
+        "a3_synthetic_failure_core.json",
+        "a3_synthetic_gate_inputs.json",
+        "a3_synthetic_aggregates.json",
+        "a3_synthetic_route_failures.json",
+    ]
+    assert len(list(destination.iterdir())) == 4
+    core = json.loads((destination / "a3_synthetic_failure_core.json").read_text(encoding="utf-8"))
+    assert core["failed_or_non_true_gates"] == ["route_contract"]
+    assert core["diagnostic_classification"] == "MANDATORY_GATE_HOLD"
+    aggregates = json.loads((destination / "a3_synthetic_aggregates.json").read_text(encoding="utf-8"))
+    assert aggregates["negative"] == "MISSING"
+    assert all(path.stat().st_size <= 256 * 1024 for path in paths)
