@@ -899,6 +899,9 @@ if ($TestCheckpoint) {
     Write-Output 'NEW_SANDBOX=NO'
     Write-Output 'RUNTIME_COPY_EXECUTED=NO'
     Write-Output 'REAL_F5_EXECUTED=NO'
+    if ($env:QI_CRAWLER_F5_TEST_MODE -eq '1' -and $TestCheckpoint -and $DispatchHoldSeconds -gt 0) {
+        Start-Sleep -Seconds $DispatchHoldSeconds
+    }
     return [pscustomobject]@{ test_checkpoint = $true; final_probe_result = 'NOT_RUN' }
 }
 $phaseModel = $null

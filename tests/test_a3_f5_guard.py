@@ -539,6 +539,41 @@ def _lifecycle_state_file(state_root: Path) -> Path:
     return matches[0]
 
 
+def _wait_for_running_lifecycle(
+    state_root: Path,
+    *,
+    run_id: str,
+    sandbox: Path,
+    timeout_seconds: float = 10.0,
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout_seconds
+    expected_sandbox = os.path.normcase(str(sandbox.resolve()))
+    last_state: dict[str, object] | None = None
+    while time.monotonic() < deadline:
+        matches = list(state_root.rglob("lifecycle_state.json"))
+        if len(matches) == 1:
+            try:
+                candidate = json.loads(matches[0].read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                candidate = None
+            if isinstance(candidate, dict):
+                last_state = candidate
+                canonical_sandbox = candidate.get("canonical_sandbox_path")
+                if (
+                    candidate.get("last_run_id") == run_id
+                    and candidate.get("execution_state") == "RUNNING"
+                    and isinstance(canonical_sandbox, str)
+                    and os.path.normcase(str(Path(canonical_sandbox).resolve()))
+                    == expected_sandbox
+                ):
+                    return candidate
+        time.sleep(0.05)
+    pytest.fail(
+        "timed out waiting for the holder lifecycle to reach RUNNING: "
+        f"run_id={run_id!r}, last_state={last_state!r}"
+    )
+
+
 def _replace_lifecycle_state(state_root: Path, **changes: object) -> None:
     path = _lifecycle_state_file(state_root)
     state = json.loads(path.read_text(encoding="utf-8"))
@@ -1438,7 +1473,11 @@ def test_guarded_real_dispatch_keeps_outer_lock_held(tmp_path: Path) -> None:
         env=environment,
     )
     try:
-        time.sleep(0.8)
+        _wait_for_running_lifecycle(
+            state_root,
+            run_id="lock-holder",
+            sandbox=sandbox,
+        )
         second = _run_guarded_real(
             tmp_path,
             sandbox,
@@ -1449,6 +1488,11 @@ def test_guarded_real_dispatch_keeps_outer_lock_held(tmp_path: Path) -> None:
         )
         assert second.returncode != 0
         assert "CONCURRENT_TRIAL_BLOCKED" in second.stdout + second.stderr
+        state_during_contender = json.loads(
+            _lifecycle_state_file(state_root).read_text(encoding="utf-8")
+        )
+        assert state_during_contender["last_run_id"] == "lock-holder"
+        assert state_during_contender["execution_state"] == "RUNNING"
     finally:
         first_stdout, first_stderr = first.communicate(timeout=15)
         assert first.returncode == 0, first_stdout + first_stderr
