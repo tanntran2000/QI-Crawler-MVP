@@ -88,6 +88,16 @@ public static class A3JobObjectNative {
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct FileTime {
+        public UInt32 dwLowDateTime;
+        public UInt32 dwHighDateTime;
+
+        public Int64 ToFileTime() {
+            return ((Int64)dwHighDateTime << 32) | dwLowDateTime;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct BasicLimitInformation {
         public Int64 PerProcessUserTimeLimit, PerJobUserTimeLimit;
         public UInt32 LimitFlags;
@@ -158,6 +168,15 @@ public static class A3JobObjectNative {
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetExitCodeProcess(IntPtr hProcess, out UInt32 exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetProcessTimes(
+        IntPtr hProcess,
+        out FileTime creationTime,
+        out FileTime exitTime,
+        out FileTime kernelTime,
+        out FileTime userTime);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern UInt32 ResumeThread(IntPtr hThread);
@@ -308,6 +327,21 @@ public static class A3JobObjectNative {
         }
         finally { Marshal.FreeHGlobal(buffer); }
     }
+
+    public static DateTime GetProcessCreationTimeUtc(IntPtr hProcess) {
+        if (hProcess == IntPtr.Zero) {
+            throw new InvalidOperationException("PROCESS_HANDLE_IDENTITY_UNAVAILABLE");
+        }
+        FileTime creationTime, exitTime, kernelTime, userTime;
+        if (!GetProcessTimes(hProcess, out creationTime, out exitTime, out kernelTime, out userTime)) {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "GetProcessTimes failed");
+        }
+        Int64 fileTime = creationTime.ToFileTime();
+        if (fileTime <= 0) {
+            throw new InvalidOperationException("PROCESS_CREATION_TIME_INVALID");
+        }
+        return DateTime.FromFileTimeUtc(fileTime);
+    }
 }
 '@
 
@@ -363,6 +397,26 @@ function Get-A3JobActiveCount {
     param([A3ContainedSession]$Session)
     if ($null -eq $Session -or $Session.JobHandle -eq [IntPtr]::Zero) { throw 'JOB_SESSION_INVALID' }
     return [A3JobObjectNative]::ActiveCount($Session.JobHandle)
+}
+
+function Get-A3ContainedProcessIdentity {
+    param([A3ContainedSession]$Session)
+    if ($null -eq $Session -or $Session.ProcessHandle -eq [IntPtr]::Zero -or $Session.ProcessId -lt 1) {
+        throw 'PROCESS_HANDLE_IDENTITY_UNAVAILABLE'
+    }
+    try {
+        $creation = [A3JobObjectNative]::GetProcessCreationTimeUtc($Session.ProcessHandle)
+    } catch {
+        throw "PROCESS_HANDLE_IDENTITY_UNAVAILABLE: $($_.Exception.Message)"
+    }
+    if ($creation.Kind -ne [DateTimeKind]::Utc) {
+        throw 'PROCESS_CREATION_TIME_NOT_UTC'
+    }
+    return [pscustomobject]@{
+        pid = [int]$Session.ProcessId
+        creation_time_utc = $creation.ToString('o')
+        identity_source = 'PROCESS_HANDLE'
+    }
 }
 
 function Wait-A3ContainedRouteZero {

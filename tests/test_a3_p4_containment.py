@@ -12,6 +12,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 HARNESS = REPO / "tests" / "a3_p4_characterize.ps1"
+PROBE = REPO / "tools" / "release" / "a3_probe_windows.ps1"
 
 
 def test_exe_cmd_and_shortcut_descendants_remain_in_job(tmp_path: Path) -> None:
@@ -45,3 +46,18 @@ def test_exe_cmd_and_shortcut_descendants_remain_in_job(tmp_path: Path) -> None:
         assert case["job_zero_after_termination"], case
         assert not case["breakaway_ok_enabled"], case
         assert not case["silent_breakaway_ok_enabled"], case
+
+
+def test_canonical_route_keeps_process_identity_until_p4_receipt() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    route = source.split("function Invoke-F5CanonicalRoute {", 1)[1].split(
+        "if ($f5OnlyRoute)", 1
+    )[0]
+    identity = route.index("$routeIdentity=Get-A3ContainedProcessIdentity -Session $routeJob")
+    wait = route.index("$routeCompletion=Wait-A3ContainedRouteZero", identity)
+    tree = route.index("$routeTreeEvidence=Get-ProcessTreeEvidence @($routeCompletion.launcher_pid)", wait)
+    receipt = route.index("$routeReceipt=[ordered]@", tree)
+    close = route.index("Close-A3ContainedProcess -Session $routeJob", receipt)
+    assert identity < wait < tree < receipt < close
+    assert "$script:a3AuthoritativeRootIdentity=$routeIdentity" in route
+    assert "launcher_identity=$routeIdentity" in route

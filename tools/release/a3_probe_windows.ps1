@@ -281,7 +281,35 @@ function Initialize-F5StubState([string]$CanonicalPath, [string]$TrialRoot,
     return $identity
 }
 
-function Get-ProcessTreeEvidence([int[]]$Roots) {
+function Get-ProcessTreeEvidence([int[]]$Roots, [object]$AuthoritativeRootIdentity) {
+    if ($null -eq $AuthoritativeRootIdentity -and
+        $null -ne $script:a3AuthoritativeRootIdentity) {
+        $AuthoritativeRootIdentity = $script:a3AuthoritativeRootIdentity
+    }
+    $authoritativeByPid = @{}
+    foreach ($identity in @($AuthoritativeRootIdentity)) {
+        if ($null -eq $identity) { continue }
+        $identityPid = 0
+        try { $identityPid = [int]$identity.pid } catch { throw 'PROCESS_ROOT_IDENTITY_UNAVAILABLE' }
+        if ($identityPid -lt 1 -or $identityPid -notin $Roots) {
+            throw 'PROCESS_ROOT_IDENTITY_PID_MISMATCH'
+        }
+        if ([string]$identity.identity_source -ne 'PROCESS_HANDLE' -or
+            [string]::IsNullOrWhiteSpace([string]$identity.creation_time_utc)) {
+            throw 'PROCESS_ROOT_IDENTITY_UNAVAILABLE'
+        }
+        try {
+            $created = ([DateTimeOffset]::Parse([string]$identity.creation_time_utc)).UtcDateTime
+            if ($created.Year -lt 1970) { throw 'PROCESS_CREATION_TIME_INVALID' }
+        } catch {
+            throw 'PROCESS_ROOT_IDENTITY_UNAVAILABLE'
+        }
+        if ($authoritativeByPid.ContainsKey($identityPid) -and
+            $authoritativeByPid[$identityPid] -ne $created) {
+            throw 'PROCESS_ROOT_IDENTITY_CONFLICT'
+        }
+        $authoritativeByPid[$identityPid] = $created
+    }
     $all = @()
     $status = 'SUCCESS'
     $errorText = $null
@@ -312,10 +340,14 @@ function Get-ProcessTreeEvidence([int[]]$Roots) {
             try {
                 foreach ($identityPid in @([int]$proc.ppid, [int]$proc.pid)) {
                     if (-not $creationTimes.ContainsKey($identityPid)) {
-                        $identityProcess = Get-Process -Id $identityPid -ErrorAction Stop
-                        $created = $identityProcess.StartTime.ToUniversalTime()
-                        if ($created.Year -lt 1970) { throw 'PROCESS_CREATION_TIME_INVALID' }
-                        $creationTimes[$identityPid] = $created
+                        if ($authoritativeByPid.ContainsKey($identityPid)) {
+                            $creationTimes[$identityPid] = $authoritativeByPid[$identityPid]
+                        } else {
+                            $identityProcess = Get-Process -Id $identityPid -ErrorAction Stop
+                            $created = $identityProcess.StartTime.ToUniversalTime()
+                            if ($created.Year -lt 1970) { throw 'PROCESS_CREATION_TIME_INVALID' }
+                            $creationTimes[$identityPid] = $created
+                        }
                     }
                 }
                 if ($creationTimes[[int]$proc.pid] -lt $creationTimes[[int]$proc.ppid]) {
@@ -1056,27 +1088,40 @@ foreach($definition in $routeDefinitions) {
     $resolvedSha=Get-Sha256 (Assert-ObserverPath $resolvedTarget $f5.root)
     $routeKind=switch($definition.invoke){'direct'{'EXE'}'shortcut'{'SHORTCUT'}'cmd'{'CMD'}}
     $routeJob=$null
+    $routeIdentity=$null
+    $routeCompletion=$null
+    $routeTreeEvidence=$null
+    $routeObs=$null
     try {
         [void](Assert-F5StubState $stubState $f5.root)
         $routeLimit=Get-F5BoundedLimit 'ROUTE_ARTIFACTS'
         $routeJob=Start-A3ContainedRoute -Kind $routeKind -Artifact $artifact -WorkingDirectory (Split-Path -Parent $artifact) -MaxStdoutBytes $routeLimit.max_stdout_bytes -MaxStderrBytes $routeLimit.max_stderr_bytes
+        $routeIdentity=Get-A3ContainedProcessIdentity -Session $routeJob
         $routeCompletion=Wait-A3ContainedRouteZero -Session $routeJob -TimeoutMilliseconds 10000 -MinimumTotalProcesses $(if($routeKind -eq 'EXE'){1}else{2})
+        # Keep the exact single-line call as the synthetic p4_unknown fault
+        # anchor. The scoped identity is consumed by Get-ProcessTreeEvidence
+        # while the ProcessHandle-backed authority is still retained.
+        $script:a3AuthoritativeRootIdentity=$routeIdentity
+        try {
+            $routeTreeEvidence=Get-ProcessTreeEvidence @($routeCompletion.launcher_pid)
+        } finally {
+            Remove-Variable -Scope Script -Name a3AuthoritativeRootIdentity -ErrorAction SilentlyContinue
+        }
+        $routeObs=Invoke-Observer "F5_route_$routeName" @() $true $true $f5.root $trialId 0 'JOB_ZERO'
+        $routeResult=if($resolvedSha -eq $stubHash -and $routeCompletion.active_after -eq 0 -and
+            $routeCompletion.launcher_exit_code -eq 0 -and $routeObs.legacy_zero_proven -and
+            $routeTreeEvidence.enumeration_status -eq 'SUCCESS'){'STUB'}else{'HOLD'}
+        $routeReceipt=[ordered]@{trial_id=$trialId;route_type=$routeName;route_artifact=$artifact;resolved_target=$resolvedTarget;resolved_target_sha=$resolvedSha;invocation_method=$definition.invoke;result=$routeResult;launcher_identity=$routeIdentity;spawned_process_identity=$routeCompletion.observed_job_pids;job_process_total=$routeCompletion.total_job_processes;job_active_after=$routeCompletion.active_after;launcher_exit_code=$routeCompletion.launcher_exit_code;stdout=$routeCompletion.stdout;stderr=$routeCompletion.stderr;process_tree_evidence=$routeTreeEvidence;fresh_p4_census=$routeObs}
+        Write-FsyncJson (Join-Path $f5Evidence ("receipts\P4_{0}.json" -f $routeName)) $routeReceipt
+        $routes += $routeReceipt
+        Add-F5Event "P4_ROUTE_$routeName" $trialId 0 (Get-F5Phase $f5Journal) ("receipts\P4_{0}.json" -f $routeName)
     } catch {
-        $failure=[ordered]@{trial_id=$trialId;route_type=$routeName;route_kind=$routeKind;artifact=$artifact;resolved_target_sha=$resolvedSha;result='FAIL';error=$_.Exception.Message;process_result=$_.Exception.Data['route_result']}
+        $failure=[ordered]@{trial_id=$trialId;route_type=$routeName;route_kind=$routeKind;artifact=$artifact;resolved_target_sha=$resolvedSha;result='FAIL';error=$_.Exception.Message;launcher_identity=$routeIdentity;process_result=$_.Exception.Data['route_result'];process_tree_evidence=$routeTreeEvidence;fresh_p4_census=$routeObs}
         Write-FsyncJson (Join-Path $f5Evidence ("receipts\P4_{0}_FAIL.json" -f $routeName)) $failure
         throw
     } finally {
         if ($routeJob) { Close-A3ContainedProcess -Session $routeJob }
     }
-    $routeTreeEvidence=Get-ProcessTreeEvidence @($routeCompletion.launcher_pid)
-    $routeObs=Invoke-Observer "F5_route_$routeName" @() $true $true $f5.root $trialId 0 'JOB_ZERO'
-    $routeResult=if($resolvedSha -eq $stubHash -and $routeCompletion.active_after -eq 0 -and
-        $routeCompletion.launcher_exit_code -eq 0 -and $routeObs.legacy_zero_proven -and
-        $routeTreeEvidence.enumeration_status -eq 'SUCCESS'){'STUB'}else{'HOLD'}
-    $routeReceipt=[ordered]@{trial_id=$trialId;route_type=$routeName;route_artifact=$artifact;resolved_target=$resolvedTarget;resolved_target_sha=$resolvedSha;invocation_method=$definition.invoke;result=$routeResult;spawned_process_identity=$routeCompletion.observed_job_pids;job_process_total=$routeCompletion.total_job_processes;job_active_after=$routeCompletion.active_after;launcher_exit_code=$routeCompletion.launcher_exit_code;stdout=$routeCompletion.stdout;stderr=$routeCompletion.stderr;process_tree_evidence=$routeTreeEvidence;fresh_p4_census=$routeObs}
-    Write-FsyncJson (Join-Path $f5Evidence ("receipts\P4_{0}.json" -f $routeName)) $routeReceipt
-    $routes += $routeReceipt
-    Add-F5Event "P4_ROUTE_$routeName" $trialId 0 (Get-F5Phase $f5Journal) ("receipts\P4_{0}.json" -f $routeName)
 }
 $p5=Invoke-Observer 'P5_BEFORE_MECHANICAL_RESTORE' @() $true $true $f5.root $trialId 0 'DEAD'
 Write-FsyncJson (Join-Path $f5Evidence 'receipts\P5.json') $p5
