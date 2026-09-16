@@ -246,6 +246,44 @@ def test_invoke_observer_transports_bounded_authoritative_identities() -> None:
     assert "authoritative_process_identities" in section
 
 
+def test_invoke_observer_transports_explicit_bounded_scope_proof() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    section = source.split("function Invoke-Observer", 1)[1].split(
+        "$script:observerSequence", 1
+    )[0]
+    assert "ScopeProof" in section
+    assert "scope_proof" in section
+    assert "scope_complete" in section
+    assert "zero_proof_authority" in section
+    assert "scope_evidence" in section
+
+
+def test_empty_observer_calls_do_not_supply_unbound_scope_boolean() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    invoke_section = source.split("function Invoke-Observer", 1)[1].split(
+        "$script:observerSequence", 1
+    )[0]
+    assert "[bool]$ScopeComplete" not in invoke_section
+    assert "ScopeProof" in invoke_section
+
+
+def test_p0_does_not_claim_zero_without_bounded_authority() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    p0 = source.split("$p0=", 1)[1].split("$f5Job", 1)[0]
+    assert "ScopeProof" in p0
+    assert "scope_complete=$true" not in p0
+
+
+def test_scope_authority_is_derived_from_measured_job_evidence() -> None:
+    source = PROBE.read_text(encoding="utf-8")
+    helper = source.split("function New-ObserverScopeProof", 1)[1].split(
+        "function Invoke-Observer", 1
+    )[0]
+    assert "JOB_OBJECT_DRAINED" in helper
+    assert "job_active_after" in helper
+    assert "COMPOSITE_JOB_DRAINED" in helper
+
+
 def test_legacy_positive_control_builds_a_launch_receipt_binding() -> None:
     source = PROBE.read_text(encoding="utf-8")
     section = source.split("# Real positive control", 1)[1].split(
