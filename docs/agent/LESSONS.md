@@ -71,3 +71,14 @@ A journal read before a lock can become stale before the write it authorizes.
 Acquire ownership before selecting recovery state. Every operation after resource
 acquisition needs cleanup; release each independent resource even if another
 release fails, retaining the primary error and incomplete durable state.
+
+### 19. A hosted-CI result must not invalidate its own audit object
+
+After the final pre-CI PR head is pushed, attach terminal hosted-CI evidence to
+that exact SHA. Do not create a new commit solely to record the result for the
+same PR: the new SHA makes the prior exact-head result stale and can create the
+self-invalidating sequence `CI result → handoff-only commit → new SHA → old CI
+no longer exact-head → new CI → repeated handoff`. This does not prohibit a
+normal governed `CURRENT.md` update for another transition; the prohibition is
+specifically a commit whose sole purpose is recording the CI result of the head
+it replaces.
