@@ -802,6 +802,37 @@ EVIDENCE = Independent cumulative review C1/C2 and forward correction tests/test
 LIMIT = No runtime caller beyond tests discovered; unintegrated primitive, no current release/data corruption or fully atomic DB+journal commit claim.
 ```
 
+## FM-037 — Material dispatch used a self-declared authority label while the active handoff was stale
+
+```text
+ID = FM-037
+STATE = OPEN_GOVERNANCE_PREVENTION_RECORDED
+TITLE = MATERIAL_EXECUTION_PROCEEDED_WITH_SELF_DECLARED_AUTHORITY_REF_WHILE_CANONICAL_HANDOFF_WAS_STALE
+OBSERVED = The executor evidence contained an authority_ref label, while independent review could not locate the original Human receipt and CURRENT still represented the old rearm-decision state.
+IMPACT = Pre-execution Human authority provenance cannot be independently verified.
+NONCLAIM = This does not prove that Human never authorized the execution.
+PREVENTION = PRE_DISPATCH_AUTHORITY_GATE requires: (1) current CURRENT authority state; (2) an immutable locator to the original Human decision; (3) receipt predating dispatch; (4) receipt scope matching the WP; (5) matching baseline; (6) matching run/trial budget; and (7) independent Builder/Reviewer resolution. SELF_DECLARED_AUTHORITY_REF_ONLY is INSUFFICIENT. STALE_CURRENT_AT_MATERIAL_DISPATCH is ENTRY_HOLD.
+EVIDENCE = Reviewer governance verdict HOLD_GOVERNANCE_AUTHORITY_EVIDENCE for RunId A3-F5-REALF5-20260917T065744Z; Human A0 post-execution disposition dated 2026-09-17.
+LIMIT = The post-execution disposition retains technical evidence and the governance hold. It is not retroactive preauthorization. If a valid original receipt is found, the next action is documentary authority reaudit only; no RealF5 rerun.
+```
+
+## FM-038 — Successful RealF5 path emitted a contradictory not-executed marker
+
+```text
+ID = FM-038
+STATE = OPEN_TRACKED_REPORTING_DEFECT
+TITLE = REALF5_SUCCESS_PATH_EMITS_F5_EXECUTED_NO
+OWNER = RELEASE_ENGINEERING
+SYMPTOM = The successful guarded route emitted REAL_F5_DISPATCH=PASS and F5_EXECUTED=NO for the same run.
+IMPACT = A Human operator or future machine parser may misclassify an executed trial as not executed.
+HISTORICAL_TRIAL_DISPOSITION = Execution is established by lifecycle PREPARED/RUNNING/COMPLETED, the RealF5 execution context, P0-P5 receipts, BARRIER_CONFIRMED journal and final POST_BARRIER_MAINTENANCE physical state.
+CONSUMER_AUDIT = Producers found in tools/release/a3_f5_guard.ps1 and tools/release/a3_probe_windows.ps1; assertions found in tests/test_a3_f5_guard.py; one historical handoff reference found; active machine parser NOT_FOUND.
+PREVENTION = Give markers single documented meanings that distinguish PREFLIGHT_NOT_EXECUTED, TEST_CHECKPOINT_NOT_EXECUTED, REALF5_DISPATCHED, REALF5_TRIAL_EXECUTED and REALF5_FINAL_RESULT. Never emit a generic false marker on a successfully executed RealF5 path.
+FIX_METHOD = SEPARATE_TDD_MICRO_WP
+REALF5_RERUN = FORBIDDEN_FOR_LOG_COSMETICS
+LIMIT = Preserve the contradictory historical output and durable execution evidence. Fix reporting semantics separately without rewriting the trial or claiming A3/F5 clean close.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

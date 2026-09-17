@@ -96,3 +96,18 @@ time to explicit launch or handle provenance. Ambiguity remains unresolved.
 An empty observation set proves nothing about completeness by itself. A zero
 claim requires explicit bounded observed scope, completeness and a recognized
 authority. Missing, malformed or old scopeless evidence fails closed.
+
+### 22. Authority label is not authority receipt
+
+A field such as `authority_ref = HUMAN_A0_...` is a claim unless it resolves
+to the original Human decision with timestamp, scope, baseline, operation
+class and applicable trial or RunId identity. For material execution,
+`NO_VERIFIABLE_RECEIPT → HOLD_BEFORE_DISPATCH`. Reconcile the active handoff
+and prove the receipt before crossing the material boundary.
+
+### 23. Summary marker is not execution truth
+
+When a summary marker conflicts with durable lifecycle, receipt and physical
+state evidence, preserve both records, audit the cause and correct the
+reporting contract separately. Do not erase history or rerun a destructive
+operation for log cosmetics. Status markers require one documented semantic.
