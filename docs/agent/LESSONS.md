@@ -82,3 +82,17 @@ no longer exact-head → new CI → repeated handoff`. This does not prohibit a
 normal governed `CURRENT.md` update for another transition; the prohibition is
 specifically a commit whose sole purpose is recording the CI result of the head
 it replaces.
+
+
+### 20. Path is not process-role identity
+
+A shared executable pathname and the bytes currently stored there do not
+identify the lifetime of a process that was launched earlier. Role-sensitive
+classification must bind process lifetime identity such as PID plus creation
+time to explicit launch or handle provenance. Ambiguity remains unresolved.
+
+### 21. Empty census is not zero proof
+
+An empty observation set proves nothing about completeness by itself. A zero
+claim requires explicit bounded observed scope, completeness and a recognized
+authority. Missing, malformed or old scopeless evidence fails closed.
