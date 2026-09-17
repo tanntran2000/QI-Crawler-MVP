@@ -1131,3 +1131,35 @@ review identified C1/C2; Planner authorized the bounded forward failure-safety
 correction under Human intent in update_transaction.py and its tests; no observed product caller or maturity
 promotion. Final hosted gates and live protection readback precede Human
 integration; reviewed candidate status does not mean merged or released.
+
+### FB-0041 — Post-execution A3/F5 evidence and governance disposition
+
+```text
+State: ACCEPTED / ROUTED / INDEPENDENT_CLOSEOUT_AUDIT_PENDING
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: POST_EXECUTION_HUMAN_DISPOSITION dated 2026-09-17
+Type: GOVERNANCE / EVIDENCE / EXECUTION_CLOSEOUT
+WP: WO-GOV-QI-A3-F5-FINAL-CLOSEOUT-01-R2
+Decision:
+- Retain the audited technical evidence for RealF5 RunId
+  A3-F5-REALF5-20260917T065744Z.
+- Retain the Reviewer verdict HOLD_GOVERNANCE_AUTHORITY_EVIDENCE unchanged.
+- Do not rerun RealF5 and do not authorize Runtime Restore in this WP.
+- Do not infer that Human never authorized execution merely because the
+  original pre-dispatch receipt could not be independently located.
+- Record the authority-provenance deviation, contradictory execution marker,
+  and preventive controls in the appropriate Spine authorities.
+PRE_EXECUTION_HUMAN_AUTHORITY = NOT_VERIFIED
+HUMAN_NEVER_AUTHORIZED = NOT_CLAIMED
+RETROACTIVE_PREAUTHORIZATION = NO
+POST_EXECUTION_HUMAN_DISPOSITION = KEEP_TECHNICAL_REALF5_EVIDENCE;
+  KEEP_REVIEWER_GOVERNANCE_HOLD; NO_REALF5_RERUN;
+  NO_RUNTIME_RESTORE_IN_THIS_WP; RECORD_PROCESS_DEVIATION_AND_PREVENTION
+Boundary: This post-execution disposition does not alter the historical
+Reviewer verdict, retroactively authorize dispatch, approve Runtime Restore,
+establish production safety, accept crawler operations, authorize merge or
+permit another RealF5 trial. A later valid pre-dispatch receipt triggers only
+DOCUMENTARY_AUTHORITY_REAUDIT; it does not trigger another execution.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_FAILURE_MEMORY_AND_LESSONS
+```
