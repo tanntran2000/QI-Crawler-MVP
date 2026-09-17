@@ -1239,6 +1239,39 @@ def test_guarded_real_dispatch_boundary_uses_existing_sandbox_only(tmp_path: Pat
 
 
 @WINDOWS_REALF5_PROBE_ONLY
+def test_guarded_real_dispatch_replaces_existing_execution_context(tmp_path: Path) -> None:
+    sandbox, marker = _sandbox(tmp_path)
+    _canonical_layout(sandbox)
+    input_path = tmp_path / "controller.ps1"
+    input_path.write_text("guard\n", encoding="utf-8")
+    manifest = _manifest(tmp_path, sandbox, input_path)
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    context_path = evidence_root / "F5_EXECUTION_CONTEXT.json"
+    context_path.write_text('{"stale": true}\n', encoding="utf-8")
+
+    result = _run_guarded_real(
+        tmp_path,
+        sandbox,
+        manifest,
+        evidence_root=evidence_root,
+        context_path=context_path,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    context = json.loads(context_path.read_text(encoding="utf-8"))
+    assert context["schema"] == "AO-04-C3-F5-EXECUTION-CONTEXT-V1"
+    assert context["run_id"] == "real-test"
+    assert context["lifecycle_state"] == "RUNNING"
+    assert list(evidence_root.glob(f"{context_path.name}.*.tmp")) == []
+    assert list(evidence_root.glob(f"{context_path.name}.*.backup")) == []
+    output = result.stdout + result.stderr
+    assert "GUARDED_EXECUTION_CONTEXT=PASS" in output
+    assert "REAL_F5_EXECUTED=NO" in output
+    assert marker.read_bytes() == b"runtime"
+
+
+@WINDOWS_REALF5_PROBE_ONLY
 def test_f5only_canonical_failure_propagates_to_guard(tmp_path: Path) -> None:
     sandbox, _ = _sandbox(tmp_path)
     _canonical_layout(sandbox)

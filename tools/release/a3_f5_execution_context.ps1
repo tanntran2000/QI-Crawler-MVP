@@ -57,6 +57,8 @@ function Write-F5ExecutionContext([string]$Path, $Context) {
     $text = (($Context | ConvertTo-Json -Depth 8) + "`n")
     $encoding = New-Object Text.UTF8Encoding($false)
     $temporary = "$Path.$PID.$([Guid]::NewGuid().ToString('N')).tmp"
+    $replacementBackup = $null
+    $replaceFailed = $false
     $stream = $null
     try {
         $bytes = $encoding.GetBytes($text)
@@ -66,7 +68,28 @@ function Write-F5ExecutionContext([string]$Path, $Context) {
         $stream.Dispose()
         $stream = $null
         if (Test-Path -LiteralPath $Path -PathType Leaf) {
-            [IO.File]::Replace($temporary, $Path, $null, $true)
+            $replacementBackup = "$Path.$PID.$([Guid]::NewGuid().ToString('N')).replace.backup"
+            if (Test-Path -LiteralPath $replacementBackup) {
+                throw 'EXECUTION_CONTEXT_INVALID:REPLACEMENT_BACKUP_EXISTS'
+            }
+            try {
+                [IO.File]::Replace($temporary, $Path, $replacementBackup, $true)
+            } catch {
+                $replaceFailed = $true
+                throw
+            }
+            $persisted = [IO.File]::ReadAllText($Path, $encoding)
+            if ($persisted -ne $text) {
+                throw 'EXECUTION_CONTEXT_INVALID:REPLACEMENT_VERIFY_FAILED'
+            }
+            try {
+                Remove-Item -LiteralPath $replacementBackup -Force -ErrorAction Stop
+            } catch {
+                throw "EXECUTION_CONTEXT_INVALID:REPLACEMENT_BACKUP_CLEANUP_FAILED:$($_.Exception.Message)"
+            }
+            if (Test-Path -LiteralPath $replacementBackup) {
+                throw 'EXECUTION_CONTEXT_INVALID:REPLACEMENT_BACKUP_CLEANUP_FAILED:BACKUP_REMAINS'
+            }
         } elseif (Test-Path -LiteralPath $Path) {
             throw 'EXECUTION_CONTEXT_INVALID:CONTEXT_PATH_NOT_FILE'
         } else {
@@ -74,7 +97,9 @@ function Write-F5ExecutionContext([string]$Path, $Context) {
         }
     } finally {
         if ($null -ne $stream) { $stream.Dispose() }
-        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue }
+        if (-not $replaceFailed -and (Test-Path -LiteralPath $temporary)) {
+            Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
