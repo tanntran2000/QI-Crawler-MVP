@@ -44,7 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     migrate = commands.add_parser("migrate", help="Create Stage-2 migration evidence.")
     migrate.add_argument("--data-root", required=True, type=Path)
-    migrate.add_argument("--source-git-sha", required=True)
+    migrate.add_argument("--source-repository-root", required=True, type=Path)
+    migrate.add_argument("--expected-frozen-source-sha", required=True)
     migrate.add_argument("--forbidden-root", action="append", default=[], type=Path)
     accept = commands.add_parser("accept", help="Create Stage-3 pre-start evidence.")
     _common_acceptance_arguments(accept)
@@ -57,7 +58,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "migrate":
             result = migrate_candidate_data(
                 args.data_root,
-                source_git_sha=args.source_git_sha,
+                source_repository_root=args.source_repository_root,
+                expected_frozen_source_sha=args.expected_frozen_source_sha,
                 forbidden_roots=tuple(args.forbidden_root),
             )
         elif args.command == "accept":

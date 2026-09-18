@@ -13,11 +13,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from alembic.config import Config
 from alembic.script import ScriptDirectory
+
+from alembic import command
 
 from .candidate_data import managed_document_mapping_identity, validate_candidate_receipt
 from .db import CURRENT_SCHEMA_REVISION
-from .migrations import _alembic_config, upgrade_database
+from .migrations import DatabaseUpgradeResult, backup_database
 
 
 class CandidateReadinessError(RuntimeError):
@@ -103,16 +106,86 @@ def _guard_candidate_boundary(
             raise CandidateReadinessError("CANDIDATE_ROOT_OVERLAPS_WORKING_ROOT")
 
 
+def _git(
+    repo_root: Path,
+    *args: str,
+    binary: bool = False,
+) -> str | bytes:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo_root,
+            capture_output=True,
+            text=not binary,
+            check=False,
+        )
+    except OSError as exc:
+        raise CandidateReadinessError("FROZEN_SOURCE_GIT_UNAVAILABLE") from exc
+    if result.returncode != 0:
+        stderr = result.stderr
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", errors="replace")
+        raise CandidateReadinessError(
+            f"FROZEN_SOURCE_GIT_COMMAND_FAILED: {' '.join(args)}: {stderr.strip()}"
+        )
+    return result.stdout
+
+
+def verify_frozen_source_checkout(
+    repo_root: Path | str,
+    expected_frozen_source_sha: str,
+) -> dict[str, Any]:
+    """Bind migration execution to one clean checkout at an exact Git commit."""
+    if _SHA40.fullmatch(expected_frozen_source_sha) is None:
+        raise CandidateReadinessError("EXPECTED_FROZEN_SOURCE_SHA_INVALID")
+    supplied = Path(repo_root).resolve(strict=True)
+    try:
+        top_level = Path(
+            str(_git(supplied, "rev-parse", "--show-toplevel")).strip()
+        ).resolve(strict=True)
+    except CandidateReadinessError as exc:
+        raise CandidateReadinessError("FROZEN_SOURCE_NOT_GIT_WORKTREE") from exc
+    if top_level != supplied:
+        raise CandidateReadinessError("FROZEN_SOURCE_REPO_ROOT_MISMATCH")
+    try:
+        _git(supplied, "cat-file", "-e", f"{expected_frozen_source_sha}^{{commit}}")
+    except CandidateReadinessError as exc:
+        raise CandidateReadinessError("FROZEN_SOURCE_COMMIT_NOT_FOUND") from exc
+    head = str(_git(supplied, "rev-parse", "HEAD")).strip().lower()
+    if head != expected_frozen_source_sha.lower():
+        raise CandidateReadinessError("FROZEN_SOURCE_HEAD_MISMATCH")
+    tracked_status = str(
+        _git(supplied, "status", "--porcelain", "--untracked-files=no")
+    ).strip()
+    if tracked_status:
+        raise CandidateReadinessError("FROZEN_SOURCE_TRACKED_TREE_DIRTY")
+    return {
+        "source_repository_root": str(supplied),
+        "source_git_sha": head,
+        "tracked_tree_clean": True,
+    }
+
+
+def _frozen_alembic_config(repo_root: Path, database_url: str) -> Config:
+    config_path = (repo_root / "alembic.ini").resolve(strict=True)
+    script_root = (repo_root / "alembic").resolve(strict=True)
+    config = Config(str(config_path))
+    config.set_main_option("script_location", str(script_root))
+    config.set_main_option("sqlalchemy.url", database_url)
+    return config
+
+
 def _migration_source_identity(
-    database_url: str,
     *,
+    repo_root: Path | str,
     from_revision: str,
     to_revision: str,
     source_git_sha: str,
 ) -> dict[str, Any]:
     if _SHA40.fullmatch(source_git_sha) is None:
         raise CandidateReadinessError("MIGRATION_SOURCE_SHA_INVALID")
-    scripts = ScriptDirectory.from_config(_alembic_config(database_url))
+    root = Path(repo_root).resolve(strict=True)
+    scripts = ScriptDirectory.from_config(_frozen_alembic_config(root, "sqlite://"))
     try:
         revisions = list(scripts.iterate_revisions(to_revision, from_revision))
     except Exception as exc:
@@ -120,6 +193,20 @@ def _migration_source_identity(
     chain: list[dict[str, str]] = []
     for revision in reversed(revisions):
         path = Path(revision.path).resolve(strict=True)
+        try:
+            relative = path.relative_to(root).as_posix()
+        except ValueError as exc:
+            raise CandidateReadinessError("MIGRATION_SCRIPT_PATH_ESCAPE") from exc
+        filesystem_bytes = path.read_bytes()
+        try:
+            git_bytes = _git(root, "show", f"{source_git_sha}:{relative}", binary=True)
+            git_blob = str(
+                _git(root, "rev-parse", f"{source_git_sha}:{relative}")
+            ).strip()
+        except CandidateReadinessError as exc:
+            raise CandidateReadinessError("MIGRATION_SCRIPT_GIT_OBJECT_MISSING") from exc
+        if git_bytes != filesystem_bytes:
+            raise CandidateReadinessError("MIGRATION_SCRIPT_GIT_OBJECT_MISMATCH")
         down_revision = revision.down_revision
         if not isinstance(down_revision, str):
             raise CandidateReadinessError("MIGRATION_CHAIN_NOT_LINEAR")
@@ -128,6 +215,8 @@ def _migration_source_identity(
                 "revision": str(revision.revision),
                 "down_revision": down_revision,
                 "script_sha256": _sha256(path),
+                "repo_relative_path": relative,
+                "git_blob_identity": git_blob,
             }
         )
     expected_parent = from_revision
@@ -140,6 +229,7 @@ def _migration_source_identity(
     serialized = json.dumps(chain, separators=(",", ":"), sort_keys=True).encode("utf-8")
     return {
         "source_git_sha": source_git_sha.lower(),
+        "source_repository_root": str(root),
         "from_revision": from_revision,
         "to_revision": to_revision,
         "chain": chain,
@@ -147,10 +237,27 @@ def _migration_source_identity(
     }
 
 
+def _upgrade_from_frozen_source(
+    database_url: str,
+    *,
+    repo_root: Path,
+    backup_dir: Path,
+) -> DatabaseUpgradeResult:
+    backup_path = backup_database(database_url, backup_dir)
+    command.upgrade(_frozen_alembic_config(repo_root, database_url), "head")
+    revision = _schema_revision(Path(database_url.removeprefix("sqlite:///")))
+    return DatabaseUpgradeResult(
+        revision=revision,
+        backup_path=backup_path,
+        adopted_legacy_database=False,
+    )
+
+
 def migrate_candidate_data(
     destination_root: Path | str,
     *,
-    source_git_sha: str,
+    source_repository_root: Path | str,
+    expected_frozen_source_sha: str,
     expected_revision: str = CURRENT_SCHEMA_REVISION,
     forbidden_roots: tuple[Path | str, ...] = (),
 ) -> dict[str, Any]:
@@ -170,11 +277,16 @@ def migrate_candidate_data(
     if from_revision != V010_EXPECTED_SOURCE_REVISION:
         raise CandidateReadinessError("MIGRATION_INPUT_SCHEMA_UNEXPECTED")
     database_url = f"sqlite:///{database.as_posix()}"
+    source_checkout = verify_frozen_source_checkout(
+        source_repository_root,
+        expected_frozen_source_sha,
+    )
+    source_root = Path(source_checkout["source_repository_root"])
     source_identity = _migration_source_identity(
-        database_url,
+        repo_root=source_root,
         from_revision=from_revision,
         to_revision=expected_revision,
-        source_git_sha=source_git_sha,
+        source_git_sha=expected_frozen_source_sha,
     )
     common: dict[str, Any] = {
         "receipt_schema_version": MIGRATION_RECEIPT_SCHEMA_VERSION,
@@ -190,8 +302,9 @@ def migrate_candidate_data(
         "created_at": datetime.now(UTC).isoformat(),
     }
     try:
-        result = upgrade_database(
+        result = _upgrade_from_frozen_source(
             database_url,
+            repo_root=source_root,
             backup_dir=Path(str(clone_receipt["candidate_backup_root"])),
         )
         actual_revision = _schema_revision(database)
@@ -229,6 +342,7 @@ def validate_migration_receipt(
     destination_root: Path | str,
     *,
     expected_receipt_sha256: str | None = None,
+    expected_source_git_sha: str | None = None,
 ) -> dict[str, Any]:
     destination = Path(destination_root).resolve(strict=True)
     receipt_path = destination / MIGRATION_RECEIPT_NAME
@@ -242,6 +356,12 @@ def validate_migration_receipt(
         raise CandidateReadinessError("MIGRATION_RECEIPT_SCHEMA_UNSUPPORTED")
     if receipt.get("migration_result") != "PASS":
         raise CandidateReadinessError("MIGRATION_RECEIPT_NOT_PASS")
+    source_identity = receipt.get("migration_source_identity") or {}
+    if expected_source_git_sha is not None and (
+        str(source_identity.get("source_git_sha", "")).lower()
+        != expected_source_git_sha.lower()
+    ):
+        raise CandidateReadinessError("MIGRATION_SOURCE_SHA_MISMATCH")
     clone_path = destination / "candidate_data_receipt.json"
     if not clone_path.is_file():
         raise CandidateReadinessError("CLONE_RECEIPT_INVALID")
@@ -284,9 +404,8 @@ def validate_migration_receipt(
         ),
     }:
         raise CandidateReadinessError("MIGRATION_MAPPING_LINEAGE_MISMATCH")
-    source_identity = receipt.get("migration_source_identity") or {}
     expected_source_identity = _migration_source_identity(
-        f"sqlite:///{database.as_posix()}",
+        repo_root=str(source_identity.get("source_repository_root", "")),
         from_revision=str(receipt.get("from_revision", "")),
         to_revision=str(receipt.get("to_revision", "")),
         source_git_sha=str(source_identity.get("source_git_sha", "")),
@@ -407,6 +526,7 @@ def accept_pre_first_business_startup(
     migration = validate_migration_receipt(
         data,
         expected_receipt_sha256=expected_migration_receipt_sha256,
+        expected_source_git_sha=expected_frozen_source_sha,
     )
     migration_source = migration.get("migration_source_identity") or {}
     if (

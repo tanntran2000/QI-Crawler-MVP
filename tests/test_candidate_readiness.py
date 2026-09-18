@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -18,6 +19,130 @@ from qi_crawler.db import CURRENT_SCHEMA_REVISION
 ROOT = Path(__file__).parent.parent
 SOURCE_SHA = "1" * 40
 VERSION = "0.10.0"
+
+
+def _git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
+def _frozen_source_repo(tmp_path: Path) -> tuple[Path, str]:
+    repo = tmp_path / "frozen-source"
+    repo.mkdir()
+    shutil.copytree(ROOT / "alembic", repo / "alembic")
+    shutil.copy2(ROOT / "alembic.ini", repo / "alembic.ini")
+    for relative in (
+        Path("src/qi_crawler/candidate_readiness.py"),
+        Path("src/qi_crawler/migrations.py"),
+        Path("src/qi_crawler/db.py"),
+    ):
+        target = repo / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative, target)
+    _git(repo, "init")
+    _git(repo, "config", "core.autocrlf", "false")
+    _git(repo, "config", "user.email", "candidate-readiness@example.invalid")
+    _git(repo, "config", "user.name", "Candidate Readiness Test")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "frozen source")
+    return repo, _git(repo, "rev-parse", "HEAD")
+
+
+def test_frozen_source_checkout_verifies_exact_clean_head_and_allows_untracked(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    (repo / "dist").mkdir()
+    (repo / "dist" / "QI-Crawler.exe").write_bytes(b"untracked build output")
+
+    result = candidate_readiness.verify_frozen_source_checkout(repo, head)
+
+    assert result["source_git_sha"] == head
+    assert result["tracked_tree_clean"] is True
+
+
+def test_frozen_source_checkout_rejects_wrong_head(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, old_head = _frozen_source_repo(tmp_path)
+    (repo / "tracked.txt").write_text("next\n", encoding="utf-8")
+    _git(repo, "add", "tracked.txt")
+    _git(repo, "commit", "-m", "next")
+
+    with pytest.raises(Exception, match="FROZEN_SOURCE_HEAD_MISMATCH"):
+        candidate_readiness.verify_frozen_source_checkout(repo, old_head)
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "alembic/versions/0021_add_tender_completeness.py",
+        "src/qi_crawler/candidate_readiness.py",
+    ],
+)
+def test_frozen_source_checkout_rejects_dirty_tracked_source(
+    tmp_path: Path, relative: str
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    path = repo / relative
+    path.write_text(path.read_text(encoding="utf-8") + "\n# dirty\n", encoding="utf-8")
+
+    with pytest.raises(Exception, match="FROZEN_SOURCE_TRACKED_TREE_DIRTY"):
+        candidate_readiness.verify_frozen_source_checkout(repo, head)
+
+
+def test_frozen_source_checkout_rejects_non_git_and_wrong_root(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    non_git = tmp_path / "non-git"
+    non_git.mkdir()
+    (non_git / ".git").write_text("gitdir: missing\n", encoding="utf-8")
+    with pytest.raises(Exception, match="FROZEN_SOURCE_NOT_GIT_WORKTREE"):
+        candidate_readiness.verify_frozen_source_checkout(non_git, "1" * 40)
+
+    repo, head = _frozen_source_repo(tmp_path)
+    with pytest.raises(Exception, match="FROZEN_SOURCE_REPO_ROOT_MISMATCH"):
+        candidate_readiness.verify_frozen_source_checkout(repo / "src", head)
+
+
+def test_migration_source_identity_binds_filesystem_bytes_to_git_blobs(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    identity = candidate_readiness._migration_source_identity(
+        repo_root=repo,
+        from_revision="0020_add_tender_operational_revision_events",
+        to_revision=CURRENT_SCHEMA_REVISION,
+        source_git_sha=head,
+    )
+
+    assert [item["revision"] for item in identity["chain"]] == [
+        "0021_add_tender_completeness",
+        "0022_add_tender_recovery_events",
+    ]
+    assert all(item["git_blob_identity"] for item in identity["chain"])
+    target = repo / identity["chain"][0]["repo_relative_path"]
+    target.write_text(target.read_text(encoding="utf-8") + "\n# mismatch\n", encoding="utf-8")
+    with pytest.raises(Exception, match="MIGRATION_SCRIPT_GIT_OBJECT_MISMATCH"):
+        candidate_readiness._migration_source_identity(
+            repo_root=repo,
+            from_revision="0020_add_tender_operational_revision_events",
+            to_revision=CURRENT_SCHEMA_REVISION,
+            source_git_sha=head,
+        )
 
 
 def test_candidate_readiness_cli_exposes_three_bounded_stages() -> None:
@@ -99,14 +224,23 @@ def _prepare_and_migrate(tmp_path: Path):
     candidate = tmp_path / "candidate"
     data_root = candidate / "data-root"
     candidate_data.prepare_candidate_data(_migratable_source(tmp_path), data_root)
+    source_repo, source_head = _frozen_source_repo(tmp_path)
     receipt = candidate_readiness.migrate_candidate_data(
         data_root,
-        source_git_sha=SOURCE_SHA,
+        source_repository_root=source_repo,
+        expected_frozen_source_sha=source_head,
     )
     return candidate, data_root, receipt
 
 
-def _write_build_identity(candidate: Path, *, source_sha: str = SOURCE_SHA) -> None:
+def _write_build_identity(candidate: Path, *, source_sha: str | None = None) -> None:
+    if source_sha is None:
+        migration = json.loads(
+            (candidate / "data-root" / "candidate_migration_receipt.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        source_sha = migration["migration_source_identity"]["source_git_sha"]
     bundle = candidate / "app" / "QI-Crawler"
     control = candidate / "control"
     bundle.mkdir(parents=True, exist_ok=True)
@@ -146,7 +280,9 @@ def _acceptance_args(candidate: Path, data_root: Path, migration: dict[str, obje
     return {
         "candidate_root": candidate,
         "data_root": data_root,
-        "expected_frozen_source_sha": SOURCE_SHA,
+        "expected_frozen_source_sha": migration["migration_source_identity"][
+            "source_git_sha"
+        ],
         "expected_migration_receipt_sha256": _sha256(
             data_root / "candidate_migration_receipt.json"
         ),
@@ -205,7 +341,12 @@ def test_migration_rejects_candidate_db_tamper_before_upgrade(tmp_path: Path) ->
         connection.execute("CREATE TABLE tamper_before_migration (value TEXT)")
 
     with pytest.raises(Exception, match="CANDIDATE_DB_IDENTITY_MISMATCH"):
-        candidate_readiness.migrate_candidate_data(data_root, source_git_sha=SOURCE_SHA)
+        source_repo, source_head = _frozen_source_repo(tmp_path)
+        candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
 
 
 def test_migration_rejects_working_data_root(tmp_path: Path) -> None:
@@ -215,9 +356,11 @@ def test_migration_rejects_working_data_root(tmp_path: Path) -> None:
     candidate_data.prepare_candidate_data(_migratable_source(tmp_path), data_root)
 
     with pytest.raises(Exception, match="CANDIDATE_ROOT_OVERLAPS_WORKING_ROOT"):
+        source_repo, source_head = _frozen_source_repo(tmp_path)
         candidate_readiness.migrate_candidate_data(
             data_root,
-            source_git_sha=SOURCE_SHA,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
             forbidden_roots=(data_root,),
         )
 
@@ -235,7 +378,12 @@ def test_migration_rejects_unexpected_source_revision(tmp_path: Path) -> None:
     candidate_data.prepare_candidate_data(source, data_root)
 
     with pytest.raises(Exception, match="MIGRATION_INPUT_SCHEMA_UNEXPECTED"):
-        candidate_readiness.migrate_candidate_data(data_root, source_git_sha=SOURCE_SHA)
+        source_repo, source_head = _frozen_source_repo(tmp_path)
+        candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
 
 
 def test_migration_failure_emits_failed_evidence_and_no_acceptance(
@@ -251,12 +399,17 @@ def test_migration_failure_emits_failed_evidence_and_no_acceptance(
     candidate_data.prepare_candidate_data(source, data_root)
     monkeypatch.setattr(
         candidate_readiness,
-        "upgrade_database",
+        "_upgrade_from_frozen_source",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("migration failed")),
     )
 
     with pytest.raises(Exception, match="migration failed"):
-        candidate_readiness.migrate_candidate_data(data_root, source_git_sha=SOURCE_SHA)
+        source_repo, source_head = _frozen_source_repo(tmp_path)
+        candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
 
     receipt = json.loads(
         (data_root / "candidate_migration_receipt.json").read_text(encoding="utf-8")
@@ -277,7 +430,9 @@ def test_pre_first_start_acceptance_binds_build_data_config_and_lineage(tmp_path
     )
 
     assert acceptance["status"] == "ACCEPTED"
-    assert acceptance["source_git_sha"] == SOURCE_SHA
+    assert acceptance["source_git_sha"] == migration["migration_source_identity"][
+        "source_git_sha"
+    ]
     assert acceptance["database_sha256"] == migration["output_db_sha256"]
     assert acceptance["schema_revision"] == CURRENT_SCHEMA_REVISION
     assert acceptance["managed_document_mapping_digest"] == migration[
