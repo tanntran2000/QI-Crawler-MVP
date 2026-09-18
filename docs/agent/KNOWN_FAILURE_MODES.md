@@ -880,13 +880,17 @@ LIMIT = This validates declared provenance consistency. Matching the declared so
 
 ```text
 ID = FM-042
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+STATE = AUDITED
 PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / CANDIDATE MIGRATION
 SYMPTOM = A migration receipt could name source commit X while executing migration scripts or controlling Python orchestration from a different or dirty checkout.
 ROOT_CAUSE = Stage 2 initially trusted a caller-provided source_git_sha, then proved checkout and migration-script identity without proving that the actually loaded candidate-readiness, candidate-data, migration and database modules came from the same frozen Git object.
 CORRECTION = Require an explicit source repository root and expected frozen commit; verify exact worktree root, commit object, HEAD and whole tracked-tree cleanliness; bind every executed migration script, actually loaded controlling Python module, alembic.ini and alembic/env.py to its canonical path and Git blob before backup or Alembic execution.
 PREVENTION = Reject foreign module origins, same-path byte drift, replaced callable origins and Alembic configuration drift; retain detached exact-HEAD, untracked-output, wrong-head, dirty-source, missing-repo and migration-blob regressions; persist and revalidate execution-code identity in the migration receipt.
 EVIDENCE = PR117 final F01 correction; 53 candidate-readiness tests, 86 adjacent tests and the full 1422-test repository suite passed locally at correction code head 747cf9f.
+INDEPENDENT_FINAL_F01_REAUDIT = PASS
+AUDITED_CODE_HEAD = 747cf9faac95a3bb98840e9b721207993e049ab9
+AUDITED_PR_HEAD = 81e9ab97643a430609995d8e0301aa18fd573dcc
+F05_REGRESSION_CHECK = RESOLVED_UNCHANGED
 LIMIT = Verification has an accepted controlled-build TOCTOU limitation: the Single Writer, clean frozen checkout and no-concurrent-source-mutation contract must hold after verification. Evidence remains synthetic; final source freeze, real business-data migration, candidate build and release remain unauthorized and unproven.
 ```
 
@@ -894,13 +898,15 @@ LIMIT = Verification has an accepted controlled-build TOCTOU limitation: the Sin
 
 ```text
 ID = FM-043
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+STATE = AUDITED
 PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / PORTABLE ARTIFACT IDENTITY
 SYMPTOM = Stage 3 expected an installer receipt containing installer_sha256 even though the installer gate was explicitly deferred.
 ROOT_CAUSE = Portable and installer artifacts shared one lifecycle identity, leaving no legitimate producer for portable-only acceptance without a placeholder installer hash.
 CORRECTION = Add write-once portable_artifact_receipt.json with qi-crawler-portable-artifact-v1, generated from the actual EXE, release manifest and BUILD_INFO; reject missing, installer-only, extra-field and mismatched identities.
 PREVENTION = Keep portable and installer receipts separate; portable readiness contains no installer SHA and does not require Inno Setup.
 EVIDENCE = PR117 readiness correction F02; producer/consumer and tamper regressions plus full 1415-test repository suite passed locally at correction code head 3b031ec.
+INDEPENDENT_READINESS_REAUDIT = PASS
+F05_REGRESSION_CHECK = RESOLVED_UNCHANGED
 LIMIT = This proves the synthetic portable identity contract, not a final PyInstaller artifact, installer, packaging acceptance, publication or promotion.
 ```
 
@@ -908,13 +914,15 @@ LIMIT = This proves the synthetic portable identity contract, not a final PyInst
 
 ```text
 ID = FM-044
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+STATE = AUDITED
 PRODUCT_HOUSE_LAYER = APPLICATION / RELEASE RUNTIME GATE
 SYMPTOM = Double-clicking an INTERNAL_CANDIDATE EXE could reach standalone runtime preparation and default to %LOCALAPPDATA%\QI-Crawler before Stage 3 acceptance; a failed first Popen also made the write-once acceptance unusable for retry.
 ROOT_CAUSE = Candidate authorization occurred only in the external controlled launcher, after the raw GUI entry path had already selected its data root; acceptance creation and process-start success were conflated.
 CORRECTION = Identify the frozen candidate from adjacent release metadata before runtime preparation; fail closed on missing/malformed governed-layout metadata; require and validate immutable acceptance for normal direct start; bind candidate data/config roots; allow only explicitly isolated preacceptance smoke. Preserve acceptance after launch failure and reuse it after validation. Current operational DB bytes may change after acceptance.
 PREVENTION = Test preacceptance refusal before preparation, no LOCALAPPDATA fallback, foreign/tampered acceptance, accepted direct binding, post-start DB mutation, isolated smoke, GUI gate ordering and launch retry.
 EVIDENCE = PR117 readiness correction F03/F04; 226 adjacent regressions and full 1415-test repository suite passed locally at correction code head 3b031ec.
+INDEPENDENT_READINESS_REAUDIT = PASS
+F05_ADJACENT_HARDENING = PASS
 LIMIT = Synthetic/runtime-entry verification only. Actual frozen-process B04 cases remain mandatory after a real candidate build; no business GUI startup or user-data mutation was performed.
 ```
 
@@ -922,14 +930,18 @@ LIMIT = Synthetic/runtime-entry verification only. Actual frozen-process B04 cas
 
 ```text
 ID = FM-045
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+STATE = AUDITED
 PRODUCT_HOUSE_LAYER = APPLICATION / RELEASE RUNTIME ISOLATION
 SYMPTOM = An accepted candidate could bind candidate DATA_DIR and CONFIG_PATH while QI_CRAWLER_DATABASE_URL inherited from the process or loaded from .env later selected a database outside the candidate boundary.
-ROOT_CAUSE = Candidate startup protected the physical and configuration roots before load_config, but did not bind or revalidate the database override applied by EnvSettings afterward.
-CORRECTION = Derive one canonical SQLite URL from StandalonePaths.database_path; bind it with candidate data/config roots for direct, controlled and isolated-smoke startup; validate the final loaded SQLite target before Database construction.
+ROOT_CAUSE = Candidate bound data/config roots but EnvSettings could later override the effective database target.
+CORRECTION = Bind the candidate DATABASE_URL and validate the post-load effective database target before Database construction.
 PREVENTION = Regressions cover inherited environment, .env, both override sources together, direct startup, controlled launcher, isolated smoke, invalid effective targets, no Database construction on rejection, and preservation of ordinary non-candidate overrides.
 EVIDENCE = PR117 F05 correction RED reproduced all four missing boundaries; GREEN passed 13 focused tests, 131 adjacent tests and the full 1433-test repository suite at code head b4d38baabd8b9473f7d9079a2b59e1d888c6af3a.
-LIMIT = Synthetic runtime-boundary verification only. No real candidate, working database, user data, migration, build, release or promotion was accessed or performed; independent F05 re-audit and exact-head hosted CI remain pending.
+INDEPENDENT_F05_REAUDIT = PASS_F05_RUNTIME_DB_ISOLATION_REAUDIT
+AUDITED_CODE_HEAD = b4d38baabd8b9473f7d9079a2b59e1d888c6af3a
+AUDITED_PR_HEAD = 08b405f5789959d146f300e6f161c04a76043435
+NON_CANDIDATE_COMPATIBILITY = PRESERVED
+LIMIT = Synthetic runtime-boundary verification only. No real candidate, working database, user data, migration, build, release or promotion was accessed or performed. This audit state does not mean merged.
 ```
 
 ## Routing
