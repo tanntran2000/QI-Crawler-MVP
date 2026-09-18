@@ -8,6 +8,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +19,9 @@ from alembic.script import ScriptDirectory
 
 from alembic import command
 
+from . import candidate_data as candidate_data_module
+from . import db as db_module
+from . import migrations as migrations_module
 from .candidate_data import managed_document_mapping_identity, validate_candidate_receipt
 from .db import CURRENT_SCHEMA_REVISION
 from .migrations import DatabaseUpgradeResult, backup_database
@@ -168,6 +172,131 @@ def verify_frozen_source_checkout(
     }
 
 
+_EXECUTION_MODULE_PATHS = {
+    "candidate_readiness": "src/qi_crawler/candidate_readiness.py",
+    "candidate_data": "src/qi_crawler/candidate_data.py",
+    "migrations": "src/qi_crawler/migrations.py",
+    "db": "src/qi_crawler/db.py",
+}
+_ALEMBIC_EXECUTION_PATHS = {
+    "alembic_ini": "alembic.ini",
+    "alembic_env": "alembic/env.py",
+}
+
+
+def _loaded_execution_modules() -> dict[str, Any]:
+    return {
+        "candidate_readiness": sys.modules[__name__],
+        "candidate_data": candidate_data_module,
+        "migrations": migrations_module,
+        "db": db_module,
+    }
+
+
+def _tracked_file_identity(
+    repo_root: Path,
+    source_git_sha: str,
+    relative: str,
+    *,
+    missing_error: str,
+    mismatch_error: str,
+) -> dict[str, str]:
+    try:
+        path = (repo_root / relative).resolve(strict=True)
+    except OSError as exc:
+        raise CandidateReadinessError(missing_error) from exc
+    try:
+        git_bytes = _git(repo_root, "show", f"{source_git_sha}:{relative}", binary=True)
+        git_blob = str(
+            _git(repo_root, "rev-parse", f"{source_git_sha}:{relative}")
+        ).strip()
+    except CandidateReadinessError as exc:
+        raise CandidateReadinessError(missing_error) from exc
+    if path.read_bytes() != git_bytes:
+        raise CandidateReadinessError(mismatch_error)
+    return {
+        "repo_relative_path": relative,
+        "filesystem_sha256": _sha256(path),
+        "git_blob_identity": git_blob,
+    }
+
+
+def _execution_code_identity_from_frozen_repo(
+    repo_root: Path | str,
+    source_git_sha: str,
+) -> dict[str, dict[str, str]]:
+    root = Path(repo_root).resolve(strict=True)
+    identity = {
+        name: {
+            "module_name": f"qi_crawler.{name}",
+            **_tracked_file_identity(
+                root,
+                source_git_sha,
+                relative,
+                missing_error="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISSING",
+                mismatch_error="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISMATCH",
+            ),
+        }
+        for name, relative in _EXECUTION_MODULE_PATHS.items()
+    }
+    identity.update(
+        {
+            name: _tracked_file_identity(
+                root,
+                source_git_sha,
+                relative,
+                missing_error="FROZEN_ALEMBIC_CONFIG_GIT_OBJECT_MISSING",
+                mismatch_error="FROZEN_ALEMBIC_CONFIG_GIT_OBJECT_MISMATCH",
+            )
+            for name, relative in _ALEMBIC_EXECUTION_PATHS.items()
+        }
+    )
+    return identity
+
+
+def verify_frozen_execution_code(
+    repo_root: Path | str,
+    expected_frozen_source_sha: str,
+) -> dict[str, dict[str, str]]:
+    """Bind loaded migration controllers and Alembic configuration to Git."""
+    if _SHA40.fullmatch(expected_frozen_source_sha) is None:
+        raise CandidateReadinessError("EXPECTED_FROZEN_SOURCE_SHA_INVALID")
+    root = Path(repo_root).resolve(strict=True)
+    loaded_modules = _loaded_execution_modules()
+    if set(loaded_modules) != set(_EXECUTION_MODULE_PATHS):
+        raise CandidateReadinessError("FROZEN_EXECUTION_MODULE_SET_MISMATCH")
+    for name, relative in _EXECUTION_MODULE_PATHS.items():
+        module_file = getattr(loaded_modules[name], "__file__", None)
+        try:
+            actual = Path(str(module_file)).resolve(strict=True)
+            expected = (root / relative).resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise CandidateReadinessError(
+                "FROZEN_EXECUTION_MODULE_PATH_MISMATCH"
+            ) from exc
+        if actual != expected:
+            raise CandidateReadinessError("FROZEN_EXECUTION_MODULE_PATH_MISMATCH")
+
+    callable_origins = {
+        backup_database: "qi_crawler.migrations",
+        managed_document_mapping_identity: "qi_crawler.candidate_data",
+        validate_candidate_receipt: "qi_crawler.candidate_data",
+        migrate_candidate_data: "qi_crawler.candidate_readiness",
+        _migration_source_identity: "qi_crawler.candidate_readiness",
+        verify_frozen_execution_code: "qi_crawler.candidate_readiness",
+    }
+    if any(
+        getattr(callable_object, "__module__", None) != expected_module
+        for callable_object, expected_module in callable_origins.items()
+    ):
+        raise CandidateReadinessError("FROZEN_EXECUTION_CALLABLE_ORIGIN_MISMATCH")
+
+    identity = _execution_code_identity_from_frozen_repo(
+        root, expected_frozen_source_sha
+    )
+    return identity
+
+
 def _frozen_alembic_config(repo_root: Path, database_url: str) -> Config:
     config_path = (repo_root / "alembic.ini").resolve(strict=True)
     script_root = (repo_root / "alembic").resolve(strict=True)
@@ -183,6 +312,7 @@ def _migration_source_identity(
     from_revision: str,
     to_revision: str,
     source_git_sha: str,
+    execution_code: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     if _SHA40.fullmatch(source_git_sha) is None:
         raise CandidateReadinessError("MIGRATION_SOURCE_SHA_INVALID")
@@ -232,6 +362,10 @@ def _migration_source_identity(
     return {
         "source_git_sha": source_git_sha.lower(),
         "source_repository_root": str(root),
+        "tracked_tree_clean": True,
+        "execution_code": execution_code
+        if execution_code is not None
+        else _execution_code_identity_from_frozen_repo(root, source_git_sha),
         "from_revision": from_revision,
         "to_revision": to_revision,
         "chain": chain,
@@ -284,11 +418,16 @@ def migrate_candidate_data(
         expected_frozen_source_sha,
     )
     source_root = Path(source_checkout["source_repository_root"])
+    execution_code = verify_frozen_execution_code(
+        source_root,
+        expected_frozen_source_sha,
+    )
     source_identity = _migration_source_identity(
         repo_root=source_root,
         from_revision=from_revision,
         to_revision=expected_revision,
         source_git_sha=expected_frozen_source_sha,
+        execution_code=execution_code,
     )
     common: dict[str, Any] = {
         "receipt_schema_version": MIGRATION_RECEIPT_SCHEMA_VERSION,

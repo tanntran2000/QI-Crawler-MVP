@@ -8,6 +8,8 @@ import sqlite3
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 import pytest
 import yaml
@@ -34,19 +36,29 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def _frozen_source_repo(tmp_path: Path) -> tuple[Path, str]:
+def _frozen_source_repo(
+    tmp_path: Path, *, full_package: bool = False
+) -> tuple[Path, str]:
     repo = tmp_path / "frozen-source"
     repo.mkdir()
     shutil.copytree(ROOT / "alembic", repo / "alembic")
     shutil.copy2(ROOT / "alembic.ini", repo / "alembic.ini")
-    for relative in (
-        Path("src/qi_crawler/candidate_readiness.py"),
-        Path("src/qi_crawler/migrations.py"),
-        Path("src/qi_crawler/db.py"),
-    ):
-        target = repo / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / relative, target)
+    if full_package:
+        shutil.copytree(
+            ROOT / "src" / "qi_crawler",
+            repo / "src" / "qi_crawler",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+    else:
+        for relative in (
+            Path("src/qi_crawler/candidate_readiness.py"),
+            Path("src/qi_crawler/candidate_data.py"),
+            Path("src/qi_crawler/migrations.py"),
+            Path("src/qi_crawler/db.py"),
+        ):
+            target = repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / relative, target)
     _git(repo, "init")
     _git(repo, "config", "core.autocrlf", "false")
     _git(repo, "config", "user.email", "candidate-readiness@example.invalid")
@@ -54,6 +66,107 @@ def _frozen_source_repo(tmp_path: Path) -> tuple[Path, str]:
     _git(repo, "add", ".")
     _git(repo, "commit", "-m", "frozen source")
     return repo, _git(repo, "rev-parse", "HEAD")
+
+
+def _loaded_modules_from(repo: Path) -> dict[str, object]:
+    return {
+        name: SimpleNamespace(__file__=repo / relative)
+        for name, relative in {
+            "candidate_readiness": "src/qi_crawler/candidate_readiness.py",
+            "candidate_data": "src/qi_crawler/candidate_data.py",
+            "migrations": "src/qi_crawler/migrations.py",
+            "db": "src/qi_crawler/db.py",
+        }.items()
+    }
+
+
+def test_frozen_execution_code_rejects_foreign_loaded_checkout(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+
+    with pytest.raises(Exception, match="FROZEN_EXECUTION_MODULE_PATH_MISMATCH"):
+        candidate_readiness.verify_frozen_execution_code(repo, head)
+
+
+def test_frozen_execution_code_rejects_same_path_wrong_bytes(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    target = repo / "src" / "qi_crawler" / "candidate_readiness.py"
+    target.write_text(target.read_text(encoding="utf-8") + "\n# mismatch\n", encoding="utf-8")
+
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(repo),
+    ), pytest.raises(
+        Exception, match="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISMATCH"
+    ):
+        candidate_readiness.verify_frozen_execution_code(repo, head)
+
+
+def test_frozen_execution_code_rejects_alembic_config_mismatch(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    target = repo / "alembic" / "env.py"
+    target.write_text(target.read_text(encoding="utf-8") + "\n# mismatch\n", encoding="utf-8")
+
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(repo),
+    ), pytest.raises(Exception, match="FROZEN_ALEMBIC_CONFIG_GIT_OBJECT_MISMATCH"):
+        candidate_readiness.verify_frozen_execution_code(repo, head)
+
+
+def test_frozen_execution_code_accepts_exact_loaded_checkout(tmp_path: Path) -> None:
+    repo, head = _frozen_source_repo(tmp_path, full_package=True)
+    script = (
+        "import json; "
+        "from qi_crawler import candidate_readiness as c; "
+        f"print(json.dumps(c.verify_frozen_execution_code({str(repo)!r}, {head!r})))"
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(repo / "src")
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=repo,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    identity = json.loads(result.stdout)
+    assert set(identity) == {
+        "candidate_readiness",
+        "candidate_data",
+        "migrations",
+        "db",
+        "alembic_ini",
+        "alembic_env",
+    }
+    assert all(item["git_blob_identity"] for item in identity.values())
+
+
+def test_frozen_execution_code_rejects_replaced_callable_origin(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    with (
+        mock.patch.object(
+            candidate_readiness,
+            "_loaded_execution_modules",
+            return_value=_loaded_modules_from(repo),
+        ),
+        mock.patch.object(candidate_readiness, "backup_database", lambda: None),
+        pytest.raises(Exception, match="FROZEN_EXECUTION_CALLABLE_ORIGIN_MISMATCH"),
+    ):
+        candidate_readiness.verify_frozen_execution_code(repo, head)
 
 
 def test_frozen_source_checkout_verifies_exact_clean_head_and_allows_untracked(
@@ -226,12 +339,39 @@ def _prepare_and_migrate(tmp_path: Path):
     data_root = candidate / "data-root"
     candidate_data.prepare_candidate_data(_migratable_source(tmp_path), data_root)
     source_repo, source_head = _frozen_source_repo(tmp_path)
-    receipt = candidate_readiness.migrate_candidate_data(
-        data_root,
-        source_repository_root=source_repo,
-        expected_frozen_source_sha=source_head,
-    )
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(source_repo),
+    ):
+        receipt = candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
     return candidate, data_root, receipt
+
+
+def test_migration_rejects_foreign_execution_before_database_mutation(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    data_root = tmp_path / "candidate" / "data-root"
+    candidate_data.prepare_candidate_data(_migratable_source(tmp_path), data_root)
+    database = data_root / "data" / "database" / "egp.db"
+    database_sha = _sha256(database)
+    source_repo, source_head = _frozen_source_repo(tmp_path)
+
+    with pytest.raises(Exception, match="FROZEN_EXECUTION_MODULE_PATH_MISMATCH"):
+        candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
+
+    assert _sha256(database) == database_sha
+    assert not (data_root / "candidate_migration_receipt.json").exists()
 
 
 def _write_build_identity(candidate: Path, *, source_sha: str | None = None) -> None:
@@ -383,7 +523,31 @@ def test_migration_receipt_binds_real_0020_to_current_chain(tmp_path: Path) -> N
         "0022_add_tender_recovery_events",
     ]
     assert receipt["input_db_sha256"] != receipt["output_db_sha256"]
+    assert set(receipt["migration_source_identity"]["execution_code"]) == {
+        "candidate_readiness",
+        "candidate_data",
+        "migrations",
+        "db",
+        "alembic_ini",
+        "alembic_env",
+    }
     assert candidate_readiness.validate_migration_receipt(data_root) == receipt
+
+
+def test_migration_receipt_rejects_execution_code_identity_tamper(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    _, data_root, receipt = _prepare_and_migrate(tmp_path)
+    receipt["migration_source_identity"]["execution_code"]["db"][
+        "git_blob_identity"
+    ] = "0" * 40
+    receipt_path = data_root / "candidate_migration_receipt.json"
+    receipt_path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+
+    with pytest.raises(Exception, match="MIGRATION_SOURCE_IDENTITY_MISMATCH"):
+        candidate_readiness.validate_migration_receipt(data_root)
 
 
 @pytest.mark.parametrize(
@@ -485,11 +649,16 @@ def test_migration_failure_emits_failed_evidence_and_no_acceptance(
 
     with pytest.raises(Exception, match="migration failed"):
         source_repo, source_head = _frozen_source_repo(tmp_path)
-        candidate_readiness.migrate_candidate_data(
-            data_root,
-            source_repository_root=source_repo,
-            expected_frozen_source_sha=source_head,
-        )
+        with mock.patch.object(
+            candidate_readiness,
+            "_loaded_execution_modules",
+            return_value=_loaded_modules_from(source_repo),
+        ):
+            candidate_readiness.migrate_candidate_data(
+                data_root,
+                source_repository_root=source_repo,
+                expected_frozen_source_sha=source_head,
+            )
 
     receipt = json.loads(
         (data_root / "candidate_migration_receipt.json").read_text(encoding="utf-8")
