@@ -270,6 +270,12 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
                     "receipt_schema_version": "qi-crawler-release-artifact-v1",
                     "product": "QI-Crawler",
                     "version": VERSION,
+                    "source_git_sha": subprocess.check_output(
+                        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+                    ).strip(),
+                    "source_branch": "main",
+                    "build_timestamp_utc": "2026-08-23T00:00:00Z",
+                    "alembic_head": schema_head,
                     "portable_exe_sha256": exe_hash,
                     "installer_sha256": installer_hash,
                 }
@@ -372,3 +378,226 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     )
     assert missing_expected_head.returncode != 0
     assert current_exe.read_bytes() == b"two"
+
+
+def _provenance_candidate(tmp_path: Path) -> tuple[Path, Path, str]:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-b", "main", str(repo)], check=True, capture_output=True)
+    (repo / "README.md").write_text("clean", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=QI Test",
+            "-c",
+            "user.email=qi@example.invalid",
+            "commit",
+            "-m",
+            "baseline",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    source_sha = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    candidate = tmp_path / "candidate"
+    bundle = candidate / "QI-Crawler"
+    bundle.mkdir(parents=True)
+    exe = bundle / "QI-Crawler.exe"
+    exe.write_bytes(b"portable")
+    installer = candidate / f"QI-Crawler-Setup-v{VERSION}.exe"
+    installer.write_bytes(b"installer")
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest().upper()
+    installer_hash = hashlib.sha256(installer.read_bytes()).hexdigest().upper()
+    (bundle / "VERSION.txt").write_text(
+        f"QI-Crawler\nVersion: {VERSION}\nChannel: INTERNAL CANDIDATE\n", encoding="utf-8"
+    )
+    (bundle / "WHAT_IS_NEW.txt").write_text("candidate changes\n", encoding="utf-8")
+    (bundle / "CAPABILITIES.txt").write_text(
+        "NOT_YET_RUNTIME_VERIFIED\n", encoding="utf-8"
+    )
+    shared = {
+        "product": "QI-Crawler",
+        "version": VERSION,
+        "source_git_sha": source_sha,
+        "source_branch": "main",
+        "build_timestamp_utc": "2026-08-23T00:00:00Z",
+        "alembic_head": EXPECTED_SCHEMA_HEAD,
+        "portable_exe_sha256": exe_hash,
+    }
+    manifest = {
+        "metadata_schema_version": "qi-crawler-installed-release-v1",
+        **shared,
+        "release_channel": "INTERNAL_CANDIDATE",
+    }
+    receipt = {
+        "receipt_schema_version": "qi-crawler-release-artifact-v1",
+        **shared,
+        "installer_sha256": installer_hash,
+    }
+    build_info = {
+        "metadata_schema_version": manifest["metadata_schema_version"],
+        **shared,
+        "release_channel": manifest["release_channel"],
+    }
+    (bundle / "release_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (candidate / "release_artifact_receipt.json").write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+    (bundle / "BUILD_INFO.txt").write_text(
+        "\n".join(f"{key}={value}" for key, value in build_info.items()) + "\n",
+        encoding="utf-8",
+    )
+    return repo, candidate, source_sha
+
+
+def _run_provenance_publish(
+    shell: str, repo: Path, candidate: Path, publish_root: Path
+) -> subprocess.CompletedProcess[str]:
+    args = [
+        shell,
+        "-NoProfile",
+        "-File",
+        str(PUBLISH_SCRIPT),
+        "-Publish",
+        "-RepoRoot",
+        str(repo),
+        "-PublishRoot",
+        str(publish_root),
+        "-CandidateRoot",
+        str(candidate),
+        "-Version",
+        VERSION,
+        "-ExpectedAlembicHead",
+        EXPECTED_SCHEMA_HEAD,
+    ]
+    if sys.platform == "win32" and Path(shell).name.lower() == "powershell.exe":
+        args[1:1] = ["-ExecutionPolicy", "Bypass"]
+    return subprocess.run(args, capture_output=True, text=True, check=False)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "mixed_source_sha",
+        "mixed_source_branch",
+        "mixed_timestamp",
+        "mixed_alembic",
+        "mixed_portable_hash",
+        "mixed_product",
+        "mixed_version",
+        "missing_source_git_sha",
+        "empty_source_branch",
+        "invalid_git_sha",
+        "malformed_timestamp",
+        "missing_alembic_head",
+        "invalid_portable_hash",
+        "missing_installer_hash",
+        "invalid_installer_hash",
+        "unsupported_manifest_schema",
+        "unsupported_receipt_schema",
+        "duplicate_build_info_key",
+        "missing_build_info_source_sha",
+        "empty_build_info_branch",
+        "malformed_build_info_line",
+        "build_info_source_sha_mismatch",
+        "build_info_alembic_mismatch",
+        "build_info_portable_hash_mismatch",
+    ],
+)
+def test_publish_rejects_incomplete_malformed_or_mixed_provenance(
+    tmp_path: Path, case: str
+) -> None:
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if shell is None:
+        pytest.skip("PowerShell is required for the Windows publish behavior test")
+    repo, candidate, _source_sha = _provenance_candidate(tmp_path)
+    bundle = candidate / "QI-Crawler"
+    manifest_path = bundle / "release_manifest.json"
+    receipt_path = candidate / "release_artifact_receipt.json"
+    build_info_path = bundle / "BUILD_INFO.txt"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    info_lines = build_info_path.read_text(encoding="utf-8").splitlines()
+
+    if case.startswith("mixed_"):
+        field = {
+            "mixed_source_sha": "source_git_sha",
+            "mixed_source_branch": "source_branch",
+            "mixed_timestamp": "build_timestamp_utc",
+            "mixed_alembic": "alembic_head",
+            "mixed_portable_hash": "portable_exe_sha256",
+            "mixed_product": "product",
+            "mixed_version": "version",
+        }[case]
+        receipt[field] = {
+            "source_git_sha": "f" * 40,
+            "source_branch": "other-branch",
+            "build_timestamp_utc": "2026-08-24T00:00:00Z",
+            "alembic_head": "other_revision",
+            "portable_exe_sha256": "f" * 64,
+            "product": "Other-Product",
+            "version": "9.9.9",
+        }[field]
+    elif case == "missing_source_git_sha":
+        manifest.pop("source_git_sha")
+    elif case == "empty_source_branch":
+        manifest["source_branch"] = ""
+    elif case == "invalid_git_sha":
+        manifest["source_git_sha"] = "not-a-git-sha"
+    elif case == "malformed_timestamp":
+        manifest["build_timestamp_utc"] = "not-a-timestamp"
+    elif case == "missing_alembic_head":
+        receipt.pop("alembic_head")
+    elif case == "invalid_portable_hash":
+        manifest["portable_exe_sha256"] = "xyz"
+    elif case == "missing_installer_hash":
+        receipt.pop("installer_sha256")
+    elif case == "invalid_installer_hash":
+        receipt["installer_sha256"] = "xyz"
+    elif case == "unsupported_manifest_schema":
+        manifest["metadata_schema_version"] = "unsupported"
+    elif case == "unsupported_receipt_schema":
+        receipt["receipt_schema_version"] = "unsupported"
+    elif case == "duplicate_build_info_key":
+        info_lines.append("source_git_sha=" + _source_sha)
+    elif case == "missing_build_info_source_sha":
+        info_lines = [line for line in info_lines if not line.startswith("source_git_sha=")]
+    elif case == "empty_build_info_branch":
+        info_lines = [
+            "source_branch=" if line.startswith("source_branch=") else line for line in info_lines
+        ]
+    elif case == "malformed_build_info_line":
+        info_lines.append("malformed-without-equals")
+    elif case == "build_info_source_sha_mismatch":
+        info_lines = [
+            "source_git_sha=" + "f" * 40 if line.startswith("source_git_sha=") else line
+            for line in info_lines
+        ]
+    elif case == "build_info_alembic_mismatch":
+        info_lines = [
+            "alembic_head=other_revision" if line.startswith("alembic_head=") else line
+            for line in info_lines
+        ]
+    elif case == "build_info_portable_hash_mismatch":
+        info_lines = [
+            "portable_exe_sha256=" + "f" * 64
+            if line.startswith("portable_exe_sha256=")
+            else line
+            for line in info_lines
+        ]
+
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    build_info_path.write_text("\n".join(info_lines) + "\n", encoding="utf-8")
+    publish_root = tmp_path / "publish"
+
+    result = _run_provenance_publish(shell, repo, candidate, publish_root)
+
+    assert result.returncode != 0, f"case={case}\nstdout={result.stdout}\nstderr={result.stderr}"
+    assert not (publish_root / "Current").exists()
