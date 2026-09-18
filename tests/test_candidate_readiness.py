@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -679,3 +680,215 @@ def test_successful_controlled_launch_overrides_inherited_working_roots(
     environment = calls[0][1]["env"]
     assert environment["QI_CRAWLER_DATA_DIR"] == str(data_root.resolve())
     assert environment["QI_CRAWLER_CONFIG_PATH"] == str((data_root / "config.yaml").resolve())
+
+
+def test_failed_process_launch_preserves_acceptance_and_retry_succeeds(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    candidate, data_root, migration = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    args = _acceptance_args(candidate, data_root, migration)
+    receipt_path = candidate / "control" / "pre_start_acceptance.json"
+
+    with pytest.raises(OSError, match="simulated launch failure"):
+        candidate_readiness.launch_candidate_after_acceptance(
+            **args,
+            launcher=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                OSError("simulated launch failure")
+            ),
+        )
+    receipt_before = receipt_path.read_bytes()
+    calls: list[object] = []
+    candidate_readiness.launch_candidate_after_acceptance(
+        **args,
+        launcher=lambda *launcher_args, **launcher_kwargs: calls.append(
+            (launcher_args, launcher_kwargs)
+        ),
+    )
+
+    assert receipt_path.read_bytes() == receipt_before
+    assert len(calls) == 1
+
+
+def test_existing_acceptance_allows_operational_database_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qi_crawler import candidate_readiness, standalone
+
+    candidate, data_root, migration = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    acceptance = candidate_readiness.accept_pre_first_business_startup(
+        **_acceptance_args(candidate, data_root, migration)
+    )
+    database = data_root / "data" / "database" / "egp.db"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE normal_runtime_write (value TEXT)")
+
+    assert candidate_readiness.validate_existing_acceptance(candidate) == acceptance
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(
+        sys,
+        "executable",
+        str(candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"),
+    )
+    assert standalone.authorize_frozen_runtime([]) == "ACCEPTED_CANDIDATE"
+
+
+def test_frozen_candidate_direct_start_requires_acceptance_before_default_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qi_crawler import standalone
+
+    candidate, _, _ = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    executable = candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    working_root = tmp_path / "working-localappdata" / "QI-Crawler"
+    working_root.mkdir(parents=True)
+    marker = working_root / "keep.txt"
+    marker.write_text("untouched", encoding="utf-8")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setenv("LOCALAPPDATA", str(working_root.parent))
+    monkeypatch.delenv("QI_CRAWLER_DATA_DIR", raising=False)
+    monkeypatch.delenv("QI_CRAWLER_CONFIG_PATH", raising=False)
+
+    with pytest.raises(Exception, match="CANDIDATE_ACCEPTANCE_REQUIRED"):
+        standalone.authorize_frozen_runtime([])
+
+    assert marker.read_text(encoding="utf-8") == "untouched"
+    assert "QI_CRAWLER_DATA_DIR" not in os.environ
+
+
+def test_frozen_candidate_direct_start_binds_accepted_candidate_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qi_crawler import candidate_readiness, standalone
+
+    candidate, data_root, migration = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    candidate_readiness.accept_pre_first_business_startup(
+        **_acceptance_args(candidate, data_root, migration)
+    )
+    executable = candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "working-localappdata"))
+    monkeypatch.delenv("QI_CRAWLER_DATA_DIR", raising=False)
+    monkeypatch.delenv("QI_CRAWLER_CONFIG_PATH", raising=False)
+
+    result = standalone.authorize_frozen_runtime([])
+
+    assert result == "ACCEPTED_CANDIDATE"
+    assert os.environ["QI_CRAWLER_DATA_DIR"] == str(data_root.resolve())
+    assert os.environ["QI_CRAWLER_CONFIG_PATH"] == str(
+        (data_root / "config.yaml").resolve()
+    )
+
+
+def test_frozen_candidate_rejects_tampered_or_foreign_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qi_crawler import candidate_readiness, standalone
+
+    candidate, data_root, migration = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    candidate_readiness.accept_pre_first_business_startup(
+        **_acceptance_args(candidate, data_root, migration)
+    )
+    receipt_path = candidate / "control" / "pre_start_acceptance.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["candidate_root"] = str((tmp_path / "foreign-candidate").resolve())
+    receipt_path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(
+        sys,
+        "executable",
+        str(candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"),
+    )
+
+    with pytest.raises(Exception, match="ACCEPTANCE_CANDIDATE_ROOT_MISMATCH"):
+        standalone.authorize_frozen_runtime([])
+
+
+def test_preacceptance_candidate_smoke_requires_explicit_isolated_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from qi_crawler import standalone
+
+    candidate, _, _ = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    executable = candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "working-localappdata"))
+    monkeypatch.delenv("QI_CRAWLER_DATA_DIR", raising=False)
+
+    with pytest.raises(Exception, match="CANDIDATE_SMOKE_DATA_ROOT_REQUIRED"):
+        standalone.authorize_frozen_runtime(["--smoke-test"])
+
+    isolated = tmp_path / "isolated-smoke"
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(isolated))
+    assert standalone.authorize_frozen_runtime(["--smoke-test"]) == (
+        "ISOLATED_CANDIDATE_SMOKE"
+    )
+    working = Path(os.environ["LOCALAPPDATA"]) / "QI-Crawler"
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(working))
+    with pytest.raises(Exception, match="CANDIDATE_ROOT_OVERLAPS_WORKING_ROOT"):
+        standalone.authorize_frozen_runtime(["--smoke-test"])
+
+
+@pytest.mark.parametrize(
+    ("tamper", "expected"),
+    [
+        ("missing", "CANDIDATE_RELEASE_MANIFEST_REQUIRED"),
+        ("channel", "CANDIDATE_RELEASE_CHANNEL_INVALID"),
+    ],
+)
+def test_governed_candidate_layout_fails_closed_on_release_metadata_tamper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tamper: str,
+    expected: str,
+) -> None:
+    from qi_crawler import standalone
+
+    candidate, _, _ = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    executable = candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    manifest_path = executable.parent / "release_manifest.json"
+    if tamper == "missing":
+        manifest_path.unlink()
+    else:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["release_channel"] = "INTERNAL_PILOT"
+        manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+
+    with pytest.raises(Exception, match=expected):
+        standalone.authorize_frozen_runtime([])
+
+
+def test_gui_candidate_gate_runs_before_standalone_preparation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from qi_crawler import gui
+
+    events: list[str] = []
+    monkeypatch.setattr(gui, "is_frozen", lambda: True)
+
+    def reject(_arguments: list[str]) -> None:
+        events.append("authorize")
+        raise RuntimeError("candidate not accepted")
+
+    monkeypatch.setattr(gui, "authorize_frozen_runtime", reject)
+    monkeypatch.setattr(
+        gui,
+        "prepare_standalone_runtime",
+        lambda: events.append("prepare"),
+    )
+
+    assert gui.main() == 1
+    assert events == ["authorize"]

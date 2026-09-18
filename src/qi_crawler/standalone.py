@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
@@ -80,6 +81,85 @@ def standalone_paths(user_root: Path | None = None) -> StandalonePaths:
         database_path=data_dir / "database" / "egp.db",
         browser_dir=resource_path("browsers"),
     )
+
+
+def _governed_candidate_root(executable: Path) -> Path | None:
+    bundle = executable.parent
+    if bundle.name != "QI-Crawler" or bundle.parent.name != "app":
+        return None
+    return bundle.parent.parent.resolve(strict=False)
+
+
+def _candidate_release_manifest(executable: Path) -> dict[str, object] | None:
+    manifest_path = executable.parent / "release_manifest.json"
+    candidate_root = _governed_candidate_root(executable)
+    if not manifest_path.is_file():
+        if candidate_root is not None:
+            raise StandaloneResourceError("CANDIDATE_RELEASE_MANIFEST_REQUIRED")
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise StandaloneResourceError("CANDIDATE_RELEASE_MANIFEST_INVALID") from exc
+    if not isinstance(manifest, dict):
+        raise StandaloneResourceError("CANDIDATE_RELEASE_MANIFEST_INVALID")
+    return manifest
+
+
+def _authorize_isolated_candidate_smoke(
+    candidate_root: Path | None,
+) -> None:
+    raw_root = os.environ.get("QI_CRAWLER_DATA_DIR")
+    if not raw_root:
+        raise StandaloneResourceError("CANDIDATE_SMOKE_DATA_ROOT_REQUIRED")
+    isolated = Path(raw_root).expanduser().resolve(strict=False)
+    forbidden = [Path(r"D:\QI-Crawler").resolve(strict=False)]
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        forbidden.append((Path(local_app_data) / "QI-Crawler").resolve(strict=False))
+    if candidate_root is not None:
+        forbidden.append(candidate_root)
+    for root in forbidden:
+        if (
+            isolated == root
+            or isolated.is_relative_to(root)
+            or root.is_relative_to(isolated)
+        ):
+            raise StandaloneResourceError("CANDIDATE_ROOT_OVERLAPS_WORKING_ROOT")
+    os.environ["QI_CRAWLER_DATA_DIR"] = str(isolated)
+    os.environ["QI_CRAWLER_CONFIG_PATH"] = str(isolated / "config.yaml")
+
+
+def authorize_frozen_runtime(arguments: list[str]) -> str:
+    """Authorize candidate storage before any standalone path is prepared."""
+    if not is_frozen():
+        return "NOT_FROZEN"
+    executable = Path(sys.executable).resolve(strict=True)
+    manifest = _candidate_release_manifest(executable)
+    candidate_root = _governed_candidate_root(executable)
+    if manifest is None:
+        return "NON_CANDIDATE"
+    if manifest.get("release_channel") != "INTERNAL_CANDIDATE":
+        if candidate_root is not None:
+            raise StandaloneResourceError("CANDIDATE_RELEASE_CHANNEL_INVALID")
+        return "NON_CANDIDATE"
+    smoke = any(
+        option in arguments
+        for option in ("--smoke-test", "--smoke-test-network", "--smoke-test-documents")
+    )
+    if smoke:
+        _authorize_isolated_candidate_smoke(candidate_root)
+        return "ISOLATED_CANDIDATE_SMOKE"
+    if candidate_root is None:
+        raise StandaloneResourceError("CANDIDATE_LAYOUT_INVALID")
+    from .candidate_readiness import validate_existing_acceptance
+
+    acceptance = validate_existing_acceptance(candidate_root)
+    data_root = Path(str(acceptance["candidate_data_root"])).resolve(strict=True)
+    config_path = Path(str(acceptance["candidate_config_path"])).resolve(strict=True)
+    os.environ["QI_CRAWLER_DATA_DIR"] = str(data_root)
+    os.environ["QI_CRAWLER_CONFIG_PATH"] = str(config_path)
+    return "ACCEPTED_CANDIDATE"
 
 
 def _write_default_config(paths: StandalonePaths) -> None:

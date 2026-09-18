@@ -617,6 +617,126 @@ def accept_pre_first_business_startup(
     return acceptance
 
 
+def validate_existing_acceptance(
+    candidate_root: Path | str,
+) -> dict[str, Any]:
+    """Validate immutable candidate authorization while allowing normal DB writes."""
+    candidate = Path(candidate_root).resolve(strict=True)
+    receipt_path = candidate / "control" / ACCEPTANCE_RECEIPT_NAME
+    if not receipt_path.is_file():
+        raise CandidateReadinessError("CANDIDATE_ACCEPTANCE_REQUIRED")
+    acceptance = _read_json(receipt_path, "CANDIDATE_ACCEPTANCE_INVALID")
+    required_fields = {
+        "acceptance_schema_version",
+        "status",
+        "candidate_root",
+        "candidate_data_root",
+        "candidate_config_path",
+        "bundle_root",
+        "executable",
+        "product",
+        "source_git_sha",
+        "source_branch",
+        "version",
+        "build_timestamp_utc",
+        "alembic_head",
+        "release_channel",
+        "portable_exe_sha256",
+        "release_manifest_sha256",
+        "build_info_sha256",
+        "portable_artifact_receipt_sha256",
+        "clone_receipt_sha256",
+        "migration_receipt_sha256",
+        "database_sha256",
+        "schema_revision",
+        "managed_document_mapping_digest",
+        "document_count",
+        "created_at",
+    }
+    if set(acceptance) != required_fields:
+        raise CandidateReadinessError("CANDIDATE_ACCEPTANCE_FIELDS_INVALID")
+    if (
+        acceptance.get("acceptance_schema_version") != ACCEPTANCE_SCHEMA_VERSION
+        or acceptance.get("status") != "ACCEPTED"
+    ):
+        raise CandidateReadinessError("CANDIDATE_ACCEPTANCE_INVALID")
+    if Path(str(acceptance.get("candidate_root"))).resolve(strict=False) != candidate:
+        raise CandidateReadinessError("ACCEPTANCE_CANDIDATE_ROOT_MISMATCH")
+    data = (candidate / "data-root").resolve(strict=True)
+    if Path(str(acceptance.get("candidate_data_root"))).resolve(strict=False) != data:
+        raise CandidateReadinessError("ACCEPTANCE_DATA_ROOT_MISMATCH")
+    config_path = (data / "config.yaml").resolve(strict=True)
+    if Path(str(acceptance.get("candidate_config_path"))).resolve(strict=False) != config_path:
+        raise CandidateReadinessError("ACCEPTANCE_CONFIG_PATH_MISMATCH")
+    build = _validate_build_identity(
+        candidate,
+        expected_frozen_source_sha=str(acceptance.get("source_git_sha", "")),
+        expected_version=str(acceptance.get("version", "")),
+    )
+    for key, value in build.items():
+        if acceptance.get(key) != value:
+            raise CandidateReadinessError("ACCEPTANCE_BUILD_IDENTITY_MISMATCH")
+    clone_path = data / "candidate_data_receipt.json"
+    migration_path = data / MIGRATION_RECEIPT_NAME
+    if not clone_path.is_file() or _sha256(clone_path) != acceptance.get(
+        "clone_receipt_sha256"
+    ):
+        raise CandidateReadinessError("ACCEPTANCE_CLONE_LINEAGE_MISMATCH")
+    if not migration_path.is_file() or _sha256(migration_path) != acceptance.get(
+        "migration_receipt_sha256"
+    ):
+        raise CandidateReadinessError("ACCEPTANCE_MIGRATION_LINEAGE_MISMATCH")
+    clone = _read_json(clone_path, "CLONE_RECEIPT_INVALID")
+    migration = _read_json(migration_path, "MIGRATION_RECEIPT_INVALID")
+    source_identity = migration.get("migration_source_identity") or {}
+    if (
+        migration.get("receipt_schema_version") != MIGRATION_RECEIPT_SCHEMA_VERSION
+        or migration.get("migration_result") != "PASS"
+        or migration.get("to_revision") != acceptance.get("schema_revision")
+        or source_identity.get("source_git_sha") != acceptance.get("source_git_sha")
+    ):
+        raise CandidateReadinessError("ACCEPTANCE_MIGRATION_AUTHORITY_INVALID")
+    database = _database_path(clone)
+    if not database.is_relative_to(data):
+        raise CandidateReadinessError("CANDIDATE_DB_PATH_ESCAPE")
+    if _schema_revision(database) != acceptance.get("schema_revision"):
+        raise CandidateReadinessError("MIGRATED_SCHEMA_MISMATCH")
+    return acceptance
+
+
+def _ensure_acceptance(
+    candidate_root: Path | str,
+    data_root: Path | str,
+    *,
+    expected_frozen_source_sha: str,
+    expected_migration_receipt_sha256: str,
+    expected_version: str,
+    forbidden_roots: tuple[Path | str, ...],
+) -> dict[str, Any]:
+    candidate = Path(candidate_root).resolve(strict=True)
+    receipt_path = candidate / "control" / ACCEPTANCE_RECEIPT_NAME
+    if not receipt_path.exists():
+        return accept_pre_first_business_startup(
+            candidate,
+            data_root,
+            expected_frozen_source_sha=expected_frozen_source_sha,
+            expected_migration_receipt_sha256=expected_migration_receipt_sha256,
+            expected_version=expected_version,
+            forbidden_roots=forbidden_roots,
+        )
+    acceptance = validate_existing_acceptance(candidate)
+    if Path(str(acceptance["candidate_data_root"])) != Path(data_root).resolve(strict=True):
+        raise CandidateReadinessError("ACCEPTANCE_DATA_ROOT_MISMATCH")
+    if acceptance["source_git_sha"] != expected_frozen_source_sha.lower():
+        raise CandidateReadinessError("FROZEN_SOURCE_SHA_MISMATCH")
+    if acceptance["version"] != expected_version:
+        raise CandidateReadinessError("BUILD_PRODUCT_VERSION_MISMATCH")
+    if acceptance["migration_receipt_sha256"] != expected_migration_receipt_sha256.lower():
+        raise CandidateReadinessError("MIGRATION_RECEIPT_IDENTITY_MISMATCH")
+    _guard_candidate_boundary(candidate, forbidden_roots)
+    return acceptance
+
+
 def launch_candidate_after_acceptance(
     candidate_root: Path | str,
     data_root: Path | str,
@@ -628,7 +748,7 @@ def launch_candidate_after_acceptance(
     launcher: Callable[..., Any] = subprocess.Popen,
 ) -> Any:
     """Run the candidate's one-time controlled first start after Stage 3 passes."""
-    acceptance = accept_pre_first_business_startup(
+    acceptance = _ensure_acceptance(
         candidate_root,
         data_root,
         expected_frozen_source_sha=expected_frozen_source_sha,

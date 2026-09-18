@@ -145,6 +145,7 @@ from .market_intelligence.value_normalization import parse_optional_money_input
 from .migrations import upgrade_database
 from .standalone import (
     StandaloneResourceError,
+    authorize_frozen_runtime,
     configure_standalone_file_logging,
     is_frozen,
     prepare_standalone_runtime,
@@ -4561,6 +4562,12 @@ def _run_standalone_smoke(arguments: list[str]) -> int:
 
 
 def main() -> int:
+    if is_frozen():
+        try:
+            authorize_frozen_runtime(sys.argv)
+        except Exception:
+            logger.exception("Frozen candidate runtime authorization failed")
+            return 1
     smoke_requested = is_frozen() and _standalone_smoke_requested(sys.argv)
     if smoke_requested:
         try:
