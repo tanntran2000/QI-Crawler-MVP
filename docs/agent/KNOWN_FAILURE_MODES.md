@@ -833,6 +833,21 @@ REALF5_RERUN = FORBIDDEN_FOR_LOG_COSMETICS
 LIMIT = Preserve the contradictory historical output and durable execution evidence. Fix reporting semantics separately without rewriting the trial or claiming A3/F5 clean close.
 ```
 
+## FM-039 — Equivalent synthetic seeds produced different physical SHA values
+
+```text
+ID = FM-039
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / A3 SYNTHETIC SEED
+SYMPTOM = Synthetic schema-0020 seeds could have identical logical identity, revision, size, PRAGMA state and integrity but intermittently different physical SHA values on Windows.
+ROOT_CAUSE = The physical canonicalizer replayed sqlite3 iterdump schema-object ordering without normalizing order-insensitive post-table index and trigger DDL.
+TRIGGER = Equivalent sqlite_schema index serialization order differed between otherwise equivalent seed generations.
+CORRECTION = Preserve complete iterdump statements as atomic units while deterministically sorting CREATE INDEX, CREATE UNIQUE INDEX and CREATE TRIGGER statements before replay and COMMIT.
+PREVENTION = A regression creates equivalent databases with opposite index-creation orders and proves one-pass physical convergence, logical preservation and idempotence; the generator contract samples six independent seeds without weakening physical identity checks.
+EVIDENCE = V10D2 isolated 4,767 differing bytes on pages 120 and 151 with identical logical digest and integrity; V10D3 RED reproduced different post-canonicalization SHA values, then GREEN converged after deterministic post-schema ordering. Focused seed suite, three independent six-seed runs, 48 adjacent A3 tests and the 1,336-test full repository suite passed.
+LIMIT = This correction covers the proven schema-object ordering boundary. It does not claim that all SQLite physical nondeterminism is eliminated, does not alter user data, and grants no RealF5, candidate-build, migration, release or promotion authority.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

@@ -162,14 +162,44 @@ def _migration_identity(config: Config) -> list[dict[str, Any]]:
     ]
 
 
+_POST_SCHEMA_DDL_PREFIXES = (
+    "CREATE INDEX ",
+    "CREATE UNIQUE INDEX ",
+    "CREATE TRIGGER ",
+)
+
+
+def _deterministic_dump_statements(connection: sqlite3.Connection) -> list[str]:
+    """Keep dump statements atomic while normalizing order-insensitive schema DDL."""
+
+    statements = list(connection.iterdump())
+    if (
+        len(statements) < 2
+        or statements[0].strip().upper() != "BEGIN TRANSACTION;"
+        or statements[-1].strip().upper() != "COMMIT;"
+    ):
+        raise RuntimeError("SQLite dump does not have the expected transaction boundary")
+
+    body: list[str] = []
+    post_schema: list[str] = []
+    for statement in statements[1:-1]:
+        normalized = statement.lstrip().upper()
+        if normalized.startswith(_POST_SCHEMA_DDL_PREFIXES):
+            post_schema.append(statement)
+        else:
+            body.append(statement)
+    post_schema.sort(key=lambda statement: statement.strip().casefold())
+    return [statements[0], *body, *post_schema, statements[-1]]
+
+
 def _canonicalize_physical_database(database_path: Path) -> None:
-    """Replay SQLite's deterministic logical dump to stabilize page allocation."""
+    """Replay a deterministically ordered SQLite dump to stabilize page allocation."""
 
     canonical = database_path.with_name(database_path.name + ".canonical.tmp")
     if canonical.exists():
         raise FileExistsError(f"refusing to overwrite canonicalization target: {canonical}")
     with closing(sqlite3.connect(database_path)) as source:
-        dump = "\n".join(source.iterdump()) + "\n"
+        dump = "\n".join(_deterministic_dump_statements(source)) + "\n"
     try:
         with closing(sqlite3.connect(canonical)) as destination:
             destination.executescript(dump)
