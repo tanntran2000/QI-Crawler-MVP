@@ -27,6 +27,7 @@ class _DocumentRecord:
 
 _REPARSE_POINT = 0x400
 _RECEIPT_NAME = "candidate_data_receipt.json"
+CLONE_RECEIPT_SCHEMA_VERSION = "qi-crawler-candidate-clone-v1"
 MAX_BACKUP_SECONDS = 30.0
 _BACKUP_PAGES = 128
 _SQLITE_BUSY_TIMEOUT_MS = 1_000
@@ -234,6 +235,40 @@ def _candidate_roots(destination: Path) -> dict[str, Path]:
     }
 
 
+def managed_document_mapping_identity(
+    destination_root: Path | str,
+    database: Path | str,
+) -> dict[str, Any]:
+    """Return a canonical, mapping-sensitive identity for managed documents."""
+    destination = Path(destination_root).resolve(strict=True)
+    document_root = (destination / "data" / "documents").resolve(strict=True)
+    records = _read_documents(Path(database).resolve(strict=True))
+    entries: list[list[Any]] = []
+    observed_paths: set[Path] = set()
+    for record in records:
+        stored_path = record.stored_path.resolve(strict=True)
+        if not stored_path.is_relative_to(document_root):
+            raise CandidateDataError(f"MANAGED_DOCUMENT_PATH_ESCAPE: {stored_path}")
+        if stored_path in observed_paths:
+            raise CandidateDataError(f"MANAGED_DOCUMENT_PATH_COLLISION: {stored_path}")
+        observed_paths.add(stored_path)
+        if _sha256(stored_path).lower() != record.sha256:
+            raise CandidateDataError(f"MANAGED_DOCUMENT_SHA_MISMATCH: {record.document_id}")
+        relative = stored_path.relative_to(document_root).as_posix()
+        entries.append([record.document_id, relative, record.sha256])
+    entries.sort(key=lambda item: (item[0], item[1], item[2]))
+    canonical = json.dumps(
+        {"document_count": len(entries), "documents": entries},
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return {
+        "document_count": len(entries),
+        "managed_document_mapping_digest": hashlib.sha256(canonical).hexdigest(),
+    }
+
+
 def _isolated_config(raw: dict[str, Any], roots: dict[str, Path], database: Path) -> dict[str, Any]:
     copied = json.loads(json.dumps(raw))
     storage = copied.setdefault("storage", {})
@@ -366,7 +401,8 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
             raise CandidateDataError("FAIL_CANDIDATE_ISOLATION")
 
         candidate_config = _isolated_config(raw, roots, candidate_db)
-        (destination / "config.yaml").write_text(
+        candidate_config_path = destination / "config.yaml"
+        candidate_config_path.write_text(
             yaml.safe_dump(candidate_config, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
@@ -374,9 +410,10 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
         if keyword_groups.is_file():
             shutil.copyfile(keyword_groups, destination / "keyword-groups.yaml")
 
-        digest_payload = "\n".join(sorted({record.sha256 for record in records})).encode()
+        mapping_identity = managed_document_mapping_identity(destination, candidate_db)
         complete: dict[str, Any] = {
             **incomplete,
+            "receipt_schema_version": CLONE_RECEIPT_SCHEMA_VERSION,
             "status": "COMPLETE",
             "source_db_identity": {"path": str(source_db), "sha256": db_hash_before},
             "source_sqlite_observation": {
@@ -392,9 +429,9 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
                 "sha256": _sha256(candidate_db),
             },
             "source_schema": schema,
-            "document_count": len(records),
-            "document_sha_set_digest": hashlib.sha256(digest_payload).hexdigest(),
+            **mapping_identity,
             "rebase_count": len(records),
+            "candidate_config_path": str(candidate_config_path.resolve()),
             **{key: str(path.resolve()) for key, path in roots.items()},
         }
         _write_receipt(destination, complete)
@@ -405,8 +442,51 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
         raise
 
 
-def validate_candidate_receipt(destination_root: Path | str) -> dict[str, Any]:
+def _validate_candidate_config(
+    destination: Path,
+    receipt: dict[str, Any],
+) -> None:
+    config_path = Path(str(receipt.get("candidate_config_path", ""))).resolve(strict=True)
+    if config_path != (destination / "config.yaml").resolve(strict=True):
+        raise CandidateDataError("CANDIDATE_CONFIG_PATH_MISMATCH")
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(raw, dict) or not isinstance(raw.get("storage"), dict):
+        raise CandidateDataError("CANDIDATE_CONFIG_INVALID")
+    isolation = raw.get("candidate_isolation")
+    if not isinstance(isolation, dict):
+        raise CandidateDataError("CANDIDATE_CONFIG_ISOLATION_MISSING")
+    root_keys = tuple(_candidate_roots(destination))
+    for key in root_keys:
+        configured = Path(str(isolation.get(key, ""))).resolve(strict=False)
+        recorded = Path(str(receipt.get(key, ""))).resolve(strict=False)
+        if (
+            configured != recorded
+            or not configured.is_relative_to(destination)
+            or not configured.is_dir()
+        ):
+            raise CandidateDataError(f"CANDIDATE_CONFIG_ESCAPE: {key}")
+    storage = raw["storage"]
+    expected_storage = {
+        "database_url": f"sqlite:///{(destination / 'data' / 'database' / 'egp.db').resolve().as_posix()}",
+        "document_dir": str((destination / "data" / "documents").resolve()),
+        "download_dir": str((destination / "data" / "downloads").resolve()),
+        "discovery_dir": str((destination / "data" / "discovery").resolve()),
+        "raw_dir": str((destination / "data" / "raw").resolve()),
+        "rejects_dir": str((destination / "data" / "rejects").resolve()),
+        "report_dir": str((destination / "data" / "reports").resolve()),
+    }
+    for key, expected in expected_storage.items():
+        if storage.get(key) != expected:
+            raise CandidateDataError(f"CANDIDATE_CONFIG_ESCAPE: {key}")
+
+
+def validate_candidate_receipt(
+    destination_root: Path | str,
+    *,
+    require_pre_migration_db_identity: bool = True,
+) -> dict[str, Any]:
     destination = Path(destination_root).resolve(strict=True)
+    _guard_no_reparse(destination)
     receipt_path = destination / _RECEIPT_NAME
     try:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -414,6 +494,27 @@ def validate_candidate_receipt(destination_root: Path | str) -> dict[str, Any]:
         raise CandidateDataError("CANDIDATE_RECEIPT_INVALID") from exc
     if receipt.get("status") != "COMPLETE":
         raise CandidateDataError("CANDIDATE_RECEIPT_INCOMPLETE")
+    if receipt.get("receipt_schema_version") != CLONE_RECEIPT_SCHEMA_VERSION:
+        raise CandidateDataError("CANDIDATE_RECEIPT_SCHEMA_UNSUPPORTED")
     if Path(str(receipt.get("destination_root", ""))).resolve() != destination:
         raise CandidateDataError("CANDIDATE_RECEIPT_DESTINATION_MISMATCH")
+    candidate_db = Path(
+        str((receipt.get("candidate_db_identity") or {}).get("path", ""))
+    ).resolve(strict=True)
+    expected_db = (destination / "data" / "database" / "egp.db").resolve(strict=True)
+    if candidate_db != expected_db or not candidate_db.is_relative_to(destination):
+        raise CandidateDataError("CANDIDATE_DB_PATH_MISMATCH")
+    if require_pre_migration_db_identity:
+        expected_sha = str((receipt.get("candidate_db_identity") or {}).get("sha256", ""))
+        if _sha256(candidate_db) != expected_sha:
+            raise CandidateDataError("CANDIDATE_DB_IDENTITY_MISMATCH")
+        if _schema_revision(candidate_db) != receipt.get("source_schema"):
+            raise CandidateDataError("CANDIDATE_SCHEMA_IDENTITY_MISMATCH")
+    current_mapping = managed_document_mapping_identity(destination, candidate_db)
+    if current_mapping != {
+        "document_count": receipt.get("document_count"),
+        "managed_document_mapping_digest": receipt.get("managed_document_mapping_digest"),
+    }:
+        raise CandidateDataError("MANAGED_DOCUMENT_MAPPING_MISMATCH")
+    _validate_candidate_config(destination, receipt)
     return receipt

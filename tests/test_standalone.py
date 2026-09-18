@@ -143,6 +143,70 @@ def test_isolated_data_root_rejects_non_sqlite_database(
         os.chdir(original_cwd)
 
 
+def test_candidate_effective_database_guard_rejects_external_target(tmp_path: Path) -> None:
+    from qi_crawler import standalone
+
+    paths = standalone.standalone_paths(tmp_path / "candidate-data")
+    external = tmp_path / "external" / "probe.db"
+
+    with pytest.raises(
+        StandaloneResourceError, match="CANDIDATE_EFFECTIVE_DATABASE_ESCAPE"
+    ):
+        standalone.validate_candidate_database_target(
+            f"sqlite:///{external.as_posix()}",
+            paths,
+        )
+
+    assert not external.exists()
+
+
+@pytest.mark.parametrize(
+    "database_url",
+    [
+        "postgresql://example.invalid/database",
+        "sqlite:///../external/probe.db",
+        "sqlite:///:memory:",
+        "not-a-database-url",
+    ],
+)
+def test_candidate_effective_database_guard_rejects_noncanonical_targets(
+    tmp_path: Path,
+    database_url: str,
+) -> None:
+    from qi_crawler import standalone
+
+    paths = standalone.standalone_paths(tmp_path / "candidate-data")
+
+    with pytest.raises(
+        StandaloneResourceError, match="CANDIDATE_EFFECTIVE_DATABASE_ESCAPE"
+    ):
+        standalone.validate_candidate_database_target(database_url, paths)
+
+
+def test_non_candidate_load_config_preserves_database_environment_override(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    configured = tmp_path / "configured.db"
+    overridden = tmp_path / "override.db"
+    config_path.write_text(
+        yaml.safe_dump(
+            {"storage": {"database_url": f"sqlite:///{configured.as_posix()}"}},
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(
+        "QI_CRAWLER_DATABASE_URL",
+        f"sqlite:///{overridden.as_posix()}",
+    )
+
+    assert load_config(config_path).storage.database_url == (
+        f"sqlite:///{overridden.as_posix()}"
+    )
+
+
 def test_windows_build_files_define_onedir_gui_bundle() -> None:
     root = Path(__file__).resolve().parents[1]
     spec = (root / "packaging" / "QI-Crawler.spec").read_text(encoding="utf-8")
