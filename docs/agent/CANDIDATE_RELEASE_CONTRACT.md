@@ -16,6 +16,8 @@ D:\QI-Crawler-Candidates\
     data-root\
     output\
     control\
+      portable_artifact_receipt.json
+      pre_start_acceptance.json
     evidence\
 ```
 
@@ -25,6 +27,18 @@ logically disjoint from `D:\QI-Crawler` and
 must validate the exact build, frozen source SHA, clone receipt, migration
 receipt, migrated database, managed-document mapping, and candidate-only
 configuration. Invalid evidence means the application is not launched.
+
+The portable candidate and a future installer have separate artifact identities.
+`portable_artifact_receipt.json` uses `qi-crawler-portable-artifact-v1`, is
+produced from the actual portable EXE, release manifest, and `BUILD_INFO.txt`,
+and contains no installer hash. A future installer/publisher receipt remains a
+separate lifecycle artifact and is not required for portable readiness.
+
+A frozen bundle with release channel `INTERNAL_CANDIDATE` must authorize its
+governed candidate root before standalone runtime preparation. Normal direct
+startup requires a valid existing acceptance and binds data/config to the
+candidate root. Pre-acceptance smoke is permitted only with an explicit isolated
+data root that does not overlap working user data or the candidate boundary.
 
 ## Storage budget
 
@@ -71,3 +85,15 @@ counted as reclaimable headroom.
 successful isolated migration. `PRE_FIRST_BUSINESS_STARTUP_ACCEPTANCE` binds the
 approved initial operational state. The clone hash is not a permanent runtime
 invariant after normal application writes begin.
+
+Migration execution must use an exact clean Git checkout whose `HEAD` equals the
+expected frozen commit. Each executed Alembic version file must match its Git
+blob at that commit. Untracked build output does not invalidate a clean tracked
+tree and must not be deleted by this verification.
+
+`PRE_FIRST_BUSINESS_STARTUP_ACCEPTANCE` means the initial candidate state was
+accepted; it does not assert that a process started. A failed process launch
+preserves this write-once evidence, and a later launch may reuse it after
+revalidating immutable build/root/receipt lineage. Runtime authorization must
+not compare the current operational DB byte hash to the historical pre-start
+hash, because normal application writes are allowed after acceptance.

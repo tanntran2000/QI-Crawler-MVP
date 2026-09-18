@@ -876,6 +876,48 @@ EVIDENCE = PR116-AUDIT-CORRECTION-R2 Windows publisher regressions; exact correc
 LIMIT = This validates declared provenance consistency. Matching the declared source SHA to the future frozen build source remains a mandatory candidate-build acceptance gate.
 ```
 
+## FM-042 — Candidate migration provenance trusted a caller-declared Git SHA
+
+```text
+ID = FM-042
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / CANDIDATE MIGRATION
+SYMPTOM = A migration receipt could name source commit X while executing migration and orchestration bytes from a different or dirty checkout.
+ROOT_CAUSE = Stage 2 copied a caller-provided source_git_sha into evidence without proving repository root, commit existence, exact HEAD, tracked-tree cleanliness, or migration-file Git blobs.
+CORRECTION = Require an explicit source repository root and expected frozen commit; verify exact worktree root, commit object, HEAD and whole tracked-tree cleanliness; bind every executed migration script to its repo-relative Git blob before Alembic runs.
+PREVENTION = Keep detached exact-HEAD checkouts valid, allow unrelated untracked build output, and retain wrong-head, dirty-source, missing-repo and blob-mismatch regressions.
+EVIDENCE = PR117 readiness correction F01; focused candidate-readiness suite and full 1415-test repository suite passed locally at correction code head 3b031ec.
+LIMIT = Local synthetic migration evidence only. Final source freeze, real business-data migration, candidate build and release remain unauthorized and unproven.
+```
+
+## FM-043 — Portable readiness depended on an installer-only receipt schema
+
+```text
+ID = FM-043
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / PORTABLE ARTIFACT IDENTITY
+SYMPTOM = Stage 3 expected an installer receipt containing installer_sha256 even though the installer gate was explicitly deferred.
+ROOT_CAUSE = Portable and installer artifacts shared one lifecycle identity, leaving no legitimate producer for portable-only acceptance without a placeholder installer hash.
+CORRECTION = Add write-once portable_artifact_receipt.json with qi-crawler-portable-artifact-v1, generated from the actual EXE, release manifest and BUILD_INFO; reject missing, installer-only, extra-field and mismatched identities.
+PREVENTION = Keep portable and installer receipts separate; portable readiness contains no installer SHA and does not require Inno Setup.
+EVIDENCE = PR117 readiness correction F02; producer/consumer and tamper regressions plus full 1415-test repository suite passed locally at correction code head 3b031ec.
+LIMIT = This proves the synthetic portable identity contract, not a final PyInstaller artifact, installer, packaging acceptance, publication or promotion.
+```
+
+## FM-044 — Unaccepted candidate direct start could fall back to working user data
+
+```text
+ID = FM-044
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+PRODUCT_HOUSE_LAYER = APPLICATION / RELEASE RUNTIME GATE
+SYMPTOM = Double-clicking an INTERNAL_CANDIDATE EXE could reach standalone runtime preparation and default to %LOCALAPPDATA%\QI-Crawler before Stage 3 acceptance; a failed first Popen also made the write-once acceptance unusable for retry.
+ROOT_CAUSE = Candidate authorization occurred only in the external controlled launcher, after the raw GUI entry path had already selected its data root; acceptance creation and process-start success were conflated.
+CORRECTION = Identify the frozen candidate from adjacent release metadata before runtime preparation; fail closed on missing/malformed governed-layout metadata; require and validate immutable acceptance for normal direct start; bind candidate data/config roots; allow only explicitly isolated preacceptance smoke. Preserve acceptance after launch failure and reuse it after validation. Current operational DB bytes may change after acceptance.
+PREVENTION = Test preacceptance refusal before preparation, no LOCALAPPDATA fallback, foreign/tampered acceptance, accepted direct binding, post-start DB mutation, isolated smoke, GUI gate ordering and launch retry.
+EVIDENCE = PR117 readiness correction F03/F04; 226 adjacent regressions and full 1415-test repository suite passed locally at correction code head 3b031ec.
+LIMIT = Synthetic/runtime-entry verification only. Actual frozen-process B04 cases remain mandatory after a real candidate build; no business GUI startup or user-data mutation was performed.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
