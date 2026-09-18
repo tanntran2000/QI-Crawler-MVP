@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,29 @@ def _source_root(tmp_path: Path, documents: list[tuple[int, str, bytes]] | None 
 
 def _prepare(source: Path, destination: Path):
     return _module().prepare_candidate_data(source, destination)
+
+
+def _enable_wal(source_db: Path) -> sqlite3.Connection:
+    keeper = sqlite3.connect(source_db, isolation_level=None)
+    assert keeper.execute("PRAGMA journal_mode = WAL").fetchone()[0].lower() == "wal"
+    keeper.execute("PRAGMA wal_autocheckpoint = 0")
+    keeper.execute("CREATE TABLE capture_writes (value TEXT NOT NULL)")
+    keeper.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    return keeper
+
+
+def _start_wal_writer(
+    source_db: Path, trigger: threading.Event, committed: threading.Event
+) -> threading.Thread:
+    def write() -> None:
+        assert trigger.wait(5), "capture hook did not release WAL writer"
+        with sqlite3.connect(source_db, isolation_level=None) as connection:
+            connection.execute("INSERT INTO capture_writes(value) VALUES ('external-commit')")
+        committed.set()
+
+    writer = threading.Thread(target=write, daemon=True)
+    writer.start()
+    return writer
 
 
 @pytest.mark.parametrize("relationship", ["same", "destination_inside", "source_inside"])
@@ -143,6 +167,96 @@ def test_clone_uses_sqlite_snapshot_and_rebases_exact_managed_documents(tmp_path
     )
 
 
+def test_clone_captures_static_committed_wal_state_without_checkpoint(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    source_db = source / "data" / "database" / "egp.db"
+    source_documents = source / "data" / "documents"
+    keeper = _enable_wal(source_db)
+    try:
+        main_hash_before = _sha(source_db.read_bytes())
+        third = source_documents / "wal" / "c.pdf"
+        third.parent.mkdir(parents=True)
+        third.write_bytes(b"committed-in-wal")
+        keeper.execute(
+            "INSERT INTO documents(id, stored_path, sha256) VALUES (?, ?, ?)",
+            (3, str(third.resolve()), _sha(third.read_bytes())),
+        )
+        wal = Path(f"{source_db}-wal")
+        assert wal.is_file() and wal.stat().st_size > 0
+        assert _sha(source_db.read_bytes()) == main_hash_before
+
+        receipt = _prepare(source, tmp_path / "candidate")
+
+        assert receipt["status"] == "COMPLETE"
+        assert receipt["document_count"] == 3
+        assert receipt["source_sqlite_observation"]["journal_mode"] == "wal"
+        assert receipt["source_sqlite_observation"]["data_version_start"] == receipt[
+            "source_sqlite_observation"
+        ]["data_version_end"]
+        with sqlite3.connect(tmp_path / "candidate" / "data" / "database" / "egp.db") as candidate:
+            assert candidate.execute("SELECT count(*) FROM documents").fetchone()[0] == 3
+        assert _sha(source_db.read_bytes()) == main_hash_before
+    finally:
+        keeper.close()
+
+
+@pytest.mark.parametrize(
+    ("phase", "destination_name"),
+    [
+        ("AFTER_SOURCE_METADATA_READ", "candidate-before-backup"),
+        ("AFTER_SQLITE_BACKUP", "candidate-after-backup"),
+    ],
+)
+def test_clone_rejects_wal_commit_across_capture_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    phase: str,
+    destination_name: str,
+) -> None:
+    source = _source_root(tmp_path)
+    source_db = source / "data" / "database" / "egp.db"
+    keeper = _enable_wal(source_db)
+    trigger = threading.Event()
+    committed = threading.Event()
+    writer = _start_wal_writer(source_db, trigger, committed)
+    module = _module()
+
+    def capture_hook(observed_phase: str) -> None:
+        if observed_phase == phase:
+            trigger.set()
+            assert committed.wait(5), "external WAL commit did not complete"
+
+    monkeypatch.setattr(module, "_capture_hook", capture_hook)
+    main_hash_before = _sha(source_db.read_bytes())
+    destination = tmp_path / destination_name
+    try:
+        with pytest.raises(Exception, match="SOURCE_DB_CHANGED_DURING_CAPTURE"):
+            module.prepare_candidate_data(source, destination)
+        assert _sha(source_db.read_bytes()) == main_hash_before
+        receipt = json.loads((destination / "candidate_data_receipt.json").read_text(encoding="utf-8"))
+        assert receipt["status"] == "INCOMPLETE"
+    finally:
+        trigger.set()
+        writer.join(5)
+        keeper.close()
+    assert not writer.is_alive()
+
+
+def test_clone_backup_deadline_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    source = _source_root(tmp_path)
+    module = _module()
+    ticks = iter((0.0, 31.0, 31.0))
+    monkeypatch.setattr(module, "_monotonic", lambda: next(ticks))
+    monkeypatch.setattr(module, "MAX_BACKUP_SECONDS", 30.0)
+    destination = tmp_path / "candidate-timeout"
+
+    with pytest.raises(Exception, match="SOURCE_BACKUP_TIMEOUT"):
+        module.prepare_candidate_data(source, destination)
+
+    receipt = json.loads((destination / "candidate_data_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["status"] == "INCOMPLETE"
+
+
 def test_clone_config_explicitly_isolates_every_candidate_root(tmp_path: Path) -> None:
     source = _source_root(tmp_path)
     destination = tmp_path / "candidate"
@@ -208,11 +322,14 @@ def test_clone_detects_source_database_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     source = _source_root(tmp_path)
+    source_db = source / "data" / "database" / "egp.db"
+    with sqlite3.connect(source_db, isolation_level=None) as wal_connection:
+        assert wal_connection.execute("PRAGMA journal_mode = WAL").fetchone()[0].lower() == "wal"
     module = _module()
     original = module._snapshot_sqlite
 
-    def snapshot_then_drift(source_db: Path, candidate_db: Path) -> None:
-        original(source_db, candidate_db)
+    def snapshot_then_drift(source_connection: sqlite3.Connection, candidate_db: Path) -> None:
+        original(source_connection, candidate_db)
         with sqlite3.connect(source_db) as connection:
             connection.execute("CREATE TABLE drift_marker (value TEXT)")
 
@@ -266,13 +383,34 @@ def test_clone_rejects_wrong_document_identity_before_rebase(
     module = _module()
     original = module._snapshot_sqlite
 
-    def snapshot_with_wrong_identity(source_db: Path, candidate_db: Path) -> None:
-        original(source_db, candidate_db)
+    def snapshot_with_wrong_identity(
+        source_connection: sqlite3.Connection, candidate_db: Path
+    ) -> None:
+        original(source_connection, candidate_db)
         with sqlite3.connect(candidate_db) as connection:
             connection.execute("UPDATE documents SET sha256 = ? WHERE id = 1", ("0" * 64,))
 
     monkeypatch.setattr(module, "_snapshot_sqlite", snapshot_with_wrong_identity)
     with pytest.raises(Exception, match="DOCUMENT_IDENTITY_MISMATCH"):
+        module.prepare_candidate_data(source, tmp_path / "candidate")
+
+
+def test_clone_rejects_candidate_schema_mismatch_before_rebase(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _source_root(tmp_path)
+    module = _module()
+    original = module._snapshot_sqlite
+
+    def snapshot_with_wrong_schema(
+        source_connection: sqlite3.Connection, candidate_db: Path
+    ) -> None:
+        original(source_connection, candidate_db)
+        with sqlite3.connect(candidate_db) as connection:
+            connection.execute("UPDATE alembic_version SET version_num = 'wrong_revision'")
+
+    monkeypatch.setattr(module, "_snapshot_sqlite", snapshot_with_wrong_schema)
+    with pytest.raises(Exception, match="FAIL_CANDIDATE_SCHEMA_MISMATCH"):
         module.prepare_candidate_data(source, tmp_path / "candidate")
 
 
