@@ -99,6 +99,18 @@ counted as reclaimable headroom.
 
 ## Evidence stages
 
+Candidate data preparation preserves the v0.9 standalone source contract when
+`storage.document_dir` is absent: the source managed-document root resolves to
+`<source-root>/data/documents` with basis `LEGACY_STANDALONE_DEFAULT`. This is a
+bounded omitted-field compatibility rule. An explicitly present empty, null, or
+invalid value fails closed; an explicit relative value resolves from the source
+root; every resolved root remains source-contained and reparse-free. Database
+`documents.stored_path` records remain the file authority and must stay within
+that root with their existing SHA checks. Candidate preparation never writes the
+fallback into the source config or creates the source directory solely for a
+zero-document clone. A successful clone receipt records the exact source root,
+resolution basis, and whether the field was declared.
+
 `CLONE_RECEIPT` is authoritative for the pre-migration candidate state.
 `MIGRATION_RECEIPT` supersedes the clone database-byte identity after a
 successful isolated migration. `PRE_FIRST_BUSINESS_STARTUP_ACCEPTANCE` binds the

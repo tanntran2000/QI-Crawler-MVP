@@ -944,6 +944,19 @@ NON_CANDIDATE_COMPATIBILITY = PRESERVED
 LIMIT = Synthetic runtime-boundary verification only. No real candidate, working database, user data, migration, build, release or promotion was accessed or performed. This audit state does not mean merged.
 ```
 
+## FM-046 — Legacy standalone source config omitted document_dir and blocked candidate clone
+
+```text
+ID = FM-046
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / CANDIDATE DATA COMPATIBILITY
+SYMPTOM = Real operational v0.9 source at schema 0020 could not enter isolated candidate clone because its config omitted storage.document_dir.
+ROOT_CAUSE = candidate_data parsed raw YAML as though document_dir were mandatory instead of preserving the legacy standalone default semantics.
+CORRECTION = Apply the omitted-field fallback source/data/documents, retain source and managed-record containment and reparse guards, and record explicit-vs-legacy source-root provenance in the COMPLETE clone receipt.
+PREVENTION = TDD regressions cover omitted, explicit-relative, explicit-absolute, external, empty, null, invalid-type, zero-document, reparse, stored-path escape and source-config immutability cases.
+LIMIT = Synthetic correction until independent audit and Build Attempt #2. No real Team Bid clone, migration, acceptance, startup, build retry, source-data mutation, release or promotion was performed.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
