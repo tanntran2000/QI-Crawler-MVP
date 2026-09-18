@@ -7,10 +7,13 @@ import logging
 import os
 import shutil
 import sys
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +86,51 @@ def standalone_paths(user_root: Path | None = None) -> StandalonePaths:
     )
 
 
+def candidate_database_url(paths: StandalonePaths) -> str:
+    """Return the one canonical database URL for an isolated candidate root."""
+    return f"sqlite:///{paths.database_path.resolve(strict=False).as_posix()}"
+
+
+def bind_candidate_runtime_environment(
+    paths: StandalonePaths,
+    environment: MutableMapping[str, str] | None = None,
+) -> None:
+    """Override every storage authority used by candidate configuration loading."""
+    target = os.environ if environment is None else environment
+    target["QI_CRAWLER_DATA_DIR"] = str(paths.user_root.resolve(strict=False))
+    target["QI_CRAWLER_CONFIG_PATH"] = str(paths.config_path.resolve(strict=False))
+    target["QI_CRAWLER_DATABASE_URL"] = candidate_database_url(paths)
+
+
+def validate_candidate_database_target(
+    database_url: str,
+    paths: StandalonePaths,
+) -> Path:
+    """Reject an effective database target outside the authorized isolated root."""
+    try:
+        parsed = make_url(database_url)
+        database = parsed.database
+        if (
+            parsed.get_backend_name() != "sqlite"
+            or not database
+            or database == ":memory:"
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.host is not None
+            or parsed.port is not None
+            or parsed.query
+        ):
+            raise ValueError("unsupported candidate database URL")
+        actual = Path(database).expanduser().resolve(strict=False)
+    except (ArgumentError, TypeError, ValueError) as exc:
+        raise StandaloneResourceError("CANDIDATE_EFFECTIVE_DATABASE_ESCAPE") from exc
+    expected = paths.database_path.resolve(strict=False)
+    root = paths.user_root.resolve(strict=False)
+    if actual != expected or not actual.is_relative_to(root):
+        raise StandaloneResourceError("CANDIDATE_EFFECTIVE_DATABASE_ESCAPE")
+    return actual
+
+
 def _governed_candidate_root(executable: Path) -> Path | None:
     bundle = executable.parent
     if bundle.name != "QI-Crawler" or bundle.parent.name != "app":
@@ -126,8 +174,7 @@ def _authorize_isolated_candidate_smoke(
             or root.is_relative_to(isolated)
         ):
             raise StandaloneResourceError("CANDIDATE_ROOT_OVERLAPS_WORKING_ROOT")
-    os.environ["QI_CRAWLER_DATA_DIR"] = str(isolated)
-    os.environ["QI_CRAWLER_CONFIG_PATH"] = str(isolated / "config.yaml")
+    bind_candidate_runtime_environment(standalone_paths(isolated))
 
 
 def authorize_frozen_runtime(arguments: list[str]) -> str:
@@ -157,8 +204,10 @@ def authorize_frozen_runtime(arguments: list[str]) -> str:
     acceptance = validate_existing_acceptance(candidate_root)
     data_root = Path(str(acceptance["candidate_data_root"])).resolve(strict=True)
     config_path = Path(str(acceptance["candidate_config_path"])).resolve(strict=True)
-    os.environ["QI_CRAWLER_DATA_DIR"] = str(data_root)
-    os.environ["QI_CRAWLER_CONFIG_PATH"] = str(config_path)
+    paths = standalone_paths(data_root)
+    if paths.config_path.resolve(strict=True) != config_path:
+        raise StandaloneResourceError("ACCEPTANCE_CONFIG_PATH_MISMATCH")
+    bind_candidate_runtime_environment(paths)
     return "ACCEPTED_CANDIDATE"
 
 
@@ -172,7 +221,7 @@ def _write_default_config(paths: StandalonePaths) -> None:
     storage = raw.setdefault("storage", {})
     storage.update(
         {
-            "database_url": f"sqlite:///{paths.database_path.as_posix()}",
+            "database_url": candidate_database_url(paths),
             "document_dir": str(paths.documents_dir),
             "download_dir": str(paths.data_dir / "downloads"),
             "discovery_dir": str(paths.data_dir / "discovery"),
@@ -201,7 +250,7 @@ def _rebase_isolated_storage(paths: StandalonePaths) -> None:
             "Khong the co lap database khong phai SQLite vao QI_CRAWLER_DATA_DIR."
         )
     desired = {
-        "database_url": f"sqlite:///{paths.database_path.as_posix()}",
+        "database_url": candidate_database_url(paths),
         "document_dir": str(paths.documents_dir),
         "download_dir": str(paths.data_dir / "downloads"),
         "discovery_dir": str(paths.data_dir / "discovery"),

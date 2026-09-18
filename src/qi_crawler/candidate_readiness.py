@@ -896,9 +896,11 @@ def launch_candidate_after_acceptance(
         forbidden_roots=forbidden_roots,
     )
     environment = os.environ.copy()
-    environment["QI_CRAWLER_DATA_DIR"] = str(Path(data_root).resolve(strict=True))
-    environment["QI_CRAWLER_CONFIG_PATH"] = str(
-        (Path(data_root) / "config.yaml").resolve(strict=True)
+    from .standalone import bind_candidate_runtime_environment, standalone_paths
+
+    bind_candidate_runtime_environment(
+        standalone_paths(Path(data_root).resolve(strict=True)),
+        environment,
     )
     executable = Path(str(acceptance["executable"]))
     return launcher([str(executable)], cwd=str(executable.parent), env=environment)

@@ -24,6 +24,25 @@ SOURCE_SHA = "1" * 40
 VERSION = "0.10.0"
 
 
+@pytest.fixture(autouse=True)
+def _restore_candidate_runtime_process_state():
+    keys = (
+        "QI_CRAWLER_DATA_DIR",
+        "QI_CRAWLER_CONFIG_PATH",
+        "QI_CRAWLER_DATABASE_URL",
+    )
+    missing = object()
+    original_environment = {key: os.environ.get(key, missing) for key in keys}
+    original_cwd = Path.cwd()
+    yield
+    os.chdir(original_cwd)
+    for key, value in original_environment.items():
+        if value is missing:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = str(value)
+
+
 def _git(repo: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", *args],
@@ -838,6 +857,10 @@ def test_successful_controlled_launch_overrides_inherited_working_roots(
     _write_build_identity(candidate)
     monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(tmp_path / "working"))
     monkeypatch.setenv("QI_CRAWLER_CONFIG_PATH", str(tmp_path / "working-config.yaml"))
+    monkeypatch.setenv(
+        "QI_CRAWLER_DATABASE_URL",
+        f"sqlite:///{(tmp_path / 'working' / 'external.db').as_posix()}",
+    )
     calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
     candidate_readiness.launch_candidate_after_acceptance(
@@ -849,6 +872,9 @@ def test_successful_controlled_launch_overrides_inherited_working_roots(
     environment = calls[0][1]["env"]
     assert environment["QI_CRAWLER_DATA_DIR"] == str(data_root.resolve())
     assert environment["QI_CRAWLER_CONFIG_PATH"] == str((data_root / "config.yaml").resolve())
+    assert environment["QI_CRAWLER_DATABASE_URL"] == (
+        f"sqlite:///{(data_root / 'data' / 'database' / 'egp.db').resolve().as_posix()}"
+    )
 
 
 def test_failed_process_launch_preserves_acceptance_and_retry_succeeds(
@@ -962,6 +988,61 @@ def test_frozen_candidate_direct_start_binds_accepted_candidate_data(
     )
 
 
+@pytest.mark.parametrize(
+    ("inherited_override", "dotenv_override"),
+    [
+        (True, False),
+        (False, True),
+        (True, True),
+    ],
+)
+def test_frozen_candidate_direct_start_binds_effective_database_to_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    inherited_override: bool,
+    dotenv_override: bool,
+) -> None:
+    from qi_crawler import candidate_readiness, standalone
+    from qi_crawler.config import load_config
+
+    candidate, data_root, migration = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    candidate_readiness.accept_pre_first_business_startup(
+        **_acceptance_args(candidate, data_root, migration)
+    )
+    executable = candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    expected_database = data_root / "data" / "database" / "egp.db"
+    expected_url = f"sqlite:///{expected_database.resolve().as_posix()}"
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    if inherited_override:
+        monkeypatch.setenv(
+            "QI_CRAWLER_DATABASE_URL",
+            f"sqlite:///{(tmp_path / 'external-a.db').as_posix()}",
+        )
+    else:
+        monkeypatch.delenv("QI_CRAWLER_DATABASE_URL", raising=False)
+    if dotenv_override:
+        (data_root / ".env").write_text(
+            f"QI_CRAWLER_DATABASE_URL=sqlite:///{(tmp_path / 'external-b.db').as_posix()}\n",
+            encoding="utf-8",
+        )
+
+    original_cwd = Path.cwd()
+    try:
+        assert standalone.authorize_frozen_runtime([]) == "ACCEPTED_CANDIDATE"
+        assert os.environ["QI_CRAWLER_DATABASE_URL"] == expected_url
+        paths = standalone.prepare_standalone_runtime(require_browser=False)
+        config = load_config(paths.config_path)
+        assert config.storage.database_url == expected_url
+        standalone.validate_candidate_database_target(
+            config.storage.database_url,
+            paths,
+        )
+    finally:
+        os.chdir(original_cwd)
+
+
 def test_frozen_candidate_rejects_tampered_or_foreign_acceptance(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1007,6 +1088,10 @@ def test_preacceptance_candidate_smoke_requires_explicit_isolated_root(
     monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(isolated))
     assert standalone.authorize_frozen_runtime(["--smoke-test"]) == (
         "ISOLATED_CANDIDATE_SMOKE"
+    )
+    assert os.environ["QI_CRAWLER_CONFIG_PATH"] == str(isolated / "config.yaml")
+    assert os.environ["QI_CRAWLER_DATABASE_URL"] == (
+        f"sqlite:///{(isolated / 'data' / 'database' / 'egp.db').resolve().as_posix()}"
     )
     working = Path(os.environ["LOCALAPPDATA"]) / "QI-Crawler"
     monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(working))
@@ -1067,3 +1152,68 @@ def test_gui_candidate_gate_runs_before_standalone_preparation(
 
     assert gui.main() == 1
     assert events == ["authorize"]
+
+
+def test_smoke_rejects_effective_database_escape_before_database_construction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from qi_crawler import gui, standalone
+
+    paths = standalone.standalone_paths(tmp_path / "isolated-smoke")
+    escaped_url = f"sqlite:///{(tmp_path / 'external' / 'probe.db').as_posix()}"
+    config = SimpleNamespace(storage=SimpleNamespace(database_url=escaped_url))
+    database_calls: list[str] = []
+    monkeypatch.setattr(gui, "prepare_standalone_runtime", lambda: paths)
+    monkeypatch.setattr(gui, "configure_standalone_file_logging", lambda *_args: None)
+    monkeypatch.setattr(gui, "load_config", lambda _path: config)
+    monkeypatch.setattr(
+        gui,
+        "Database",
+        lambda database_url: database_calls.append(database_url),
+    )
+
+    with pytest.raises(Exception, match="CANDIDATE_EFFECTIVE_DATABASE_ESCAPE"):
+        gui._run_standalone_smoke(["--smoke-test"])
+
+    assert database_calls == []
+    assert not (tmp_path / "external").exists()
+
+
+def test_direct_gui_rejects_effective_database_escape_before_database_construction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from qi_crawler import gui, standalone
+
+    paths = standalone.standalone_paths(tmp_path / "candidate-data")
+    escaped_url = f"sqlite:///{(tmp_path / 'external' / 'probe.db').as_posix()}"
+    config = SimpleNamespace(storage=SimpleNamespace(database_url=escaped_url))
+    database_calls: list[str] = []
+    messages: list[str] = []
+    application = SimpleNamespace(exec=lambda: 0)
+    monkeypatch.setattr(gui, "is_frozen", lambda: True)
+    monkeypatch.setattr(gui, "authorize_frozen_runtime", lambda _args: "ACCEPTED_CANDIDATE")
+    monkeypatch.setattr(gui, "prepare_standalone_runtime", lambda: paths)
+    monkeypatch.setattr(gui, "configure_standalone_file_logging", lambda *_args: None)
+    monkeypatch.setattr(gui, "load_config", lambda _path: config)
+    monkeypatch.setattr(
+        gui,
+        "Database",
+        lambda database_url: database_calls.append(database_url),
+    )
+    monkeypatch.setattr(
+        gui,
+        "QApplication",
+        SimpleNamespace(instance=lambda: application),
+    )
+    monkeypatch.setattr(
+        gui.QMessageBox,
+        "critical",
+        lambda *_args: messages.append("rejected"),
+    )
+
+    assert gui.main() == 1
+    assert database_calls == []
+    assert messages == ["rejected"]
+    assert not (tmp_path / "external").exists()

@@ -149,6 +149,7 @@ from .standalone import (
     configure_standalone_file_logging,
     is_frozen,
     prepare_standalone_runtime,
+    validate_candidate_database_target,
 )
 from .standalone_smoke import run_standalone_smoke
 from .tender_case import AuthorityClass
@@ -4546,6 +4547,7 @@ def _run_standalone_smoke(arguments: list[str]) -> int:
     paths = prepare_standalone_runtime()
     configure_standalone_file_logging(paths.logs_dir / "qi-crawler.log")
     config = load_config(paths.config_path)
+    validate_candidate_database_target(config.storage.database_url, paths)
     database = Database(config.storage.database_url)
     try:
         database.require_current_schema()
@@ -4562,9 +4564,10 @@ def _run_standalone_smoke(arguments: list[str]) -> int:
 
 
 def main() -> int:
+    runtime_authorization = "NOT_FROZEN"
     if is_frozen():
         try:
-            authorize_frozen_runtime(sys.argv)
+            runtime_authorization = authorize_frozen_runtime(sys.argv)
         except Exception:
             logger.exception("Frozen candidate runtime authorization failed")
             return 1
@@ -4582,6 +4585,8 @@ def main() -> int:
             paths = prepare_standalone_runtime()
             configure_standalone_file_logging(paths.logs_dir / "qi-crawler.log")
             config = load_config(paths.config_path)
+            if runtime_authorization == "ACCEPTED_CANDIDATE":
+                validate_candidate_database_target(config.storage.database_url, paths)
             database = Database(config.storage.database_url)
             try:
                 database.require_current_schema()
