@@ -833,6 +833,49 @@ REALF5_RERUN = FORBIDDEN_FOR_LOG_COSMETICS
 LIMIT = Preserve the contradictory historical output and durable execution evidence. Fix reporting semantics separately without rewriting the trial or claiming A3/F5 clean close.
 ```
 
+## FM-039 — Equivalent synthetic seeds produced different physical SHA values
+
+```text
+ID = FM-039
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / A3 SYNTHETIC SEED
+SYMPTOM = Synthetic schema-0020 seeds could have identical logical identity, revision, size, PRAGMA state and integrity but intermittently different physical SHA values on Windows.
+ROOT_CAUSE = The physical canonicalizer replayed sqlite3 iterdump schema-object ordering without normalizing order-insensitive post-table index and trigger DDL.
+TRIGGER = Equivalent sqlite_schema index serialization order differed between otherwise equivalent seed generations.
+CORRECTION = Preserve complete iterdump statements as atomic units while deterministically sorting CREATE INDEX, CREATE UNIQUE INDEX and CREATE TRIGGER statements before replay and COMMIT.
+PREVENTION = A regression creates equivalent databases with opposite index-creation orders and proves one-pass physical convergence, logical preservation and idempotence; the generator contract samples six independent seeds without weakening physical identity checks.
+EVIDENCE = V10D2 isolated 4,767 differing bytes on pages 120 and 151 with identical logical digest and integrity; V10D3 RED reproduced different post-canonicalization SHA values, then GREEN converged after deterministic post-schema ordering. Focused seed suite, three independent six-seed runs, 48 adjacent A3 tests and the 1,336-test full repository suite passed.
+LIMIT = This correction covers the proven schema-object ordering boundary. It does not claim that all SQLite physical nondeterminism is eliminated, does not alter user data, and grants no RealF5, candidate-build, migration, release or promotion authority.
+```
+
+## FM-040 — WAL-backed source drift bypassed a main-file-only candidate guard
+
+```text
+ID = FM-040
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / CANDIDATE DATA SAFETY
+SYMPTOM = A concurrent SQLite WAL commit could change the logical source database while the main egp.db SHA remained unchanged, allowing candidate preparation to emit COMPLETE from separately observed schema, document and backup states.
+ROOT_CAUSE = Candidate preparation used separate source connections for metadata and backup, and treated main-file SHA equality as the database quiescence signal.
+CORRECTION = Use one persistent read-only/query-only source connection, pin one explicit read transaction for schema, Document tuples and Online Backup, verify the candidate schema and exact tuples before rebase, end the transaction, then compare same-connection PRAGMA data_version. Bound backup progress with a 30-second monotonic deadline and record main/WAL/SHM observations without treating SHM byte activity as business mutation.
+PREVENTION = Deterministic barriers commit real WAL transactions after metadata and after backup; both must fail closed even when the main DB SHA is unchanged. Static committed WAL state must clone successfully without a source checkpoint, and deadline expiry must leave an INCOMPLETE receipt.
+EVIDENCE = PR116-AUDIT-CORRECTION-R2 targeted candidate-data regression; exact correction head and hosted CI are re-resolved at independent re-audit.
+LIMIT = Synthetic candidate preparation only. No real Team Bid clone, migration, source checkpoint, working-data mutation, candidate build or release was performed.
+```
+
+## FM-041 — Publisher accepted mutually inconsistent release provenance
+
+```text
+ID = FM-041
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / PROVENANCE
+SYMPTOM = A candidate could pass publisher validation when release_manifest.json, release_artifact_receipt.json and BUILD_INFO.txt disagreed on source SHA, branch, timestamp or other release identity fields.
+ROOT_CAUSE = Publisher validation checked only a subset of JSON fields and searched BUILD_INFO using loose substring matches rather than an exact key/value parser.
+CORRECTION = Require and validate supported schemas plus product, canonical SemVer, 40-hex source SHA, non-empty branch, normalized UTC timestamp, expected Alembic head and 64-hex hashes; cross-check every shared manifest/receipt field; parse BUILD_INFO as unique non-empty key=value records and require exact manifest equality.
+PREVENTION = Negative tests cover missing, empty, malformed, duplicate and mixed provenance, including every shared identity field and both artifact hashes, while preserving a valid publish/rotation control.
+EVIDENCE = PR116-AUDIT-CORRECTION-R2 Windows publisher regressions; exact correction head and hosted CI are re-resolved at independent re-audit.
+LIMIT = This validates declared provenance consistency. Matching the declared source SHA to the future frozen build source remains a mandatory candidate-build acceptance gate.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

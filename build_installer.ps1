@@ -9,6 +9,7 @@ $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $standaloneBuild = Join-Path $projectRoot "build_windows.ps1"
 $installerScript = Join-Path $projectRoot "packaging\QI-Crawler.iss"
 $publishScript = Join-Path $projectRoot "scripts\publish_windows_release.ps1"
+$metadataScript = Join-Path $projectRoot "scripts\generate_release_metadata.py"
 $candidateRoot = Join-Path $projectRoot "release_staging\candidate"
 $isccCandidates = @(
     $env:QI_CRAWLER_ISCC,
@@ -25,6 +26,9 @@ if (-not (Test-Path -LiteralPath $installerScript)) {
 }
 if (-not (Test-Path -LiteralPath $publishScript)) {
     throw "Khong tim thay scripts\publish_windows_release.ps1"
+}
+if (-not (Test-Path -LiteralPath $metadataScript)) {
+    throw "Khong tim thay scripts\generate_release_metadata.py"
 }
 if (-not $isccCandidates) {
     throw "Khong tim thay Inno Setup 6/7. Cai Inno Setup, sau do chay lai build_installer.ps1."
@@ -102,6 +106,20 @@ if (-not (Test-Path -LiteralPath $bundle)) {
     throw "Khong tim thay QI-Crawler.exe trong dist\QI-Crawler"
 }
 
+$bundleRoot = Join-Path $projectRoot "dist\QI-Crawler"
+$commit = (& git -C $projectRoot rev-parse HEAD).Trim()
+$branch = (& git -C $projectRoot branch --show-current).Trim()
+$timestamp = (Get-Date).ToUniversalTime().ToString("o")
+& $python $metadataScript `
+    --bundle-root $bundleRoot `
+    --source-git-sha $commit `
+    --source-branch $branch `
+    --release-channel INTERNAL_CANDIDATE `
+    --build-timestamp-utc $timestamp
+if ($LASTEXITCODE -ne 0) {
+    throw "Tao installed release metadata that bai voi exit code $LASTEXITCODE"
+}
+
 Push-Location $projectRoot
 try {
     & $iscc "/DAppVersion=$version" $installerScript
@@ -157,33 +175,20 @@ Copy-Item -LiteralPath $installerOutput -Destination $candidateRoot -Force
 
 $portableExe = Join-Path $candidateRoot "QI-Crawler\QI-Crawler.exe"
 $candidateInstaller = Join-Path $candidateRoot (Split-Path -Leaf $installerOutput)
-$commit = (& git -C $projectRoot rev-parse HEAD).Trim()
-$branch = (& git -C $projectRoot branch --show-current).Trim()
-$timestamp = (Get-Date).ToUniversalTime().ToString("o")
 $portableHash = Get-Sha256 $portableExe
 $installerHash = Get-Sha256 $candidateInstaller
-$buildInfo = @(
-    "product=QI-Crawler",
-    "version=$version",
-    "commit_sha=$commit",
-    "source_branch=$branch",
-    "build_timestamp_utc=$timestamp",
-    "alembic_head=$alembicHead",
-    "portable_exe_sha256=$portableHash",
-    "installer_sha256=$installerHash"
-)
-$buildInfo | Set-Content -LiteralPath (Join-Path $candidateRoot "BUILD_INFO.txt") -Encoding UTF8
-$manifest = [ordered]@{
+$artifactReceipt = [ordered]@{
+    receipt_schema_version = "qi-crawler-release-artifact-v1"
     product = "QI-Crawler"
     version = $version
-    commit_sha = $commit
+    source_git_sha = $commit
+    source_branch = $branch
     build_timestamp_utc = $timestamp
     alembic_head = $alembicHead
-    release_channel = "team_bid_verified"
     portable_exe_sha256 = $portableHash
     installer_sha256 = $installerHash
 }
-$manifest | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $candidateRoot "release_manifest.json") -Encoding UTF8
+$artifactReceipt | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $candidateRoot "release_artifact_receipt.json") -Encoding UTF8
 
 if ($Publish) {
     try {
@@ -201,5 +206,6 @@ if ($Publish) {
 }
 
 Write-Host "Installer thanh cong: $installerOutput" -ForegroundColor Green
-Write-Host "Release manifest: $(Join-Path $candidateRoot 'release_manifest.json')" -ForegroundColor Green
+Write-Host "Installed release manifest: $(Join-Path $candidateRoot 'QI-Crawler\release_manifest.json')" -ForegroundColor Green
+Write-Host "Artifact receipt: $(Join-Path $candidateRoot 'release_artifact_receipt.json')" -ForegroundColor Green
 Write-Host "Installer chi cai app; du lieu Bid luon nam o %LOCALAPPDATA%\QI-Crawler." -ForegroundColor Green

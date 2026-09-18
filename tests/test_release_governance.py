@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -9,7 +10,7 @@ ROOT = Path(__file__).parent.parent
 
 
 def test_approved_release_version_is_canonical_package_value() -> None:
-    assert __version__ == "0.9.1"
+    assert __version__ == "0.10.0"
 
 
 def test_pyproject_derives_distribution_version_from_package() -> None:
@@ -54,13 +55,76 @@ def test_gui_version_display_remains_package_driven() -> None:
 def test_changelog_has_target_release_section() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     unreleased = "## Unreleased"
-    release = "## 0.9.1 - 2026-09-16"
+    release = "## 0.10.0 - 2026-09-17"
+    superseded = "## 0.9.1 - 2026-09-16"
     historical_release = "## 0.9.0 - 2026-09-02"
 
     assert unreleased in changelog
     assert release in changelog
+    assert superseded in changelog
     assert historical_release in changelog
     assert changelog.index(unreleased) < changelog.index(release)
+    assert "superseded before operational release" in changelog.lower()
+
+
+def test_installed_release_metadata_is_generated_inside_bundle_without_installer_hash(
+    tmp_path: Path,
+) -> None:
+    bundle = tmp_path / "QI-Crawler"
+    bundle.mkdir()
+    executable = bundle / "QI-Crawler.exe"
+    executable.write_bytes(b"portable-v010")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "generate_release_metadata.py"),
+            "--bundle-root",
+            str(bundle),
+            "--source-git-sha",
+            "a" * 40,
+            "--source-branch",
+            "release/v0.10-candidate-prep-01",
+            "--release-channel",
+            "INTERNAL_CANDIDATE",
+            "--build-timestamp-utc",
+            "2026-09-17T10:00:00Z",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    expected = {
+        "VERSION.txt",
+        "WHAT_IS_NEW.txt",
+        "CAPABILITIES.txt",
+        "BUILD_INFO.txt",
+        "release_manifest.json",
+    }
+    assert expected <= {path.name for path in bundle.iterdir()}
+    manifest = json.loads((bundle / "release_manifest.json").read_text(encoding="utf-8"))
+    assert manifest == {
+        "metadata_schema_version": "qi-crawler-installed-release-v1",
+        "product": "QI-Crawler",
+        "version": "0.10.0",
+        "source_git_sha": "a" * 40,
+        "source_branch": "release/v0.10-candidate-prep-01",
+        "build_timestamp_utc": "2026-09-17T10:00:00Z",
+        "alembic_head": CURRENT_SCHEMA_REVISION,
+        "release_channel": "INTERNAL_CANDIDATE",
+        "portable_exe_sha256": "B358919033006252FDEAF8AE8CBD8B405FBFD4792E4F1CF764CF4DCB965BAF72",
+    }
+    assert "installer_sha256" not in manifest
+    assert "NOT_YET_RUNTIME_VERIFIED" in (bundle / "CAPABILITIES.txt").read_text(encoding="utf-8")
+
+
+def test_external_artifact_receipt_owns_installer_hash() -> None:
+    build = (ROOT / "build_installer.ps1").read_text(encoding="utf-8")
+    assert "release_artifact_receipt.json" in build
+    assert "installer_sha256" in build
 
 
 def test_runtime_schema_matches_single_alembic_head() -> None:

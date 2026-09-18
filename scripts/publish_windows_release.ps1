@@ -22,6 +22,115 @@ function Get-Sha256([string]$PathValue) {
     return (Get-FileHash -LiteralPath $PathValue -Algorithm SHA256).Hash.ToUpperInvariant()
 }
 
+function Convert-UtcTimestamp([object]$Value, [string]$Label) {
+    $parsedTimestamp = [DateTimeOffset]::MinValue
+    if ($Value -is [DateTime]) {
+        $parsedTimestamp = [DateTimeOffset]([DateTime]$Value)
+    } elseif ($Value -is [DateTimeOffset]) {
+        $parsedTimestamp = [DateTimeOffset]$Value
+    } elseif ($Value -is [string] -and -not [string]::IsNullOrWhiteSpace($Value) -and
+        [DateTimeOffset]::TryParse(
+            $Value,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind,
+            [ref]$parsedTimestamp
+        )) {
+        if (-not $Value.EndsWith("Z", [StringComparison]::Ordinal)) {
+            throw "$Label khong phai UTC chuan"
+        }
+    } else {
+        throw "$Label khong phai timestamp hop le"
+    }
+    if ($parsedTimestamp.Offset -ne [TimeSpan]::Zero) {
+        throw "$Label khong phai UTC"
+    }
+    return $parsedTimestamp.UtcDateTime.ToString(
+        "yyyy-MM-ddTHH:mm:ss.fffffff'Z'",
+        [Globalization.CultureInfo]::InvariantCulture
+    )
+}
+
+function Get-RequiredStringField([object]$Object, [string]$Name, [string]$Label) {
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        throw "$Label thieu hoac rong: $Name"
+    }
+    if ($Name -eq "build_timestamp_utc") {
+        return Convert-UtcTimestamp $property.Value "$Label $Name"
+    }
+    if (-not ($property.Value -is [string]) -or
+        [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+        throw "$Label thieu hoac rong: $Name"
+    }
+    return ([string]$property.Value).Trim()
+}
+
+function Assert-ProvenanceFormat(
+    [hashtable]$Fields,
+    [string]$Label,
+    [string]$ReleaseVersion,
+    [string]$ExpectedHead,
+    [switch]$Manifest,
+    [switch]$Receipt
+) {
+    if ($Fields.product -ne "QI-Crawler") {
+        throw "$Label product khong hop le"
+    }
+    if ($Fields.version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
+        $Fields.version -ne $ReleaseVersion) {
+        throw "$Label version khong hop le"
+    }
+    if ($Fields.source_git_sha -notmatch '^[0-9A-Fa-f]{40}$') {
+        throw "$Label source_git_sha khong hop le"
+    }
+    if ($Fields.source_branch -match '[\r\n]') {
+        throw "$Label source_branch khong hop le"
+    }
+    Convert-UtcTimestamp $Fields.build_timestamp_utc "$Label build_timestamp_utc" | Out-Null
+    if ($Fields.alembic_head -notmatch '^[A-Za-z0-9_]+$' -or
+        $Fields.alembic_head -ne $ExpectedHead) {
+        throw "$Label alembic_head khong hop le"
+    }
+    if ($Fields.portable_exe_sha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+        throw "$Label portable_exe_sha256 khong hop le"
+    }
+    if ($Manifest) {
+        if ($Fields.metadata_schema_version -ne "qi-crawler-installed-release-v1") {
+            throw "$Label metadata schema khong duoc ho tro"
+        }
+        if ($Fields.release_channel -ne "INTERNAL_CANDIDATE") {
+            throw "$Label release_channel khong duoc ho tro"
+        }
+    }
+    if ($Receipt) {
+        if ($Fields.receipt_schema_version -ne "qi-crawler-release-artifact-v1") {
+            throw "$Label receipt schema khong duoc ho tro"
+        }
+        if ($Fields.installer_sha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+            throw "$Label installer_sha256 khong hop le"
+        }
+    }
+}
+
+function Read-BuildInfo([string]$PathValue) {
+    $records = @{}
+    foreach ($line in Get-Content -LiteralPath $PathValue -Encoding UTF8) {
+        if ([string]::IsNullOrWhiteSpace($line) -or $line -notmatch '^([^=\s]+)=(.*)$') {
+            throw "BUILD_INFO co dong khong hop le"
+        }
+        $key = $Matches[1]
+        $value = $Matches[2]
+        if ($records.ContainsKey($key)) {
+            throw "BUILD_INFO trung khoa: $key"
+        }
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            throw "BUILD_INFO co gia tri rong: $key"
+        }
+        $records[$key] = $value.Trim()
+    }
+    return $records
+}
+
 function Assert-RepositoryReady([string]$Root) {
     $branch = (& git -C $Root branch --show-current).Trim()
     if ($LASTEXITCODE -ne 0 -or $branch -ne "main") {
@@ -40,39 +149,74 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
     $bundle = Join-Path $Root "QI-Crawler"
     $exe = Join-Path $bundle "QI-Crawler.exe"
     $installer = Join-Path $Root "QI-Crawler-Setup-v$ReleaseVersion.exe"
-    $buildInfo = Join-Path $Root "BUILD_INFO.txt"
-    $manifestPath = Join-Path $Root "release_manifest.json"
+    $versionFile = Join-Path $bundle "VERSION.txt"
+    $whatsNew = Join-Path $bundle "WHAT_IS_NEW.txt"
+    $capabilities = Join-Path $bundle "CAPABILITIES.txt"
+    $buildInfo = Join-Path $bundle "BUILD_INFO.txt"
+    $manifestPath = Join-Path $bundle "release_manifest.json"
+    $receiptPath = Join-Path $Root "release_artifact_receipt.json"
     Resolve-ExistingPath $exe "Portable EXE" | Out-Null
     Resolve-ExistingPath $installer "Installer" | Out-Null
+    Resolve-ExistingPath $versionFile "Installed VERSION" | Out-Null
+    Resolve-ExistingPath $whatsNew "Installed WHAT_IS_NEW" | Out-Null
+    Resolve-ExistingPath $capabilities "Installed CAPABILITIES" | Out-Null
     Resolve-ExistingPath $buildInfo "BUILD_INFO" | Out-Null
     Resolve-ExistingPath $manifestPath "Release manifest" | Out-Null
+    Resolve-ExistingPath $receiptPath "Artifact receipt" | Out-Null
     try {
         $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $receipt = Get-Content -LiteralPath $receiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
     } catch {
-        throw "Release manifest khong hop le: $manifestPath"
+        throw "Release manifest hoac artifact receipt khong hop le"
     }
-    if ($manifest.product -ne "QI-Crawler" -or $manifest.version -ne $ReleaseVersion) {
-        throw "Release manifest khong khop version/product"
+    $manifestFields = @{}
+    foreach ($field in @(
+        "metadata_schema_version", "product", "version", "source_git_sha",
+        "source_branch", "build_timestamp_utc", "alembic_head", "release_channel",
+        "portable_exe_sha256"
+    )) {
+        $manifestFields[$field] = Get-RequiredStringField $manifest $field "Release manifest"
     }
-    if ($manifest.alembic_head -ne $ExpectedHead) {
-        throw "Release manifest khong khop Alembic head ky vong: $ExpectedHead"
+    Assert-ProvenanceFormat $manifestFields "Release manifest" $ReleaseVersion $ExpectedHead -Manifest
+    if ($manifest.PSObject.Properties.Name -contains "installer_sha256") {
+        throw "Installed release manifest khong duoc chua installer SHA"
     }
-    if ($manifest.portable_exe_sha256 -ne (Get-Sha256 $exe)) {
+    if ($manifestFields.portable_exe_sha256 -ne (Get-Sha256 $exe)) {
         throw "Hash portable EXE khong khop release manifest"
     }
-    if ($manifest.installer_sha256 -ne (Get-Sha256 $installer)) {
-        throw "Hash installer khong khop release manifest"
-    }
-    $infoText = Get-Content -LiteralPath $buildInfo -Raw -Encoding UTF8
-    foreach ($required in @(
-        "product=QI-Crawler",
-        "version=$ReleaseVersion",
-        "alembic_head=$ExpectedHead",
-        "portable_exe_sha256=$($manifest.portable_exe_sha256)",
-        "installer_sha256=$($manifest.installer_sha256)"
+    $receiptFields = @{}
+    foreach ($field in @(
+        "receipt_schema_version", "product", "version", "source_git_sha", "source_branch",
+        "build_timestamp_utc", "alembic_head", "portable_exe_sha256", "installer_sha256"
     )) {
-        if ($infoText -notmatch [regex]::Escape($required)) {
-            throw "BUILD_INFO thieu thong tin: $required"
+        $receiptFields[$field] = Get-RequiredStringField $receipt $field "Artifact receipt"
+    }
+    Assert-ProvenanceFormat $receiptFields "Artifact receipt" $ReleaseVersion $ExpectedHead -Receipt
+    if ($receiptFields.portable_exe_sha256 -ne (Get-Sha256 $exe) -or
+        $receiptFields.installer_sha256 -ne (Get-Sha256 $installer)) {
+        throw "Artifact receipt khong khop portable/installer hash"
+    }
+    foreach ($field in @(
+        "product", "version", "source_git_sha", "source_branch", "build_timestamp_utc",
+        "alembic_head", "portable_exe_sha256"
+    )) {
+        if ($manifestFields[$field] -cne $receiptFields[$field]) {
+            throw "Release manifest va artifact receipt khong khop: $field"
+        }
+    }
+    $infoFields = Read-BuildInfo $buildInfo
+    $infoFields["build_timestamp_utc"] = Convert-UtcTimestamp `
+        $infoFields["build_timestamp_utc"] "BUILD_INFO build_timestamp_utc"
+    foreach ($field in @(
+        "metadata_schema_version", "product", "version", "source_git_sha",
+        "source_branch", "build_timestamp_utc", "alembic_head", "release_channel",
+        "portable_exe_sha256"
+    )) {
+        if (-not $infoFields.ContainsKey($field)) {
+            throw "BUILD_INFO thieu khoa: $field"
+        }
+        if ([string]$infoFields[$field] -cne [string]$manifestFields[$field]) {
+            throw "BUILD_INFO va release manifest khong khop: $field"
         }
     }
     return @{
@@ -81,6 +225,7 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
         Installer = $installer
         BuildInfo = $buildInfo
         Manifest = $manifestPath
+        Receipt = $receiptPath
     }
 }
 
@@ -123,15 +268,15 @@ try {
     New-Item -ItemType Directory -Path $stagedBundle -Force | Out-Null
     Get-ChildItem -LiteralPath $candidateParts.Bundle -Force | Copy-Item -Destination $stagedBundle -Recurse -Force
     Copy-Item -LiteralPath $candidateParts.Installer -Destination (Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)) -Force
-    Copy-Item -LiteralPath $candidateParts.BuildInfo -Destination (Join-Path $stagedCurrent "BUILD_INFO.txt") -Force
-    Copy-Item -LiteralPath $candidateParts.Manifest -Destination (Join-Path $stagedCurrent "release_manifest.json") -Force
+    Copy-Item -LiteralPath $candidateParts.Receipt -Destination (Join-Path $stagedCurrent "release_artifact_receipt.json") -Force
 
     $stagedExe = Join-Path $stagedCurrent "QI-Crawler\QI-Crawler.exe"
     $stagedInstaller = Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)
 
     if (-not (Test-Path -LiteralPath $stagedExe) -or -not (Test-Path -LiteralPath $stagedInstaller) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "BUILD_INFO.txt")) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_manifest.json"))) {
+        -not (Test-Path -LiteralPath (Join-Path $stagedBundle "BUILD_INFO.txt")) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedBundle "release_manifest.json")) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_artifact_receipt.json"))) {
         throw "Candidate staging khong day du"
     }
 
