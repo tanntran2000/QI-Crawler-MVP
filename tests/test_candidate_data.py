@@ -150,6 +150,9 @@ def test_clone_uses_sqlite_snapshot_and_rebases_exact_managed_documents(tmp_path
     assert receipt["source_schema"] == "0020_add_tender_operational_revision_events"
     assert receipt["document_count"] == 2
     assert receipt["rebase_count"] == 2
+    assert receipt["receipt_schema_version"] == "qi-crawler-candidate-clone-v1"
+    assert receipt["managed_document_mapping_digest"]
+    assert receipt["candidate_config_path"] == str((destination / "config.yaml").resolve())
     candidate_db = destination / "data" / "database" / "egp.db"
     with sqlite3.connect(candidate_db) as connection:
         paths = [
@@ -165,6 +168,67 @@ def test_clone_uses_sqlite_snapshot_and_rebases_exact_managed_documents(tmp_path
         ]
         == "COMPLETE"
     )
+    assert _module().validate_candidate_receipt(destination) == receipt
+
+
+def test_clone_receipt_validation_rejects_pre_migration_db_tamper(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    destination = tmp_path / "candidate"
+    _prepare(source, destination)
+    candidate_db = destination / "data" / "database" / "egp.db"
+
+    with sqlite3.connect(candidate_db) as connection:
+        connection.execute("CREATE TABLE post_clone_tamper (value TEXT)")
+
+    with pytest.raises(Exception, match="CANDIDATE_DB_IDENTITY_MISMATCH"):
+        _module().validate_candidate_receipt(destination)
+
+
+def test_clone_receipt_validation_rejects_managed_document_tamper(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    destination = tmp_path / "candidate"
+    _prepare(source, destination)
+    (destination / "data" / "documents" / "manual" / "a.pdf").write_bytes(b"tampered")
+
+    with pytest.raises(Exception, match="MANAGED_DOCUMENT_SHA_MISMATCH"):
+        _module().validate_candidate_receipt(destination)
+
+
+def test_mapping_digest_is_id_path_sensitive_with_reused_content_hash(tmp_path: Path) -> None:
+    source = _source_root(
+        tmp_path,
+        documents=[(1, "one/shared.pdf", b"same"), (2, "two/shared.pdf", b"same")],
+    )
+    destination = tmp_path / "candidate"
+    receipt = _prepare(source, destination)
+    candidate_db = destination / "data" / "database" / "egp.db"
+    second = destination / "data" / "documents" / "two" / "shared.pdf"
+
+    with sqlite3.connect(candidate_db) as connection:
+        connection.execute("UPDATE documents SET stored_path = ? WHERE id = 1", (str(second),))
+
+    with pytest.raises(
+        Exception,
+        match="MANAGED_DOCUMENT_(?:PATH_COLLISION|MAPPING_MISMATCH)",
+    ):
+        _module().validate_candidate_receipt(
+            destination,
+            require_pre_migration_db_identity=False,
+        )
+    assert receipt["document_count"] == 2
+
+
+def test_clone_receipt_validation_rejects_config_root_escape(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    destination = tmp_path / "candidate"
+    _prepare(source, destination)
+    config_path = destination / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["storage"]["report_dir"] = str((tmp_path / "working-reports").resolve())
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(Exception, match="CANDIDATE_CONFIG_ESCAPE"):
+        _module().validate_candidate_receipt(destination)
 
 
 def test_clone_captures_static_committed_wal_state_without_checkpoint(tmp_path: Path) -> None:

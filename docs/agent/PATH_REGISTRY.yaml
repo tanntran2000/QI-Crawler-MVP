@@ -786,6 +786,32 @@
         "tests/test_update_transaction.py"
       ],
       "relation": "Bounded clean-checkout CI correction and durable contract. Compact local test-temp alias CI103 maps only to this WP; CI alias is workflow-owned under CI_CONTRACT. Neither alias creates a new WP or execution grant."
+    },
+    {
+      "wp_id": "WP-REL-V010-CANDIDATE-READINESS-01",
+      "authority_ref": "HUMAN_A0 / PLANNER WORK ORDER WP-REL-V010-CANDIDATE-READINESS-01 20260918",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery",
+      "path_ids": [
+        "PATH.REPO.SOURCE",
+        "PATH.REPO.SCRIPTS",
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "src/qi_crawler/candidate_data.py",
+        "src/qi_crawler/candidate_readiness.py",
+        "scripts/candidate_readiness.py",
+        "tests/test_candidate_data.py",
+        "tests/test_candidate_readiness.py",
+        "docs/agent/CANDIDATE_RELEASE_CONTRACT.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md"
+      ],
+      "relation": "V010_PRE_FREEZE_THREE_STAGE_CANDIDATE_EVIDENCE_AND_FAIL_CLOSED_FIRST_START_READINESS; SYNTHETIC_TEST_DATA_ONLY; NO_BUILD_DATA_CLONE_REAL_MIGRATION_LAUNCH_INSTALL_PROMOTION_RELEASE_OR_MERGE_AUTHORITY"
     }
   ],
   "legacy_locations": [
