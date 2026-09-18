@@ -99,6 +99,32 @@ def _sqlite_path(database_url: str) -> Path:
     return Path(database_url[len(prefix) :]).expanduser().resolve(strict=True)
 
 
+def _resolve_source_document_root(
+    source_root: Path,
+    storage: dict[str, Any],
+) -> tuple[Path, str, bool]:
+    declared = "document_dir" in storage
+    if not declared:
+        document_root = source_root / "data" / "documents"
+        basis = "LEGACY_STANDALONE_DEFAULT"
+    else:
+        raw_document_root = storage["document_dir"]
+        if not isinstance(raw_document_root, (str, os.PathLike)) or not str(
+            raw_document_root
+        ).strip():
+            raise CandidateDataError("SOURCE_DOCUMENT_DIR_INVALID")
+        document_root = Path(raw_document_root).expanduser()
+        if not document_root.is_absolute():
+            document_root = source_root / document_root
+        basis = "CONFIG_EXPLICIT"
+
+    _guard_no_reparse(document_root)
+    resolved = document_root.resolve(strict=False)
+    if not resolved.is_relative_to(source_root):
+        raise CandidateDataError("SOURCE_CONFIG_ESCAPE")
+    return resolved, basis, declared
+
+
 def _read_documents_from_connection(
     connection: sqlite3.Connection,
 ) -> tuple[_DocumentRecord, ...]:
@@ -295,8 +321,11 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
     raw = yaml.safe_load(source_config.read_text(encoding="utf-8")) or {}
     if not isinstance(raw, dict) or not isinstance(raw.get("storage"), dict):
         raise CandidateDataError("SOURCE_CONFIG_INVALID")
-    source_db = _sqlite_path(str(raw["storage"].get("database_url", "")))
-    source_documents = Path(str(raw["storage"].get("document_dir", ""))).resolve(strict=True)
+    storage = raw["storage"]
+    source_db = _sqlite_path(str(storage.get("database_url", "")))
+    source_documents, source_document_root_basis, source_document_dir_declared = (
+        _resolve_source_document_root(source, storage)
+    )
     if not source_db.is_relative_to(source) or not source_documents.is_relative_to(source):
         raise CandidateDataError("SOURCE_CONFIG_ESCAPE")
     _guard_no_reparse(source_db)
@@ -429,6 +458,9 @@ def prepare_candidate_data(source_root: Path | str, destination_root: Path | str
                 "sha256": _sha256(candidate_db),
             },
             "source_schema": schema,
+            "source_document_root": str(source_documents),
+            "source_document_root_basis": source_document_root_basis,
+            "source_document_dir_declared": source_document_dir_declared,
             **mapping_identity,
             "rebase_count": len(records),
             "candidate_config_path": str(candidate_config_path.resolve()),
