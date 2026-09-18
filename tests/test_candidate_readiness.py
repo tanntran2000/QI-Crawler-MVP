@@ -733,6 +733,10 @@ def test_existing_acceptance_allows_operational_database_mutation(
         "executable",
         str(candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"),
     )
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(tmp_path / "inherited-working"))
+    monkeypatch.setenv(
+        "QI_CRAWLER_CONFIG_PATH", str(tmp_path / "inherited-working" / "config.yaml")
+    )
     assert standalone.authorize_frozen_runtime([]) == "ACCEPTED_CANDIDATE"
 
 
@@ -775,8 +779,10 @@ def test_frozen_candidate_direct_start_binds_accepted_candidate_data(
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", str(executable))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "working-localappdata"))
-    monkeypatch.delenv("QI_CRAWLER_DATA_DIR", raising=False)
-    monkeypatch.delenv("QI_CRAWLER_CONFIG_PATH", raising=False)
+    monkeypatch.setenv("QI_CRAWLER_DATA_DIR", str(tmp_path / "inherited-working"))
+    monkeypatch.setenv(
+        "QI_CRAWLER_CONFIG_PATH", str(tmp_path / "inherited-working" / "config.yaml")
+    )
 
     result = standalone.authorize_frozen_runtime([])
 
