@@ -12,6 +12,7 @@ from qi_crawler.candidate_data import CandidateDataError
 from qi_crawler.candidate_readiness import (
     CandidateReadinessError,
     accept_pre_first_business_startup,
+    create_portable_artifact_receipt,
     launch_candidate_after_acceptance,
     migrate_candidate_data,
 )
@@ -42,6 +43,12 @@ def main(argv: list[str] | None = None) -> int:
         description="Create and validate QI-Crawler candidate readiness evidence."
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    portable_receipt = commands.add_parser(
+        "portable-receipt", help="Create portable bundle identity evidence."
+    )
+    portable_receipt.add_argument("--candidate-root", required=True, type=Path)
+    portable_receipt.add_argument("--expected-frozen-source-sha", required=True)
+    portable_receipt.add_argument("--expected-version", required=True)
     migrate = commands.add_parser("migrate", help="Create Stage-2 migration evidence.")
     migrate.add_argument("--data-root", required=True, type=Path)
     migrate.add_argument("--source-repository-root", required=True, type=Path)
@@ -55,7 +62,13 @@ def main(argv: list[str] | None = None) -> int:
     _common_acceptance_arguments(launch)
     args = parser.parse_args(argv)
     try:
-        if args.command == "migrate":
+        if args.command == "portable-receipt":
+            result = create_portable_artifact_receipt(
+                args.candidate_root,
+                expected_frozen_source_sha=args.expected_frozen_source_sha,
+                expected_version=args.expected_version,
+            )
+        elif args.command == "migrate":
             result = migrate_candidate_data(
                 args.data_root,
                 source_repository_root=args.source_repository_root,

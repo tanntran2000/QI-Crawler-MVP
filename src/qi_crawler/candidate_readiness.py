@@ -29,8 +29,10 @@ class CandidateReadinessError(RuntimeError):
 
 MIGRATION_RECEIPT_SCHEMA_VERSION = "qi-crawler-candidate-migration-v1"
 ACCEPTANCE_SCHEMA_VERSION = "qi-crawler-pre-first-business-startup-v1"
+PORTABLE_ARTIFACT_RECEIPT_SCHEMA_VERSION = "qi-crawler-portable-artifact-v1"
 MIGRATION_RECEIPT_NAME = "candidate_migration_receipt.json"
 ACCEPTANCE_RECEIPT_NAME = "pre_start_acceptance.json"
+PORTABLE_ARTIFACT_RECEIPT_NAME = "portable_artifact_receipt.json"
 V010_EXPECTED_SOURCE_REVISION = "0020_add_tender_operational_revision_events"
 _SHA40 = re.compile(r"[0-9a-fA-F]{40}")
 _SHA64 = re.compile(r"[0-9a-fA-F]{64}")
@@ -431,7 +433,7 @@ def _parse_build_info(path: Path) -> dict[str, str]:
     return fields
 
 
-def _validate_build_identity(
+def _portable_bundle_identity(
     candidate: Path,
     *,
     expected_frozen_source_sha: str,
@@ -441,11 +443,9 @@ def _validate_build_identity(
         raise CandidateReadinessError("EXPECTED_FROZEN_SOURCE_SHA_INVALID")
     bundle = candidate / "app" / "QI-Crawler"
     manifest = _read_json(bundle / "release_manifest.json", "RELEASE_MANIFEST_INVALID")
-    artifact = _read_json(
-        candidate / "control" / "release_artifact_receipt.json",
-        "ARTIFACT_RECEIPT_INVALID",
-    )
-    build_info = _parse_build_info(bundle / "BUILD_INFO.txt")
+    build_info_path = bundle / "BUILD_INFO.txt"
+    manifest_path = bundle / "release_manifest.json"
+    build_info = _parse_build_info(build_info_path)
     required_manifest = {
         "metadata_schema_version",
         "product",
@@ -461,21 +461,14 @@ def _validate_build_identity(
         raise CandidateReadinessError("BUILD_IDENTITY_FIELDS_INVALID")
     if manifest.get("metadata_schema_version") != "qi-crawler-installed-release-v1":
         raise CandidateReadinessError("BUILD_IDENTITY_SCHEMA_UNSUPPORTED")
-    if artifact.get("receipt_schema_version") != "qi-crawler-release-artifact-v1":
-        raise CandidateReadinessError("ARTIFACT_RECEIPT_SCHEMA_UNSUPPORTED")
     if manifest.get("product") != "QI-Crawler" or manifest.get("version") != expected_version:
         raise CandidateReadinessError("BUILD_PRODUCT_VERSION_MISMATCH")
     for key in required_manifest:
         if str(build_info.get(key, "")) != str(manifest.get(key, "")):
             raise CandidateReadinessError("BUILD_INFO_MANIFEST_MISMATCH")
-    shared_artifact_fields = required_manifest - {"metadata_schema_version", "release_channel"}
-    for key in shared_artifact_fields:
-        if str(artifact.get(key, "")) != str(manifest.get(key, "")):
-            raise CandidateReadinessError("MANIFEST_ARTIFACT_MISMATCH")
     source_values = {
         str(manifest.get("source_git_sha", "")).lower(),
         str(build_info.get("source_git_sha", "")).lower(),
-        str(artifact.get("source_git_sha", "")).lower(),
     }
     if source_values != {expected_frozen_source_sha.lower()}:
         raise CandidateReadinessError("FROZEN_SOURCE_SHA_MISMATCH")
@@ -492,14 +485,78 @@ def _validate_build_identity(
     return {
         "bundle_root": str(bundle.resolve()),
         "executable": str(executable.resolve()),
+        "product": str(manifest["product"]),
         "source_git_sha": expected_frozen_source_sha.lower(),
         "source_branch": str(manifest["source_branch"]),
         "version": expected_version,
+        "build_timestamp_utc": str(manifest["build_timestamp_utc"]),
+        "alembic_head": str(manifest["alembic_head"]),
+        "release_channel": str(manifest["release_channel"]),
         "portable_exe_sha256": expected_exe_hash.lower(),
-        "release_manifest_sha256": _sha256(bundle / "release_manifest.json"),
-        "artifact_receipt_sha256": _sha256(
-            candidate / "control" / "release_artifact_receipt.json"
-        ),
+        "release_manifest_sha256": _sha256(manifest_path),
+        "build_info_sha256": _sha256(build_info_path),
+    }
+
+
+def _portable_receipt_payload(bundle: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "receipt_schema_version": PORTABLE_ARTIFACT_RECEIPT_SCHEMA_VERSION,
+        "artifact_kind": "PORTABLE",
+        "product": bundle["product"],
+        "version": bundle["version"],
+        "source_git_sha": bundle["source_git_sha"],
+        "source_branch": bundle["source_branch"],
+        "build_timestamp_utc": bundle["build_timestamp_utc"],
+        "alembic_head": bundle["alembic_head"],
+        "release_channel": bundle["release_channel"],
+        "portable_exe_sha256": bundle["portable_exe_sha256"],
+        "release_manifest_sha256": bundle["release_manifest_sha256"],
+        "build_info_sha256": bundle["build_info_sha256"],
+        "created_at": bundle["build_timestamp_utc"],
+    }
+
+
+def create_portable_artifact_receipt(
+    candidate_root: Path | str,
+    *,
+    expected_frozen_source_sha: str,
+    expected_version: str,
+) -> dict[str, Any]:
+    """Create write-once portable identity from the actual built bundle."""
+    candidate = Path(candidate_root).resolve(strict=True)
+    bundle = _portable_bundle_identity(
+        candidate,
+        expected_frozen_source_sha=expected_frozen_source_sha,
+        expected_version=expected_version,
+    )
+    receipt = _portable_receipt_payload(bundle)
+    _write_json_once(candidate / "control" / PORTABLE_ARTIFACT_RECEIPT_NAME, receipt)
+    return receipt
+
+
+def _validate_build_identity(
+    candidate: Path,
+    *,
+    expected_frozen_source_sha: str,
+    expected_version: str,
+) -> dict[str, Any]:
+    bundle = _portable_bundle_identity(
+        candidate,
+        expected_frozen_source_sha=expected_frozen_source_sha,
+        expected_version=expected_version,
+    )
+    receipt_path = candidate / "control" / PORTABLE_ARTIFACT_RECEIPT_NAME
+    receipt = _read_json(receipt_path, "PORTABLE_ARTIFACT_RECEIPT_INVALID")
+    expected_receipt = _portable_receipt_payload(bundle)
+    if set(receipt) != set(expected_receipt):
+        raise CandidateReadinessError("PORTABLE_ARTIFACT_RECEIPT_FIELDS_INVALID")
+    if receipt.get("receipt_schema_version") != PORTABLE_ARTIFACT_RECEIPT_SCHEMA_VERSION:
+        raise CandidateReadinessError("PORTABLE_ARTIFACT_RECEIPT_SCHEMA_UNSUPPORTED")
+    if receipt != expected_receipt:
+        raise CandidateReadinessError("PORTABLE_ARTIFACT_RECEIPT_IDENTITY_MISMATCH")
+    return {
+        **bundle,
+        "portable_artifact_receipt_sha256": _sha256(receipt_path),
     }
 
 

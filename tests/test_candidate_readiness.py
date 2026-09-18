@@ -234,6 +234,8 @@ def _prepare_and_migrate(tmp_path: Path):
 
 
 def _write_build_identity(candidate: Path, *, source_sha: str | None = None) -> None:
+    from qi_crawler import candidate_readiness
+
     if source_sha is None:
         migration = json.loads(
             (candidate / "data-root" / "candidate_migration_receipt.json").read_text(
@@ -266,14 +268,91 @@ def _write_build_identity(candidate: Path, *, source_sha: str | None = None) -> 
         "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
         encoding="utf-8",
     )
-    artifact = {
-        "receipt_schema_version": "qi-crawler-release-artifact-v1",
-        **{key: value for key, value in manifest.items() if key != "metadata_schema_version"},
-        "installer_sha256": "2" * 64,
-    }
-    (control / "release_artifact_receipt.json").write_text(
-        json.dumps(artifact, indent=2) + "\n", encoding="utf-8"
+    candidate_readiness.create_portable_artifact_receipt(
+        candidate,
+        expected_frozen_source_sha=source_sha,
+        expected_version=VERSION,
     )
+
+
+def test_portable_artifact_receipt_is_produced_from_actual_bundle(
+    tmp_path: Path,
+) -> None:
+    candidate, _, migration = _prepare_and_migrate(tmp_path)
+
+    _write_build_identity(candidate)
+
+    receipt_path = candidate / "control" / "portable_artifact_receipt.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["receipt_schema_version"] == "qi-crawler-portable-artifact-v1"
+    assert receipt["artifact_kind"] == "PORTABLE"
+    assert "installer_sha256" not in receipt
+    assert receipt["portable_exe_sha256"] == _sha256(
+        candidate / "app" / "QI-Crawler" / "QI-Crawler.exe"
+    )
+    assert receipt["source_git_sha"] == migration["migration_source_identity"][
+        "source_git_sha"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        ("exe", "PORTABLE_EXE_SHA_MISMATCH"),
+        ("manifest", "BUILD_PRODUCT_VERSION_MISMATCH"),
+        ("build_info", "BUILD_INFO_MANIFEST_MISMATCH"),
+    ],
+)
+def test_portable_artifact_producer_rejects_bundle_tamper(
+    tmp_path: Path, target: str, expected: str
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    candidate, _, migration = _prepare_and_migrate(tmp_path)
+    source_sha = migration["migration_source_identity"]["source_git_sha"]
+    bundle = candidate / "app" / "QI-Crawler"
+    _write_build_identity(candidate)
+    (candidate / "control" / "portable_artifact_receipt.json").unlink()
+    if target == "exe":
+        (bundle / "QI-Crawler.exe").write_bytes(b"tamper")
+    elif target == "manifest":
+        manifest = json.loads(
+            (bundle / "release_manifest.json").read_text(encoding="utf-8")
+        )
+        manifest["version"] = "9.9.9"
+        (bundle / "release_manifest.json").write_text(
+            json.dumps(manifest) + "\n", encoding="utf-8"
+        )
+    else:
+        build_info = bundle / "BUILD_INFO.txt"
+        build_info.write_text(
+            build_info.read_text(encoding="utf-8").replace(
+                "version=0.10.0", "version=9.9.9"
+            ),
+            encoding="utf-8",
+        )
+    with pytest.raises(Exception, match=expected):
+        candidate_readiness.create_portable_artifact_receipt(
+            candidate,
+            expected_frozen_source_sha=source_sha,
+            expected_version=VERSION,
+        )
+
+
+def test_portable_artifact_producer_rejects_expected_source_mismatch(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    candidate, _, _ = _prepare_and_migrate(tmp_path)
+    _write_build_identity(candidate)
+    (candidate / "control" / "portable_artifact_receipt.json").unlink()
+    with pytest.raises(Exception, match="FROZEN_SOURCE_SHA_MISMATCH"):
+        candidate_readiness.create_portable_artifact_receipt(
+            candidate,
+            expected_frozen_source_sha="3" * 40,
+            expected_version=VERSION,
+        )
 
 
 def _acceptance_args(candidate: Path, data_root: Path, migration: dict[str, object]):
@@ -454,6 +533,9 @@ def test_pre_first_start_acceptance_binds_build_data_config_and_lineage(tmp_path
         ("schema", "MIGRATED_SCHEMA_MISMATCH"),
         ("missing_clone", "CLONE_RECEIPT_INVALID"),
         ("missing_migration", "MIGRATION_RECEIPT_IDENTITY_MISMATCH"),
+        ("missing_portable", "PORTABLE_ARTIFACT_RECEIPT_INVALID"),
+        ("installer_only", "PORTABLE_ARTIFACT_RECEIPT_INVALID"),
+        ("portable_extra", "PORTABLE_ARTIFACT_RECEIPT_FIELDS_INVALID"),
     ],
 )
 def test_pre_first_start_rejects_tamper(
@@ -484,7 +566,19 @@ def test_pre_first_start_rejects_tamper(
         config["storage"]["report_dir"] = str((tmp_path / "working" / "reports").resolve())
         config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
     elif tamper == "build_sha":
-        _write_build_identity(candidate, source_sha="3" * 40)
+        bundle = candidate / "app" / "QI-Crawler"
+        manifest_path = bundle / "release_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["source_git_sha"] = "3" * 40
+        manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+        build_info = bundle / "BUILD_INFO.txt"
+        build_info.write_text(
+            build_info.read_text(encoding="utf-8").replace(
+                f"source_git_sha={args['expected_frozen_source_sha']}",
+                f"source_git_sha={'3' * 40}",
+            ),
+            encoding="utf-8",
+        )
     elif tamper == "migration_source_sha":
         migration["migration_source_identity"]["source_git_sha"] = "3" * 40
         migration_path.write_text(json.dumps(migration) + "\n", encoding="utf-8")
@@ -499,8 +593,27 @@ def test_pre_first_start_rejects_tamper(
         args["expected_migration_receipt_sha256"] = _sha256(migration_path)
     elif tamper == "missing_clone":
         clone_path.unlink()
-    else:
+    elif tamper == "missing_migration":
         migration_path.unlink()
+    elif tamper == "missing_portable":
+        (candidate / "control" / "portable_artifact_receipt.json").unlink()
+    elif tamper == "installer_only":
+        control = candidate / "control"
+        (control / "portable_artifact_receipt.json").unlink()
+        (control / "release_artifact_receipt.json").write_text(
+            json.dumps(
+                {
+                    "receipt_schema_version": "qi-crawler-release-artifact-v1",
+                    "installer_sha256": "2" * 64,
+                }
+            ),
+            encoding="utf-8",
+        )
+    else:
+        receipt_path = candidate / "control" / "portable_artifact_receipt.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["unsupported"] = True
+        receipt_path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
 
     with pytest.raises(Exception, match=expected):
         candidate_readiness.accept_pre_first_business_startup(**args)
