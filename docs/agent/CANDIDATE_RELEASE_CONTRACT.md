@@ -40,6 +40,25 @@ startup requires a valid existing acceptance and binds data/config to the
 candidate root. Pre-acceptance smoke is permitted only with an explicit isolated
 data root that does not overlap working user data or the candidate boundary.
 
+Candidate authorization binds all three effective storage inputs before
+configuration loading: `QI_CRAWLER_DATA_DIR`, `QI_CRAWLER_CONFIG_PATH`, and
+`QI_CRAWLER_DATABASE_URL`. The database URL is derived from the single
+`StandalonePaths.database_path` authority and identifies exactly
+`<candidate-data-root>/data/database/egp.db`. Direct startup, the controlled
+launcher, and isolated smoke must overwrite inherited process values with this
+candidate-specific URL so a candidate `.env` cannot redirect database access.
+
+After `load_config()` and before constructing `Database`, candidate startup must
+parse and validate the effective URL. It must use SQLite, resolve exactly to the
+authorized candidate database, and remain inside the explicit candidate or
+smoke data root. An external, relative escape, in-memory, non-SQLite, malformed,
+or otherwise noncanonical target fails closed with
+`CANDIDATE_EFFECTIVE_DATABASE_ESCAPE`; no database constructor or connection may
+run first. This candidate-only rule does not remove the existing
+`QI_CRAWLER_DATABASE_URL` override for ordinary non-candidate development or CLI
+operation. Acceptance binds the database location, not immutable database bytes;
+normal post-acceptance database writes remain allowed.
+
 ## Storage budget
 
 All values are byte ceilings for one candidate run. The managed-document limit

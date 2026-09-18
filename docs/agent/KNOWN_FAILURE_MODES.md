@@ -918,6 +918,20 @@ EVIDENCE = PR117 readiness correction F03/F04; 226 adjacent regressions and full
 LIMIT = Synthetic/runtime-entry verification only. Actual frozen-process B04 cases remain mandatory after a real candidate build; no business GUI startup or user-data mutation was performed.
 ```
 
+## FM-045 — Accepted candidate database environment override escaped candidate root
+
+```text
+ID = FM-045
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = APPLICATION / RELEASE RUNTIME ISOLATION
+SYMPTOM = An accepted candidate could bind candidate DATA_DIR and CONFIG_PATH while QI_CRAWLER_DATABASE_URL inherited from the process or loaded from .env later selected a database outside the candidate boundary.
+ROOT_CAUSE = Candidate startup protected the physical and configuration roots before load_config, but did not bind or revalidate the database override applied by EnvSettings afterward.
+CORRECTION = Derive one canonical SQLite URL from StandalonePaths.database_path; bind it with candidate data/config roots for direct, controlled and isolated-smoke startup; validate the final loaded SQLite target before Database construction.
+PREVENTION = Regressions cover inherited environment, .env, both override sources together, direct startup, controlled launcher, isolated smoke, invalid effective targets, no Database construction on rejection, and preservation of ordinary non-candidate overrides.
+EVIDENCE = PR117 F05 correction RED reproduced all four missing boundaries; GREEN passed 13 focused tests, 131 adjacent tests and the full 1433-test repository suite at code head b4d38baabd8b9473f7d9079a2b59e1d888c6af3a.
+LIMIT = Synthetic runtime-boundary verification only. No real candidate, working database, user data, migration, build, release or promotion was accessed or performed; independent F05 re-audit and exact-head hosted CI remain pending.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
