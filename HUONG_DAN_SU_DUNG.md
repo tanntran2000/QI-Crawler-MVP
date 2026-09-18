@@ -31,17 +31,18 @@ tim goi da luu, xuat Excel, crawl mot URL, dang nhap va mo thu muc ket qua.
 Neu `QI-Crawler.bat` bao thieu `.venv` hoac thieu lenh QI-Crawler, hay chup man hinh loi va gui IT.
 Khong tu xoa database hoac file cau hinh.
 
-### Thu nghiem giao dien desktop
+### Giao dien desktop
 
-IT co the mo prototype PySide6 bang:
+Trong moi truong phat trien, IT co the mo giao dien PySide6 bang:
 
 ```powershell
 python -m qi_crawler.gui
 ```
 
-Giao dien co cac tab `Quet goi thau`, `Tim kiem`, `Xuat TBMT`, `Crawl mot URL`, `Dang nhap nguon`
-va `Nhat ky / ket qua`. Tac vu crawl chay nen nen cua so van co the bam/chuyen tab. Ban nay chua dong goi
-EXE; Team Bid nen tiep tuc dung `QI-Crawler.bat` neu IT chua cau hinh shortcut GUI.
+Giao dien Windows da co trong ban cai dat van hanh v0.9.0 va cac ung vien sau nay.
+Giao dien gom Bid Radar, Human Review, Tender Workspace, Evidence/Document Inspector
+va cac thao tac xuat co kiem soat. Viec co EXE khong tu dong chung minh mot ung vien moi
+da dat operational acceptance; phai doi chieu version, build metadata va acceptance evidence.
 
 ### Cach mo bang Terminal (danh cho IT/nguoi van hanh)
 
@@ -785,12 +786,23 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
-## Co gi moi trong 0.9.1
+## Co gi moi trong 0.10.0
+
+- Human A0 da chon 0.10.0 lam muc tieu cumulative internal-use release.
+- Noi dung du kien gom Human-Light Excel Screening, Team Bid operational
+  screening profile, Tender Completeness / HSMT readiness, managed-source
+  integrity va exact-SHA Recovery.
+- v0.10.0 dang o giai doan candidate preparation. Chua co khang dinh
+  `VERIFIED_ON_V010`, chua cai dat va chua operational acceptance.
+- Candidate sau nay phai dung data root co lap, snapshot SQLite bang Backup API,
+  rebase managed path theo Document ID + old path + SHA, va co receipt COMPLETE
+  truoc migration hay startup.
+
+## Ghi chu ve 0.9.1
 
 - Human A0 da chi dinh 0.9.1 la ung vien phuc hoi runtime tiep theo cua
-  QI-Crawler.
-- Danh tinh phien ban nay phan biet ung vien tren main hien tai voi ban van
-  hanh v0.9.0.
+  QI-Crawler, sau do supersede truoc operational release de chuyen sang muc
+  tieu cumulative 0.10.0.
 - Gan danh tinh phien ban khong dong nghia voi chap nhan van hanh, cai dat
   production, GitHub Release hay phat hanh Team Bid.
 

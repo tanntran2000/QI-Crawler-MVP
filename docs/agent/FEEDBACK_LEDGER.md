@@ -1163,3 +1163,25 @@ permit another RealF5 trial. A later valid pre-dispatch receipt triggers only
 DOCUMENTARY_AUTHORITY_REAUDIT; it does not trigger another execution.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_FAILURE_MEMORY_AND_LESSONS
 ```
+
+### FB-0042 — v0.10.0 cumulative internal-use release target
+
+```text
+State: ACCEPTED / ROUTED / IMPLEMENTATION_IN_PROGRESS
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: WP-REL-V010-CANDIDATE-PREP-01 approved 2026-09-17
+Type: RELEASE / VERSION / EXECUTION_PRIORITY
+Decision:
+- TARGET_VERSION = 0.10.0
+- V091_TARGET = SUPERSEDED_BEFORE_OPERATIONAL_RELEASE
+- PRIMARY_GOAL = CUMULATIVE_INTERNAL_USE_RELEASE
+- NEW_PRODUCT_FEATURES = HOLD
+- Prepare the isolated candidate pipeline before build, acceptance and Human
+  promotion decisions.
+Boundary: This decision authorizes the bounded release-preparation Parent. It
+does not authorize a candidate build, real Team Bid data clone/migration,
+installation, publish, promotion, tag, GitHub Release, RealF5 or new product
+capability.
+Disposition: ACCEPTED / ROUTED_TO_MASTER_ROADMAP_DELTA_AND_CURRENT
+```

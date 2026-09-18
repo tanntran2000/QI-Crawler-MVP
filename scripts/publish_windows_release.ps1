@@ -40,16 +40,25 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
     $bundle = Join-Path $Root "QI-Crawler"
     $exe = Join-Path $bundle "QI-Crawler.exe"
     $installer = Join-Path $Root "QI-Crawler-Setup-v$ReleaseVersion.exe"
-    $buildInfo = Join-Path $Root "BUILD_INFO.txt"
-    $manifestPath = Join-Path $Root "release_manifest.json"
+    $versionFile = Join-Path $bundle "VERSION.txt"
+    $whatsNew = Join-Path $bundle "WHAT_IS_NEW.txt"
+    $capabilities = Join-Path $bundle "CAPABILITIES.txt"
+    $buildInfo = Join-Path $bundle "BUILD_INFO.txt"
+    $manifestPath = Join-Path $bundle "release_manifest.json"
+    $receiptPath = Join-Path $Root "release_artifact_receipt.json"
     Resolve-ExistingPath $exe "Portable EXE" | Out-Null
     Resolve-ExistingPath $installer "Installer" | Out-Null
+    Resolve-ExistingPath $versionFile "Installed VERSION" | Out-Null
+    Resolve-ExistingPath $whatsNew "Installed WHAT_IS_NEW" | Out-Null
+    Resolve-ExistingPath $capabilities "Installed CAPABILITIES" | Out-Null
     Resolve-ExistingPath $buildInfo "BUILD_INFO" | Out-Null
     Resolve-ExistingPath $manifestPath "Release manifest" | Out-Null
+    Resolve-ExistingPath $receiptPath "Artifact receipt" | Out-Null
     try {
         $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $receipt = Get-Content -LiteralPath $receiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
     } catch {
-        throw "Release manifest khong hop le: $manifestPath"
+        throw "Release manifest hoac artifact receipt khong hop le"
     }
     if ($manifest.product -ne "QI-Crawler" -or $manifest.version -ne $ReleaseVersion) {
         throw "Release manifest khong khop version/product"
@@ -57,19 +66,29 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
     if ($manifest.alembic_head -ne $ExpectedHead) {
         throw "Release manifest khong khop Alembic head ky vong: $ExpectedHead"
     }
+    if ($manifest.metadata_schema_version -ne "qi-crawler-installed-release-v1") {
+        throw "Release manifest schema khong duoc ho tro"
+    }
+    if ($manifest.PSObject.Properties.Name -contains "installer_sha256") {
+        throw "Installed release manifest khong duoc chua installer SHA"
+    }
     if ($manifest.portable_exe_sha256 -ne (Get-Sha256 $exe)) {
         throw "Hash portable EXE khong khop release manifest"
     }
-    if ($manifest.installer_sha256 -ne (Get-Sha256 $installer)) {
-        throw "Hash installer khong khop release manifest"
+    if ($receipt.receipt_schema_version -ne "qi-crawler-release-artifact-v1" -or
+        $receipt.product -ne "QI-Crawler" -or $receipt.version -ne $ReleaseVersion) {
+        throw "Artifact receipt khong khop product/version/schema"
+    }
+    if ($receipt.portable_exe_sha256 -ne (Get-Sha256 $exe) -or
+        $receipt.installer_sha256 -ne (Get-Sha256 $installer)) {
+        throw "Artifact receipt khong khop portable/installer hash"
     }
     $infoText = Get-Content -LiteralPath $buildInfo -Raw -Encoding UTF8
     foreach ($required in @(
         "product=QI-Crawler",
         "version=$ReleaseVersion",
         "alembic_head=$ExpectedHead",
-        "portable_exe_sha256=$($manifest.portable_exe_sha256)",
-        "installer_sha256=$($manifest.installer_sha256)"
+        "portable_exe_sha256=$($manifest.portable_exe_sha256)"
     )) {
         if ($infoText -notmatch [regex]::Escape($required)) {
             throw "BUILD_INFO thieu thong tin: $required"
@@ -81,6 +100,7 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
         Installer = $installer
         BuildInfo = $buildInfo
         Manifest = $manifestPath
+        Receipt = $receiptPath
     }
 }
 
@@ -123,15 +143,15 @@ try {
     New-Item -ItemType Directory -Path $stagedBundle -Force | Out-Null
     Get-ChildItem -LiteralPath $candidateParts.Bundle -Force | Copy-Item -Destination $stagedBundle -Recurse -Force
     Copy-Item -LiteralPath $candidateParts.Installer -Destination (Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)) -Force
-    Copy-Item -LiteralPath $candidateParts.BuildInfo -Destination (Join-Path $stagedCurrent "BUILD_INFO.txt") -Force
-    Copy-Item -LiteralPath $candidateParts.Manifest -Destination (Join-Path $stagedCurrent "release_manifest.json") -Force
+    Copy-Item -LiteralPath $candidateParts.Receipt -Destination (Join-Path $stagedCurrent "release_artifact_receipt.json") -Force
 
     $stagedExe = Join-Path $stagedCurrent "QI-Crawler\QI-Crawler.exe"
     $stagedInstaller = Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)
 
     if (-not (Test-Path -LiteralPath $stagedExe) -or -not (Test-Path -LiteralPath $stagedInstaller) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "BUILD_INFO.txt")) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_manifest.json"))) {
+        -not (Test-Path -LiteralPath (Join-Path $stagedBundle "BUILD_INFO.txt")) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedBundle "release_manifest.json")) -or
+        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_artifact_receipt.json"))) {
         throw "Candidate staging khong day du"
     }
 

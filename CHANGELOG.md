@@ -8,10 +8,23 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
   recovery workflow with explicit missing, mismatch, orphan, recoverable,
   recovered and quarantine states.
 
+## 0.10.0 - 2026-09-17
+
+- Human A0 designated 0.10.0 as the cumulative internal-use release target.
+- Candidate preparation adds an isolated SQLite Backup API clone, exact managed-
+  document SHA verification and identity-bound path rebasing. It does not migrate
+  or modify Team Bid working data.
+- Future installed bundles retain version, change, capability, build-provenance
+  and machine-readable release metadata. Installer hashes remain in a separate
+  post-build artifact receipt to avoid a circular package identity.
+- Runtime and operational acceptance have not yet occurred. New product features
+  remain on hold during candidate preparation.
+
 ## 0.9.1 - 2026-09-16
 
 - Human A0 designated 0.9.1 as the next QI-Crawler runtime-restoration
-  candidate.
+  candidate; it was superseded before operational release by the cumulative
+  0.10.0 internal-use target.
 - This version identity distinguishes the forthcoming restored/current-main
   candidate from the operational v0.9.0 build.
 - Version designation alone does not constitute operational acceptance,

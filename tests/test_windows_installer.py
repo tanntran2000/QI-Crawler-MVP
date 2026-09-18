@@ -19,6 +19,7 @@ PUBLISH_SCRIPT = ROOT / "scripts" / "publish_windows_release.ps1"
 VERSION = __version__
 EXPECTED_SCHEMA_HEAD = CURRENT_SCHEMA_REVISION
 
+
 def _load_spec_helpers() -> dict[str, object]:
     """Load only pure helper functions from the PyInstaller spec."""
     tree = ast.parse((ROOT / "packaging" / "QI-Crawler.spec").read_text(encoding="utf-8"))
@@ -41,7 +42,7 @@ def test_spec_filters_foreign_unversioned_icu_by_source_ownership(tmp_path: Path
     script = (ROOT / "packaging" / "QI-Crawler.spec").read_text(encoding="utf-8")
     for dll_name in ("icuuc.dll", "icuin.dll", "icudt.dll"):
         assert dll_name in script.lower()
-    assert "find_spec(\"pyside6\")" in script.lower()
+    assert 'find_spec("pyside6")' in script.lower()
     assert "c:\\users\\admin" not in script.lower()
     assert "codex-runtimes" not in script.lower()
     assert "poppler" not in script.lower()
@@ -95,7 +96,7 @@ def test_installer_is_per_user_and_preserves_bid_data() -> None:
     assert "OutputBaseFilename=QI-Crawler-Setup-v{#AppVersion}" in script
     assert "DefaultDirName={localappdata}\\Programs\\QI-Crawler" in script
     assert "PrivilegesRequired=lowest" in script
-    assert "Source: \"..\\dist\\QI-Crawler\\*\"" in script
+    assert 'Source: "..\\dist\\QI-Crawler\\*"' in script
     assert "{autoprograms}\\QI-Crawler" in script
     assert "{autodesktop}\\QI-Crawler" in script
     assert "[UninstallDelete]" not in script
@@ -138,6 +139,7 @@ def test_publish_is_explicit_and_has_safe_contract() -> None:
     assert "Previous" in script
     assert "BUILD_INFO.txt" in script
     assert "release_manifest.json" in script
+    assert "release_artifact_receipt.json" in script
     assert "Get-FileHash" in script
     assert "branch --show-current" in script
     assert "status --porcelain" in script
@@ -210,9 +212,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
 
     publish_root = tmp_path / "Crawler tool"
 
-    def make_candidate(
-        name: str, payload: bytes, schema_head: str = EXPECTED_SCHEMA_HEAD
-    ) -> Path:
+    def make_candidate(name: str, payload: bytes, schema_head: str = EXPECTED_SCHEMA_HEAD) -> Path:
         candidate = tmp_path / name
         bundle = candidate / "QI-Crawler"
         bundle.mkdir(parents=True)
@@ -221,35 +221,55 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
         installer.write_bytes(payload + b"-installer")
         exe_hash = hashlib.sha256(payload).hexdigest().upper()
         installer_hash = hashlib.sha256(installer.read_bytes()).hexdigest().upper()
-        (candidate / "BUILD_INFO.txt").write_text(
+        (bundle / "VERSION.txt").write_text(
+            f"QI-Crawler\nVersion: {VERSION}\nChannel: INTERNAL CANDIDATE\n",
+            encoding="utf-8",
+        )
+        (bundle / "WHAT_IS_NEW.txt").write_text("candidate changes\n", encoding="utf-8")
+        (bundle / "CAPABILITIES.txt").write_text("NOT_YET_RUNTIME_VERIFIED\n", encoding="utf-8")
+        (bundle / "BUILD_INFO.txt").write_text(
             "\n".join(
                 [
+                    "metadata_schema_version=qi-crawler-installed-release-v1",
                     "product=QI-Crawler",
                     f"version={VERSION}",
-                    "commit_sha="
+                    "source_git_sha="
                     + subprocess.check_output(
                         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
                     ).strip(),
                     "source_branch=main",
                     "build_timestamp_utc=2026-08-23T00:00:00Z",
                     f"alembic_head={schema_head}",
+                    "release_channel=INTERNAL_CANDIDATE",
                     f"portable_exe_sha256={exe_hash}",
-                    f"installer_sha256={installer_hash}",
                 ]
             ),
             encoding="utf-8",
         )
-        (candidate / "release_manifest.json").write_text(
+        (bundle / "release_manifest.json").write_text(
             json.dumps(
                 {
+                    "metadata_schema_version": "qi-crawler-installed-release-v1",
                     "product": "QI-Crawler",
                     "version": VERSION,
-                    "commit_sha": subprocess.check_output(
+                    "source_git_sha": subprocess.check_output(
                         ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
                     ).strip(),
+                    "source_branch": "main",
                     "build_timestamp_utc": "2026-08-23T00:00:00Z",
                     "alembic_head": schema_head,
-                    "release_channel": "team_bid_verified",
+                    "release_channel": "INTERNAL_CANDIDATE",
+                    "portable_exe_sha256": exe_hash,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (candidate / "release_artifact_receipt.json").write_text(
+            json.dumps(
+                {
+                    "receipt_schema_version": "qi-crawler-release-artifact-v1",
+                    "product": "QI-Crawler",
+                    "version": VERSION,
                     "portable_exe_sha256": exe_hash,
                     "installer_sha256": installer_hash,
                 }
@@ -290,27 +310,25 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     second = run_publish(make_candidate("candidate-two", b"two"))
     assert second.returncode == 0, second.stderr
     assert current_exe.read_bytes() == b"two"
-    assert (
-        publish_root / "Previous" / "QI-Crawler" / "QI-Crawler.exe"
-    ).read_bytes() == b"one"
-    info = (publish_root / "Current" / "BUILD_INFO.txt").read_text(encoding="utf-8")
+    assert (publish_root / "Previous" / "QI-Crawler" / "QI-Crawler.exe").read_bytes() == b"one"
+    info = (publish_root / "Current" / "QI-Crawler" / "BUILD_INFO.txt").read_text(encoding="utf-8")
     assert "product=QI-Crawler" in info
     assert f"version={VERSION}" in info
-    assert (
-        "portable_exe_sha256="
-        + hashlib.sha256(b"two").hexdigest().upper()
-    ) in info
-    assert (
-        "installer_sha256="
-        + hashlib.sha256(b"two-installer").hexdigest().upper()
-    ) in info
+    assert ("portable_exe_sha256=" + hashlib.sha256(b"two").hexdigest().upper()) in info
     manifest = json.loads(
-        (publish_root / "Current" / "release_manifest.json").read_text(encoding="utf-8")
+        (publish_root / "Current" / "QI-Crawler" / "release_manifest.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert manifest["product"] == "QI-Crawler"
     assert manifest["version"] == VERSION
     assert manifest["alembic_head"] == EXPECTED_SCHEMA_HEAD
-    assert manifest["release_channel"] == "team_bid_verified"
+    assert manifest["release_channel"] == "INTERNAL_CANDIDATE"
+    assert "installer_sha256" not in manifest
+    receipt = json.loads(
+        (publish_root / "Current" / "release_artifact_receipt.json").read_text(encoding="utf-8")
+    )
+    assert receipt["installer_sha256"] == hashlib.sha256(b"two-installer").hexdigest().upper()
 
     incomplete = tmp_path / "candidate-incomplete"
     (incomplete / "QI-Crawler").mkdir(parents=True)
@@ -328,7 +346,7 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     build_info_only_mismatch = make_candidate(
         "candidate-build-info-only-mismatch", b"build-info-mismatch"
     )
-    build_info_path = build_info_only_mismatch / "BUILD_INFO.txt"
+    build_info_path = build_info_only_mismatch / "QI-Crawler" / "BUILD_INFO.txt"
     build_info_path.write_text(
         build_info_path.read_text(encoding="utf-8").replace(
             f"alembic_head={EXPECTED_SCHEMA_HEAD}",
@@ -338,13 +356,15 @@ def test_publish_rotates_previous_and_rejects_incomplete_candidate(tmp_path: Pat
     )
     build_info_only_failed = run_publish(build_info_only_mismatch)
     assert build_info_only_failed.returncode != 0
-    assert json.loads(
-        (build_info_only_mismatch / "release_manifest.json").read_text(encoding="utf-8")
-    )["alembic_head"] == EXPECTED_SCHEMA_HEAD
     assert (
-        "alembic_head=wrong-build-info-head"
-        in build_info_path.read_text(encoding="utf-8")
+        json.loads(
+            (build_info_only_mismatch / "QI-Crawler" / "release_manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )["alembic_head"]
+        == EXPECTED_SCHEMA_HEAD
     )
+    assert "alembic_head=wrong-build-info-head" in build_info_path.read_text(encoding="utf-8")
     assert current_exe.read_bytes() == b"two"
 
     missing_expected_head = run_publish(
