@@ -21,13 +21,23 @@ def _sha(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _source_root(tmp_path: Path, documents: list[tuple[int, str, bytes]] | None = None) -> Path:
+def _source_root(
+    tmp_path: Path,
+    documents: list[tuple[int, str, bytes]] | None = None,
+    *,
+    create_document_root: bool = True,
+) -> Path:
     source = tmp_path / "working"
     docs = source / "data" / "documents"
     db_path = source / "data" / "database" / "egp.db"
-    docs.mkdir(parents=True)
+    if create_document_root:
+        docs.mkdir(parents=True)
     db_path.parent.mkdir(parents=True)
-    rows = documents or [(1, "manual/a.pdf", b"alpha"), (2, "other/b.docx", b"beta")]
+    rows = (
+        documents
+        if documents is not None
+        else [(1, "manual/a.pdf", b"alpha"), (2, "other/b.docx", b"beta")]
+    )
     with sqlite3.connect(db_path) as connection:
         connection.execute("CREATE TABLE alembic_version (version_num TEXT NOT NULL)")
         connection.execute(
@@ -153,6 +163,11 @@ def test_clone_uses_sqlite_snapshot_and_rebases_exact_managed_documents(tmp_path
     assert receipt["receipt_schema_version"] == "qi-crawler-candidate-clone-v1"
     assert receipt["managed_document_mapping_digest"]
     assert receipt["candidate_config_path"] == str((destination / "config.yaml").resolve())
+    assert receipt["source_document_root"] == str(
+        (source / "data" / "documents").resolve()
+    )
+    assert receipt["source_document_root_basis"] == "CONFIG_EXPLICIT"
+    assert receipt["source_document_dir_declared"] is True
     candidate_db = destination / "data" / "database" / "egp.db"
     with sqlite3.connect(candidate_db) as connection:
         paths = [
@@ -169,6 +184,141 @@ def test_clone_uses_sqlite_snapshot_and_rebases_exact_managed_documents(tmp_path
         == "COMPLETE"
     )
     assert _module().validate_candidate_receipt(destination) == receipt
+
+
+def test_clone_supports_legacy_source_config_without_document_dir(tmp_path: Path) -> None:
+    source = _source_root(tmp_path, documents=[(1, "manual/a.pdf", b"alpha")])
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    del config["storage"]["document_dir"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    config_bytes_before = config_path.read_bytes()
+    destination = tmp_path / "candidate"
+
+    receipt = _prepare(source, destination)
+
+    assert receipt["status"] == "COMPLETE"
+    assert receipt["document_count"] == 1
+    assert receipt["source_document_root"] == str(
+        (source / "data" / "documents").resolve()
+    )
+    assert receipt["source_document_root_basis"] == "LEGACY_STANDALONE_DEFAULT"
+    assert receipt["source_document_dir_declared"] is False
+    assert config_path.read_bytes() == config_bytes_before
+
+
+def test_clone_resolves_explicit_relative_document_dir_from_source_root(
+    tmp_path: Path,
+) -> None:
+    source = _source_root(tmp_path, documents=[(1, "manual/a.pdf", b"alpha")])
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["storage"]["document_dir"] = "./data/documents"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    receipt = _prepare(source, tmp_path / "candidate")
+
+    assert receipt["status"] == "COMPLETE"
+    assert receipt["source_document_root"] == str(
+        (source / "data" / "documents").resolve()
+    )
+    assert receipt["source_document_root_basis"] == "CONFIG_EXPLICIT"
+    assert receipt["source_document_dir_declared"] is True
+
+
+def test_clone_rejects_explicit_external_document_root(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    foreign = tmp_path / "foreign" / "documents"
+    foreign.mkdir(parents=True)
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["storage"]["document_dir"] = str(foreign.resolve())
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(Exception, match="SOURCE_CONFIG_ESCAPE"):
+        _prepare(source, tmp_path / "candidate")
+
+
+def test_legacy_document_root_does_not_authorize_stored_path_escape(tmp_path: Path) -> None:
+    source = _source_root(tmp_path)
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    del config["storage"]["document_dir"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    outside = tmp_path / "foreign" / "a.pdf"
+    outside.parent.mkdir()
+    outside.write_bytes(b"alpha")
+    with sqlite3.connect(source / "data" / "database" / "egp.db") as connection:
+        connection.execute(
+            "UPDATE documents SET stored_path = ? WHERE id = 1",
+            (str(outside.resolve()),),
+        )
+
+    with pytest.raises(Exception, match="MANAGED_SOURCE_ESCAPE"):
+        _prepare(source, tmp_path / "candidate")
+
+
+@pytest.mark.parametrize("document_dir", ["", None, {"unexpected": "mapping"}])
+def test_clone_rejects_invalid_explicit_document_dir(
+    tmp_path: Path,
+    document_dir: object,
+) -> None:
+    source = _source_root(tmp_path)
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["storage"]["document_dir"] = document_dir
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(Exception, match="SOURCE_DOCUMENT_DIR_INVALID"):
+        _prepare(source, tmp_path / "candidate")
+
+
+def test_zero_document_legacy_clone_does_not_create_source_document_root(
+    tmp_path: Path,
+) -> None:
+    source = _source_root(tmp_path, documents=[], create_document_root=False)
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    del config["storage"]["document_dir"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    source_documents = source / "data" / "documents"
+    assert not source_documents.exists()
+
+    receipt = _prepare(source, tmp_path / "candidate")
+
+    assert receipt["status"] == "COMPLETE"
+    assert receipt["document_count"] == 0
+    assert receipt["source_document_root"] == str(source_documents.resolve())
+    assert receipt["source_document_root_basis"] == "LEGACY_STANDALONE_DEFAULT"
+    assert receipt["source_document_dir_declared"] is False
+    assert not source_documents.exists()
+
+
+def test_legacy_document_root_rejects_reparse_alias_when_available(tmp_path: Path) -> None:
+    source = _source_root(tmp_path, documents=[], create_document_root=False)
+    config_path = source / "config.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    del config["storage"]["document_dir"]
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    foreign = tmp_path / "foreign-documents"
+    foreign.mkdir()
+    alias = source / "data" / "documents"
+    try:
+        alias.symlink_to(foreign, target_is_directory=True)
+    except OSError:
+        if os.name != "nt":
+            pytest.skip("Directory symlink creation is unavailable on this host")
+        junction = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(alias), str(foreign)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if junction.returncode != 0:
+            pytest.skip("Directory symlink/junction creation is unavailable on this host")
+
+    with pytest.raises(Exception, match="REPARSE_OR_SYMLINK"):
+        _prepare(source, tmp_path / "candidate")
 
 
 def test_clone_receipt_validation_rejects_pre_migration_db_tamper(tmp_path: Path) -> None:
