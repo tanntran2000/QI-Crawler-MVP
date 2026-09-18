@@ -882,12 +882,12 @@ LIMIT = This validates declared provenance consistency. Matching the declared so
 ID = FM-042
 STATE = IMPLEMENTED_PENDING_INDEPENDENT_REAUDIT
 PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / CANDIDATE MIGRATION
-SYMPTOM = A migration receipt could name source commit X while executing migration and orchestration bytes from a different or dirty checkout.
-ROOT_CAUSE = Stage 2 copied a caller-provided source_git_sha into evidence without proving repository root, commit existence, exact HEAD, tracked-tree cleanliness, or migration-file Git blobs.
-CORRECTION = Require an explicit source repository root and expected frozen commit; verify exact worktree root, commit object, HEAD and whole tracked-tree cleanliness; bind every executed migration script to its repo-relative Git blob before Alembic runs.
-PREVENTION = Keep detached exact-HEAD checkouts valid, allow unrelated untracked build output, and retain wrong-head, dirty-source, missing-repo and blob-mismatch regressions.
-EVIDENCE = PR117 readiness correction F01; focused candidate-readiness suite and full 1415-test repository suite passed locally at correction code head 3b031ec.
-LIMIT = Local synthetic migration evidence only. Final source freeze, real business-data migration, candidate build and release remain unauthorized and unproven.
+SYMPTOM = A migration receipt could name source commit X while executing migration scripts or controlling Python orchestration from a different or dirty checkout.
+ROOT_CAUSE = Stage 2 initially trusted a caller-provided source_git_sha, then proved checkout and migration-script identity without proving that the actually loaded candidate-readiness, candidate-data, migration and database modules came from the same frozen Git object.
+CORRECTION = Require an explicit source repository root and expected frozen commit; verify exact worktree root, commit object, HEAD and whole tracked-tree cleanliness; bind every executed migration script, actually loaded controlling Python module, alembic.ini and alembic/env.py to its canonical path and Git blob before backup or Alembic execution.
+PREVENTION = Reject foreign module origins, same-path byte drift, replaced callable origins and Alembic configuration drift; retain detached exact-HEAD, untracked-output, wrong-head, dirty-source, missing-repo and migration-blob regressions; persist and revalidate execution-code identity in the migration receipt.
+EVIDENCE = PR117 final F01 correction; 53 candidate-readiness tests, 86 adjacent tests and the full 1422-test repository suite passed locally at correction code head 747cf9f.
+LIMIT = Verification has an accepted controlled-build TOCTOU limitation: the Single Writer, clean frozen checkout and no-concurrent-source-mutation contract must hold after verification. Evidence remains synthetic; final source freeze, real business-data migration, candidate build and release remain unauthorized and unproven.
 ```
 
 ## FM-043 — Portable readiness depended on an installer-only receipt schema

@@ -89,7 +89,18 @@ invariant after normal application writes begin.
 Migration execution must use an exact clean Git checkout whose `HEAD` equals the
 expected frozen commit. Each executed Alembic version file must match its Git
 blob at that commit. Untracked build output does not invalidate a clean tracked
-tree and must not be deleted by this verification.
+tree and must not be deleted by this verification. Before backup or migration,
+the actually loaded `candidate_readiness`, `candidate_data`, `migrations`, and
+`db` modules must resolve to their canonical paths inside that same checkout and
+match their Git objects. `alembic.ini` and `alembic/env.py` must also match their
+frozen Git objects. The migration receipt records this execution-code identity
+and later evidence validation rechecks the durable file/Git lineage without
+requiring a later candidate runtime to load modules from the build checkout.
+
+This verification has a controlled build-time TOCTOU limitation. The frozen
+checkout remains under the Single Writer contract with no concurrent source
+mutation between verification and migration; this contract does not claim an
+immutable filesystem or introduce a source-locking subsystem.
 
 `PRE_FIRST_BUSINESS_STARTUP_ACCEPTANCE` means the initial candidate state was
 accepted; it does not assert that a process started. A failed process launch
