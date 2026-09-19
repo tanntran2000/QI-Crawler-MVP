@@ -964,7 +964,10 @@ LIMIT = Synthetic correction until independent audit and Build Attempt #2. No re
 
 ```text
 ID = FM-047
-STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+STATE = AUDITED
+INDEPENDENT_EOL_COMPAT_AUDIT = PASS_FROZEN_EXECUTION_EOL_COMPAT_AUDIT
+CORRECTION_MERGED = YES
+MERGED_MAIN_SHA = f6782d7eefb292870f8c78404e6c3e83f5fab1e2
 PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / FROZEN EXECUTION PROVENANCE
 SYMPTOM = Build Attempt #2 passed portable build, B04 and real isolated clone, then migration execution binding rejected a clean exact frozen Windows checkout before Alembic execution.
 ROOT_CAUSE = Frozen execution identity required raw working-tree bytes to equal Git blob bytes while candidate-readiness tests forced core.autocrlf=false. A legitimate Windows core.autocrlf=true checkout stores LF in Git but materializes CRLF in the working tree.
