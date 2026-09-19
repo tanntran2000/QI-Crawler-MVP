@@ -88,7 +88,9 @@ from .gui_services import (
     DatabaseReadinessResult,
     DocumentExtractionInspection,
     HSMTFactDashboard,
+    ManagedDocumentRow,
     SearchRow,
+    TenderCompletenessView,
     resolve_database_path,
     run_bid_radar_excel_screening,
     run_bid_radar_export,
@@ -107,6 +109,7 @@ from .gui_services import (
     run_scan,
     run_search,
     run_single_crawl,
+    run_tender_completeness_view,
     run_tender_document_workspace,
     run_tender_recovery,
     run_tender_recovery_scan,
@@ -118,6 +121,7 @@ from .gui_services import (
     run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
+    run_tender_workspace_document_rows,
     run_tender_workspace_export,
     run_tender_workspace_manifest,
     run_tender_workspace_open_or_create,
@@ -373,6 +377,7 @@ class QICrawlerWindow(QMainWindow):
         self._bid_radar_pending_source: SourceSessionIdentity | None = None
         self._bid_radar_active_source: SourceSessionIdentity | None = None
         self._bid_radar_pending_detection: SourceTypeDetection | None = None
+        self._bid_radar_location_reconcile_value: str | None = None
         self._workspace_release_record_id: int | None = None
         self._workspace_opened_case_id: str | None = None
         self._workspace_opened_release_id: str | None = None
@@ -1480,6 +1485,14 @@ class QICrawlerWindow(QMainWindow):
             self._inspect_bid_radar_pending_source(selected)
 
     def _clear_bid_radar_loaded_state(self) -> None:
+        selected_location = self.bid_radar_location.text().strip()
+        if selected_location not in {
+            "",
+            "Tất cả",
+            "Chưa có dữ liệu nguồn",
+            "Nguồn không có dữ liệu địa điểm",
+        }:
+            self._bid_radar_location_reconcile_value = selected_location
         self._bid_radar_items = ()
         self._bid_radar_rows = ()
         self._bid_radar_result = None
@@ -1606,6 +1619,11 @@ class QICrawlerWindow(QMainWindow):
         from .market_intelligence.value_normalization import parse_optional_money_input
 
         selected_location = self.bid_radar_location.text().strip()
+        if self.bid_radar_location.currentData() == "__INVALID_LOCATION__":
+            raise ValueError(
+                f"Địa điểm '{selected_location}' không còn trong nguồn hiện tại; "
+                "hãy chọn lại trước khi chạy."
+            )
         selected_values = (
             frozenset(self._split_bid_radar_values(selected_location))
             if self.bid_radar_location.isEnabled()
@@ -1727,6 +1745,18 @@ class QICrawlerWindow(QMainWindow):
     ) -> None:
         source_type = SourceType(source_type)
         selector = self.bid_radar_location
+        selected_before = selector.text().strip()
+        previous = (
+            selected_before
+            if selected_before
+            not in {
+                "",
+                "Tất cả",
+                "Chưa có dữ liệu nguồn",
+                "Nguồn không có dữ liệu địa điểm",
+            }
+            else self._bid_radar_location_reconcile_value
+        )
         selector.clear()
         if source_type is SourceType.TBMT:
             evidence_values = tuple(execution_location_values(item) for item in items)
@@ -1775,7 +1805,32 @@ class QICrawlerWindow(QMainWindow):
             self.bid_radar_location_coverage.hide()
         for value in values:
             selector.addItem(value, value)
-        selector.setCurrentIndex(0)
+        matched_index = -1
+        if previous:
+            for index in range(selector.count()):
+                if selector.itemText(index).casefold() == previous.casefold():
+                    matched_index = index
+                    break
+        if matched_index >= 0:
+            selector.setCurrentIndex(matched_index)
+            self._bid_radar_location_reconcile_value = None
+            if source_type is SourceType.TBMT:
+                self.bid_radar_location_coverage.setText(
+                    f"{self.bid_radar_location_coverage.text()} Đã giữ bộ lọc: {previous}."
+                )
+        elif previous and source_type is SourceType.TBMT and selector.isEnabled():
+            selector.addItem(previous, "__INVALID_LOCATION__")
+            selector.setCurrentIndex(selector.count() - 1)
+            self._bid_radar_location_reconcile_value = previous
+            self.bid_radar_location_coverage.setText(
+                f"{self.bid_radar_location_coverage.text()} Địa điểm '{previous}' không còn "
+                "trong nguồn hiện tại; hãy chọn lại trước khi chạy."
+            )
+        elif previous and source_type is not SourceType.TBMT:
+            selector.setEditText(previous)
+            self._bid_radar_location_reconcile_value = None
+        else:
+            selector.setCurrentIndex(0)
 
     def _render_bid_radar_result(self, result: BidRadarResult) -> None:
         source_path = getattr(result, "source_path", None)
@@ -2149,23 +2204,13 @@ class QICrawlerWindow(QMainWindow):
             "Chọn một gói đã lưu để quản lý bộ HSMT, nguồn web và các phiên bản tài liệu. "
             "QI-Crawler chỉ lưu khi Identity Guard xác nhận liên kết an toàn.",
         )
-        self.document_scroll = QScrollArea()
-        self.document_scroll.setWidgetResizable(True)
-        self.document_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.document_scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.document_scroll.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
         document_content = QWidget()
         layout = QVBoxLayout(document_content)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(14)
-        self.document_scroll.setWidget(document_content)
-        page_layout.addWidget(self.document_scroll, 1)
 
         selected_box = QGroupBox("A. GÓI THẦU ĐANG CHỌN")
+        self.document_package_header = selected_box
         selected_layout = QVBoxLayout(selected_box)
         form = QFormLayout()
         form.setHorizontalSpacing(20)
@@ -2472,18 +2517,70 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_candidate_table.horizontalHeader().setStretchLastSection(True)
         workspace_layout.addWidget(self.workspace_candidate_table)
 
-        export_row = QHBoxLayout()
+        self.workspace_documents_box = QGroupBox("MANAGED DOCUMENTS — EXACT RELEASE")
+        workspace_documents_layout = QVBoxLayout(self.workspace_documents_box)
+        self.workspace_document_table = QTableWidget(0, 5)
+        self.workspace_document_table.setHorizontalHeaderLabels(
+            ("Tên file", "Zone / vai trò", "Revision", "Authority", "Integrity")
+        )
+        self.workspace_document_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.workspace_document_table.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+        self.workspace_document_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.workspace_document_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Stretch
+        )
+        for column in range(1, 5):
+            self.workspace_document_table.horizontalHeader().setSectionResizeMode(
+                column, QHeaderView.ResizeToContents
+            )
+        self.workspace_document_table.itemSelectionChanged.connect(
+            self._render_selected_tender_workspace_document
+        )
+        workspace_documents_layout.addWidget(self.workspace_document_table)
+        self.workspace_document_detail = QTextEdit()
+        self.workspace_document_detail.setReadOnly(True)
+        self.workspace_document_detail.setPlaceholderText(
+            "Chọn một managed document để xem identity và evidence."
+        )
+        self.workspace_document_detail.setMaximumHeight(150)
+        workspace_documents_layout.addWidget(self.workspace_document_detail)
+        workspace_layout.addWidget(self.workspace_documents_box)
+
+        export_box = QGroupBox("XUẤT WORKSPACE CÓ KIỂM SOÁT")
+        self.workspace_export_box = export_box
+        export_layout = QFormLayout(export_box)
+        export_parent_row = QHBoxLayout()
+        self.workspace_export_parent = QLineEdit()
+        self.workspace_export_parent.setReadOnly(True)
+        self.workspace_export_parent.setPlaceholderText("Chọn thư mục cha đã tồn tại")
+        self.workspace_export_parent.textChanged.connect(
+            self._update_workspace_export_destination
+        )
+        self.workspace_export_choose_button = QPushButton("CHỌN THƯ MỤC CHA")
+        self.workspace_export_choose_button.clicked.connect(
+            self._choose_workspace_export_folder
+        )
+        export_parent_row.addWidget(self.workspace_export_parent, 1)
+        export_parent_row.addWidget(self.workspace_export_choose_button)
+        self.workspace_export_child = QLineEdit()
+        self.workspace_export_child.setPlaceholderText("Ví dụ: IB2600000001-00")
+        self.workspace_export_child.textChanged.connect(
+            self._update_workspace_export_destination
+        )
         self.workspace_export_path = QLineEdit()
         self.workspace_export_path.setReadOnly(True)
-        self.workspace_export_path.setPlaceholderText("Chọn thư mục export mới (không ghi đè)")
-        choose_export_button = QPushButton("CHỌN ĐÍCH EXPORT")
-        choose_export_button.clicked.connect(self._choose_workspace_export_folder)
+        self.workspace_export_path.setPlaceholderText("Đích xuất được tính tự động")
         self.workspace_export_button = QPushButton("XUẤT WORKSPACE")
         self.workspace_export_button.clicked.connect(self.start_tender_workspace_export)
-        export_row.addWidget(self.workspace_export_path, 1)
-        export_row.addWidget(choose_export_button)
-        export_row.addWidget(self.workspace_export_button)
-        workspace_layout.addLayout(export_row)
+        export_layout.addRow("EXPORT PARENT:", export_parent_row)
+        export_layout.addRow("TÊN THƯ MỤC XUẤT MỚI:", self.workspace_export_child)
+        export_layout.addRow("ĐÍCH XUẤT:", self.workspace_export_path)
+        export_layout.addRow("", self.workspace_export_button)
+        workspace_layout.addWidget(export_box)
 
         self.workspace_status = QLabel(
             "Chưa mở TenderCase. File chỉ được lưu khi zone, authority và evidence được khai báo rõ."
@@ -2495,7 +2592,21 @@ class QICrawlerWindow(QMainWindow):
         workspace_layout.addWidget(self.workspace_manifest_summary)
         layout.addWidget(workspace_box)
 
-        self.hsmt_dashboard_box = QGroupBox("F. TỔNG HỢP HSMT")
+        self.completeness_box = QGroupBox("ĐỘ ĐẦY ĐỦ")
+        completeness_layout = QVBoxLayout(self.completeness_box)
+        self.completeness_core_summary = QLabel(
+            "CORE COVERAGE / RESEARCH READINESS: Chưa tải dữ liệu."
+        )
+        self.completeness_core_summary.setWordWrap(True)
+        self.completeness_publication_summary = QLabel(
+            "PUBLICATION COMPLETENESS: Chưa tải dữ liệu."
+        )
+        self.completeness_publication_summary.setWordWrap(True)
+        completeness_layout.addWidget(self.completeness_core_summary)
+        completeness_layout.addWidget(self.completeness_publication_summary)
+        layout.addWidget(self.completeness_box)
+
+        self.hsmt_dashboard_box = QGroupBox("PHÂN TÍCH HSMT")
         dashboard_layout = QGridLayout(self.hsmt_dashboard_box)
         self.hsmt_fact_cards: dict[str, QPushButton] = {}
         for index, (group, label) in enumerate(
@@ -2509,12 +2620,120 @@ class QICrawlerWindow(QMainWindow):
                 ("MISSING_INFORMATION", "THÔNG TIN CÒN THIẾU"),
             )
         ):
-            button = QPushButton(f"{label}\nChưa có dữ liệu")
+            button = QPushButton(f"{label}\nChưa có dữ liệu trích xuất")
             button.setEnabled(False)
             button.clicked.connect(lambda _checked=False, value=group: self.show_hsmt_fact_group(value))
             self.hsmt_fact_cards[group] = button
             dashboard_layout.addWidget(button, index // 2, index % 2)
         layout.addWidget(self.hsmt_dashboard_box)
+
+        self.workspace_primary_actions_box = QGroupBox("THAO TÁC WORKSPACE CHÍNH")
+        primary_actions = QGridLayout(self.workspace_primary_actions_box)
+        primary_controls = (
+            self.workspace_open_button,
+            self.workspace_search_button,
+            self.workspace_dashboard_button,
+            self.workspace_add_button,
+            self.workspace_manifest_button,
+            self.workspace_revision_status_button,
+        )
+        for control in primary_controls:
+            workspace_actions.removeWidget(control)
+        for index, control in enumerate(primary_controls):
+            primary_actions.addWidget(control, index // 3, index % 3)
+
+        self.workspace_advanced_box = QGroupBox("LỊCH SỬ / NÂNG CAO")
+        advanced_layout = QVBoxLayout(self.workspace_advanced_box)
+        advanced_form = QFormLayout()
+        for field in (
+            self.workspace_entry_id,
+            self.workspace_operator,
+            self.workspace_correction_reason,
+        ):
+            label = workspace_form.labelForField(field)
+            if label is not None:
+                label.hide()
+            workspace_form.removeWidget(field)
+        advanced_form.addRow("Workspace entry:", self.workspace_entry_id)
+        advanced_form.addRow("Operator correction:", self.workspace_operator)
+        advanced_form.addRow("Correction reason:", self.workspace_correction_reason)
+        advanced_layout.addLayout(advanced_form)
+        advanced_actions = QGridLayout()
+        advanced_controls = (
+            self.workspace_replace_button,
+            self.workspace_source_correction_button,
+            self.workspace_revision_accept_button,
+            self.workspace_revision_reject_button,
+            self.workspace_revision_compare_button,
+            self.workspace_revision_activate_button,
+        )
+        for control in advanced_controls:
+            workspace_actions.removeWidget(control)
+        for index, control in enumerate(advanced_controls):
+            advanced_actions.addWidget(control, index // 2, index % 2)
+        advanced_layout.addLayout(advanced_actions)
+        for control in (
+            self.workspace_recovery_path,
+            self.workspace_recovery_file_button,
+            self.workspace_recovery_button,
+        ):
+            recovery_row.removeWidget(control)
+        advanced_recovery = QHBoxLayout()
+        advanced_recovery.addWidget(self.workspace_recovery_path, 1)
+        advanced_recovery.addWidget(self.workspace_recovery_file_button)
+        advanced_recovery.addWidget(self.workspace_recovery_button)
+        advanced_layout.addLayout(advanced_recovery)
+
+        for widget in (
+            selected_box,
+            intake_box,
+            collection_box,
+            self.document_extraction_box,
+            workspace_box,
+            self.completeness_box,
+            self.hsmt_dashboard_box,
+        ):
+            layout.removeWidget(widget)
+        workspace_layout.removeWidget(self.workspace_documents_box)
+        workspace_layout.removeWidget(self.workspace_export_box)
+
+        def section_scroll(*widgets: QWidget) -> QScrollArea:
+            content = QWidget()
+            content_layout = QVBoxLayout(content)
+            content_layout.setContentsMargins(0, 0, 0, 0)
+            content_layout.setSpacing(12)
+            for widget in widgets:
+                content_layout.addWidget(widget)
+            content_layout.addStretch()
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            scroll.setWidget(content)
+            return scroll
+
+        page_layout.addWidget(self.document_package_header)
+        self.document_tabs = QTabWidget()
+        overview_scroll = section_scroll(self.workspace_primary_actions_box, workspace_box)
+        self.document_scroll = section_scroll(
+            intake_box,
+            collection_box,
+            self.workspace_documents_box,
+            self.workspace_export_box,
+        )
+        completeness_scroll = section_scroll(self.completeness_box)
+        analysis_scroll = section_scroll(
+            self.document_extraction_box,
+            self.hsmt_dashboard_box,
+        )
+        advanced_scroll = section_scroll(self.workspace_advanced_box)
+        self.document_tabs.addTab(overview_scroll, "TỔNG QUAN")
+        self.document_tabs.addTab(self.document_scroll, "TÀI LIỆU")
+        self.document_tabs.addTab(completeness_scroll, "ĐỘ ĐẦY ĐỦ")
+        self.document_tabs.addTab(analysis_scroll, "PHÂN TÍCH HSMT")
+        self.document_tabs.addTab(advanced_scroll, "LỊCH SỬ / NÂNG CAO")
+        page_layout.addWidget(self.document_tabs, 1)
 
     def _build_log_page(self) -> None:
         _page, layout = self._new_page(
@@ -2716,9 +2935,27 @@ class QICrawlerWindow(QMainWindow):
             self.start_tender_workspace_scan_folder()
 
     def _choose_workspace_export_folder(self) -> None:
-        selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục export mới")
+        selected = QFileDialog.getExistingDirectory(self, "Chọn thư mục cha để export")
         if selected:
-            self.workspace_export_path.setText(selected)
+            self.workspace_export_parent.setText(selected)
+
+    def _update_workspace_export_destination(self) -> None:
+        parent = self.workspace_export_parent.text().strip()
+        child = self.workspace_export_child.text().strip()
+        if parent and self._valid_workspace_export_child(child):
+            self.workspace_export_path.setText(str(Path(parent) / child))
+        else:
+            self.workspace_export_path.clear()
+
+    @staticmethod
+    def _valid_workspace_export_child(child: str) -> bool:
+        return bool(
+            child
+            and child not in {".", ".."}
+            and "/" not in child
+            and "\\" not in child
+            and Path(child).name == child
+        )
 
     def _workspace_case_and_release(self) -> tuple[str, str] | None:
         case_id = self.workspace_case_id.text().strip()
@@ -2864,6 +3101,10 @@ class QICrawlerWindow(QMainWindow):
             )
             return
         case_id, _release_text = values
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi khôi phục.")
+            return
         self.workspace_status.setText("Đang quét integrity trước khi khôi phục exact-SHA...")
         self._submit(
             run_tender_recovery_scan,
@@ -2871,7 +3112,13 @@ class QICrawlerWindow(QMainWindow):
             case_id,
             self._workspace_release_record_id,
             on_success=lambda report: self._submit_recovery_action(
-                report, case_id, int(membership_text), Path(candidate_text), reason, evidence
+                report,
+                case_id,
+                int(membership_text),
+                Path(candidate_text),
+                reason,
+                evidence,
+                expected_context,
             ),
             button=self.workspace_recovery_button,
             progress=self.document_progress,
@@ -2888,7 +3135,11 @@ class QICrawlerWindow(QMainWindow):
         candidate: Path,
         reason: str,
         evidence: str,
+        expected_context: tuple[str, int, str],
     ) -> None:
+        if not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         if not any(item.membership_id == membership_id for item in report.entries):
             self.workspace_status.setText("Membership không thuộc exact release đang mở.")
             return
@@ -2897,13 +3148,15 @@ class QICrawlerWindow(QMainWindow):
             run_tender_recovery,
             self.config,
             case_id,
-            self._workspace_release_record_id,
+            expected_context[1],
             membership_id,
             candidate,
             "Team Bid GUI",
             reason,
             evidence,
-            on_success=self._render_tender_workspace_recovery,
+            on_success=lambda result: self._render_tender_workspace_recovery(
+                result, expected_context
+            ),
             button=self.workspace_recovery_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -2911,11 +3164,19 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_recovery(self, result: Any) -> None:
+    def _render_tender_workspace_recovery(
+        self,
+        result: Any,
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(
             f"Đã khôi phục exact-SHA: {result.state.value}. Đang tải manifest..."
         )
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_replace(self) -> None:
@@ -2934,6 +3195,10 @@ class QICrawlerWindow(QMainWindow):
             return
         case_id, _release_text = values
         self.workspace_status.setText("Đang thay thế entry theo slot đã chọn...")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thay thế entry.")
+            return
         self._submit(
             run_tender_workspace_replace,
             self.config,
@@ -2943,7 +3208,9 @@ class QICrawlerWindow(QMainWindow):
             Path(source_text),
             evidence,
             "Team Bid",
-            on_success=self._render_tender_workspace_replace,
+            on_success=lambda result: self._render_tender_workspace_replace(
+                result, expected_context
+            ),
             button=self.workspace_replace_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -2951,9 +3218,17 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_replace(self, result: Any) -> None:
+    def _render_tender_workspace_replace(
+        self,
+        result: Any,
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(f"Kết quả thay thế: {result.status}. Đang tải manifest...")
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_source_correction(self) -> None:
@@ -2971,13 +3246,12 @@ class QICrawlerWindow(QMainWindow):
         case_id, _release_text = values
         replacement = self.workspace_path.text().strip()
         self.workspace_status.setText("Đang ghi source correction append-only...")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi sửa source.")
+            return
         self._submit(
             run_tender_workspace_source_correction,
-    run_tender_revision_status,
-    run_tender_revision_accept,
-    run_tender_revision_reject,
-    run_tender_revision_compare,
-    run_tender_revision_activate,
             self.config,
             case_id,
             self._workspace_release_record_id,
@@ -2986,7 +3260,9 @@ class QICrawlerWindow(QMainWindow):
             operator,
             reason,
             evidence,
-            on_success=self._render_tender_workspace_replace,
+            on_success=lambda result: self._render_tender_workspace_replace(
+                result, expected_context
+            ),
             button=self.workspace_source_correction_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -2999,14 +3275,16 @@ class QICrawlerWindow(QMainWindow):
         values = self._workspace_case_and_release()
         if values is None:
             return
-        case_id, release_id = values
+        case_id, release_raw_id = values
         self.workspace_status.setText("Đang mở hoặc tạo TenderCase...")
         self._submit(
             run_tender_workspace_open_or_create,
             self.config,
             case_id,
-            release_id,
-            on_success=lambda value: self._render_tender_workspace_open(case_id, value),
+            release_raw_id,
+            on_success=lambda value: self._render_tender_workspace_open(
+                case_id, value, release_raw_id
+            ),
             button=self.workspace_open_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3014,14 +3292,190 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_open(self, case_id: str, release_id: int) -> None:
+    def _render_tender_workspace_open(
+        self,
+        case_id: str,
+        release_id: int,
+        release_raw_id: str | None = None,
+    ) -> None:
+        release_raw_id = release_raw_id or self.workspace_release_id.text().strip()
+        if (
+            self.workspace_case_id.text().strip() != case_id
+            or self.workspace_release_id.text().strip() != release_raw_id
+        ):
+            self._record_stale_workspace_callback()
+            return
         self._workspace_release_record_id = release_id
         self._workspace_opened_case_id = case_id
-        self._workspace_opened_release_id = self.workspace_release_id.text().strip()
+        self._workspace_opened_release_id = release_raw_id
         self.workspace_status.setText(
             f"Đã mở TenderCase {case_id}, release nội bộ #{release_id}. Đang tải manifest..."
         )
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        expected_context = (case_id, release_id, release_raw_id)
+        self._mark_tender_workspace_projections_loading()
+        self._schedule_tender_workspace_refresh(expected_context)
+
+    def _workspace_refresh_context(self) -> tuple[str, int, str] | None:
+        case_id = self.workspace_case_id.text().strip()
+        release_raw_id = self.workspace_release_id.text().strip()
+        release_id = self._workspace_release_record_id
+        if (
+            not case_id
+            or not release_raw_id
+            or release_id is None
+            or case_id != self._workspace_opened_case_id
+            or release_raw_id != self._workspace_opened_release_id
+        ):
+            return None
+        return case_id, release_id, release_raw_id
+
+    def _workspace_context_matches(self, expected: tuple[str, int, str]) -> bool:
+        return self._workspace_refresh_context() == expected
+
+    def _record_stale_workspace_callback(self) -> None:
+        self._append_log(
+            "STALE_WORKSPACE_CALLBACK_DISCARDED",
+            level="WARNING",
+            operation="tender_workspace_refresh",
+            status="DISCARDED",
+            error_code="STALE_WORKSPACE_CALLBACK_DISCARDED",
+        )
+
+    def _mark_tender_workspace_projections_loading(self) -> None:
+        self.workspace_manifest_summary.setText("Đang cập nhật manifest...")
+        self.workspace_document_table.setRowCount(0)
+        self.workspace_document_table.clearSelection()
+        self.workspace_document_detail.setPlainText("Đang cập nhật danh sách tài liệu...")
+        self.completeness_core_summary.setText("Đang cập nhật dữ liệu độ đầy đủ...")
+        self.completeness_publication_summary.setText(
+            "Đang cập nhật publication completeness..."
+        )
+
+    def _schedule_tender_workspace_refresh(
+        self, expected_context: tuple[str, int, str]
+    ) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._request_tender_workspace_refresh(expected_context),
+        )
+
+    def _request_tender_workspace_refresh(
+        self, expected_context: tuple[str, int, str]
+    ) -> None:
+        if not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
+        case_id, release_id, _release_raw_id = expected_context
+        self._mark_tender_workspace_projections_loading()
+        self.workspace_status.setText("Đang cập nhật workspace exact-release...")
+        self._submit(
+            run_tender_workspace_manifest,
+            self.config,
+            case_id,
+            release_id,
+            on_success=lambda manifest: self._render_tender_workspace_refresh(
+                expected_context, manifest
+            ),
+            button=self.workspace_manifest_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_manifest",
+            long_operation=True,
+        )
+
+    def _refresh_tender_workspace_documents(self, case_id: str, release_id: int) -> bool:
+        try:
+            rows = run_tender_workspace_document_rows(self.config, case_id, release_id)
+        except Exception:
+            logger.exception("Cannot read exact-release managed documents")
+            self.workspace_document_table.setRowCount(0)
+            self.workspace_document_detail.setPlainText(
+                "Chưa cập nhật được danh sách tài liệu."
+            )
+            return False
+        self._render_tender_workspace_documents(rows)
+        return True
+
+    def _render_tender_workspace_documents(
+        self, rows: tuple[ManagedDocumentRow, ...]
+    ) -> None:
+        self.workspace_document_table.setRowCount(0)
+        self.workspace_document_table.clearSelection()
+        self.workspace_document_detail.clear()
+        for row_index, row in enumerate(rows):
+            self.workspace_document_table.insertRow(row_index)
+            values = (
+                row.filename,
+                row.zone,
+                row.release_revision,
+                row.authority,
+                row.integrity,
+            )
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                if column == 0:
+                    item.setData(Qt.ItemDataRole.UserRole, row)
+                self.workspace_document_table.setItem(row_index, column, item)
+
+    def _render_selected_tender_workspace_document(self) -> None:
+        selected = self.workspace_document_table.selectedItems()
+        if not selected:
+            self.workspace_document_detail.clear()
+            return
+        row = self.workspace_document_table.item(selected[0].row(), 0).data(
+            Qt.ItemDataRole.UserRole
+        )
+        if row is None:
+            self.workspace_document_detail.clear()
+            return
+        self.workspace_document_detail.setPlainText(
+            "\n".join(
+                (
+                    f"Package / revision: {row.release_raw_id}",
+                    f"Document ID: {row.document_id}",
+                    f"Membership ID: {row.membership_id}",
+                    f"SHA-256: {row.sha256}",
+                    f"Stored path: {row.stored_path}",
+                    f"Evidence: {row.evidence}",
+                    f"Slot: {row.slot_key}",
+                    f"Operational state: {row.operational_state}",
+                    f"Integrity: {row.integrity}",
+                )
+            )
+        )
+
+    def _refresh_tender_completeness(self, release_id: int) -> bool:
+        try:
+            view = run_tender_completeness_view(self.config, release_id)
+        except Exception:
+            logger.exception("Cannot read exact-release tender completeness")
+            self.completeness_core_summary.setText(
+                "CORE COVERAGE / RESEARCH READINESS: "
+                "Chưa cập nhật được dữ liệu độ đầy đủ."
+            )
+            self.completeness_publication_summary.setText(
+                "PUBLICATION COMPLETENESS: Chưa cập nhật được dữ liệu độ đầy đủ."
+            )
+            return False
+        self._render_tender_completeness(view)
+        return True
+
+    def _render_tender_completeness(self, view: TenderCompletenessView) -> None:
+        role_lines = [f"{label}: {state}" for _role, label, state in view.role_labels]
+        readiness = "\n".join(role_lines)
+        if view.core_readiness.full_research_ready:
+            readiness += "\nBa nhóm nội dung nghiên cứu cốt lõi đã được Human xác nhận."
+        self.completeness_core_summary.setText(
+            f"CORE COVERAGE / RESEARCH READINESS\n{readiness}"
+        )
+        publication = view.publication_summary
+        self.completeness_publication_summary.setText(
+            "PUBLICATION COMPLETENESS\n"
+            f"Trạng thái: {publication.state.value}\n"
+            f"Dự kiến: {publication.expected_count} | Tìm thấy: {publication.found_count} | "
+            f"Thiếu: {publication.missing_count} | Xung đột: {publication.conflict_count} | "
+            f"Chưa rõ: {publication.unknown_count}"
+        )
 
     @Slot()
     def start_tender_workspace_add(self) -> None:
@@ -3053,6 +3507,12 @@ class QICrawlerWindow(QMainWindow):
         if not evidence:
             self.workspace_status.setText("Evidence là bắt buộc cho mỗi membership.")
             return
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm tài liệu."
+            )
+            return
         self.workspace_status.setText("Đang lưu tài liệu vào managed store và zone đã chọn...")
         self._submit(
             run_tender_workspace_add_path,
@@ -3063,7 +3523,9 @@ class QICrawlerWindow(QMainWindow):
             self.workspace_zone.currentData(),
             self.workspace_authority.currentData(),
             evidence,
-            on_success=self._render_tender_workspace_added,
+            on_success=lambda entries: self._render_tender_workspace_added(
+                entries, expected_context
+            ),
             button=self.workspace_add_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3102,6 +3564,12 @@ class QICrawlerWindow(QMainWindow):
         if not selected:
             self.workspace_status.setText("Hãy chọn ít nhất một candidate đã quét.")
             return
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm."
+            )
+            return
         confirmations = tuple(
             ConfirmedWorkspaceCandidate(
                 candidate=candidate,
@@ -3122,7 +3590,9 @@ class QICrawlerWindow(QMainWindow):
             case_id,
             self._workspace_release_record_id,
             confirmations,
-            on_success=self._render_tender_workspace_added,
+            on_success=lambda entries: self._render_tender_workspace_added(
+                entries, expected_context
+            ),
             button=self.workspace_add_confirmed_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3130,31 +3600,52 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_added(self, entries: tuple[Any, ...]) -> None:
+    def _render_tender_workspace_added(
+        self,
+        entries: tuple[Any, ...],
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(
             f"Đã lưu {len(entries)} tài liệu vào zone đã khai báo. Đang tải lại manifest..."
         )
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_manifest(self) -> None:
-        case_id = self.workspace_case_id.text().strip()
-        if not case_id:
-            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi tải lại.")
             return
-        self.workspace_status.setText("Đang tải manifest workspace...")
-        self._submit(
-            run_tender_workspace_manifest,
-            self.config,
-            case_id,
-            self._workspace_release_record_id,
-            on_success=self._render_tender_workspace_manifest,
-            button=self.workspace_manifest_button,
-            progress=self.document_progress,
-            status=self.workspace_status,
-            task_name="tender_workspace_manifest",
-            long_operation=True,
-        )
+        self._request_tender_workspace_refresh(expected_context)
+
+    def _render_tender_workspace_refresh(
+        self,
+        expected_context: tuple[str, int, str],
+        manifest: Any,
+    ) -> None:
+        case_id, release_id, _release_raw_id = expected_context
+        if (
+            not self._workspace_context_matches(expected_context)
+            or manifest.case_id != case_id
+            or manifest.release_id != release_id
+        ):
+            self._record_stale_workspace_callback()
+            return
+        self._render_tender_workspace_manifest(manifest)
+        documents_ok = self._refresh_tender_workspace_documents(case_id, release_id)
+        completeness_ok = self._refresh_tender_completeness(release_id)
+        if documents_ok and completeness_ok:
+            self.workspace_status.setText(
+                "Đã cập nhật manifest, tài liệu và độ đầy đủ cho exact release."
+            )
+        else:
+            self.workspace_status.setText(
+                "Workspace đã cập nhật một phần; một số dữ liệu chưa cập nhật đầy đủ."
+            )
 
     def _render_tender_workspace_manifest(self, manifest: Any) -> None:
         counts = ", ".join(
@@ -3163,24 +3654,37 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_manifest_summary.setText(
             f"Manifest {manifest.case_id}: {len(manifest.entries)} tài liệu\n{counts}"
         )
-        self.workspace_status.setText("Đã tải manifest. Có thể tiếp tục thêm hoặc export có kiểm soát.")
 
     @Slot()
     def start_tender_workspace_export(self) -> None:
         case_id = self.workspace_case_id.text().strip()
-        destination_text = self.workspace_export_path.text().strip()
+        parent_text = self.workspace_export_parent.text().strip()
+        child = self.workspace_export_child.text().strip()
         if not case_id:
             self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
             return
-        if not destination_text:
-            self.workspace_status.setText("Vui lòng chọn thư mục export mới.")
+        if not self._valid_workspace_export_child(child):
+            self.workspace_status.setText(
+                "Vui lòng nhập tên thư mục xuất mới hợp lệ, không chứa đường dẫn."
+            )
+            return
+        parent = Path(parent_text)
+        if not parent.is_dir():
+            self.workspace_status.setText("Vui lòng chọn thư mục cha đã tồn tại.")
+            return
+        destination = parent / child
+        self.workspace_export_path.setText(str(destination))
+        if destination.exists():
+            self.workspace_status.setText(
+                "Đích xuất đã tồn tại. Hãy chọn một tên thư mục xuất mới."
+            )
             return
         self.workspace_status.setText("Đang export bản sao managed originals...")
         self._submit(
             run_tender_workspace_export,
             self.config,
             case_id,
-            Path(destination_text),
+            destination,
             self._workspace_release_record_id,
             on_success=self._render_tender_workspace_export,
             button=self.workspace_export_button,
