@@ -44,9 +44,18 @@ from qi_crawler.gui_services import (
     DocumentExtractionInspection,
     EvidencePreview,
     HSMTFactDashboard,
+    ManagedDocumentRow,
+    TenderCompletenessView,
     WorkspaceDocumentIntakeResult,
 )
 from qi_crawler.hsmt_facts import HSMTFactView
+from qi_crawler.tender_completeness import (
+    CoreCoverageState,
+    CoreReadiness,
+    CoreRole,
+    PublicationPackageState,
+    PublicationSummary,
+)
 from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 
@@ -1183,6 +1192,7 @@ def test_document_workspace_layout_has_three_clear_blocks(
     window: QICrawlerWindow, width: int, height: int
 ) -> None:
     window.navigation.setCurrentRow(4)
+    window.document_tabs.setCurrentIndex(1)
     window.resize(width, height)
     window.show()
     QApplication.processEvents()
@@ -1217,6 +1227,320 @@ def test_document_workspace_hides_unavailable_context_actions(window: QICrawlerW
     assert window.open_document_button.isHidden()
     assert window.open_document_folder_button.isHidden()
     assert not hasattr(window, "document_analyze_button")
+
+
+def test_workspace_export_gui_builds_nonexistent_child_under_selected_parent(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    captured: list[tuple[object, ...]] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+
+    window.workspace_case_id.setText("case-export")
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("IB2600000001-00")
+
+    expected = parent / "IB2600000001-00"
+    assert window.workspace_export_path.text() == str(expected)
+    assert window.workspace_export_path.isReadOnly()
+
+    window.start_tender_workspace_export()
+
+    assert captured
+    assert captured[0][3] == expected
+
+
+def test_workspace_export_gui_rejects_existing_final_destination_before_or_through_existing_guard(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "exports"
+    destination = parent / "existing"
+    destination.mkdir(parents=True)
+    called = False
+
+    def submit(*_args, **_kwargs) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(window, "_submit", submit)
+    window.workspace_case_id.setText("case-export")
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("existing")
+
+    window.start_tender_workspace_export()
+
+    assert not called
+    assert "đã tồn tại" in window.workspace_status.text()
+
+
+def test_workspace_export_gui_requires_new_child_name(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    called = False
+
+    def submit(*_args, **_kwargs) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(window, "_submit", submit)
+    window.workspace_case_id.setText("case-export")
+    window.workspace_export_parent.setText(str(parent))
+
+    for invalid_child in ("", ".", "..", "nested/folder", "nested\\folder"):
+        window.workspace_export_child.setText(invalid_child)
+        window.start_tender_workspace_export()
+        assert not called
+        assert "tên thư mục xuất mới" in window.workspace_status.text().lower()
+
+
+def test_workspace_export_gui_cancel_preserves_state(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("candidate")
+    before = (
+        window.workspace_export_parent.text(),
+        window.workspace_export_child.text(),
+        window.workspace_export_path.text(),
+    )
+    monkeypatch.setattr(gui.QFileDialog, "getExistingDirectory", lambda *_args: "")
+
+    window._choose_workspace_export_folder()
+
+    assert (
+        window.workspace_export_parent.text(),
+        window.workspace_export_child.text(),
+        window.workspace_export_path.text(),
+    ) == before
+
+
+@pytest.mark.parametrize("core_state", list(CoreCoverageState))
+@pytest.mark.parametrize("publication_state", list(PublicationPackageState))
+def test_tender_completeness_surface_distinguishes_domain_states(
+    window: QICrawlerWindow,
+    core_state: CoreCoverageState,
+    publication_state: PublicationPackageState,
+) -> None:
+    readiness = CoreReadiness(
+        release_id=42,
+        role_states={role: core_state for role in CoreRole},
+    )
+    view = TenderCompletenessView(
+        core_readiness=readiness,
+        publication_summary=PublicationSummary(42, publication_state),
+        role_labels=tuple((role.value, role.value, core_state.value) for role in CoreRole),
+    )
+
+    window._render_tender_completeness(view)
+
+    assert core_state.value in window.completeness_core_summary.text()
+    assert publication_state.value in window.completeness_publication_summary.text()
+    assert window.completeness_box.title() == "ĐỘ ĐẦY ĐỦ"
+
+
+def test_tender_completeness_full_research_ready_label_stays_within_research_boundary(
+    window: QICrawlerWindow,
+) -> None:
+    readiness = CoreReadiness(
+        release_id=42,
+        role_states={role: CoreCoverageState.CONFIRMED for role in CoreRole},
+    )
+    view = TenderCompletenessView(
+        core_readiness=readiness,
+        publication_summary=PublicationSummary(42, PublicationPackageState.UNKNOWN),
+        role_labels=tuple(
+            (role.value, role.value, CoreCoverageState.CONFIRMED.value) for role in CoreRole
+        ),
+    )
+
+    window._render_tender_completeness(view)
+
+    text = window.completeness_core_summary.text()
+    assert "Ba nhóm nội dung nghiên cứu cốt lõi đã được Human xác nhận." in text
+    assert "đủ điều kiện dự thầu" not in text.lower()
+    assert "có thể nộp thầu" not in text.lower()
+
+
+def test_fact_extraction_empty_state_is_independent_from_completeness(
+    window: QICrawlerWindow,
+) -> None:
+    before = {key: button.text() for key, button in window.hsmt_fact_cards.items()}
+    readiness = CoreReadiness(
+        release_id=42,
+        role_states={role: CoreCoverageState.NEEDS_SUPPLEMENT for role in CoreRole},
+    )
+    window._render_tender_completeness(
+        TenderCompletenessView(
+            core_readiness=readiness,
+            publication_summary=PublicationSummary(42, PublicationPackageState.MISSING),
+            role_labels=tuple(
+                (role.value, role.value, CoreCoverageState.NEEDS_SUPPLEMENT.value)
+                for role in CoreRole
+            ),
+        )
+    )
+
+    assert {key: button.text() for key, button in window.hsmt_fact_cards.items()} == before
+    assert all("Chưa có dữ liệu trích xuất" in text for text in before.values())
+
+
+def test_tender_completeness_surface_uses_existing_projection_adapter(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    readiness = CoreReadiness(
+        release_id=42,
+        role_states={role: CoreCoverageState.UNKNOWN for role in CoreRole},
+    )
+    expected = TenderCompletenessView(
+        core_readiness=readiness,
+        publication_summary=PublicationSummary(42, PublicationPackageState.UNKNOWN),
+        role_labels=tuple(
+            (role.value, role.value, CoreCoverageState.UNKNOWN.value) for role in CoreRole
+        ),
+    )
+    calls: list[int] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: calls.append(release_id) or expected,
+    )
+
+    window._refresh_tender_completeness(42)
+
+    assert calls == [42]
+    assert "UNKNOWN" in window.completeness_core_summary.text()
+
+
+def test_workspace_document_surface_shows_exact_membership_and_selected_evidence(
+    window: QICrawlerWindow,
+    tmp_path: Path,
+) -> None:
+    row = ManagedDocumentRow(
+        entry_id=31,
+        membership_id=41,
+        release_id=51,
+        release_raw_id="IB2600000400-02",
+        release_revision="02",
+        document_id=61,
+        filename="chapter-v.pdf",
+        zone="01_Source_E-HSMT",
+        authority="SOURCE_E_HSMT",
+        integrity="VERIFIED",
+        sha256="a" * 64,
+        stored_path=tmp_path / "managed" / "chapter-v.pdf",
+        evidence="Human mapped Chapter V",
+        slot_key="C5-01",
+        operational_state="ACTIVE",
+    )
+
+    window._render_tender_workspace_documents((row,))
+
+    assert window.workspace_document_table.rowCount() == 1
+    assert [
+        window.workspace_document_table.item(0, column).text() for column in range(5)
+    ] == [
+        "chapter-v.pdf",
+        "01_Source_E-HSMT",
+        "02",
+        "SOURCE_E_HSMT",
+        "VERIFIED",
+    ]
+    window.workspace_document_table.selectRow(0)
+    detail = window.workspace_document_detail.toPlainText()
+    assert "Document ID: 61" in detail
+    assert "Membership ID: 41" in detail
+    assert f"SHA-256: {'a' * 64}" in detail
+    assert str(row.stored_path) in detail
+    assert "Evidence: Human mapped Chapter V" in detail
+    assert "Slot: C5-01" in detail
+    assert "Operational state: ACTIVE" in detail
+
+
+def test_workspace_document_surface_loads_through_exact_release_adapter(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, int]] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda _config, case_id, release_id: calls.append((case_id, release_id)) or (),
+    )
+
+    window._refresh_tender_workspace_documents("case-docs", 73)
+
+    assert calls == [("case-docs", 73)]
+    assert window.workspace_document_table.rowCount() == 0
+
+
+def test_team_bid_workspace_uses_persistent_header_and_five_sections(
+    window: QICrawlerWindow,
+) -> None:
+    assert [
+        window.document_tabs.tabText(index) for index in range(window.document_tabs.count())
+    ] == [
+        "TỔNG QUAN",
+        "TÀI LIỆU",
+        "ĐỘ ĐẦY ĐỦ",
+        "PHÂN TÍCH HSMT",
+        "LỊCH SỬ / NÂNG CAO",
+    ]
+    assert window.document_tabs.indexOf(window.document_package_header) == -1
+    for index in range(window.document_tabs.count()):
+        window.document_tabs.setCurrentIndex(index)
+        assert not window.document_package_header.isHidden()
+
+
+def test_team_bid_workspace_keeps_rare_controls_in_advanced_section(
+    window: QICrawlerWindow,
+) -> None:
+    advanced = window.workspace_advanced_box
+    for control in (
+        window.workspace_replace_button,
+        window.workspace_source_correction_button,
+        window.workspace_revision_accept_button,
+        window.workspace_revision_reject_button,
+        window.workspace_revision_compare_button,
+        window.workspace_revision_activate_button,
+        window.workspace_recovery_button,
+    ):
+        assert advanced.isAncestorOf(control)
+    assert not advanced.isAncestorOf(window.workspace_open_button)
+    assert not advanced.isAncestorOf(window.workspace_add_button)
+    assert not advanced.isAncestorOf(window.workspace_export_button)
+
+
+@pytest.mark.parametrize("width,height", [(1366, 768), (1920, 1080), (1280, 720)])
+def test_team_bid_workspace_primary_navigation_remains_operable_at_supported_viewports(
+    window: QICrawlerWindow,
+    width: int,
+    height: int,
+) -> None:
+    window.navigation.setCurrentRow(4)
+    window.document_tabs.setCurrentIndex(0)
+    window.resize(width, height)
+    window.show()
+    QApplication.processEvents()
+
+    assert window.document_package_header.isVisible()
+    assert window.document_tabs.isVisible()
+    assert window.document_tabs.tabBar().isVisible()
+    assert window.workspace_primary_actions_box.layout().count() >= 5
+    assert window.workspace_primary_actions_box.width() <= window.document_tabs.width()
 
 
 def test_document_workspace_uses_service_and_resets_busy_state(

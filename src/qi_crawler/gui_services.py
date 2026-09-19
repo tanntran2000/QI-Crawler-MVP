@@ -188,6 +188,27 @@ class TenderCompletenessView:
     role_labels: tuple[tuple[str, str, str], ...]
 
 
+@dataclass(frozen=True, slots=True)
+class ManagedDocumentRow:
+    """Read-only exact-release projection for the Team Bid document surface."""
+
+    entry_id: int
+    membership_id: int
+    release_id: int
+    release_raw_id: str
+    release_revision: str
+    document_id: int
+    filename: str
+    zone: str
+    authority: str
+    integrity: str
+    sha256: str
+    stored_path: Path
+    evidence: str
+    slot_key: str
+    operational_state: str
+
+
 def resolve_database_path(database_url: str) -> Path | None:
     """Resolve the database identity shown to an operator without mutating it."""
     url = make_url(database_url)
@@ -711,6 +732,49 @@ def run_tender_workspace_manifest(
     database = Database(config.storage.database_url)
     database.require_current_schema()
     return TenderWorkspaceService(database, config.storage.document_dir).manifest(case_id, release_id)
+
+
+def run_tender_workspace_document_rows(
+    config: AppConfig,
+    case_id: str,
+    release_id: int,
+) -> tuple[ManagedDocumentRow, ...]:
+    """Join existing exact-release workspace and membership projections for display."""
+
+    database = Database(config.storage.database_url)
+    database.require_current_schema()
+    workspace = TenderWorkspaceService(database, config.storage.document_dir)
+    dashboard = workspace.release_dashboard(case_id, release_id, verify_integrity=True)
+    release_manifest = next(
+        manifest
+        for manifest in workspace.case_service.get_release_manifest(case_id)
+        if manifest.release_id == release_id
+    )
+    memberships = {membership.id: membership for membership in release_manifest.memberships}
+    rows: list[ManagedDocumentRow] = []
+    for zone in dashboard.zones:
+        for entry in zone.entries:
+            membership = memberships[entry.membership_id]
+            rows.append(
+                ManagedDocumentRow(
+                    entry_id=entry.id,
+                    membership_id=entry.membership_id,
+                    release_id=entry.release_id,
+                    release_raw_id=entry.release_raw_id,
+                    release_revision=entry.release_revision,
+                    document_id=entry.document_id,
+                    filename=entry.filename,
+                    zone=entry.zone.value,
+                    authority=entry.authority.value,
+                    integrity=entry.integrity_state.value,
+                    sha256=entry.sha256,
+                    stored_path=entry.stored_path,
+                    evidence=membership.evidence,
+                    slot_key=entry.slot_key,
+                    operational_state=entry.operational_state.value,
+                )
+            )
+    return tuple(rows)
 
 
 def _tender_completeness_service(config: AppConfig) -> TenderCompletenessService:
