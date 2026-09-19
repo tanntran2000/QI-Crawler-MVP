@@ -212,12 +212,40 @@ def _tracked_file_identity(
         ).strip()
     except CandidateReadinessError as exc:
         raise CandidateReadinessError(missing_error) from exc
-    if path.read_bytes() != git_bytes:
-        raise CandidateReadinessError(mismatch_error)
     return {
         "repo_relative_path": relative,
-        "filesystem_sha256": _sha256(path),
+        **_bind_worktree_file_to_git_blob(
+            path,
+            git_bytes,
+            mismatch_error=mismatch_error,
+        ),
         "git_blob_identity": git_blob,
+    }
+
+
+def _bind_worktree_file_to_git_blob(
+    filesystem_path: Path,
+    git_blob_bytes: bytes,
+    *,
+    mismatch_error: str,
+) -> dict[str, str]:
+    """Bind exact bytes or one narrow CRLF-worktree representation to a Git blob."""
+    filesystem_bytes = filesystem_path.read_bytes()
+    if filesystem_bytes == git_blob_bytes:
+        binding_mode = "RAW_EXACT"
+    else:
+        without_crlf = filesystem_bytes.replace(b"\r\n", b"")
+        if (
+            b"\r" in git_blob_bytes
+            or b"\r" in without_crlf
+            or filesystem_bytes.replace(b"\r\n", b"\n") != git_blob_bytes
+        ):
+            raise CandidateReadinessError(mismatch_error)
+        binding_mode = "CRLF_WORKTREE_EQUIVALENT"
+    return {
+        "filesystem_sha256": hashlib.sha256(filesystem_bytes).hexdigest(),
+        "git_blob_sha256": hashlib.sha256(git_blob_bytes).hexdigest(),
+        "content_binding_mode": binding_mode,
     }
 
 
@@ -329,7 +357,6 @@ def _migration_source_identity(
             relative = path.relative_to(root).as_posix()
         except ValueError as exc:
             raise CandidateReadinessError("MIGRATION_SCRIPT_PATH_ESCAPE") from exc
-        filesystem_bytes = path.read_bytes()
         try:
             git_bytes = _git(root, "show", f"{source_git_sha}:{relative}", binary=True)
             git_blob = str(
@@ -337,8 +364,6 @@ def _migration_source_identity(
             ).strip()
         except CandidateReadinessError as exc:
             raise CandidateReadinessError("MIGRATION_SCRIPT_GIT_OBJECT_MISSING") from exc
-        if git_bytes != filesystem_bytes:
-            raise CandidateReadinessError("MIGRATION_SCRIPT_GIT_OBJECT_MISMATCH")
         down_revision = revision.down_revision
         if not isinstance(down_revision, str):
             raise CandidateReadinessError("MIGRATION_CHAIN_NOT_LINEAR")
@@ -349,6 +374,11 @@ def _migration_source_identity(
                 "script_sha256": _sha256(path),
                 "repo_relative_path": relative,
                 "git_blob_identity": git_blob,
+                **_bind_worktree_file_to_git_blob(
+                    path,
+                    git_bytes,
+                    mismatch_error="MIGRATION_SCRIPT_GIT_OBJECT_MISMATCH",
+                ),
             }
         )
     expected_parent = from_revision

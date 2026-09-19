@@ -56,7 +56,7 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def _frozen_source_repo(
-    tmp_path: Path, *, full_package: bool = False
+    tmp_path: Path, *, full_package: bool = False, autocrlf: bool = False
 ) -> tuple[Path, str]:
     repo = tmp_path / "frozen-source"
     repo.mkdir()
@@ -79,11 +79,19 @@ def _frozen_source_repo(
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / relative, target)
     _git(repo, "init")
-    _git(repo, "config", "core.autocrlf", "false")
+    _git(repo, "config", "core.autocrlf", "true" if autocrlf else "false")
     _git(repo, "config", "user.email", "candidate-readiness@example.invalid")
     _git(repo, "config", "user.name", "Candidate Readiness Test")
+    if autocrlf:
+        for path in repo.rglob("*"):
+            if path.is_file() and ".git" not in path.parts:
+                path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
     _git(repo, "add", ".")
     _git(repo, "commit", "-m", "frozen source")
+    if autocrlf:
+        for relative in _git(repo, "ls-files").splitlines():
+            (repo / relative).unlink()
+        _git(repo, "checkout", "--", ".")
     return repo, _git(repo, "rev-parse", "HEAD")
 
 
@@ -125,11 +133,14 @@ def test_frozen_execution_code_rejects_same_path_wrong_bytes(tmp_path: Path) -> 
         candidate_readiness.verify_frozen_execution_code(repo, head)
 
 
-def test_frozen_execution_code_rejects_alembic_config_mismatch(tmp_path: Path) -> None:
+@pytest.mark.parametrize("relative", ["alembic.ini", "alembic/env.py"])
+def test_frozen_execution_code_rejects_alembic_config_mismatch(
+    tmp_path: Path, relative: str
+) -> None:
     from qi_crawler import candidate_readiness
 
     repo, head = _frozen_source_repo(tmp_path)
-    target = repo / "alembic" / "env.py"
+    target = repo / relative
     target.write_text(target.read_text(encoding="utf-8") + "\n# mismatch\n", encoding="utf-8")
 
     with mock.patch.object(
@@ -170,6 +181,133 @@ def test_frozen_execution_code_accepts_exact_loaded_checkout(tmp_path: Path) -> 
         "alembic_env",
     }
     assert all(item["git_blob_identity"] for item in identity.values())
+    assert all(item["content_binding_mode"] == "RAW_EXACT" for item in identity.values())
+
+
+def test_frozen_execution_code_accepts_clean_crlf_worktree_bound_to_lf_git_blob(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path, autocrlf=True)
+    eol = _git(repo, "ls-files", "--eol")
+
+    assert _git(repo, "status", "--porcelain", "--untracked-files=no") == ""
+    assert "i/lf    w/crlf" in eol
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(repo),
+    ):
+        identity = candidate_readiness.verify_frozen_execution_code(repo, head)
+
+    assert all(
+        item["content_binding_mode"] == "CRLF_WORKTREE_EQUIVALENT"
+        for item in identity.values()
+    )
+    assert all(item["git_blob_sha256"] for item in identity.values())
+
+
+def test_frozen_execution_code_rejects_substantive_change_in_crlf_worktree(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path, autocrlf=True)
+    target = repo / "src" / "qi_crawler" / "candidate_readiness.py"
+    original = target.read_bytes()
+    assert b"\r\n" in original
+    target.write_bytes(original.replace(b"from __future__", b"from __future__  ", 1))
+
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(repo),
+    ), pytest.raises(
+        Exception, match="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISMATCH"
+    ):
+        candidate_readiness.verify_frozen_execution_code(repo, head)
+
+
+def test_tracked_file_identity_rejects_missing_git_object(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    relative = "src/qi_crawler/not_in_frozen_commit.py"
+    (repo / relative).write_text("value = 1\n", encoding="utf-8")
+
+    with pytest.raises(Exception, match="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISSING"):
+        candidate_readiness._tracked_file_identity(
+            repo,
+            head,
+            relative,
+            missing_error="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISSING",
+            mismatch_error="FROZEN_EXECUTION_MODULE_GIT_OBJECT_MISMATCH",
+        )
+
+
+def test_git_blob_content_binding_accepts_raw_exact(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    path = tmp_path / "source.py"
+    blob = b"value = 1\n"
+    path.write_bytes(blob)
+
+    identity = candidate_readiness._bind_worktree_file_to_git_blob(
+        path, blob, mismatch_error="TEST_GIT_OBJECT_MISMATCH"
+    )
+
+    assert identity == {
+        "filesystem_sha256": hashlib.sha256(blob).hexdigest(),
+        "git_blob_sha256": hashlib.sha256(blob).hexdigest(),
+        "content_binding_mode": "RAW_EXACT",
+    }
+
+
+def test_git_blob_content_binding_accepts_only_crlf_worktree_equivalence(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    path = tmp_path / "source.py"
+    blob = b"value = 1\nnext_value = 2\n"
+    worktree = b"value = 1\r\nnext_value = 2\r\n"
+    path.write_bytes(worktree)
+
+    identity = candidate_readiness._bind_worktree_file_to_git_blob(
+        path, blob, mismatch_error="TEST_GIT_OBJECT_MISMATCH"
+    )
+
+    assert identity == {
+        "filesystem_sha256": hashlib.sha256(worktree).hexdigest(),
+        "git_blob_sha256": hashlib.sha256(blob).hexdigest(),
+        "content_binding_mode": "CRLF_WORKTREE_EQUIVALENT",
+    }
+
+
+@pytest.mark.parametrize(
+    ("case", "blob", "worktree"),
+    [
+        ("substantive_crlf", b"value = 1\n", b"value = 2\r\n"),
+        ("substantive_lf", b"value = 1\n", b"value = 2\n"),
+        ("extra_blank_line", b"value = 1\n", b"value = 1\r\n\r\n"),
+        ("final_newline", b"value = 1\n", b"value = 1"),
+        ("bom", b"value = 1\n", b"\xef\xbb\xbfvalue = 1\r\n"),
+        ("lone_cr", b"value = 1\n", b"value = 1\r\n# note\r"),
+    ],
+)
+def test_git_blob_content_binding_rejects_non_eol_changes(
+    tmp_path: Path, case: str, blob: bytes, worktree: bytes
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    path = tmp_path / f"{case}.py"
+    path.write_bytes(worktree)
+
+    with pytest.raises(Exception, match="TEST_GIT_OBJECT_MISMATCH"):
+        candidate_readiness._bind_worktree_file_to_git_blob(
+            path, blob, mismatch_error="TEST_GIT_OBJECT_MISMATCH"
+        )
 
 
 def test_frozen_execution_code_rejects_replaced_callable_origin(tmp_path: Path) -> None:
@@ -278,6 +416,96 @@ def test_migration_source_identity_binds_filesystem_bytes_to_git_blobs(
         )
 
 
+def test_migration_source_identity_accepts_clean_crlf_worktree_bound_to_lf_git_blob(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path, autocrlf=True)
+
+    assert _git(repo, "status", "--porcelain", "--untracked-files=no") == ""
+    assert "i/lf    w/crlf" in _git(repo, "ls-files", "--eol")
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(repo),
+    ):
+        identity = candidate_readiness._migration_source_identity(
+            repo_root=repo,
+            from_revision="0020_add_tender_operational_revision_events",
+            to_revision=CURRENT_SCHEMA_REVISION,
+            source_git_sha=head,
+        )
+
+    assert all(
+        item["content_binding_mode"] == "CRLF_WORKTREE_EQUIVALENT"
+        for item in identity["chain"]
+    )
+
+
+def test_migration_source_identity_rejects_script_path_escape(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    outside = tmp_path / "outside.py"
+    outside.write_text("revision = 'outside'\n", encoding="utf-8")
+    scripts = SimpleNamespace(
+        iterate_revisions=lambda _to, _from: [
+            SimpleNamespace(
+                path=str(outside),
+                revision="0021_add_tender_completeness",
+                down_revision="0020_add_tender_operational_revision_events",
+            )
+        ]
+    )
+
+    with mock.patch.object(
+        candidate_readiness.ScriptDirectory,
+        "from_config",
+        return_value=scripts,
+    ), pytest.raises(Exception, match="MIGRATION_SCRIPT_PATH_ESCAPE"):
+        candidate_readiness._migration_source_identity(
+            repo_root=repo,
+            from_revision="0020_add_tender_operational_revision_events",
+            to_revision=CURRENT_SCHEMA_REVISION,
+            source_git_sha=head,
+            execution_code={},
+        )
+
+
+def test_migration_source_identity_rejects_non_linear_chain(tmp_path: Path) -> None:
+    from qi_crawler import candidate_readiness
+
+    repo, head = _frozen_source_repo(tmp_path)
+    scripts = SimpleNamespace(
+        iterate_revisions=lambda _to, _from: [
+            SimpleNamespace(
+                path=str(repo / "alembic/versions/0022_add_tender_recovery_events.py"),
+                revision="0022_add_tender_recovery_events",
+                down_revision="0021_add_tender_completeness",
+            ),
+            SimpleNamespace(
+                path=str(repo / "alembic/versions/0021_add_tender_completeness.py"),
+                revision="0021_add_tender_completeness",
+                down_revision="0019_source_child_lifecycle",
+            ),
+        ]
+    )
+
+    with mock.patch.object(
+        candidate_readiness.ScriptDirectory,
+        "from_config",
+        return_value=scripts,
+    ), pytest.raises(Exception, match="MIGRATION_CHAIN_NOT_LINEAR"):
+        candidate_readiness._migration_source_identity(
+            repo_root=repo,
+            from_revision="0020_add_tender_operational_revision_events",
+            to_revision=CURRENT_SCHEMA_REVISION,
+            source_git_sha=head,
+            execution_code={},
+        )
+
+
 def test_candidate_readiness_cli_exposes_three_bounded_stages() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "candidate_readiness.py"), "--help"],
@@ -369,6 +597,44 @@ def _prepare_and_migrate(tmp_path: Path):
             expected_frozen_source_sha=source_head,
         )
     return candidate, data_root, receipt
+
+
+def test_migrate_candidate_data_accepts_clean_crlf_frozen_repo_and_revalidates_receipt(
+    tmp_path: Path,
+) -> None:
+    from qi_crawler import candidate_readiness
+
+    candidate = tmp_path / "candidate"
+    data_root = candidate / "data-root"
+    candidate_data.prepare_candidate_data(_migratable_source(tmp_path), data_root)
+    source_repo, source_head = _frozen_source_repo(tmp_path, autocrlf=True)
+
+    assert _git(source_repo, "status", "--porcelain", "--untracked-files=no") == ""
+    assert "i/lf    w/crlf" in _git(source_repo, "ls-files", "--eol")
+    with mock.patch.object(
+        candidate_readiness,
+        "_loaded_execution_modules",
+        return_value=_loaded_modules_from(source_repo),
+    ):
+        receipt = candidate_readiness.migrate_candidate_data(
+            data_root,
+            source_repository_root=source_repo,
+            expected_frozen_source_sha=source_head,
+        )
+        validated = candidate_readiness.validate_migration_receipt(data_root)
+
+    assert receipt == validated
+    assert receipt["from_revision"] == "0020_add_tender_operational_revision_events"
+    assert receipt["to_revision"] == CURRENT_SCHEMA_REVISION
+    assert receipt["actual_output_revision"] == CURRENT_SCHEMA_REVISION
+    assert all(
+        item["content_binding_mode"] == "CRLF_WORKTREE_EQUIVALENT"
+        for item in receipt["migration_source_identity"]["execution_code"].values()
+    )
+    assert all(
+        item["content_binding_mode"] == "CRLF_WORKTREE_EQUIVALENT"
+        for item in receipt["migration_source_identity"]["chain"]
+    )
 
 
 def test_migration_rejects_foreign_execution_before_database_mutation(
