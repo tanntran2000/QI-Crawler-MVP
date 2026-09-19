@@ -960,6 +960,19 @@ AUDITED_PR_HEAD = 168867f52dd1f2036c6ffcccb22088b2c14406f4
 LIMIT = Synthetic correction until independent audit and Build Attempt #2. No real Team Bid clone, migration, acceptance, startup, build retry, source-data mutation, release or promotion was performed.
 ```
 
+## FM-047 — Frozen execution binding rejected clean Windows CRLF checkout
+
+```text
+ID = FM-047
+STATE = IMPLEMENTED_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / FROZEN EXECUTION PROVENANCE
+SYMPTOM = Build Attempt #2 passed portable build, B04 and real isolated clone, then migration execution binding rejected a clean exact frozen Windows checkout before Alembic execution.
+ROOT_CAUSE = Frozen execution identity required raw working-tree bytes to equal Git blob bytes while candidate-readiness tests forced core.autocrlf=false. A legitimate Windows core.autocrlf=true checkout stores LF in Git but materializes CRLF in the working tree.
+CORRECTION = Retain exact HEAD, tracked-clean, path, callable and Git-object binding while accepting only RAW_EXACT or narrowly proven CRLF_WORKTREE_EQUIVALENT content.
+PREVENTION = Real temporary Git tests cover clean LF and clean CRLF worktrees plus substantive tamper rejection for execution modules, Alembic configuration and migration scripts.
+LIMIT = Synthetic correction only until independent audit and a future Build Attempt #3. Attempt #2 was not retried.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
