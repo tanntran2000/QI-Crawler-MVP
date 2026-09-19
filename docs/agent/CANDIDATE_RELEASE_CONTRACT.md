@@ -128,6 +128,18 @@ frozen Git objects. The migration receipt records this execution-code identity
 and later evidence validation rechecks the durable file/Git lineage without
 requiring a later candidate runtime to load modules from the build checkout.
 
+Frozen file content binding accepts exactly two representations. `RAW_EXACT`
+means the working-tree bytes equal the frozen Git blob bytes.
+`CRLF_WORKTREE_EQUIVALENT` means byte-level replacement of every working-tree
+CRLF pair with LF produces the exact frozen Git blob, the blob contains no CR,
+and no unsupported lone CR remains in the working-tree bytes. The identity
+records the working-tree SHA-256, Git-blob SHA-256, Git blob object identity and
+binding mode. No whitespace trimming, encoding or Unicode normalization, BOM
+change, final-newline change, arbitrary Git clean-filter output, or other byte
+transformation is accepted. Exact `HEAD`, tracked-tree cleanliness, canonical
+loaded-module paths, callable origins, migration-chain checks and Git-object
+existence remain independently mandatory.
+
 This verification has a controlled build-time TOCTOU limitation. The frozen
 checkout remains under the Single Writer contract with no concurrent source
 mutation between verification and migration; this contract does not claim an
