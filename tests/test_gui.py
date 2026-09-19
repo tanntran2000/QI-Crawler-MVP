@@ -1487,6 +1487,484 @@ def test_workspace_document_surface_loads_through_exact_release_adapter(
     assert window.workspace_document_table.rowCount() == 0
 
 
+def _open_workspace_context(
+    window: QICrawlerWindow,
+    *,
+    case_id: str = "case-refresh",
+    release_raw_id: str = "IB2600000500-01",
+    release_id: int = 73,
+) -> None:
+    window.workspace_case_id.setText(case_id)
+    window.workspace_release_id.setText(release_raw_id)
+    window._workspace_opened_case_id = case_id
+    window._workspace_opened_release_id = release_raw_id
+    window._workspace_release_record_id = release_id
+
+
+def _workspace_manifest(case_id: str = "case-refresh", release_id: int = 73) -> SimpleNamespace:
+    entry = SimpleNamespace(id=1)
+    zone = SimpleNamespace(
+        zone=SimpleNamespace(value="01_Source_E-HSMT"),
+        entries=(entry,),
+    )
+    return SimpleNamespace(
+        case_id=case_id,
+        release_id=release_id,
+        entries=(entry,),
+        zones=(zone,),
+    )
+
+
+def _managed_workspace_row(
+    tmp_path: Path,
+    *,
+    filename: str,
+    integrity: str = "VERIFIED",
+) -> ManagedDocumentRow:
+    return ManagedDocumentRow(
+        entry_id=31,
+        membership_id=41,
+        release_id=73,
+        release_raw_id="IB2600000500-01",
+        release_revision="01",
+        document_id=61,
+        filename=filename,
+        zone="01_Source_E-HSMT",
+        authority="SOURCE_E_HSMT",
+        integrity=integrity,
+        sha256="a" * 64,
+        stored_path=tmp_path / "managed" / filename,
+        evidence="Human verified",
+        slot_key="C5-01",
+        operational_state="ACTIVE",
+    )
+
+
+def _workspace_completeness(
+    release_id: int = 73,
+    state: CoreCoverageState = CoreCoverageState.CONFIRMED,
+) -> TenderCompletenessView:
+    readiness = CoreReadiness(
+        release_id=release_id,
+        role_states={role: state for role in CoreRole},
+    )
+    return TenderCompletenessView(
+        core_readiness=readiness,
+        publication_summary=PublicationSummary(release_id, PublicationPackageState.UNKNOWN),
+        role_labels=tuple((role.value, role.value, state.value) for role in CoreRole),
+    )
+
+
+def _install_immediate_workspace_refresh(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    mutation: object,
+    mutation_result: object,
+    manifest: SimpleNamespace | None = None,
+) -> list[object]:
+    calls: list[object] = []
+    expected_manifest = manifest or _workspace_manifest()
+
+    def submit(function, *_args, **kwargs) -> bool:
+        calls.append(function)
+        if function is mutation:
+            kwargs["on_success"](mutation_result)
+        elif function is gui.run_tender_workspace_manifest:
+            kwargs["on_success"](expected_manifest)
+        return True
+
+    monkeypatch.setattr(window, "_submit", submit)
+    monkeypatch.setattr(gui.QTimer, "singleShot", lambda _delay, callback: callback())
+    return calls
+
+
+def test_workspace_add_success_refreshes_all_exact_release_projections(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    source = tmp_path / "incoming.pdf"
+    window.workspace_path.setText(str(source))
+    window.workspace_evidence.setText("Human verified")
+    window.completeness_core_summary.setText("REJECTED BEFORE ADD")
+    rows = (_managed_workspace_row(tmp_path, filename="incoming.pdf"),)
+    document_calls: list[tuple[str, int]] = []
+    completeness_calls: list[int] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda _config, case_id, release_id: document_calls.append((case_id, release_id))
+        or rows,
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: completeness_calls.append(release_id)
+        or _workspace_completeness(release_id),
+    )
+    calls = _install_immediate_workspace_refresh(
+        window,
+        monkeypatch,
+        mutation=gui.run_tender_workspace_add_path,
+        mutation_result=(SimpleNamespace(id=31),),
+    )
+
+    window.start_tender_workspace_add()
+
+    assert calls == [gui.run_tender_workspace_add_path, gui.run_tender_workspace_manifest]
+    assert document_calls == [("case-refresh", 73)]
+    assert completeness_calls == [73]
+    assert window.workspace_document_table.item(0, 0).text() == "incoming.pdf"
+    assert "CONFIRMED" in window.completeness_core_summary.text()
+    assert "REJECTED BEFORE ADD" not in window.completeness_core_summary.text()
+
+
+def test_workspace_add_confirmed_uses_coherent_projection_refresh(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_evidence.setText("Human verified")
+    window._workspace_candidates = (SimpleNamespace(source_path=tmp_path / "confirmed.pdf"),)
+    window.workspace_candidate_table.setRowCount(1)
+    selected = gui.QTableWidgetItem("confirmed.pdf")
+    selected.setCheckState(Qt.CheckState.Checked)
+    window.workspace_candidate_table.setItem(0, 0, selected)
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda *_args: (_managed_workspace_row(tmp_path, filename="confirmed.pdf"),),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+    calls = _install_immediate_workspace_refresh(
+        window,
+        monkeypatch,
+        mutation=gui.run_tender_workspace_add_confirmed_candidates,
+        mutation_result=(SimpleNamespace(id=31),),
+    )
+
+    window.start_tender_workspace_add_confirmed()
+
+    assert calls == [
+        gui.run_tender_workspace_add_confirmed_candidates,
+        gui.run_tender_workspace_manifest,
+    ]
+    assert window.workspace_document_table.item(0, 0).text() == "confirmed.pdf"
+
+
+def test_workspace_open_invalidates_old_projections_then_refreshes_once(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    window.workspace_case_id.setText("case-refresh")
+    window.workspace_release_id.setText("IB2600000500-01")
+    window.workspace_document_detail.setPlainText("OLD DOCUMENTS")
+    window.completeness_core_summary.setText("OLD COMPLETENESS")
+    callbacks: list[object] = []
+    calls: list[object] = []
+
+    def submit(function, *_args, **kwargs) -> bool:
+        calls.append(function)
+        if function is gui.run_tender_workspace_open_or_create:
+            kwargs["on_success"](73)
+        elif function is gui.run_tender_workspace_manifest:
+            callbacks.append(kwargs["on_success"])
+        return True
+
+    monkeypatch.setattr(window, "_submit", submit)
+    monkeypatch.setattr(gui.QTimer, "singleShot", lambda _delay, callback: callback())
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda *_args: (_managed_workspace_row(tmp_path, filename="opened.pdf"),),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+
+    window.start_tender_workspace_open()
+
+    assert calls == [
+        gui.run_tender_workspace_open_or_create,
+        gui.run_tender_workspace_manifest,
+    ]
+    assert window.workspace_document_table.rowCount() == 0
+    assert "OLD DOCUMENTS" not in window.workspace_document_detail.toPlainText()
+    assert "OLD COMPLETENESS" not in window.completeness_core_summary.text()
+
+    callbacks[0](_workspace_manifest())
+
+    assert window.workspace_document_table.item(0, 0).text() == "opened.pdf"
+    assert "CONFIRMED" in window.completeness_core_summary.text()
+
+
+@pytest.mark.parametrize(
+    ("operation", "mutation", "result", "expected_filename"),
+    (
+        ("replace", gui.run_tender_workspace_replace, SimpleNamespace(status="REPLACED"), "successor.pdf"),
+        (
+            "source_correction",
+            gui.run_tender_workspace_source_correction,
+            SimpleNamespace(status="CORRECTED"),
+            "corrected.pdf",
+        ),
+    ),
+)
+def test_workspace_replace_and_source_correction_refresh_post_mutation_projection(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    operation: str,
+    mutation: object,
+    result: object,
+    expected_filename: str,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_entry_id.setText("31")
+    window.workspace_path.setText(str(tmp_path / expected_filename))
+    window.workspace_evidence.setText("Human verified")
+    window.workspace_operator.setText("Reviewer")
+    window.workspace_correction_reason.setText("Correct authoritative source")
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda *_args: (_managed_workspace_row(tmp_path, filename=expected_filename),),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+    calls = _install_immediate_workspace_refresh(
+        window,
+        monkeypatch,
+        mutation=mutation,
+        mutation_result=result,
+    )
+
+    if operation == "replace":
+        window.start_tender_workspace_replace()
+    else:
+        window.start_tender_workspace_source_correction()
+
+    assert calls == [mutation, gui.run_tender_workspace_manifest]
+    assert window.workspace_document_table.item(0, 0).text() == expected_filename
+
+
+def test_workspace_source_correction_submits_exact_service_contract(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    replacement = tmp_path / "corrected.pdf"
+    window.workspace_entry_id.setText("31")
+    window.workspace_path.setText(str(replacement))
+    window.workspace_operator.setText("Reviewer")
+    window.workspace_correction_reason.setText("Correct authoritative source")
+    window.workspace_evidence.setText("Human verified")
+    captured: list[tuple[object, tuple[object, ...]]] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda function, *args, **_kwargs: captured.append((function, args)) or True,
+    )
+
+    window.start_tender_workspace_source_correction()
+
+    assert captured == [
+        (
+            gui.run_tender_workspace_source_correction,
+            (
+                window.config,
+                "case-refresh",
+                73,
+                31,
+                replacement,
+                "Reviewer",
+                "Correct authoritative source",
+                "Human verified",
+            ),
+        )
+    ]
+
+
+def test_workspace_recovery_refreshes_integrity_projection_after_success(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_entry_id.setText("41")
+    window.workspace_recovery_path.setText(str(tmp_path / "candidate.pdf"))
+    window.workspace_correction_reason.setText("Restore exact SHA")
+    window.workspace_evidence.setText("Recovery evidence")
+    rows = (_managed_workspace_row(tmp_path, filename="recovered.pdf", integrity="VERIFIED"),)
+    monkeypatch.setattr(gui, "run_tender_workspace_document_rows", lambda *_args: rows)
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+    calls: list[object] = []
+
+    def submit(function, *_args, **kwargs) -> bool:
+        calls.append(function)
+        if function is gui.run_tender_recovery_scan:
+            kwargs["on_success"](SimpleNamespace(entries=(SimpleNamespace(membership_id=41),)))
+        elif function is gui.run_tender_recovery:
+            kwargs["on_success"](SimpleNamespace(state=SimpleNamespace(value="VERIFIED")))
+        elif function is gui.run_tender_workspace_manifest:
+            kwargs["on_success"](_workspace_manifest())
+        return True
+
+    monkeypatch.setattr(window, "_submit", submit)
+    monkeypatch.setattr(gui.QTimer, "singleShot", lambda _delay, callback: callback())
+
+    window.start_tender_workspace_recovery()
+
+    assert calls == [
+        gui.run_tender_recovery_scan,
+        gui.run_tender_recovery,
+        gui.run_tender_workspace_manifest,
+    ]
+    assert window.workspace_document_table.item(0, 4).text() == "VERIFIED"
+
+
+def test_manual_manifest_reload_refreshes_documents_and_completeness(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    document_calls: list[tuple[str, int]] = []
+    completeness_calls: list[int] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda _config, case_id, release_id: document_calls.append((case_id, release_id))
+        or (_managed_workspace_row(tmp_path, filename="manual-refresh.pdf"),),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: completeness_calls.append(release_id)
+        or _workspace_completeness(release_id),
+    )
+
+    def submit(function, *_args, **kwargs) -> bool:
+        assert function is gui.run_tender_workspace_manifest
+        kwargs["on_success"](_workspace_manifest())
+        return True
+
+    monkeypatch.setattr(window, "_submit", submit)
+
+    window.start_tender_workspace_manifest()
+
+    assert document_calls == [("case-refresh", 73)]
+    assert completeness_calls == [73]
+    assert window.workspace_document_table.item(0, 0).text() == "manual-refresh.pdf"
+
+
+def test_stale_manifest_callback_cannot_overwrite_new_workspace(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _open_workspace_context(window, case_id="case-a", release_raw_id="IB-A-00", release_id=10)
+    captured: list[object] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda _function, *_args, **kwargs: captured.append(kwargs["on_success"]) or True,
+    )
+    window.start_tender_workspace_manifest()
+    assert len(captured) == 1
+
+    _open_workspace_context(window, case_id="case-b", release_raw_id="IB-B-01", release_id=20)
+    window.workspace_manifest_summary.setText("B manifest")
+    window.workspace_document_detail.setPlainText("B documents")
+    window.completeness_core_summary.setText("B completeness")
+    window.workspace_status.setText("B status")
+
+    captured[0](_workspace_manifest("case-a", 10))
+
+    assert window.workspace_manifest_summary.text() == "B manifest"
+    assert window.workspace_document_detail.toPlainText() == "B documents"
+    assert window.completeness_core_summary.text() == "B completeness"
+    assert window.workspace_status.text() == "B status"
+    assert any(
+        event.message == "STALE_WORKSPACE_CALLBACK_DISCARDED"
+        for event in window._diagnostic_events
+    )
+
+
+def test_document_refresh_failure_clears_old_projection_and_reports_partial_refresh(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window._render_tender_workspace_documents(
+        (_managed_workspace_row(tmp_path, filename="old.pdf"),)
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("document projection failed")),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda _function, *_args, **kwargs: kwargs["on_success"](_workspace_manifest()) or True,
+    )
+
+    window.start_tender_workspace_manifest()
+
+    assert window.workspace_document_table.rowCount() == 0
+    assert "Chưa cập nhật được danh sách tài liệu" in window.workspace_document_detail.toPlainText()
+    assert "chưa cập nhật đầy đủ" in window.workspace_status.text().lower()
+
+
+def test_completeness_refresh_failure_invalidates_old_state_and_reports_partial_refresh(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _open_workspace_context(window)
+    window.completeness_core_summary.setText("OLD COMPLETENESS")
+    monkeypatch.setattr(gui, "run_tender_workspace_document_rows", lambda *_args: ())
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("completeness failed")),
+    )
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda _function, *_args, **kwargs: kwargs["on_success"](_workspace_manifest()) or True,
+    )
+
+    window.start_tender_workspace_manifest()
+
+    assert "OLD COMPLETENESS" not in window.completeness_core_summary.text()
+    assert "Chưa cập nhật được dữ liệu độ đầy đủ" in window.completeness_core_summary.text()
+    assert "chưa cập nhật đầy đủ" in window.workspace_status.text().lower()
+
+
 def test_team_bid_workspace_uses_persistent_header_and_five_sections(
     window: QICrawlerWindow,
 ) -> None:

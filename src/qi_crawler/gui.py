@@ -3101,6 +3101,10 @@ class QICrawlerWindow(QMainWindow):
             )
             return
         case_id, _release_text = values
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi khôi phục.")
+            return
         self.workspace_status.setText("Đang quét integrity trước khi khôi phục exact-SHA...")
         self._submit(
             run_tender_recovery_scan,
@@ -3108,7 +3112,13 @@ class QICrawlerWindow(QMainWindow):
             case_id,
             self._workspace_release_record_id,
             on_success=lambda report: self._submit_recovery_action(
-                report, case_id, int(membership_text), Path(candidate_text), reason, evidence
+                report,
+                case_id,
+                int(membership_text),
+                Path(candidate_text),
+                reason,
+                evidence,
+                expected_context,
             ),
             button=self.workspace_recovery_button,
             progress=self.document_progress,
@@ -3125,7 +3135,11 @@ class QICrawlerWindow(QMainWindow):
         candidate: Path,
         reason: str,
         evidence: str,
+        expected_context: tuple[str, int, str],
     ) -> None:
+        if not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         if not any(item.membership_id == membership_id for item in report.entries):
             self.workspace_status.setText("Membership không thuộc exact release đang mở.")
             return
@@ -3134,13 +3148,15 @@ class QICrawlerWindow(QMainWindow):
             run_tender_recovery,
             self.config,
             case_id,
-            self._workspace_release_record_id,
+            expected_context[1],
             membership_id,
             candidate,
             "Team Bid GUI",
             reason,
             evidence,
-            on_success=self._render_tender_workspace_recovery,
+            on_success=lambda result: self._render_tender_workspace_recovery(
+                result, expected_context
+            ),
             button=self.workspace_recovery_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3148,11 +3164,19 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_recovery(self, result: Any) -> None:
+    def _render_tender_workspace_recovery(
+        self,
+        result: Any,
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(
             f"Đã khôi phục exact-SHA: {result.state.value}. Đang tải manifest..."
         )
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_replace(self) -> None:
@@ -3171,6 +3195,10 @@ class QICrawlerWindow(QMainWindow):
             return
         case_id, _release_text = values
         self.workspace_status.setText("Đang thay thế entry theo slot đã chọn...")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi thay thế entry.")
+            return
         self._submit(
             run_tender_workspace_replace,
             self.config,
@@ -3180,7 +3208,9 @@ class QICrawlerWindow(QMainWindow):
             Path(source_text),
             evidence,
             "Team Bid",
-            on_success=self._render_tender_workspace_replace,
+            on_success=lambda result: self._render_tender_workspace_replace(
+                result, expected_context
+            ),
             button=self.workspace_replace_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3188,9 +3218,17 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_replace(self, result: Any) -> None:
+    def _render_tender_workspace_replace(
+        self,
+        result: Any,
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(f"Kết quả thay thế: {result.status}. Đang tải manifest...")
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_source_correction(self) -> None:
@@ -3208,13 +3246,12 @@ class QICrawlerWindow(QMainWindow):
         case_id, _release_text = values
         replacement = self.workspace_path.text().strip()
         self.workspace_status.setText("Đang ghi source correction append-only...")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi sửa source.")
+            return
         self._submit(
             run_tender_workspace_source_correction,
-    run_tender_revision_status,
-    run_tender_revision_accept,
-    run_tender_revision_reject,
-    run_tender_revision_compare,
-    run_tender_revision_activate,
             self.config,
             case_id,
             self._workspace_release_record_id,
@@ -3223,7 +3260,9 @@ class QICrawlerWindow(QMainWindow):
             operator,
             reason,
             evidence,
-            on_success=self._render_tender_workspace_replace,
+            on_success=lambda result: self._render_tender_workspace_replace(
+                result, expected_context
+            ),
             button=self.workspace_source_correction_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3236,14 +3275,16 @@ class QICrawlerWindow(QMainWindow):
         values = self._workspace_case_and_release()
         if values is None:
             return
-        case_id, release_id = values
+        case_id, release_raw_id = values
         self.workspace_status.setText("Đang mở hoặc tạo TenderCase...")
         self._submit(
             run_tender_workspace_open_or_create,
             self.config,
             case_id,
-            release_id,
-            on_success=lambda value: self._render_tender_workspace_open(case_id, value),
+            release_raw_id,
+            on_success=lambda value: self._render_tender_workspace_open(
+                case_id, value, release_raw_id
+            ),
             button=self.workspace_open_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3251,28 +3292,109 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_open(self, case_id: str, release_id: int) -> None:
+    def _render_tender_workspace_open(
+        self,
+        case_id: str,
+        release_id: int,
+        release_raw_id: str | None = None,
+    ) -> None:
+        release_raw_id = release_raw_id or self.workspace_release_id.text().strip()
+        if (
+            self.workspace_case_id.text().strip() != case_id
+            or self.workspace_release_id.text().strip() != release_raw_id
+        ):
+            self._record_stale_workspace_callback()
+            return
         self._workspace_release_record_id = release_id
         self._workspace_opened_case_id = case_id
-        self._workspace_opened_release_id = self.workspace_release_id.text().strip()
+        self._workspace_opened_release_id = release_raw_id
         self.workspace_status.setText(
             f"Đã mở TenderCase {case_id}, release nội bộ #{release_id}. Đang tải manifest..."
         )
-        self._refresh_tender_completeness(release_id)
-        self._refresh_tender_workspace_documents(case_id, release_id)
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        expected_context = (case_id, release_id, release_raw_id)
+        self._mark_tender_workspace_projections_loading()
+        self._schedule_tender_workspace_refresh(expected_context)
 
-    def _refresh_tender_workspace_documents(self, case_id: str, release_id: int) -> None:
+    def _workspace_refresh_context(self) -> tuple[str, int, str] | None:
+        case_id = self.workspace_case_id.text().strip()
+        release_raw_id = self.workspace_release_id.text().strip()
+        release_id = self._workspace_release_record_id
+        if (
+            not case_id
+            or not release_raw_id
+            or release_id is None
+            or case_id != self._workspace_opened_case_id
+            or release_raw_id != self._workspace_opened_release_id
+        ):
+            return None
+        return case_id, release_id, release_raw_id
+
+    def _workspace_context_matches(self, expected: tuple[str, int, str]) -> bool:
+        return self._workspace_refresh_context() == expected
+
+    def _record_stale_workspace_callback(self) -> None:
+        self._append_log(
+            "STALE_WORKSPACE_CALLBACK_DISCARDED",
+            level="WARNING",
+            operation="tender_workspace_refresh",
+            status="DISCARDED",
+            error_code="STALE_WORKSPACE_CALLBACK_DISCARDED",
+        )
+
+    def _mark_tender_workspace_projections_loading(self) -> None:
+        self.workspace_manifest_summary.setText("Đang cập nhật manifest...")
+        self.workspace_document_table.setRowCount(0)
+        self.workspace_document_table.clearSelection()
+        self.workspace_document_detail.setPlainText("Đang cập nhật danh sách tài liệu...")
+        self.completeness_core_summary.setText("Đang cập nhật dữ liệu độ đầy đủ...")
+        self.completeness_publication_summary.setText(
+            "Đang cập nhật publication completeness..."
+        )
+
+    def _schedule_tender_workspace_refresh(
+        self, expected_context: tuple[str, int, str]
+    ) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._request_tender_workspace_refresh(expected_context),
+        )
+
+    def _request_tender_workspace_refresh(
+        self, expected_context: tuple[str, int, str]
+    ) -> None:
+        if not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
+        case_id, release_id, _release_raw_id = expected_context
+        self._mark_tender_workspace_projections_loading()
+        self.workspace_status.setText("Đang cập nhật workspace exact-release...")
+        self._submit(
+            run_tender_workspace_manifest,
+            self.config,
+            case_id,
+            release_id,
+            on_success=lambda manifest: self._render_tender_workspace_refresh(
+                expected_context, manifest
+            ),
+            button=self.workspace_manifest_button,
+            progress=self.document_progress,
+            status=self.workspace_status,
+            task_name="tender_workspace_manifest",
+            long_operation=True,
+        )
+
+    def _refresh_tender_workspace_documents(self, case_id: str, release_id: int) -> bool:
         try:
             rows = run_tender_workspace_document_rows(self.config, case_id, release_id)
         except Exception:
             logger.exception("Cannot read exact-release managed documents")
             self.workspace_document_table.setRowCount(0)
             self.workspace_document_detail.setPlainText(
-                "Chưa thể đọc danh sách managed document của exact release."
+                "Chưa cập nhật được danh sách tài liệu."
             )
-            return
+            return False
         self._render_tender_workspace_documents(rows)
+        return True
 
     def _render_tender_workspace_documents(
         self, rows: tuple[ManagedDocumentRow, ...]
@@ -3322,19 +3444,21 @@ class QICrawlerWindow(QMainWindow):
             )
         )
 
-    def _refresh_tender_completeness(self, release_id: int) -> None:
+    def _refresh_tender_completeness(self, release_id: int) -> bool:
         try:
             view = run_tender_completeness_view(self.config, release_id)
         except Exception:
             logger.exception("Cannot read exact-release tender completeness")
             self.completeness_core_summary.setText(
-                "CORE COVERAGE / RESEARCH READINESS: Chưa thể đọc dữ liệu."
+                "CORE COVERAGE / RESEARCH READINESS: "
+                "Chưa cập nhật được dữ liệu độ đầy đủ."
             )
             self.completeness_publication_summary.setText(
-                "PUBLICATION COMPLETENESS: Chưa thể đọc dữ liệu."
+                "PUBLICATION COMPLETENESS: Chưa cập nhật được dữ liệu độ đầy đủ."
             )
-            return
+            return False
         self._render_tender_completeness(view)
+        return True
 
     def _render_tender_completeness(self, view: TenderCompletenessView) -> None:
         role_lines = [f"{label}: {state}" for _role, label, state in view.role_labels]
@@ -3383,6 +3507,12 @@ class QICrawlerWindow(QMainWindow):
         if not evidence:
             self.workspace_status.setText("Evidence là bắt buộc cho mỗi membership.")
             return
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm tài liệu."
+            )
+            return
         self.workspace_status.setText("Đang lưu tài liệu vào managed store và zone đã chọn...")
         self._submit(
             run_tender_workspace_add_path,
@@ -3393,7 +3523,9 @@ class QICrawlerWindow(QMainWindow):
             self.workspace_zone.currentData(),
             self.workspace_authority.currentData(),
             evidence,
-            on_success=self._render_tender_workspace_added,
+            on_success=lambda entries: self._render_tender_workspace_added(
+                entries, expected_context
+            ),
             button=self.workspace_add_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3432,6 +3564,12 @@ class QICrawlerWindow(QMainWindow):
         if not selected:
             self.workspace_status.setText("Hãy chọn ít nhất một candidate đã quét.")
             return
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText(
+                "Mã case hoặc revision đã đổi. Hãy bấm MỞ / TẠO CASE lại trước khi thêm."
+            )
+            return
         confirmations = tuple(
             ConfirmedWorkspaceCandidate(
                 candidate=candidate,
@@ -3452,7 +3590,9 @@ class QICrawlerWindow(QMainWindow):
             case_id,
             self._workspace_release_record_id,
             confirmations,
-            on_success=self._render_tender_workspace_added,
+            on_success=lambda entries: self._render_tender_workspace_added(
+                entries, expected_context
+            ),
             button=self.workspace_add_confirmed_button,
             progress=self.document_progress,
             status=self.workspace_status,
@@ -3460,31 +3600,52 @@ class QICrawlerWindow(QMainWindow):
             long_operation=True,
         )
 
-    def _render_tender_workspace_added(self, entries: tuple[Any, ...]) -> None:
+    def _render_tender_workspace_added(
+        self,
+        entries: tuple[Any, ...],
+        expected_context: tuple[str, int, str] | None = None,
+    ) -> None:
+        expected_context = expected_context or self._workspace_refresh_context()
+        if expected_context is None or not self._workspace_context_matches(expected_context):
+            self._record_stale_workspace_callback()
+            return
         self.workspace_status.setText(
             f"Đã lưu {len(entries)} tài liệu vào zone đã khai báo. Đang tải lại manifest..."
         )
-        QTimer.singleShot(0, self.start_tender_workspace_manifest)
+        self._schedule_tender_workspace_refresh(expected_context)
 
     @Slot()
     def start_tender_workspace_manifest(self) -> None:
-        case_id = self.workspace_case_id.text().strip()
-        if not case_id:
-            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+        expected_context = self._workspace_refresh_context()
+        if expected_context is None:
+            self.workspace_status.setText("Hãy mở đúng case/revision trước khi tải lại.")
             return
-        self.workspace_status.setText("Đang tải manifest workspace...")
-        self._submit(
-            run_tender_workspace_manifest,
-            self.config,
-            case_id,
-            self._workspace_release_record_id,
-            on_success=self._render_tender_workspace_manifest,
-            button=self.workspace_manifest_button,
-            progress=self.document_progress,
-            status=self.workspace_status,
-            task_name="tender_workspace_manifest",
-            long_operation=True,
-        )
+        self._request_tender_workspace_refresh(expected_context)
+
+    def _render_tender_workspace_refresh(
+        self,
+        expected_context: tuple[str, int, str],
+        manifest: Any,
+    ) -> None:
+        case_id, release_id, _release_raw_id = expected_context
+        if (
+            not self._workspace_context_matches(expected_context)
+            or manifest.case_id != case_id
+            or manifest.release_id != release_id
+        ):
+            self._record_stale_workspace_callback()
+            return
+        self._render_tender_workspace_manifest(manifest)
+        documents_ok = self._refresh_tender_workspace_documents(case_id, release_id)
+        completeness_ok = self._refresh_tender_completeness(release_id)
+        if documents_ok and completeness_ok:
+            self.workspace_status.setText(
+                "Đã cập nhật manifest, tài liệu và độ đầy đủ cho exact release."
+            )
+        else:
+            self.workspace_status.setText(
+                "Workspace đã cập nhật một phần; một số dữ liệu chưa cập nhật đầy đủ."
+            )
 
     def _render_tender_workspace_manifest(self, manifest: Any) -> None:
         counts = ", ".join(
@@ -3493,7 +3654,6 @@ class QICrawlerWindow(QMainWindow):
         self.workspace_manifest_summary.setText(
             f"Manifest {manifest.case_id}: {len(manifest.entries)} tài liệu\n{counts}"
         )
-        self.workspace_status.setText("Đã tải manifest. Có thể tiếp tục thêm hoặc export có kiểm soát.")
 
     @Slot()
     def start_tender_workspace_export(self) -> None:
