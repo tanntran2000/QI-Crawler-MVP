@@ -95,13 +95,26 @@ and `FAILURE_CANDIDATE != AUTOMATIC_RULE`.
 
 ## 11. Behavioral pilot result
 
-The A2 pilot ran in a fresh ephemeral Codex session with a read-only sandbox
-at exact head `5bf49c3066c96a352e1078b37d5ea1cee564f4f1`. All twelve required
-positive, fail-closed, fallback, role-boundary, and historical-reasoning cases
-matched their independently reconciled dispositions: `12_OF_12_PASS`, zero
-false holds, zero false passes, zero authority violations, and zero agent file
-writes. The durable contract, prompt, and concise result are in
-`plugins/qi-agent-workbench/evals/`.
+The A2 Run 01 pilot ran in a fresh ephemeral Codex session with a read-only
+sandbox at exact head `5bf49c3066c96a352e1078b37d5ea1cee564f4f1`.
+Its twelve scenario answers matched the independently reconciled dispositions,
+but the session performed only entry/context reads and Git state checks. It did
+not perform case-specific source or Git actions.
+
+```text
+A2_RUN_01_SCENARIO_REASONING = PASS_12_OF_12
+A2_RUN_01_CASE_SPECIFIC_EXECUTION = NOT_PERFORMED
+A2C_RUN_02_CASE_SPECIFIC_EXECUTION = BUILDER_RESULT_PENDING_FOCUSED_REVIEW
+NO_FALSE_HOLD_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+NO_FALSE_PASS_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+```
+
+A2C Run 02 used a separate fresh read-only session at exact head
+`49da10fa0c38e60126b090c7470586e77b214692` to execute three bounded cases:
+product-source inspection, a manual no-CodeGraph impact fallback, and exact
+historical Git-object inspection. Its result and command trace are in
+`plugins/qi-agent-workbench/evals/`. These are local Builder results pending a
+focused independent review; they do not establish product/runtime acceptance.
 
 The deterministic contract runner is:
 
