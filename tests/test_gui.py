@@ -1841,6 +1841,210 @@ def test_workspace_recovery_refreshes_integrity_projection_after_success(
     assert window.workspace_document_table.item(0, 4).text() == "VERIFIED"
 
 
+def test_workspace_recovery_waits_for_scan_bridge_release_before_second_long_operation(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_entry_id.setText("41")
+    window.workspace_recovery_path.setText(str(tmp_path / "candidate.pdf"))
+    window.workspace_correction_reason.setText("Restore exact SHA")
+    window.workspace_evidence.setText("Recovery evidence")
+    recovery_calls: list[tuple[str, int, int]] = []
+    recovery_lock_states: list[str | None] = []
+
+    monkeypatch.setattr(
+        gui,
+        "run_tender_recovery_scan",
+        lambda _config, _case_id, _release_id: SimpleNamespace(
+            entries=(SimpleNamespace(membership_id=41),)
+        ),
+    )
+
+    def recover(
+        _config: AppConfig,
+        case_id: str,
+        release_id: int,
+        membership_id: int,
+        *_args: object,
+    ) -> SimpleNamespace:
+        recovery_calls.append((case_id, release_id, membership_id))
+        recovery_lock_states.append(window._active_long_operation)
+        return SimpleNamespace(state=SimpleNamespace(value="RECOVERED"))
+
+    monkeypatch.setattr(gui, "run_tender_recovery", recover)
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_manifest",
+        lambda *_args: _workspace_manifest(),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_document_rows",
+        lambda *_args: (
+            _managed_workspace_row(tmp_path, filename="recovered.pdf", integrity="VERIFIED"),
+        ),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_completeness_view",
+        lambda _config, release_id: _workspace_completeness(release_id),
+    )
+
+    window.start_tender_workspace_recovery()
+
+    _wait_until(
+        lambda: window._active_jobs == []
+        and window.workspace_document_table.rowCount() == 1,
+        timeout_ms=5000,
+    )
+
+    assert recovery_calls == [("case-refresh", 73, 41)]
+    assert recovery_lock_states == ["tender_recovery"]
+    assert "đang xử lý một tác vụ" not in window.workspace_status.text().lower()
+    assert window._active_long_operation is None
+    assert window._active_jobs == []
+    assert window.workspace_document_table.item(0, 4).text() == "VERIFIED"
+
+
+def test_workspace_recovery_scan_failure_releases_lock_without_recovery(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_entry_id.setText("41")
+    window.workspace_recovery_path.setText(str(tmp_path / "candidate.pdf"))
+    window.workspace_correction_reason.setText("Restore exact SHA")
+    window.workspace_evidence.setText("Recovery evidence")
+    recovery_calls: list[object] = []
+
+    def fail_scan(*_args: object) -> None:
+        raise RuntimeError("scan failed")
+
+    monkeypatch.setattr(gui, "run_tender_recovery_scan", fail_scan)
+    monkeypatch.setattr(
+        gui,
+        "run_tender_recovery",
+        lambda *_args: recovery_calls.append(object()),
+    )
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+
+    window.start_tender_workspace_recovery()
+
+    _wait_until(lambda: window._active_jobs == [], timeout_ms=5000)
+
+    assert recovery_calls == []
+    assert window._active_long_operation is None
+    assert "không thể hoàn tất" in window.workspace_status.text().lower()
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+
+
+def test_workspace_recovery_deferred_action_discards_stale_context(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="case-a",
+        release_raw_id="IB-A-00",
+        release_id=10,
+    )
+    window.workspace_entry_id.setText("41")
+    window.workspace_recovery_path.setText(str(tmp_path / "candidate.pdf"))
+    window.workspace_correction_reason.setText("Restore exact SHA")
+    window.workspace_evidence.setText("Recovery evidence")
+    scheduled: list[tuple[object, ...]] = []
+    recovery_calls: list[object] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_recovery_scan",
+        lambda *_args: SimpleNamespace(entries=(SimpleNamespace(membership_id=41),)),
+    )
+    monkeypatch.setattr(
+        window,
+        "_schedule_tender_recovery_action",
+        lambda *args: scheduled.append(args),
+    )
+    monkeypatch.setattr(
+        gui,
+        "run_tender_recovery",
+        lambda *_args: recovery_calls.append(object()),
+    )
+
+    window.start_tender_workspace_recovery()
+    _wait_until(lambda: window._active_jobs == [] and len(scheduled) == 1, timeout_ms=5000)
+
+    _open_workspace_context(
+        window,
+        case_id="case-b",
+        release_raw_id="IB-B-01",
+        release_id=20,
+    )
+    window.workspace_status.setText("B status")
+    window._submit_recovery_action(*scheduled[0])
+
+    assert recovery_calls == []
+    assert window.workspace_status.text() == "B status"
+    assert window._active_long_operation is None
+    assert any(
+        event.message == "STALE_WORKSPACE_CALLBACK_DISCARDED"
+        for event in window._diagnostic_events
+    )
+
+
+def test_workspace_recovery_failure_releases_lock_without_success_refresh(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(window)
+    window.workspace_entry_id.setText("41")
+    window.workspace_recovery_path.setText(str(tmp_path / "candidate.pdf"))
+    window.workspace_correction_reason.setText("Restore exact SHA")
+    window.workspace_evidence.setText("Recovery evidence")
+    recovery_calls: list[tuple[str, int, int]] = []
+    manifest_calls: list[object] = []
+    monkeypatch.setattr(
+        gui,
+        "run_tender_recovery_scan",
+        lambda *_args: SimpleNamespace(entries=(SimpleNamespace(membership_id=41),)),
+    )
+
+    def fail_recovery(
+        _config: AppConfig,
+        case_id: str,
+        release_id: int,
+        membership_id: int,
+        *_args: object,
+    ) -> None:
+        recovery_calls.append((case_id, release_id, membership_id))
+        raise RuntimeError("recovery failed")
+
+    monkeypatch.setattr(gui, "run_tender_recovery", fail_recovery)
+    monkeypatch.setattr(
+        gui,
+        "run_tender_workspace_manifest",
+        lambda *_args: manifest_calls.append(object()),
+    )
+    monkeypatch.setattr(QMessageBox, "critical", lambda *_args: None)
+
+    window.start_tender_workspace_recovery()
+
+    _wait_until(
+        lambda: bool(recovery_calls) and window._active_jobs == [],
+        timeout_ms=5000,
+    )
+
+    assert recovery_calls == [("case-refresh", 73, 41)]
+    assert manifest_calls == []
+    assert window._active_long_operation is None
+    assert "không thể hoàn tất" in window.workspace_status.text().lower()
+    assert all(button.isEnabled() for button in window._long_operation_buttons)
+
+
 def test_manual_manifest_reload_refreshes_documents_and_completeness(
     window: QICrawlerWindow,
     monkeypatch: pytest.MonkeyPatch,

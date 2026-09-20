@@ -3111,7 +3111,7 @@ class QICrawlerWindow(QMainWindow):
             self.config,
             case_id,
             self._workspace_release_record_id,
-            on_success=lambda report: self._submit_recovery_action(
+            on_success=lambda report: self._schedule_tender_recovery_action(
                 report,
                 case_id,
                 int(membership_text),
@@ -3125,6 +3125,29 @@ class QICrawlerWindow(QMainWindow):
             status=self.workspace_status,
             task_name="tender_recovery_scan",
             long_operation=True,
+        )
+
+    def _schedule_tender_recovery_action(
+        self,
+        report: Any,
+        case_id: str,
+        membership_id: int,
+        candidate: Path,
+        reason: str,
+        evidence: str,
+        expected_context: tuple[str, int, str],
+    ) -> None:
+        QTimer.singleShot(
+            0,
+            lambda: self._submit_recovery_action(
+                report,
+                case_id,
+                membership_id,
+                candidate,
+                reason,
+                evidence,
+                expected_context,
+            ),
         )
 
     def _submit_recovery_action(
