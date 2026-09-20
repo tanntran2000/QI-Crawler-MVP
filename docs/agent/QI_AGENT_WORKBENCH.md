@@ -93,11 +93,17 @@ distinct non-zero results. `LOCK_VERIFY_PASS != HUMAN_APPROVAL` and
 to the existing executable tests. `EVALUATION_CORPUS != GOVERNANCE_AUTHORITY`
 and `FAILURE_CANDIDATE != AUTOMATIC_RULE`.
 
-## 11. Manual pilot result
+## 11. Behavioral pilot result
 
-The approved seven-scenario pilot reproduced every expected disposition:
-`7_OF_7_PASS`, zero authority violations, zero scope widening, and zero
-product mutation. The runner is:
+The A2 pilot ran in a fresh ephemeral Codex session with a read-only sandbox
+at exact head `5bf49c3066c96a352e1078b37d5ea1cee564f4f1`. All twelve required
+positive, fail-closed, fallback, role-boundary, and historical-reasoning cases
+matched their independently reconciled dispositions: `12_OF_12_PASS`, zero
+false holds, zero false passes, zero authority violations, and zero agent file
+writes. The durable contract, prompt, and concise result are in
+`plugins/qi-agent-workbench/evals/`.
+
+The deterministic contract runner is:
 
 ```powershell
 .venv\Scripts\python.exe -m pytest tests/agent_workbench/ -q
@@ -108,7 +114,9 @@ product mutation. The runner is:
 The Workbench is manual and repository-local. It does not install skills,
 contact external registries, run background orchestration, mutate Spine
 automatically, promote Failure Memory, or replace independent review and
-Human A0 decisions.
+Human A0 decisions. Native discovery is not required or proven, tool/MCP smoke
+coverage remains partial, and the behavioral pilot does not constitute product
+runtime acceptance.
 
 ## 13. Human authority boundary
 

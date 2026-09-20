@@ -52,3 +52,22 @@ Product mutation: `0`
 Limitations: the corpus is a deterministic local runner over existing tests;
 it is not an autonomous agent, registry, scheduler, MCP integration, or
 automatic Failure Memory promotion mechanism.
+
+## A2 fresh-session behavioral activation pilot
+
+The cumulative activation pilot uses:
+
+- `a2-behavioral-pilot-contract.json` for the twelve bounded inputs and
+  independently defined expected/forbidden actions;
+- `a2-fresh-session-prompt.md` for the read-only session protocol;
+- `a2-fresh-session-result.json` for the concise observed result.
+
+The session was fresh and ephemeral, used a read-only sandbox, started at
+`5bf49c3066c96a352e1078b37d5ea1cee564f4f1`, and used no worktree. Its event
+stream showed the required repository reads and entry/final Git checks. The
+result records `12_OF_12_PASS`, zero false holds, zero false passes, zero
+authority violations, zero agent file writes, and no tracked Git effect.
+
+This result proves the bounded A2 scenario behavior only. Native discovery,
+general tool health, product runtime behavior, hosted CI, and independent
+review remain separate gates.
