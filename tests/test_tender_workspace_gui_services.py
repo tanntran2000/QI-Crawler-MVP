@@ -17,6 +17,7 @@ from qi_crawler.gui_services import (
     run_tender_workspace_add_confirmed_candidates,
     run_tender_workspace_add_path,
     run_tender_workspace_dashboard,
+    run_tender_workspace_document_rows,
     run_tender_workspace_export,
     run_tender_workspace_manifest,
     run_tender_workspace_open_or_create,
@@ -116,6 +117,60 @@ def test_gui_service_adapters_delegate_workspace_manifest_and_export(tmp_path: P
     assert len(manifest.for_zone(TeamBidZone.SOURCE_E_HSMT)) == 1
     result = run_tender_workspace_export(config, "case-gui", tmp_path / "out")
     assert result.entry_count == 1
+
+
+def test_exact_release_document_projection_preserves_membership_evidence_and_integrity(
+    tmp_path: Path,
+) -> None:
+    config = AppConfig()
+    config.storage.database_url = f"sqlite:///{tmp_path / 'document-rows.db'}"
+    config.storage.document_dir = tmp_path / "managed"
+    service = TenderWorkspaceService(Database(config.storage.database_url), config.storage.document_dir)
+    service.create_case("case-document-rows")
+    first_release = service.add_release("case-document-rows", "IB2600000210-00")
+    second_release = service.add_release("case-document-rows", "IB2600000210-01")
+    first_source = tmp_path / "first.pdf"
+    first_source.write_bytes(b"first release")
+    second_source = tmp_path / "second.pdf"
+    second_source.write_bytes(b"second release")
+    first_entry = service.add_path_to_zone(
+        "case-document-rows",
+        first_release.release_id,
+        first_source,
+        zone=TeamBidZone.SOURCE_E_HSMT,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="first exact-release evidence",
+    )[0]
+    service.add_path_to_zone(
+        "case-document-rows",
+        second_release.release_id,
+        second_source,
+        zone=TeamBidZone.SOURCE_E_HSMT,
+        authority=AuthorityClass.SOURCE_E_HSMT,
+        evidence="second exact-release evidence",
+    )
+
+    first_read = run_tender_workspace_document_rows(
+        config, "case-document-rows", first_release.release_id
+    )
+    second_read = run_tender_workspace_document_rows(
+        config, "case-document-rows", first_release.release_id
+    )
+
+    assert first_read == second_read
+    assert len(first_read) == 1
+    row = first_read[0]
+    assert row.release_id == first_release.release_id
+    assert row.release_revision == "00"
+    assert row.membership_id == first_entry.membership_id
+    assert row.document_id == first_entry.document_id
+    assert row.filename == "first.pdf"
+    assert row.zone == TeamBidZone.SOURCE_E_HSMT.value
+    assert row.authority == AuthorityClass.SOURCE_E_HSMT.value
+    assert row.integrity == "VERIFIED"
+    assert row.evidence == "first exact-release evidence"
+    assert row.sha256 == first_entry.sha256
+    assert row.stored_path == first_entry.stored_path
 
 
 def test_gui_service_adapters_open_create_and_assign_explicit_zone(tmp_path: Path) -> None:

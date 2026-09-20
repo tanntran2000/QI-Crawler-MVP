@@ -4,6 +4,12 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased
 
+- Align the Team Bid desktop workflows for location-filter state, persistent
+  package/revision context, exact-release managed-document inspection,
+  no-overwrite child-folder export and a distinct Tender Completeness view.
+  The correction is implemented pending independent audit and later acceptance
+  on a newly built candidate; it does not promote or mutate the existing
+  v0.10.0 candidate.
 - Add bounded Tender Warehouse managed-source integrity and exact-SHA
   recovery workflow with explicit missing, mismatch, orphan, recoverable,
   recovered and quarantine states.

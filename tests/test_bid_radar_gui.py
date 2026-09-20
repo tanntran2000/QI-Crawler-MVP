@@ -1219,6 +1219,72 @@ def test_tbmt_full_location_coverage_keeps_selector_enabled(window: QICrawlerWin
     assert window.bid_radar_location_coverage.text() == "Dữ liệu địa điểm: 2 / 2 gói."
 
 
+def test_bid_radar_result_refresh_preserves_valid_location_selection(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462304-00")
+    first.location_detail_raw = "Hồ Chí Minh"
+    second = _fake_radar_item("IB2600462305-00")
+    second.location_detail_raw = "Hà Nội"
+    result = _fake_multi_result((first, second))
+    window._render_bid_radar_result(result)
+    window.bid_radar_location.setCurrentText("Hồ Chí Minh")
+
+    window._render_bid_radar_result(result)
+
+    assert window.bid_radar_location.currentText() == "Hồ Chí Minh"
+
+
+def test_bid_radar_request_uses_same_location_shown_as_effective_filter(
+    window: QICrawlerWindow,
+) -> None:
+    item = _fake_radar_item("IB2600462304-00")
+    item.location_detail_raw = "Hồ Chí Minh"
+    window._render_bid_radar_result(_fake_multi_result((item,)))
+    window.bid_radar_location.setCurrentText("Hồ Chí Minh")
+
+    request = window._bid_radar_request()
+
+    assert window.bid_radar_location.currentText() == "Hồ Chí Minh"
+    assert request.execution_locations == frozenset({"Hồ Chí Minh"})
+
+
+def test_bid_radar_missing_previous_location_does_not_silently_widen_to_all(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462304-00")
+    first.location_detail_raw = "Hồ Chí Minh"
+    window._render_bid_radar_result(_fake_multi_result((first,)))
+    window.bid_radar_location.setCurrentText("Hồ Chí Minh")
+    replacement = _fake_radar_item("IB2600462305-00")
+    replacement.location_detail_raw = "Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((replacement,)))
+
+    assert window.bid_radar_location.currentText() == "Hồ Chí Minh"
+    assert "không còn" in window.bid_radar_location_coverage.text().lower()
+    with pytest.raises(ValueError, match="không còn"):
+        window._bid_radar_request()
+
+
+def test_bid_radar_source_change_reconciles_location_explicitly(
+    window: QICrawlerWindow,
+) -> None:
+    first = _fake_radar_item("IB2600462304-00")
+    first.location_detail_raw = "Hồ Chí Minh"
+    window._render_bid_radar_result(_fake_multi_result((first,)))
+    window.bid_radar_location.setCurrentText("Hồ Chí Minh")
+    window._clear_bid_radar_loaded_state()
+    assert window._bid_radar_location_reconcile_value == "Hồ Chí Minh"
+    replacement = _fake_radar_item("IB2600462305-00")
+    replacement.location_detail_raw = "Hồ Chí Minh, Hà Nội"
+
+    window._render_bid_radar_result(_fake_multi_result((replacement,)))
+
+    assert window.bid_radar_location.currentText() == "Hồ Chí Minh"
+    assert "đã giữ" in window.bid_radar_location_coverage.text().lower()
+
+
 def test_tbmt_source_reset_clears_stale_location_options_and_coverage(
     window: QICrawlerWindow,
 ) -> None:
