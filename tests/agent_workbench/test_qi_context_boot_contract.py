@@ -63,12 +63,35 @@ def _read_only_contract_is_valid(skill: str) -> bool:
     )
 
 
-def _scope_path_set_is_valid(paths: list[str]) -> bool:
-    forbidden_prefixes = ("src/qi_crawler/", "alembic/")
-    return not any(
-        path.replace("\\", "/").lower().startswith(prefix)
-        for path in paths
-        for prefix in forbidden_prefixes
+def _contract_value(text: str, key: str) -> str | None:
+    match = re.search(rf"^{re.escape(key)}\s*=\s*(.+?)\s*$", text, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def _head_reconciliation_contract_is_valid(skill: str) -> bool:
+    expected = {
+        "EXPLAINED_GOVERNED_DIVERGENCE": "RECONCILE",
+        "UNEXPLAINED_MATERIAL_DIVERGENCE": "ENTRY_HOLD",
+        "DOCS_ONLY_AUTHORITY_SCOPE_ACCEPTANCE_CHANGE": "ENTRY_HOLD",
+        "SOURCE_CHANGE_IN_APPROVED_SCOPE_WITH_EXACT_LINEAGE": "RECONCILE_ELIGIBLE",
+        "SOURCE_CHANGE_OUTSIDE_SCOPE_OR_UNEXPLAINED": "ENTRY_HOLD",
+    }
+    return (
+        "SHA_DIFFERENCE != AUTOMATIC_HOLD" in skill
+        and all(_contract_value(skill, key) == value for key, value in expected.items())
+        and "DOCS_ONLY = AUTOMATICALLY_SAFE" not in skill
+    )
+
+
+def _read_write_scope_contract_is_valid(skill: str) -> bool:
+    return (
+        _contract_value(skill, "BOOT_WRITE_SCOPE") == "NONE"
+        and _contract_value(skill, "IMPLEMENTATION_WRITE_SCOPE")
+        == "APPROVED_WORK_ORDER_ONLY"
+        and _contract_value(skill, "BOOT_PRODUCT_PATH_READ")
+        == "ALLOWED_WHEN_RELEVANT"
+        and _contract_value(skill, "BOOT_PRODUCT_PATH_WRITE") == "FORBIDDEN"
+        and "READING_PRODUCT_CODE != EDITING_PRODUCT_CODE" in skill
     )
 
 
@@ -119,20 +142,59 @@ def test_current_read_only_contract_is_complete() -> None:
     assert _read_only_contract_is_valid(_skill_text())
 
 
-def test_product_path_leakage_mutant_is_rejected() -> None:
-    allowed = [
-        "plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md",
-        "tests/agent_workbench/test_qi_context_boot_contract.py",
-    ]
-    leaked = allowed + ["src/qi_crawler/gui.py", "alembic/versions/0021_bad.py"]
-    assert _scope_path_set_is_valid(allowed)
-    assert not _scope_path_set_is_valid(leaked)
+def test_boot_sha_01_governed_successor_is_reconcilable() -> None:
+    assert _head_reconciliation_contract_is_valid(_skill_text())
+    assert _contract_value(_skill_text(), "EXPLAINED_GOVERNED_DIVERGENCE") == "RECONCILE"
 
 
-def test_current_product_scope_contract_is_complete() -> None:
+def test_boot_sha_02_docs_authority_widening_holds() -> None:
     skill = _skill_text()
-    assert "PRODUCT_PATH_LEAKAGE = ENTRY_HOLD" in skill
-    assert "FORBIDDEN_PRODUCT_PATHS = src/qi_crawler/...; alembic/..." in skill
+    mutant = skill.replace(
+        "DOCS_ONLY_AUTHORITY_SCOPE_ACCEPTANCE_CHANGE = ENTRY_HOLD",
+        "DOCS_ONLY_AUTHORITY_SCOPE_ACCEPTANCE_CHANGE = RECONCILE",
+    )
+    assert _contract_value(skill, "DOCS_ONLY_AUTHORITY_SCOPE_ACCEPTANCE_CHANGE") == "ENTRY_HOLD"
+    assert not _head_reconciliation_contract_is_valid(mutant)
+
+
+def test_boot_sha_03_approved_source_lineage_is_reconcilable() -> None:
+    assert (
+        _contract_value(_skill_text(), "SOURCE_CHANGE_IN_APPROVED_SCOPE_WITH_EXACT_LINEAGE")
+        == "RECONCILE_ELIGIBLE"
+    )
+
+
+def test_boot_sha_04_unexplained_source_change_holds() -> None:
+    assert (
+        _contract_value(_skill_text(), "SOURCE_CHANGE_OUTSIDE_SCOPE_OR_UNEXPLAINED")
+        == "ENTRY_HOLD"
+    )
+
+
+def test_boot_scope_01_relevant_product_read_is_allowed() -> None:
+    assert _read_write_scope_contract_is_valid(_skill_text())
+    assert _contract_value(_skill_text(), "BOOT_PRODUCT_PATH_READ") == "ALLOWED_WHEN_RELEVANT"
+
+
+def test_boot_scope_02_product_write_is_forbidden() -> None:
+    skill = _skill_text()
+    mutant = skill.replace("BOOT_PRODUCT_PATH_WRITE = FORBIDDEN", "BOOT_PRODUCT_PATH_WRITE = ALLOWED")
+    assert _contract_value(skill, "BOOT_PRODUCT_PATH_WRITE") == "FORBIDDEN"
+    assert not _read_write_scope_contract_is_valid(mutant)
+
+
+def test_health_and_foreign_context_boundaries_are_explicit() -> None:
+    skill = _skill_text()
+    for token in (
+        "DISCOVERED != CONFIGURED != CALLABLE != SMOKE_VERIFIED",
+        "CONFIG_SNAPSHOT != CURRENT_SESSION_CAPABILITY",
+        "FOREIGN_CONTEXT = ADVISORY_ONLY",
+        "FOREIGN_CONTEXT != QI_AUTHORITY",
+        "FOREIGN_MEMORY != CURRENT",
+        "FOREIGN_MEMORY != WORK_ORDER",
+        "INSTRUCTION_CONFLICT = ENTRY_HOLD",
+    ):
+        assert token in skill
 
 
 def test_plugin_manifest_and_context_map_contract() -> None:

@@ -52,3 +52,45 @@ Product mutation: `0`
 Limitations: the corpus is a deterministic local runner over existing tests;
 it is not an autonomous agent, registry, scheduler, MCP integration, or
 automatic Failure Memory promotion mechanism.
+
+## A2 fresh-session behavioral activation pilot
+
+The cumulative activation pilot uses:
+
+- `a2-behavioral-pilot-contract.json` for the twelve bounded inputs and
+  independently defined expected/forbidden actions;
+- `a2-fresh-session-prompt.md` for the read-only session protocol;
+- `a2-fresh-session-result.json` for the concise observed result.
+
+The session was fresh and ephemeral, used a read-only sandbox, started at
+`5bf49c3066c96a352e1078b37d5ea1cee564f4f1`, and used no worktree. Its event
+stream showed entry/context reads and final Git checks. The result records
+`12_OF_12_PASS` for scenario reasoning. It did not perform the case-specific
+source or Git actions required to classify the run as execution evidence.
+
+Canonical Run 01 classification:
+
+```text
+A2_RUN_01_SCENARIO_REASONING = PASS_12_OF_12
+A2_RUN_01_CASE_SPECIFIC_EXECUTION = NOT_PERFORMED
+A2_RUN_01_TOOL_TRACE = ENTRY_AND_CONTEXT_READS_ONLY
+```
+
+## A2C focused execution evidence
+
+Run 02 adds three bounded case-specific read-only executions without changing
+the preserved Run 01 result:
+
+- `a2c-execution-result.json` contains the fresh-session source/Git findings;
+- `a2c-execution-trace.md` records the observed commands, targets, effects,
+  and limitations for E01, E02, and E03.
+
+```text
+A2C_RUN_02_CASE_SPECIFIC_EXECUTION = BUILDER_RESULT_PENDING_FOCUSED_REVIEW
+NO_FALSE_HOLD_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+NO_FALSE_PASS_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+```
+
+These results prove only the bounded evaluation behavior. Native discovery,
+general tool health, product runtime behavior, hosted CI, and independent
+review remain separate gates.

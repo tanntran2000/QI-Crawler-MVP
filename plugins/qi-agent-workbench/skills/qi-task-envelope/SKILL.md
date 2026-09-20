@@ -16,13 +16,37 @@ The envelope must preserve role, baseline, scope, authority, exclusions, invaria
 
 Task-family router:
 
-python_behavior_change → qi-context-boot + qi-impact-map + qi-python-change + qi-evidence-check + qi-review-handoff
-bug_or_test_failure → qi-context-boot + qi-impact-map + systematic-debugging + test-driven-development + qi-evidence-check + qi-review-handoff
-migration_schema → qi-context-boot + qi-impact-map + canonical migration/data-safety contracts + qi-evidence-check + qi-review-handoff
-governance_docs → qi-context-boot + qi-task-envelope + qi-evidence-check + qi-review-handoff
-security_bounded → qi-context-boot + qi-impact-map + Work-Order-approved security skill/tool + qi-evidence-check + qi-review-handoff
+governance_docs → qi-context-boot + qi-task-envelope + qi-evidence-check + qi-review-handoff; no CodeGraph/TDD by default
+python_behavior_change → qi-context-boot + qi-impact-map when materially useful + qi-python-change + test-driven-development + qi-evidence-check + qi-review-handoff
+bug_or_test_failure → qi-context-boot + systematic-debugging + qi-impact-map when relevant + test-driven-development + qi-evidence-check + qi-review-handoff
+migration_schema → qi-context-boot + qi-impact-map when needed + canonical migration/data-safety contracts + exact copy/data boundary + qi-evidence-check + qi-review-handoff
+external_public_research → qi-context-boot + Agent Reach only when external access is explicitly authorized + qi-evidence-check
+review → qi-context-boot + exact Git object + qi-evidence-check + qi-review-handoff + optional specialized read-only lenses
+security_bounded → qi-context-boot + qi-impact-map when relevant + Work-Order-approved security skill/tool + qi-evidence-check + qi-review-handoff
 
-`NO_EXTERNAL_MCP_AUTOMATION = ENTRY_HOLD`: no router path may introduce external connectors, MCP, automation, scheduling, merge, release, or a second writer.
+ROUTER != AUTHORITY
+SKILL != WORK_ORDER
+TOOL != AUTHORITY
+
+EXTERNAL_TOOL_REQUESTED
+AUTHORIZED_BY_TASK?
+CAPABILITY_REQUIRED?
+APPROVED_TOOL_OR_FALLBACK?
+CONTINUE / HOLD_DEPENDENT_CONTRACT
+
+Never route an external tool merely because it is installed.
+
+TOOL_UNAVAILABLE != AUTOMATIC_WP_HOLD
+TOOL_APPLICABILITY = REQUIRED / OPTIONAL / NOT_APPLICABLE
+FALLBACK_AUTHORIZED = YES / NO
+FALLBACK_EQUIVALENCE = SUFFICIENT / INSUFFICIENT / NOT_APPLICABLE
+OPTIONAL_TOOL_FAILURE = CONTINUE_WITH_LIMITATION
+REQUIRED_TOOL_WITH_SUFFICIENT_AUTHORIZED_FALLBACK = CONTINUE_WITH_LIMITATION
+REQUIRED_TOOL_WITHOUT_EQUIVALENT_FALLBACK = HOLD_DEPENDENT_CONTRACT
+
+Do not claim equivalence where capabilities differ. Bounded manual caller,
+import, and source analysis may replace CodeGraph for impact mapping. Reading
+a screenshot is not equivalent to executing a real GUI runtime test.
 
 Required output is `TASK_ENVELOPE` containing exactly the ten declared fields. Resolve any Work Order/envelope mismatch to `ENTRY_HOLD` and retain `NEXT_AUTHORITY` from the canonical authority chain.
 

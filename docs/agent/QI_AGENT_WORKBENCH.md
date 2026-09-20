@@ -21,6 +21,12 @@ paths, Spine context, and live Git before reporting `READY` or `ENTRY_HOLD`.
 Role resolution is `Human explicit assignment -> approved Work Order ->
 governed CURRENT`; `ROLE > MODEL NAME`.
 
+Boot reconciles Git and handoff identities semantically. A SHA difference is
+not automatically a hold: explained governed lineage is reconciled, while
+unexplained or unauthorized material divergence holds. File type alone never
+makes a change safe. Boot may read relevant product source/tests to understand
+an approved task, but its write scope remains empty.
+
 ## 4. Task Envelope
 
 The Task Envelope is a compact subordinate view of an approved Work Order. It
@@ -37,6 +43,18 @@ reinterpret scope and never grants edit authority.
 - Bounded security: QI Boot, impact map, Work-Order-approved security skill/tool, Evidence Check, Review Handoff.
 
 Routing names candidate skills only; `ROUTER != SCOPE_AUTHORITY`.
+
+The canonical A1 discovery mode is `REPO_LOCAL_MANUAL_CANONICAL` under
+`plugins/qi-agent-workbench/skills/`. Native Codex discovery and global plugin
+installation are not required for A1. The router selects only task-applicable
+families and evaluates authorization, capability need, approved tool/fallback,
+and fallback equivalence before use. An unavailable optional tool does not hold
+the Work Package by itself.
+
+Tool state is reported as independent facts: discovered, configured, callable,
+smoke-verified, approved for the task, and used with evidence. Third-party
+session context and memory are advisory only and cannot replace QI authority,
+`CURRENT`, or the Work Order.
 
 ## 6. Impact, edit, and test radii
 
@@ -75,11 +93,30 @@ distinct non-zero results. `LOCK_VERIFY_PASS != HUMAN_APPROVAL` and
 to the existing executable tests. `EVALUATION_CORPUS != GOVERNANCE_AUTHORITY`
 and `FAILURE_CANDIDATE != AUTOMATIC_RULE`.
 
-## 11. Manual pilot result
+## 11. Behavioral pilot result
 
-The approved seven-scenario pilot reproduced every expected disposition:
-`7_OF_7_PASS`, zero authority violations, zero scope widening, and zero
-product mutation. The runner is:
+The A2 Run 01 pilot ran in a fresh ephemeral Codex session with a read-only
+sandbox at exact head `5bf49c3066c96a352e1078b37d5ea1cee564f4f1`.
+Its twelve scenario answers matched the independently reconciled dispositions,
+but the session performed only entry/context reads and Git state checks. It did
+not perform case-specific source or Git actions.
+
+```text
+A2_RUN_01_SCENARIO_REASONING = PASS_12_OF_12
+A2_RUN_01_CASE_SPECIFIC_EXECUTION = NOT_PERFORMED
+A2C_RUN_02_CASE_SPECIFIC_EXECUTION = BUILDER_RESULT_PENDING_FOCUSED_REVIEW
+NO_FALSE_HOLD_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+NO_FALSE_PASS_OBSERVED_IN_EXECUTED_EVALUATION_SET = YES
+```
+
+A2C Run 02 used a separate fresh read-only session at exact head
+`49da10fa0c38e60126b090c7470586e77b214692` to execute three bounded cases:
+product-source inspection, a manual no-CodeGraph impact fallback, and exact
+historical Git-object inspection. Its result and command trace are in
+`plugins/qi-agent-workbench/evals/`. These are local Builder results pending a
+focused independent review; they do not establish product/runtime acceptance.
+
+The deterministic contract runner is:
 
 ```powershell
 .venv\Scripts\python.exe -m pytest tests/agent_workbench/ -q
@@ -90,7 +127,9 @@ product mutation. The runner is:
 The Workbench is manual and repository-local. It does not install skills,
 contact external registries, run background orchestration, mutate Spine
 automatically, promote Failure Memory, or replace independent review and
-Human A0 decisions.
+Human A0 decisions. Native discovery is not required or proven, tool/MCP smoke
+coverage remains partial, and the behavioral pilot does not constitute product
+runtime acceptance.
 
 ## 13. Human authority boundary
 
