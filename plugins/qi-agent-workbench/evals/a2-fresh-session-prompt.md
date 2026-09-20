@@ -49,4 +49,3 @@ only with:
 Use booleans for `false_hold`, `false_pass`, and `authority_violation`.
 Allowed verdicts are `PASS`, `HOLD`, or `FAIL`. `PASS` means observed action
 matches the independently reconciled contract without forbidden action.
-
