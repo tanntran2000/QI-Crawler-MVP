@@ -21,6 +21,12 @@ paths, Spine context, and live Git before reporting `READY` or `ENTRY_HOLD`.
 Role resolution is `Human explicit assignment -> approved Work Order ->
 governed CURRENT`; `ROLE > MODEL NAME`.
 
+Boot reconciles Git and handoff identities semantically. A SHA difference is
+not automatically a hold: explained governed lineage is reconciled, while
+unexplained or unauthorized material divergence holds. File type alone never
+makes a change safe. Boot may read relevant product source/tests to understand
+an approved task, but its write scope remains empty.
+
 ## 4. Task Envelope
 
 The Task Envelope is a compact subordinate view of an approved Work Order. It
@@ -37,6 +43,18 @@ reinterpret scope and never grants edit authority.
 - Bounded security: QI Boot, impact map, Work-Order-approved security skill/tool, Evidence Check, Review Handoff.
 
 Routing names candidate skills only; `ROUTER != SCOPE_AUTHORITY`.
+
+The canonical A1 discovery mode is `REPO_LOCAL_MANUAL_CANONICAL` under
+`plugins/qi-agent-workbench/skills/`. Native Codex discovery and global plugin
+installation are not required for A1. The router selects only task-applicable
+families and evaluates authorization, capability need, approved tool/fallback,
+and fallback equivalence before use. An unavailable optional tool does not hold
+the Work Package by itself.
+
+Tool state is reported as independent facts: discovered, configured, callable,
+smoke-verified, approved for the task, and used with evidence. Third-party
+session context and memory are advisory only and cannot replace QI authority,
+`CURRENT`, or the Work Order.
 
 ## 6. Impact, edit, and test radii
 

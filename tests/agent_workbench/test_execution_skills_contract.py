@@ -50,6 +50,25 @@ def _evidence_contract_valid(text: str) -> bool:
     return all(token in text for token in required) and "Builder claim is sufficient machine evidence" not in text
 
 
+def _tool_evidence_contract_valid(text: str) -> bool:
+    required = (
+        "DISCOVERED",
+        "CONFIGURED",
+        "CALLABLE",
+        "SMOKE_VERIFIED",
+        "APPROVED_FOR_TASK",
+        "USED_WITH_EVIDENCE",
+        "TOOL_APPLICABILITY",
+        "FALLBACK_AUTHORIZED",
+        "FALLBACK_EQUIVALENCE",
+        "IMPACT_RADIUS",
+        "EDIT_RADIUS",
+        "TEST_RADIUS",
+        "LIMITATIONS",
+    )
+    return all(token in text for token in required) and "CONFIGURED = SMOKE_VERIFIED" not in text
+
+
 def _review_contract_valid(text: str) -> bool:
     required = (
         "ROLE",
@@ -107,6 +126,15 @@ def test_evidence_skill_distinguishes_claims_from_machine_evidence() -> None:
 def test_evidence_mutant_cannot_promote_builder_claim() -> None:
     mutant = _load(SKILLS / "qi-evidence-check" / "SKILL.md") + "\nBuilder claim is sufficient machine evidence\n"
     assert not _evidence_contract_valid(mutant)
+
+
+def test_evidence_skill_records_independent_tool_health_and_use() -> None:
+    assert _tool_evidence_contract_valid(_load(SKILLS / "qi-evidence-check" / "SKILL.md"))
+
+
+def test_configured_tool_mutant_cannot_claim_smoke_verification() -> None:
+    text = _load(SKILLS / "qi-evidence-check" / "SKILL.md")
+    assert not _tool_evidence_contract_valid(text + "\nCONFIGURED = SMOKE_VERIFIED\n")
 
 
 def test_review_skill_requires_independent_no_edit_handoff() -> None:

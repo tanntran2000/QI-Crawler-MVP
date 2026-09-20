@@ -101,14 +101,27 @@ def _migration_route_is_valid(skill: str) -> bool:
 
 
 def _external_route_is_valid(skill: str) -> bool:
-    router_lines = [line for line in skill.splitlines() if "→" in line or "->" in line]
     return (
-        "NO_EXTERNAL_MCP_AUTOMATION = ENTRY_HOLD" in skill
-        and not any(
-            re.search(r"(?:external|mcp|automation)", line, re.IGNORECASE)
-            for line in router_lines
-        )
+        "EXTERNAL_TOOL_REQUESTED" in skill
+        and "AUTHORIZED_BY_TASK?" in skill
+        and "CAPABILITY_REQUIRED?" in skill
+        and "APPROVED_TOOL_OR_FALLBACK?" in skill
+        and "CONTINUE / HOLD_DEPENDENT_CONTRACT" in skill
+        and "NO_EXTERNAL_MCP_AUTOMATION = ENTRY_HOLD" not in skill
     )
+
+
+def _fallback_contract_is_valid(skill: str) -> bool:
+    required = (
+        "TOOL_UNAVAILABLE != AUTOMATIC_WP_HOLD",
+        "TOOL_APPLICABILITY = REQUIRED / OPTIONAL / NOT_APPLICABLE",
+        "FALLBACK_AUTHORIZED = YES / NO",
+        "FALLBACK_EQUIVALENCE = SUFFICIENT / INSUFFICIENT / NOT_APPLICABLE",
+        "OPTIONAL_TOOL_FAILURE = CONTINUE_WITH_LIMITATION",
+        "REQUIRED_TOOL_WITH_SUFFICIENT_AUTHORIZED_FALLBACK = CONTINUE_WITH_LIMITATION",
+        "REQUIRED_TOOL_WITHOUT_EQUIVALENT_FALLBACK = HOLD_DEPENDENT_CONTRACT",
+    )
+    return all(token in skill for token in required)
 
 
 def _mismatch_contract_is_valid(skill: str) -> bool:
@@ -161,13 +174,56 @@ def test_migration_generic_route_mutant_is_rejected() -> None:
 
 def test_external_route_mutant_is_rejected() -> None:
     skill = _skill_text()
-    mutant = skill.replace(
-        "migration_schema →",
-        "migration_schema → external/MCP automation +",
-    )
+    mutant = skill.replace("AUTHORIZED_BY_TASK?", "INSTALLED?")
 
     assert not _external_route_is_valid(mutant)
     assert _external_route_is_valid(skill)
+
+
+def test_optional_tool_failure_does_not_hold_work_package() -> None:
+    assert _fallback_contract_is_valid(_skill_text())
+
+
+def test_required_tool_without_equivalent_fallback_holds_dependent_contract() -> None:
+    skill = _skill_text()
+    mutant = skill.replace(
+        "REQUIRED_TOOL_WITHOUT_EQUIVALENT_FALLBACK = HOLD_DEPENDENT_CONTRACT",
+        "REQUIRED_TOOL_WITHOUT_EQUIVALENT_FALLBACK = CONTINUE",
+    )
+    assert not _fallback_contract_is_valid(mutant)
+
+
+def test_minimum_task_routes_are_declared() -> None:
+    skill = _skill_text()
+    expected = {
+        "governance_docs": ("qi-context-boot", "qi-task-envelope", "qi-evidence-check"),
+        "python_behavior_change": ("qi-context-boot", "qi-python-change", "qi-evidence-check"),
+        "bug_or_test_failure": ("systematic-debugging", "test-driven-development", "qi-evidence-check"),
+        "migration_schema": ("canonical migration/data-safety contracts", "exact copy/data boundary"),
+        "external_public_research": ("Agent Reach", "explicitly authorized"),
+        "review": ("exact Git object", "qi-evidence-check", "qi-review-handoff"),
+    }
+    for family, tokens in expected.items():
+        route = re.search(rf"^{family}\s*→\s*(.+)$", skill, re.MULTILINE)
+        assert route, family
+        assert all(token in route.group(1) for token in tokens)
+
+
+def test_context_map_declares_discovery_and_bounded_tool_families() -> None:
+    context_map = _context_map_text()
+    for token in (
+        "QI_WORKBENCH_DISCOVERY_MODE = REPO_LOCAL_MANUAL_CANONICAL",
+        "NATIVE_CODEX_DISCOVERY = NOT_REQUIRED_FOR_A1_PASS",
+        "QI_AGENT_WORKBENCH = CORE_GUIDANCE",
+        "CODEGRAPH = CONDITIONAL_CORE",
+        "SUPERPOWERS = CONDITIONAL_CORE",
+        "AGENT_REACH = CONDITIONAL_CORE_EXTERNAL_RESEARCH_ONLY",
+        "ECC = SPECIALIZED_DEFAULT_NOT_ROUTED",
+        "SPEC_KIT = NOT_ACTIVE_FOR_QI",
+        "CODEX_APP = PARKED_UNLESS_EXPLICIT_TASK",
+        "ROUTER != AUTHORITY",
+    ):
+        assert token in context_map
 
 
 def test_role_baseline_scope_authority_mismatch_is_hold() -> None:
