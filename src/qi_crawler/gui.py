@@ -170,6 +170,25 @@ MINIMUM_WINDOW_SIZE = (1180, 680)
 
 COTEC_LIST_URL = "https://ebidding.coteccons.vn/Index"
 
+_WORKSPACE_EXPORT_EMPTY_PARENT_MESSAGE = (
+    "Chưa chọn thư mục lưu bản xuất.\n"
+    "Hãy chọn một thư mục cha trước khi xuất hồ sơ."
+)
+_WORKSPACE_EXPORT_CONTEXT_MISSING_MESSAGE = (
+    "Chưa mở đúng hồ sơ và phiên bản.\n"
+    "Hãy mở hồ sơ làm việc trước khi xuất."
+)
+_WORKSPACE_EXPORT_CONTEXT_CHANGED_MESSAGE = (
+    "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+    "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+)
+_WORKSPACE_EXPORT_DUPLICATE_MESSAGE = (
+    "Không thể xuất hồ sơ: thư mục đích đã tồn tại.\n"
+    "Hãy nhập tên thư mục mới.\n"
+    "Thư mục hiện có không bị ghi đè."
+)
+_WORKSPACE_EXPORT_DUPLICATE_ERROR = "workspace export destination already exists"
+
 
 class _BidRadarLocationSelector(QComboBox):
     """Location selector with a small compatibility surface for legacy callers."""
@@ -2943,7 +2962,8 @@ class QICrawlerWindow(QMainWindow):
         parent = self.workspace_export_parent.text().strip()
         child = self.workspace_export_child.text().strip()
         if parent and self._valid_workspace_export_child(child):
-            self.workspace_export_path.setText(str(Path(parent) / child))
+            resolved_parent = Path(parent).expanduser().resolve()
+            self.workspace_export_path.setText(str(resolved_parent / child))
         else:
             self.workspace_export_path.clear()
 
@@ -3680,26 +3700,59 @@ class QICrawlerWindow(QMainWindow):
 
     @Slot()
     def start_tender_workspace_export(self) -> None:
-        case_id = self.workspace_case_id.text().strip()
+        context = self._workspace_refresh_context()
+        if context is None:
+            has_open_context = all(
+                value is not None
+                for value in (
+                    self._workspace_release_record_id,
+                    self._workspace_opened_case_id,
+                    self._workspace_opened_release_id,
+                )
+            )
+            message = (
+                _WORKSPACE_EXPORT_CONTEXT_CHANGED_MESSAGE
+                if has_open_context
+                else _WORKSPACE_EXPORT_CONTEXT_MISSING_MESSAGE
+            )
+            self.workspace_status.setText(message)
+            (
+                self.workspace_release_id
+                if has_open_context
+                else self.workspace_case_id
+            ).setFocus()
+            QMessageBox.warning(self, "Không thể xuất workspace", message)
+            return
+        case_id, release_record_id, _release_raw_id = context
         parent_text = self.workspace_export_parent.text().strip()
         child = self.workspace_export_child.text().strip()
-        if not case_id:
-            self.workspace_status.setText("Vui lòng nhập mã TenderCase.")
+        if not parent_text:
+            self.workspace_status.setText(_WORKSPACE_EXPORT_EMPTY_PARENT_MESSAGE)
+            self.workspace_export_parent.setFocus()
+            QMessageBox.warning(
+                self,
+                "Chưa chọn thư mục lưu bản xuất",
+                _WORKSPACE_EXPORT_EMPTY_PARENT_MESSAGE,
+            )
             return
         if not self._valid_workspace_export_child(child):
             self.workspace_status.setText(
                 "Vui lòng nhập tên thư mục xuất mới hợp lệ, không chứa đường dẫn."
             )
             return
-        parent = Path(parent_text)
+        parent = Path(parent_text).expanduser().resolve()
         if not parent.is_dir():
             self.workspace_status.setText("Vui lòng chọn thư mục cha đã tồn tại.")
             return
-        destination = parent / child
+        destination = (parent / child).resolve()
         self.workspace_export_path.setText(str(destination))
         if destination.exists():
-            self.workspace_status.setText(
-                "Đích xuất đã tồn tại. Hãy chọn một tên thư mục xuất mới."
+            self.workspace_status.setText(_WORKSPACE_EXPORT_DUPLICATE_MESSAGE)
+            self.workspace_export_child.setFocus()
+            QMessageBox.warning(
+                self,
+                "Không thể xuất workspace",
+                _WORKSPACE_EXPORT_DUPLICATE_MESSAGE,
             )
             return
         self.workspace_status.setText("Đang export bản sao managed originals...")
@@ -3708,7 +3761,7 @@ class QICrawlerWindow(QMainWindow):
             self.config,
             case_id,
             destination,
-            self._workspace_release_record_id,
+            release_record_id,
             on_success=self._render_tender_workspace_export,
             button=self.workspace_export_button,
             progress=self.document_progress,
@@ -4461,7 +4514,10 @@ class QICrawlerWindow(QMainWindow):
             else:
                 message = "Không thể hoàn tất thao tác Bid Radar. Dữ liệu không bị ghi sai."
         elif status is self.workspace_status and isinstance(error, TenderWorkspaceError):
-            message = f"Không thể hoàn tất workspace Team Bid: {error}"
+            if str(error) == _WORKSPACE_EXPORT_DUPLICATE_ERROR:
+                message = _WORKSPACE_EXPORT_DUPLICATE_MESSAGE
+            else:
+                message = f"Không thể hoàn tất workspace Team Bid: {error}"
         else:
             message = "Không thể hoàn tất thao tác. Dữ liệu không bị ghi sai."
         if status is not None:

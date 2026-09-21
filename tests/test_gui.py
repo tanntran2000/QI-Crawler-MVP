@@ -56,6 +56,7 @@ from qi_crawler.tender_completeness import (
     PublicationPackageState,
     PublicationSummary,
 )
+from qi_crawler.tender_workspace import TenderWorkspaceError
 from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 
@@ -1237,9 +1238,23 @@ def test_workspace_export_gui_builds_nonexistent_child_under_selected_parent(
     parent = tmp_path / "exports"
     parent.mkdir()
     captured: list[tuple[object, ...]] = []
+    _open_workspace_context(
+        window,
+        case_id="case-export",
+        release_raw_id="IB2600000001-00",
+        release_id=17,
+    )
     monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
 
-    window.workspace_case_id.setText("case-export")
+    context_calls: list[None] = []
+    refresh_context = window._workspace_refresh_context
+
+    def refresh_context_with_observation() -> tuple[str, int, str] | None:
+        context_calls.append(None)
+        return refresh_context()
+
+    monkeypatch.setattr(window, "_workspace_refresh_context", refresh_context_with_observation)
+
     window.workspace_export_parent.setText(str(parent))
     window.workspace_export_child.setText("IB2600000001-00")
 
@@ -1249,8 +1264,114 @@ def test_workspace_export_gui_builds_nonexistent_child_under_selected_parent(
 
     window.start_tender_workspace_export()
 
+    assert context_calls == [None]
     assert captured
+    assert captured[0][2] == "case-export"
     assert captured[0][3] == expected
+    assert captured[0][4] == 17
+
+
+def test_workspace_export_gui_rejects_empty_parent_without_worker_or_cwd_fallback(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _open_workspace_context(window, case_id="case-empty", release_id=18)
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.clear()
+    window.workspace_export_child.setText("empty-parent")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Chưa chọn thư mục lưu bản xuất.\n"
+            "Hãy chọn một thư mục cha trước khi xuất hồ sơ."
+        )
+    ]
+    assert window.workspace_export_path.text() == ""
+    assert "Chưa chọn thư mục lưu bản xuất" in window.workspace_status.text()
+
+
+def test_workspace_export_gui_blocks_stale_revision_without_cached_release_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="case-stale-revision",
+        release_raw_id="IB2600000002-00",
+        release_id=19,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("stale-revision")
+    window.workspace_release_id.setText("IB2600000002-01")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
+
+
+def test_workspace_export_gui_blocks_stale_case_without_cached_release_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="case-a",
+        release_raw_id="IB2600000003-00",
+        release_id=20,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("stale-case")
+    window.workspace_case_id.setText("case-b")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
 
 
 def test_workspace_export_gui_rejects_existing_final_destination_before_or_through_existing_guard(
@@ -1262,20 +1383,67 @@ def test_workspace_export_gui_rejects_existing_final_destination_before_or_throu
     destination = parent / "existing"
     destination.mkdir(parents=True)
     called = False
+    warnings: list[str] = []
+    focused: list[object] = []
 
     def submit(*_args, **_kwargs) -> None:
         nonlocal called
         called = True
 
     monkeypatch.setattr(window, "_submit", submit)
-    window.workspace_case_id.setText("case-export")
+    _open_workspace_context(window, case_id="case-export", release_id=21)
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+    monkeypatch.setattr(
+        type(window.workspace_export_child),
+        "setFocus",
+        lambda widget, *_args: focused.append(widget),
+    )
     window.workspace_export_parent.setText(str(parent))
     window.workspace_export_child.setText("existing")
 
     window.start_tender_workspace_export()
 
     assert not called
-    assert "đã tồn tại" in window.workspace_status.text()
+    assert window.workspace_export_child.text() == "existing"
+    assert focused == [window.workspace_export_child]
+    assert warnings == [
+        (
+            "Không thể xuất hồ sơ: thư mục đích đã tồn tại.\n"
+            "Hãy nhập tên thư mục mới.\n"
+            "Thư mục hiện có không bị ghi đè."
+        )
+    ]
+    assert "thư mục đích đã tồn tại" in window.workspace_status.text()
+
+
+def test_workspace_export_backend_duplicate_race_has_specific_visible_message(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    messages: list[str] = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "critical",
+        lambda _parent, _title, message: messages.append(message),
+    )
+
+    window._worker_error(
+        window.workspace_export_button,
+        TenderWorkspaceError("workspace export destination already exists"),
+        status=window.workspace_status,
+    )
+
+    expected = (
+        "Không thể xuất hồ sơ: thư mục đích đã tồn tại.\n"
+        "Hãy nhập tên thư mục mới.\n"
+        "Thư mục hiện có không bị ghi đè."
+    )
+    assert messages == [expected]
+    assert window.workspace_status.text() == expected
 
 
 def test_workspace_export_gui_requires_new_child_name(
@@ -1292,7 +1460,7 @@ def test_workspace_export_gui_requires_new_child_name(
         called = True
 
     monkeypatch.setattr(window, "_submit", submit)
-    window.workspace_case_id.setText("case-export")
+    _open_workspace_context(window, case_id="case-export", release_id=22)
     window.workspace_export_parent.setText(str(parent))
 
     for invalid_child in ("", ".", "..", "nested/folder", "nested\\folder"):
