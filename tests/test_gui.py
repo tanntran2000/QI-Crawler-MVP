@@ -122,7 +122,7 @@ def test_collection_navigation_keeps_all_crawl_capabilities_reachable(
     assert window.collection_tabs.count() == 3
     assert [window.collection_tabs.tabText(index) for index in range(3)] == [
         "QUÉT DANH SÁCH",
-        "CRAWL URL",
+        "QUÉT URL",
         "NGUỒN / ĐĂNG NHẬP",
     ]
     assert window.collection_tabs.widget(0) is window.collection_scan_page
@@ -132,6 +132,48 @@ def test_collection_navigation_keeps_all_crawl_capabilities_reachable(
     assert window.crawl_button.parentWidget() is not None
     assert window.login_button.parentWidget() is not None
     assert window.scan_advanced_options.title() == "TÙY CHỌN NÂNG CAO"
+
+
+def test_phase2_vietnamese_first_labels_cover_primary_team_bid_controls(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.collection_tabs.tabText(1) == "QUÉT URL"
+    assert window.workspace_open_button.text() == "MỞ / TẠO HỒ SƠ"
+    assert window.workspace_search_button.text() == "TÌM HỒ SƠ"
+    assert window.workspace_dashboard_button.text() == "BẢNG TỔNG QUAN"
+    assert window.workspace_revision_status_button.text() == "TRẠNG THÁI PHIÊN BẢN"
+    assert window.workspace_documents_box.title() == (
+        "TÀI LIỆU ĐƯỢC QUẢN LÝ — ĐÚNG PHIÊN BẢN HỒ SƠ"
+    )
+    assert window.workspace_export_parent.placeholderText() == (
+        "Chọn thư mục lưu bản xuất đã tồn tại"
+    )
+    assert window.workspace_export_path.placeholderText() == (
+        "Đường dẫn bản xuất được tính tự động"
+    )
+    labels = {label.text() for label in window.findChildren(gui.QLabel)}
+    assert "Hồ sơ gói thầu (TenderCase):" in labels
+    assert "Phiên bản IB (Revision):" in labels
+    assert "Khu vực hồ sơ Team Bid:" in labels
+    assert "Phân loại tài liệu (mục đích / giá trị sử dụng):" in labels
+    assert "Vai trò tài liệu do người dùng xác nhận:" in labels
+    assert window.completeness_core_summary.text().startswith(
+        "Mức bao phủ hồ sơ cốt lõi / Mức sẵn sàng nghiên cứu"
+    )
+    assert window.completeness_publication_summary.text().startswith(
+        "Mức đầy đủ hồ sơ công bố"
+    )
+
+
+def test_phase2_workspace_display_labels_preserve_canonical_combo_values(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.workspace_zone.itemText(0) == "01 — Nguồn E-HSMT"
+    assert window.workspace_zone.itemData(0) == "01_Source_E-HSMT"
+    assert window.workspace_authority.itemText(0) == "Nguồn E-HSMT (SOURCE_E_HSMT)"
+    assert window.workspace_authority.itemData(0) == "SOURCE_E_HSMT"
+    assert window.workspace_role.itemText(0) == "C3 — Chương III"
+    assert window.workspace_role.itemData(0) == "C3"
 
 
 def test_window_uses_resizable_preferred_geometry(window: QICrawlerWindow) -> None:
@@ -845,7 +887,7 @@ def test_document_page_uses_existing_intake_service_and_renders_success(
     ]
     assert "Đã nhập tài liệu" in window.document_status.text()
     assert "Mã gói: IB2600000001-00" in window.document_status.text()
-    assert "Identity: Đúng gói" in window.document_status.text()
+    assert "Định danh (Identity): Đúng gói" in window.document_status.text()
     assert "Loại tài liệu: Hồ sơ mời thầu qua mạng" in window.document_status.text()
     assert window.document_classification_status.text() == "Nhận diện sơ bộ"
     assert window.document_confirm_type_button.isEnabled()
@@ -879,7 +921,7 @@ def test_content_verified_document_is_not_rendered_as_mismatch(
     window._render_document_result(batch)
 
     assert "xác thực từ nội dung" in window.document_status.text()
-    assert "Revision: 00" in window.document_status.text()
+    assert "Phiên bản (Revision): 00" in window.document_status.text()
     assert "KHÔNG KHỚP" not in window.document_status.text()
     assert window.document_confirm_type_button.isEnabled()
 
@@ -1209,7 +1251,7 @@ def test_document_workspace_layout_has_three_clear_blocks(
         "Loại tài liệu",
         "Mẫu hồ sơ",
         "Phiên bản",
-        "Identity",
+        "Định danh",
         "Trạng thái phân loại",
     ]
     assert window.document_table.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
@@ -1622,20 +1664,20 @@ def test_workspace_document_surface_shows_exact_membership_and_selected_evidence
         window.workspace_document_table.item(0, column).text() for column in range(5)
     ] == [
         "chapter-v.pdf",
-        "01_Source_E-HSMT",
+        "01 — Nguồn E-HSMT",
         "02",
-        "SOURCE_E_HSMT",
+        "Nguồn E-HSMT (SOURCE_E_HSMT)",
         "VERIFIED",
     ]
     window.workspace_document_table.selectRow(0)
     detail = window.workspace_document_detail.toPlainText()
-    assert "Document ID: 61" in detail
-    assert "Membership ID: 41" in detail
-    assert f"SHA-256: {'a' * 64}" in detail
+    assert "Mã tài liệu (ID): 61" in detail
+    assert "Mã mục liên kết (Membership ID): 41" in detail
+    assert f"Mã băm SHA-256: {'a' * 64}" in detail
     assert str(row.stored_path) in detail
-    assert "Evidence: Human mapped Chapter V" in detail
-    assert "Slot: C5-01" in detail
-    assert "Operational state: ACTIVE" in detail
+    assert "Căn cứ xác nhận: Human mapped Chapter V" in detail
+    assert "Vị trí (Slot): C5-01" in detail
+    assert "Trạng thái vận hành: ACTIVE" in detail
 
 
 def test_workspace_document_surface_loads_through_exact_release_adapter(
@@ -2484,8 +2526,8 @@ def test_gui_identity_mismatch_releases_busy_state(
     assert window.document_progress.isHidden()
     assert all(button.isEnabled() for button in window._long_operation_buttons)
     assert "TÀI LIỆU KHÔNG KHỚP GÓI" in window.document_status.text()
-    assert "Expected: IB-EXPECTED" in window.document_status.text()
-    assert "Detected: IB-DETECTED" in window.document_status.text()
+    assert "Kỳ vọng (Expected): IB-EXPECTED" in window.document_status.text()
+    assert "Phát hiện (Detected): IB-DETECTED" in window.document_status.text()
     assert not window.document_identity_banner.isHidden()
     assert "KHÔNG KHỚP" in window.document_identity_banner.text()
     assert messages == [window.document_status.text()]
