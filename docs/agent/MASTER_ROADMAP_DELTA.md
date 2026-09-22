@@ -1169,3 +1169,32 @@ has bounded Human operational acceptance. B09 promotion, installation,
 publication and release remain unauthorized. Historical PR121 fields above are
 retained to preserve the earlier source-level checkpoint, while the OA06
 fields record the later candidate evidence.
+
+## v0.10 B09 operational rebind foundation
+
+~~~text
+DELTA_ID = RD-0013
+STATE = ACTIVE_IMPLEMENTATION
+ACTIVE_PARENT = WP-REL-V010-B09-OPERATIONAL-REBIND-01
+ACTIVE_MICRO_WP = V010_B09_OPERATIONAL_REBIND_01_PHASE1
+BASE_MAIN = 149ffaaec87445f69a1d2388e86d0fbdea42e99e
+OPERATIONAL_ROOT = D:\QI-Crawler
+OPERATIONAL_RELEASE_CHANNEL = INTERNAL_PILOT
+OPERATIONAL_ACCEPTANCE_SCHEMA = qi-crawler-operational-acceptance-v1
+PROMOTION_MODEL = READ_ONLY_SOURCE_TO_CONSISTENT_COPY_TO_MIGRATE_COPY_TO_VALIDATE_TO_ATOMIC_CUTOVER
+SYNTHETIC_PROMOTION = ALLOWED_ONLY_IN_TASK_OWNED_TEMP_ROOTS
+LIVE_PROMOTION = NOT_AUTHORIZED
+INSTALLER_REQUIRED = NO_FOR_PORTABLE_B09
+B02 = DEFERRED
+CANDIDATE_SEMANTICS = PRESERVED
+TARGETED_REGRESSION = 331_PASS
+FULL_REGRESSION = 1539_PASS
+RUFF = PASS
+DIFF_CHECK = PASS
+SPINE_SYNC = PASS
+NEXT = PLANNER_REVIEW_B09_PHASE1_AND_ASSIGN_INDEPENDENT_OPERATIONAL_REBIND_AUDIT
+~~~
+
+B09 adds a separate operational root and receipt contract while preserving the
+candidate channel and its acceptance semantics. It does not promote, install,
+migrate or mutate the live operational root or user data.

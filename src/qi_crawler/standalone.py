@@ -186,6 +186,19 @@ def authorize_frozen_runtime(arguments: list[str]) -> str:
     candidate_root = _governed_candidate_root(executable)
     if manifest is None:
         return "NON_CANDIDATE"
+    if manifest.get("release_channel") == "INTERNAL_PILOT":
+        if candidate_root is not None:
+            raise StandaloneResourceError("CANDIDATE_RELEASE_CHANNEL_INVALID")
+        if executable.parent.parent.name != "Current":
+            raise StandaloneResourceError("OPERATIONAL_LAYOUT_INVALID")
+        from .operational_release import OPERATIONAL_ROOT, bind_operational_runtime_environment
+
+        operational_root = executable.parent.parent.parent.resolve(strict=False)
+        if operational_root != OPERATIONAL_ROOT.resolve(strict=False):
+            raise StandaloneResourceError("OPERATIONAL_ROOT_MISMATCH")
+
+        bind_operational_runtime_environment(executable)
+        return "ACCEPTED_OPERATIONAL"
     if manifest.get("release_channel") != "INTERNAL_CANDIDATE":
         if candidate_root is not None:
             raise StandaloneResourceError("CANDIDATE_RELEASE_CHANNEL_INVALID")
