@@ -23,8 +23,11 @@ from qi_crawler.operational_release import (
     promote_synthetic_operational_root,
     validate_operational_acceptance,
 )
+from scripts import promote_operational_release as promotion_cli
 
 SOURCE_SHA = "a" * 40
+VERIFIED_MAIN_SHA = "b" * 40
+OLD_PREMERGE_SHA = "166c96d5c530d72f2cb7b8703c89f940fd9a939f"
 SOURCE_REVISION = "0020_add_tender_operational_revision_events"
 
 
@@ -311,12 +314,14 @@ def test_successful_synthetic_promotion_is_internally_coherent(tmp_path: Path) -
 
 
 def _live_promotion_inputs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    source_sha: str = VERIFIED_MAIN_SHA,
 ) -> tuple[Path, Path, Path, str]:
     source_bundle = tmp_path / "candidate" / "app" / "QI-Crawler"
     source_bundle.mkdir(parents=True)
-    live_sha = operational_release.LIVE_SOURCE_GIT_SHA
-    _write_metadata(source_bundle, source_sha=live_sha, source_branch="main")
+    _write_metadata(source_bundle, source_sha=source_sha, source_branch="main")
     source_data = tmp_path / "appdata" / "QI-Crawler"
     _create_database_at_0020(source_data / "data" / "database" / "egp.db", source_data)
     (source_data / "config.yaml").write_text("storage: {}\n", encoding="utf-8")
@@ -339,16 +344,128 @@ def _live_promotion_inputs(
         "_disk_usage",
         lambda path: SimpleNamespace(free=16 * 1024**3),
     )
-    return source_bundle, source_data, destination, live_sha
+    monkeypatch.setattr(
+        operational_release,
+        "_verified_main_checkout_head",
+        lambda root: source_sha,
+    )
+    return source_bundle, source_data, destination, source_sha
+
+
+def test_live_promotion_rejects_premerge_sha_against_verified_main_head(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(
+        tmp_path,
+        monkeypatch,
+        source_sha=OLD_PREMERGE_SHA,
+    )
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    monkeypatch.setattr(
+        operational_release,
+        "_verified_main_checkout_head",
+        lambda root: VERIFIED_MAIN_SHA,
+        raising=False,
+    )
+
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_SOURCE_SHA_MISMATCH"):
+        promote_live_operational_root(bundle, source_checkout_root=checkout)
+
+
+def test_live_source_checkout_rejects_non_main_branch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    responses = {
+        ("rev-parse", "--show-toplevel"): str(checkout),
+        ("rev-parse", "HEAD"): VERIFIED_MAIN_SHA,
+        ("branch", "--show-current"): "feature/not-main",
+        ("status", "--porcelain", "--untracked-files=no"): "",
+    }
+    monkeypatch.setattr(
+        operational_release,
+        "_git_output",
+        lambda root, *args: responses[args],
+        raising=False,
+    )
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_SOURCE_BRANCH_MISMATCH"):
+        operational_release._verified_main_checkout_head(checkout)
+
+
+def test_live_source_checkout_rejects_dirty_tracked_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    responses = {
+        ("rev-parse", "--show-toplevel"): str(checkout),
+        ("rev-parse", "HEAD"): VERIFIED_MAIN_SHA,
+        ("branch", "--show-current"): "main",
+        ("status", "--porcelain", "--untracked-files=no"): " M src/qi_crawler/example.py",
+    }
+    monkeypatch.setattr(
+        operational_release,
+        "_git_output",
+        lambda root, *args: responses[args],
+        raising=False,
+    )
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_SOURCE_TREE_DIRTY"):
+        operational_release._verified_main_checkout_head(checkout)
+
+
+def test_live_source_checkout_rejects_head_change_during_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    heads = iter((VERIFIED_MAIN_SHA, "c" * 40))
+
+    def git_output(root: Path, *args: str) -> str:
+        if args == ("rev-parse", "--show-toplevel"):
+            return str(checkout)
+        if args == ("rev-parse", "HEAD"):
+            return next(heads)
+        if args == ("branch", "--show-current"):
+            return "main"
+        if args == ("status", "--porcelain", "--untracked-files=no"):
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(operational_release, "_git_output", git_output, raising=False)
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_SOURCE_HEAD_CHANGED"):
+        operational_release._verified_main_checkout_head(checkout)
+
+
+def test_live_promotion_cli_binds_checkout_root(monkeypatch: pytest.MonkeyPatch) -> None:
+    observed: dict[str, object] = {}
+
+    def fake_promote(bundle_root: Path, **kwargs: object) -> dict[str, str]:
+        observed.update(kwargs)
+        return {"status": "PREFLIGHT_PASS"}
+
+    monkeypatch.setattr(promotion_cli, "promote_live_operational_root", fake_promote)
+
+    assert promotion_cli.main(["--bundle-root", "bundle"]) == 0
+    assert observed["source_checkout_root"] == promotion_cli.ROOT
+
+
+def test_live_promotion_source_has_no_hardcoded_release_sha() -> None:
+    source = Path(operational_release.__file__).read_text(encoding="utf-8")
+    assert "LIVE_SOURCE_GIT_SHA" not in source
 
 
 def test_live_promotion_without_execute_flag_is_zero_mutation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, source_data, destination, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, source_data, destination, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     before_source = operational_release._tree_snapshot(source_data)
     before_destination = sorted(path.relative_to(destination).as_posix() for path in destination.rglob("*"))
-    result = promote_live_operational_root(bundle, source_git_sha=source_sha)
+    result = promote_live_operational_root(bundle, source_checkout_root=tmp_path)
     assert result["status"] == "PREFLIGHT_PASS"
     assert operational_release._tree_snapshot(source_data) == before_source
     assert sorted(path.relative_to(destination).as_posix() for path in destination.rglob("*")) == before_destination
@@ -385,14 +502,48 @@ def test_live_promotion_rejects_wrong_source_root_before_mutation(
 
 def test_live_promotion_rejects_wrong_source_sha(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        operational_release,
+        "_verified_main_checkout_head",
+        lambda root: "c" * 40,
+    )
     with pytest.raises(OperationalReleaseError, match="OPERATIONAL_SOURCE_SHA_MISMATCH"):
-        promote_live_operational_root(bundle, source_git_sha="c" * 40)
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
+
+
+def test_live_promotion_rejects_internal_candidate_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    manifest = json.loads((bundle / "release_manifest.json").read_text(encoding="utf-8"))
+    manifest["release_channel"] = "INTERNAL_CANDIDATE"
+    (bundle / "release_manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (bundle / "BUILD_INFO.txt").write_text(
+        "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_RELEASE_CHANNEL_INVALID"):
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
+
+
+def test_live_promotion_rejects_executable_hash_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    (bundle / "QI-Crawler.exe").write_bytes(b"tampered")
+
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_EXECUTABLE_SHA_MISMATCH"):
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
 
 
 def test_live_promotion_rejects_unexpected_source_schema(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, source_data, _, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, source_data, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     connection = sqlite3.connect(source_data / "data" / "database" / "egp.db")
     try:
         connection.execute("UPDATE alembic_version SET version_num = ?", (CURRENT_SCHEMA_REVISION,))
@@ -400,49 +551,54 @@ def test_live_promotion_rejects_unexpected_source_schema(
     finally:
         connection.close()
     with pytest.raises(OperationalReleaseError, match="PROMOTION_SOURCE_SCHEMA_UNEXPECTED"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha)
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
 
 
 def test_live_promotion_rejects_insufficient_storage_reserve(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, _, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     monkeypatch.setattr(operational_release, "_disk_usage", lambda path: SimpleNamespace(free=1))
     with pytest.raises(OperationalReleaseError, match="LIVE_STORAGE_RESERVE_UNAVAILABLE"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha)
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
 
 
 def test_live_promotion_rejects_rollback_collision(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, _, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     fixed = datetime(2026, 9, 22, tzinfo=UTC)
     monkeypatch.setattr(operational_release, "_utc_now", lambda: fixed)
     rollback = tmp_path / "rollback" / "v0.9-20260922T000000Z"
     rollback.mkdir(parents=True)
     with pytest.raises(OperationalReleaseError, match="LIVE_ROLLBACK_ROOT_EXISTS"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha)
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
 
 
 def test_live_promotion_rejects_active_process(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, _, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     monkeypatch.setattr(
         operational_release,
         "_active_qi_crawler_processes",
         lambda: [{"ProcessId": "42", "ExecutablePath": str(operational_release.OPERATIONAL_ROOT / "Current" / "QI-Crawler" / "QI-Crawler.exe")}],
     )
     with pytest.raises(OperationalReleaseError, match="LIVE_ACTIVE_PROCESS_PRESENT"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha)
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
 
 
 def test_live_promotion_staging_failure_preserves_old_root(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, destination, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, destination, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     with pytest.raises(OperationalReleaseError, match="PROMOTION_FAILED_BEFORE_CUTOVER"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha, execute=True, fail_stage="before_cutover")
+        promote_live_operational_root(
+            bundle,
+            source_checkout_root=tmp_path,
+            execute=True,
+            fail_stage="before_cutover",
+        )
     assert (destination / "old.txt").read_text(encoding="utf-8") == "old"
     assert not (destination / "Current").exists()
 
@@ -450,9 +606,14 @@ def test_live_promotion_staging_failure_preserves_old_root(
 def test_live_promotion_after_rotation_restores_rollback(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, destination, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, destination, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     with pytest.raises(OperationalReleaseError, match="PROMOTION_FAILED_AFTER_ROTATION"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha, execute=True, fail_stage="after_rotation")
+        promote_live_operational_root(
+            bundle,
+            source_checkout_root=tmp_path,
+            execute=True,
+            fail_stage="after_rotation",
+        )
     assert (destination / "old.txt").read_text(encoding="utf-8") == "old"
     assert not (destination / "control").exists()
 
@@ -460,7 +621,7 @@ def test_live_promotion_after_rotation_restores_rollback(
 def test_live_promotion_final_validation_failure_restores_rollback(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, _, destination, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, _, destination, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     original = operational_release.validate_operational_acceptance
     calls = 0
 
@@ -473,7 +634,11 @@ def test_live_promotion_final_validation_failure_restores_rollback(
 
     monkeypatch.setattr(operational_release, "validate_operational_acceptance", fail_final)
     with pytest.raises(OperationalReleaseError, match="FINAL_VALIDATION_FORCED"):
-        promote_live_operational_root(bundle, source_git_sha=source_sha, execute=True)
+        promote_live_operational_root(
+            bundle,
+            source_checkout_root=tmp_path,
+            execute=True,
+        )
     assert (destination / "old.txt").read_text(encoding="utf-8") == "old"
     assert not (destination / "control").exists()
 
@@ -481,10 +646,14 @@ def test_live_promotion_final_validation_failure_restores_rollback(
 def test_live_promotion_success_is_coherent_and_preserves_source(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    bundle, source_data, destination, source_sha = _live_promotion_inputs(tmp_path, monkeypatch)
+    bundle, source_data, destination, _ = _live_promotion_inputs(tmp_path, monkeypatch)
     before_bundle = operational_release._tree_snapshot(bundle)
     before_data = operational_release._tree_snapshot(source_data)
-    result = promote_live_operational_root(bundle, source_git_sha=source_sha, execute=True)
+    result = promote_live_operational_root(
+        bundle,
+        source_checkout_root=tmp_path,
+        execute=True,
+    )
     assert result["status"] == "PROMOTED_LIVE"
     assert validate_operational_acceptance(operational_paths(destination).executable)["operational_root"] == str(destination.resolve())
     assert Path(result["rollback_root"]).is_dir()
