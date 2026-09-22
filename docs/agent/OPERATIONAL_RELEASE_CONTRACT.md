@@ -1,8 +1,9 @@
 # Operational release contract
 
 This contract defines the separate `INTERNAL_PILOT` runtime lane introduced by
-B09. It does not convert a candidate into an installed release and it does not
-authorize promotion, installation, migration of live data or release.
+B09. It does not convert a candidate into an installed release or grant live
+execution authority. The live entrypoint is fail-closed unless the caller
+passes the explicit `--execute-live-promotion` guard.
 
 ## Stable layout
 
@@ -64,8 +65,18 @@ provenance. The companion
 
 ## Promotion model
 
-Only synthetic roots are accepted by the B09 primitive. A future live
-promotion must follow:
+Synthetic promotion remains task-owned and is the default test path. The
+guarded live entrypoint accepts only the fixed production roots
+`D:\QI-Crawler` and `C:\Users\Admin\AppData\Local\QI-Crawler`, a fresh
+`main` bundle at source SHA
+`166c96d5c530d72f2cb7b8703c89f940fd9a939f`, version `0.10.0`, and source
+schema `0020_add_tender_operational_revision_events`. Before any write it
+checks the bundle hashes, source schema, active process census, rollback-root
+collision, volume/free-space requirements and the untouched 4 GiB reserve.
+Both entrypoints use the same staged-copy/migration/receipt/rotation core;
+only the root and authorization policy differs.
+
+When separately authorized, live promotion follows:
 
 ```text
 read-only source
@@ -78,6 +89,10 @@ read-only source
 → deterministic rollback on failure
 ```
 
-The active AppData database and `D:\QI-Crawler` are never migrated or copied
-in place by this phase. The portable operational path is preferred; the B02
-Inno Setup installer remains deferred and is not required for B09.
+The active AppData database is copied with SQLite's read-only backup API and
+migrated only in the unique staging root. The original `D:\QI-Crawler` is
+rotated intact to `D:\QI-Crawler-Rollback\v0.9-<UTC_TIMESTAMP>` before the
+staged root becomes live; rollback is attempted only against those exact
+roots. A preflight or an omitted execute flag performs no mutation. This
+phase never executes the live entrypoint, and the B02 Inno Setup installer
+remains deferred and is not required for B09.
