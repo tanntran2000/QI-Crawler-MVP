@@ -34,7 +34,6 @@ SOURCE_SCHEMA_REVISION = "0020_add_tender_operational_revision_events"
 OPERATIONAL_ROOT = Path(r"D:\QI-Crawler")
 LIVE_SOURCE_DATA_ROOT = Path(r"C:\Users\Admin\AppData\Local\QI-Crawler")
 LIVE_ROLLBACK_ROOT_PARENT = Path(r"D:\QI-Crawler-Rollback")
-LIVE_SOURCE_GIT_SHA = "166c96d5c530d72f2cb7b8703c89f940fd9a939f"
 LIVE_SOURCE_BRANCH = "main"
 LIVE_VERSION = "0.10.0"
 LIVE_UNTOUCHED_RESERVE_BYTES = 4 * 1024**3
@@ -700,6 +699,47 @@ def _disk_usage(path: Path) -> Any:
         raise OperationalReleaseError("LIVE_STORAGE_PREFLIGHT_FAILED") from exc
 
 
+def _git_output(checkout_root: Path, *args: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(checkout_root), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise OperationalReleaseError("LIVE_SOURCE_CHECKOUT_NOT_VERIFIED") from exc
+    return completed.stdout.strip()
+
+
+def _verified_main_checkout_head(checkout_root: Path | str) -> str:
+    try:
+        checkout = Path(checkout_root).expanduser().resolve(strict=True)
+    except OSError as exc:
+        raise OperationalReleaseError("LIVE_SOURCE_CHECKOUT_NOT_VERIFIED") from exc
+    if not checkout.is_dir():
+        raise OperationalReleaseError("LIVE_SOURCE_CHECKOUT_NOT_VERIFIED")
+    try:
+        top_level = Path(_git_output(checkout, "rev-parse", "--show-toplevel")).resolve(
+            strict=True
+        )
+    except OSError as exc:
+        raise OperationalReleaseError("LIVE_SOURCE_CHECKOUT_NOT_VERIFIED") from exc
+    if os.path.normcase(str(top_level)) != os.path.normcase(str(checkout)):
+        raise OperationalReleaseError("LIVE_SOURCE_CHECKOUT_MISMATCH")
+    head = _git_output(checkout, "rev-parse", "HEAD")
+    if len(head) != 40 or set(head) - _SHA40:
+        raise OperationalReleaseError("LIVE_SOURCE_HEAD_INVALID")
+    if _git_output(checkout, "branch", "--show-current") != LIVE_SOURCE_BRANCH:
+        raise OperationalReleaseError("LIVE_SOURCE_BRANCH_MISMATCH")
+    if _git_output(checkout, "status", "--porcelain", "--untracked-files=no"):
+        raise OperationalReleaseError("LIVE_SOURCE_TREE_DIRTY")
+    if _git_output(checkout, "rev-parse", "HEAD") != head:
+        raise OperationalReleaseError("LIVE_SOURCE_HEAD_CHANGED")
+    return head.lower()
+
+
 def _live_preflight(
     source_bundle: Path,
     *,
@@ -735,7 +775,6 @@ def _live_preflight(
         bundle["source_branch"] != LIVE_SOURCE_BRANCH
         or bundle["version"] != expected_version
         or expected_version != LIVE_VERSION
-        or source_git_sha.lower() != LIVE_SOURCE_GIT_SHA.lower()
     ):
         raise OperationalReleaseError("LIVE_SOURCE_IDENTITY_MISMATCH")
     source_database = source_data / "data" / "database" / "egp.db"
@@ -786,13 +825,13 @@ def _live_preflight(
 def promote_live_operational_root(
     source_bundle_root: Path | str,
     *,
-    source_git_sha: str | None = None,
+    source_checkout_root: Path | str,
     expected_version: str | None = None,
     execute: bool = False,
     fail_stage: str | None = None,
 ) -> dict[str, Any]:
     """Preflight or explicitly execute the fixed-root live promotion contract."""
-    source_git_sha = LIVE_SOURCE_GIT_SHA if source_git_sha is None else source_git_sha
+    source_git_sha = _verified_main_checkout_head(source_checkout_root)
     expected_version = LIVE_VERSION if expected_version is None else expected_version
     if fail_stage not in {None, "before_cutover", "after_rotation"}:
         raise OperationalReleaseError("PROMOTION_FAILURE_STAGE_INVALID")

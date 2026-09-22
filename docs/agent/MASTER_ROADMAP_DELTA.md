@@ -1244,3 +1244,31 @@ transition performed only fixture-backed verification. The corrected full-suite
 A3/F5 guard failure blocks a green-suite claim and requires independent review;
 the hold-resolution freeze authorizes local audit commits only. The earlier
 A3/P4 result remains retained as historical evidence.
+
+## v0.10 B09 post-merge source identity correction
+
+~~~text
+DELTA_ID = B09_POSTMERGE_SOURCE_IDENTITY_CORRECTION
+STATE = FROZEN_LOCAL_PENDING_INDEPENDENT_AUDIT
+ACTIVE_PARENT = WP-REL-V010-B09-OPERATIONAL-REBIND-01
+ACTIVE_MICRO_WP = V010_B09_POSTMERGE_SOURCE_IDENTITY_CORRECTION_01
+BASE_MAIN = ca84959f1f031302959c0fb346435e447361888f
+AUDIT_TARGET_CODE_HEAD = 3d9d4e26f77c08bbd5d51fdc291fdc2c11450f08
+SOURCE_IDENTITY = CANONICAL_CHECKOUT_EXACT_HEAD; BRANCH_MAIN; TRACKED_TREE_CLEAN; HEAD_STABLE; BUNDLE_SHA_EQUAL
+HISTORICAL_PREMERGE_SHA = 166c96d5c530d72f2cb7b8703c89f940fd9a939f
+HARDCODED_RELEASE_SHA_REMOVED = YES
+TARGETED_REGRESSION = 126_PASS; 0_FAIL; 0_ERROR; 374.43_SECONDS
+SECURITY_REVIEW = NO_OPEN_CRITICAL_HIGH_MEDIUM_FINDINGS
+FULL_SUITE = NOT_RUN_BY_NARROW_WORK_ORDER_CONTRACT
+LIVE_PROMOTION_EXECUTED = NO
+D_QI_CRAWLER_MUTATED = NO
+APPDATA_MUTATED = NO
+RUFF = PASS
+DIFF_CHECK = PASS
+SPINE_SYNC = PASS
+NEXT = PLANNER_REVIEW_CORRECTION_HEAD_AND_ASSIGN_INDEPENDENT_SOURCE_IDENTITY_AUDIT
+~~~
+
+The correction removes the self-referential pre-merge SHA gate while retaining
+the fixed-root, channel, version, schema, metadata/hash and no-execute safety
+contracts. Live promotion remains separately authorized and was not run.

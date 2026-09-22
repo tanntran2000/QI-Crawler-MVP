@@ -68,11 +68,14 @@ provenance. The companion
 Synthetic promotion remains task-owned and is the default test path. The
 guarded live entrypoint accepts only the fixed production roots
 `D:\QI-Crawler` and `C:\Users\Admin\AppData\Local\QI-Crawler`, a fresh
-`main` bundle at source SHA
-`166c96d5c530d72f2cb7b8703c89f940fd9a939f`, version `0.10.0`, and source
-schema `0020_add_tender_operational_revision_events`. Before any write it
-checks the bundle hashes, source schema, active process census, rollback-root
-collision, volume/free-space requirements and the untouched 4 GiB reserve.
+`main` bundle whose source SHA equals the exact HEAD of the canonical checkout,
+version `0.10.0`, and source schema
+`0020_add_tender_operational_revision_events`. The checkout root must resolve
+to its Git top level, remain on `main`, have no tracked changes, and keep the
+same HEAD throughout source-identity verification. Before any write the gate
+checks that identity, the bundle hashes, source schema, active process census,
+rollback-root collision, volume/free-space requirements and the untouched 4
+GiB reserve.
 Both entrypoints use the same staged-copy/migration/receipt/rotation core;
 only the root and authorization policy differs.
 

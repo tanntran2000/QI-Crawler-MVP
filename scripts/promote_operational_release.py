@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = promote_live_operational_root(
             args.bundle_root,
+            source_checkout_root=ROOT,
             execute=bool(args.execute_live_promotion),
         )
     except OperationalReleaseError as exc:
