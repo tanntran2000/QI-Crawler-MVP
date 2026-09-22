@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import sqlite3
+import subprocess
 import tempfile
 import time
 from collections.abc import MutableMapping
@@ -31,6 +32,14 @@ OPERATIONAL_ACCEPTANCE_NAME = "operational_acceptance.json"
 OPERATIONAL_MIGRATION_RECEIPT_NAME = "operational_migration_receipt.json"
 SOURCE_SCHEMA_REVISION = "0020_add_tender_operational_revision_events"
 OPERATIONAL_ROOT = Path(r"D:\QI-Crawler")
+LIVE_SOURCE_DATA_ROOT = Path(r"C:\Users\Admin\AppData\Local\QI-Crawler")
+LIVE_ROLLBACK_ROOT_PARENT = Path(r"D:\QI-Crawler-Rollback")
+LIVE_SOURCE_GIT_SHA = "166c96d5c530d72f2cb7b8703c89f940fd9a939f"
+LIVE_SOURCE_BRANCH = "main"
+LIVE_VERSION = "0.10.0"
+LIVE_UNTOUCHED_RESERVE_BYTES = 4 * 1024**3
+LIVE_OPERATIONAL_VOLUME = "D:"
+LIVE_SOURCE_VOLUME = "C:"
 _SHA40 = set("0123456789abcdefABCDEF")
 _SHA64 = set("0123456789abcdefABCDEF")
 
@@ -478,22 +487,24 @@ def _operational_acceptance_payload(
     }
 
 
-def promote_synthetic_operational_root(
-    source_bundle_root: Path | str,
-    source_data_root: Path | str,
-    operational_root: Path | str,
+def _promote_staged_root(
+    source_bundle: Path,
+    source_data: Path,
+    destination: Path,
     *,
     source_git_sha: str,
-    expected_version: str = __version__,
-    fail_stage: str | None = None,
+    expected_version: str,
+    status: str,
+    rollback_error: str,
+    strict_rollback: bool,
+    fail_stage: str | None,
+    failure_prefix: str = "PROMOTION",
+    rollback_root: Path | None = None,
+    stage: Path | None = None,
+    source_bundle_snapshot: dict[str, Any] | None = None,
+    source_data_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Promote only temp fixtures with copy, migration, validation and rollback."""
-    source_bundle = Path(source_bundle_root).expanduser().resolve(strict=True)
-    source_data = Path(source_data_root).expanduser().resolve(strict=True)
-    destination = Path(operational_root).expanduser().resolve(strict=False)
-    _assert_synthetic_roots(source_bundle, source_data, destination)
-    if fail_stage not in {None, "before_cutover", "after_rotation"}:
-        raise OperationalReleaseError("PROMOTION_FAILURE_STAGE_INVALID")
+    """Shared staged-copy, migration, validation and atomic-rotation core."""
     bundle = _bundle_identity(source_bundle, expected_source_sha=source_git_sha)
     if bundle["version"] != expected_version:
         raise OperationalReleaseError("OPERATIONAL_VERSION_MISMATCH")
@@ -502,14 +513,15 @@ def promote_synthetic_operational_root(
         raise OperationalReleaseError("PROMOTION_SOURCE_SCHEMA_UNEXPECTED")
     if destination.exists() and not destination.is_dir():
         raise OperationalReleaseError("PROMOTION_DESTINATION_INVALID")
-    rollback_root = destination.parent / f"{destination.name}.rollback"
+    rollback_root = rollback_root or destination.parent / f"{destination.name}.rollback"
     if rollback_root.exists():
-        raise OperationalReleaseError("PROMOTION_ROLLBACK_ROOT_EXISTS")
-    stage = destination.parent / f".{destination.name}.stage-{uuid4().hex[:8]}"
+        raise OperationalReleaseError(rollback_error)
+    stage = stage or destination.parent / f".{destination.name}.stage-{uuid4().hex[:8]}"
+    if stage.exists():
+        raise OperationalReleaseError("PROMOTION_STAGE_ROOT_EXISTS")
     rotated = False
     try:
         stage_paths = operational_paths(stage)
-        stage_paths.application_root.mkdir(parents=True)
         shutil.copytree(source_bundle, stage_paths.application_root, dirs_exist_ok=True)
         shutil.copytree(source_data, stage_paths.data_root, dirs_exist_ok=True)
         stage_paths.database_path.unlink(missing_ok=True)
@@ -527,29 +539,28 @@ def promote_synthetic_operational_root(
         migration = {
             "receipt_schema_version": OPERATIONAL_MIGRATION_RECEIPT_SCHEMA_VERSION,
             "status": "PASS",
-            "source_git_sha": source_git_sha.lower(),
+            "source_git_sha": str(bundle["source_git_sha"]).lower(),
             "from_revision": SOURCE_SCHEMA_REVISION,
             "to_revision": migration_result.revision,
             "input_db_sha256": input_db_sha256,
             "output_db_sha256": _sha256(stage_paths.database_path).lower(),
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": _utc_now().isoformat(),
         }
         if migration_result.revision != CURRENT_SCHEMA_REVISION:
             raise OperationalReleaseError("PROMOTION_SCHEMA_MISMATCH")
         _write_json(stage_paths.migration_receipt_path, migration)
-        _write_json(
-            stage_paths.acceptance_path,
-            _operational_acceptance_payload(stage_paths, bundle, migration),
-        )
+        _write_json(stage_paths.acceptance_path, _operational_acceptance_payload(stage_paths, bundle, migration))
         validate_operational_acceptance(stage_paths.executable, expected_version=expected_version)
         if fail_stage == "before_cutover":
-            raise OperationalReleaseError("PROMOTION_FAILED_BEFORE_CUTOVER")
+            raise OperationalReleaseError(f"{failure_prefix}_FAILED_BEFORE_CUTOVER")
+        if strict_rollback:
+            rollback_root.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             _atomic_directory_replace(destination, rollback_root)
             rotated = True
         _atomic_directory_replace(stage, destination)
         if fail_stage == "after_rotation":
-            raise OperationalReleaseError("PROMOTION_FAILED_AFTER_ROTATION")
+            raise OperationalReleaseError(f"{failure_prefix}_FAILED_AFTER_ROTATION")
         final_paths = operational_paths(destination)
         final_receipt = _read_json(final_paths.acceptance_path, "OPERATIONAL_ACCEPTANCE_INVALID")
         final_receipt.update(
@@ -564,19 +575,258 @@ def promote_synthetic_operational_root(
         )
         _write_json(final_paths.acceptance_path, final_receipt)
         validated = validate_operational_acceptance(final_paths.executable, expected_version=expected_version)
+        if source_bundle_snapshot is not None and (
+            _tree_snapshot(source_bundle) != source_bundle_snapshot
+            or _tree_snapshot(source_data) != source_data_snapshot
+        ):
+            raise OperationalReleaseError("LIVE_SOURCE_MUTATED")
         return {
-            "status": "PROMOTED_SYNTHETIC",
+            "status": status,
             "operational_root": str(final_paths.root),
             "rollback_root": str(rollback_root) if rollback_root.exists() else None,
             "acceptance": validated,
         }
     except Exception as exc:
         if rotated:
-            shutil.rmtree(destination, ignore_errors=True)
-            _atomic_directory_replace(rollback_root, destination)
+            try:
+                if destination.exists():
+                    shutil.rmtree(destination)
+                _atomic_directory_replace(rollback_root, destination)
+            except Exception as rollback_exc:
+                if strict_rollback:
+                    raise OperationalReleaseError("LIVE_ROLLBACK_FAILED") from rollback_exc
         if isinstance(exc, OperationalReleaseError):
             raise
-        raise OperationalReleaseError(f"PROMOTION_FAILED_BEFORE_CUTOVER: {exc}") from exc
+        raise OperationalReleaseError(f"{failure_prefix}_FAILED_BEFORE_CUTOVER: {exc}") from exc
     finally:
         if stage.exists():
-            shutil.rmtree(stage, ignore_errors=True)
+            if strict_rollback:
+                try:
+                    shutil.rmtree(stage)
+                except PermissionError:
+                    gc.collect()
+                    time.sleep(0.2)
+                    shutil.rmtree(stage)
+            else:
+                shutil.rmtree(stage, ignore_errors=True)
+
+
+def promote_synthetic_operational_root(
+    source_bundle_root: Path | str,
+    source_data_root: Path | str,
+    operational_root: Path | str,
+    *,
+    source_git_sha: str,
+    expected_version: str = __version__,
+    fail_stage: str | None = None,
+) -> dict[str, Any]:
+    """Promote only temp fixtures with copy, migration, validation and rollback."""
+    source_bundle = Path(source_bundle_root).expanduser().resolve(strict=True)
+    source_data = Path(source_data_root).expanduser().resolve(strict=True)
+    destination = Path(operational_root).expanduser().resolve(strict=False)
+    _assert_synthetic_roots(source_bundle, source_data, destination)
+    if fail_stage not in {None, "before_cutover", "after_rotation"}:
+        raise OperationalReleaseError("PROMOTION_FAILURE_STAGE_INVALID")
+    return _promote_staged_root(
+        source_bundle,
+        source_data,
+        destination,
+        source_git_sha=source_git_sha,
+        expected_version=expected_version,
+        status="PROMOTED_SYNTHETIC",
+        rollback_error="PROMOTION_ROLLBACK_ROOT_EXISTS",
+        strict_rollback=False,
+        fail_stage=fail_stage,
+    )
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _tree_snapshot(root: Path) -> dict[str, Any]:
+    """Return a deterministic, content-bound snapshot without changing *root*."""
+    if not root.is_dir():
+        raise OperationalReleaseError("LIVE_SOURCE_ROOT_REQUIRED")
+    entries: list[str] = []
+    total_bytes = 0
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            raise OperationalReleaseError("LIVE_SOURCE_SYMLINK_FORBIDDEN")
+        if path.is_dir():
+            entries.append(f"D|{relative}")
+            continue
+        if not path.is_file():
+            raise OperationalReleaseError("LIVE_SOURCE_ENTRY_INVALID")
+        size = path.stat().st_size
+        total_bytes += size
+        entries.append(f"F|{relative}|{size}|{_sha256(path)}")
+    digest = hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest()
+    return {"sha256": digest, "files": len([entry for entry in entries if entry.startswith("F|")]), "bytes": total_bytes}
+
+
+def _active_qi_crawler_processes() -> list[dict[str, str]]:
+    """Census only; never terminates or mutates a process."""
+    if os.name != "nt":
+        return []
+    command = (
+        "Get-CimInstance Win32_Process | "
+        "Where-Object { $_.Name -eq 'QI-Crawler.exe' } | "
+        "Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json -Compress"
+    )
+    try:
+        completed = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        raw = completed.stdout.strip()
+        if not raw:
+            return []
+        parsed = json.loads(raw)
+        records = parsed if isinstance(parsed, list) else [parsed]
+        return [record for record in records if isinstance(record, dict)]
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED") from exc
+
+
+def _disk_usage(path: Path) -> Any:
+    try:
+        return shutil.disk_usage(path)
+    except OSError as exc:
+        raise OperationalReleaseError("LIVE_STORAGE_PREFLIGHT_FAILED") from exc
+
+
+def _live_preflight(
+    source_bundle: Path,
+    *,
+    source_git_sha: str,
+    expected_version: str,
+    execute: bool,
+    operational_root: Path | None = None,
+    source_data_root: Path | None = None,
+    rollback_parent: Path | None = None,
+) -> dict[str, Any]:
+    destination = (operational_root or OPERATIONAL_ROOT).expanduser().resolve(strict=False)
+    source_data = (source_data_root or LIVE_SOURCE_DATA_ROOT).expanduser().resolve(strict=False)
+    rollback_parent = (rollback_parent or LIVE_ROLLBACK_ROOT_PARENT).expanduser().resolve(strict=False)
+    if destination != OPERATIONAL_ROOT.expanduser().resolve(strict=False):
+        raise OperationalReleaseError("LIVE_OPERATIONAL_ROOT_MISMATCH")
+    if source_data != LIVE_SOURCE_DATA_ROOT.expanduser().resolve(strict=False):
+        raise OperationalReleaseError("LIVE_SOURCE_ROOT_MISMATCH")
+    if destination.drive.upper() != LIVE_OPERATIONAL_VOLUME or source_data.drive.upper() != LIVE_SOURCE_VOLUME:
+        raise OperationalReleaseError("LIVE_VOLUME_MISMATCH")
+    if source_bundle == destination or source_bundle == source_data:
+        raise OperationalReleaseError("LIVE_SOURCE_ROOT_MISMATCH")
+    if any(
+        _path_is_inside(source_bundle, protected) or _path_is_inside(protected, source_bundle)
+        for protected in (destination, source_data)
+    ):
+        raise OperationalReleaseError("LIVE_SOURCE_ROOT_MISMATCH")
+    if not source_bundle.is_dir() or not source_data.is_dir():
+        raise OperationalReleaseError("LIVE_SOURCE_ROOT_REQUIRED")
+    if not destination.is_dir():
+        raise OperationalReleaseError("LIVE_OPERATIONAL_ROOT_REQUIRED")
+    bundle = _bundle_identity(source_bundle, expected_source_sha=source_git_sha)
+    if (
+        bundle["source_branch"] != LIVE_SOURCE_BRANCH
+        or bundle["version"] != expected_version
+        or expected_version != LIVE_VERSION
+        or source_git_sha.lower() != LIVE_SOURCE_GIT_SHA.lower()
+    ):
+        raise OperationalReleaseError("LIVE_SOURCE_IDENTITY_MISMATCH")
+    source_database = source_data / "data" / "database" / "egp.db"
+    if _schema_revision(source_database) != SOURCE_SCHEMA_REVISION:
+        raise OperationalReleaseError("PROMOTION_SOURCE_SCHEMA_UNEXPECTED")
+    processes = _active_qi_crawler_processes()
+    destination_text = str(destination).casefold()
+    blocked = [
+        record
+        for record in processes
+        if str(record.get("ExecutablePath", "")).casefold().startswith(destination_text)
+    ]
+    if blocked:
+        raise OperationalReleaseError("LIVE_ACTIVE_PROCESS_PRESENT")
+    build_id = _utc_now().strftime("%Y%m%dT%H%M%SZ")
+    rollback_root = rollback_parent / f"v0.9-{build_id}"
+    if rollback_root.exists():
+        raise OperationalReleaseError("LIVE_ROLLBACK_ROOT_EXISTS")
+    stage = destination.parent / f".{destination.name}.stage-{uuid4().hex[:12]}"
+    if stage.exists():
+        raise OperationalReleaseError("LIVE_STAGE_ROOT_EXISTS")
+    source_bundle_snapshot = _tree_snapshot(source_bundle)
+    source_data_snapshot = _tree_snapshot(source_data)
+    required_bytes = (
+        source_bundle_snapshot["bytes"]
+        + source_data_snapshot["bytes"]
+        + LIVE_UNTOUCHED_RESERVE_BYTES
+    )
+    usage = _disk_usage(destination.parent)
+    if usage.free < required_bytes:
+        raise OperationalReleaseError("LIVE_STORAGE_RESERVE_UNAVAILABLE")
+    return {
+        "destination": destination,
+        "source_data": source_data,
+        "rollback_parent": rollback_parent,
+        "rollback_root": rollback_root,
+        "stage": stage,
+        "bundle": bundle,
+        "source_database": source_database,
+        "source_bundle_snapshot": source_bundle_snapshot,
+        "source_data_snapshot": source_data_snapshot,
+        "free_bytes": usage.free,
+        "required_bytes": required_bytes,
+        "execute": execute,
+    }
+
+
+def promote_live_operational_root(
+    source_bundle_root: Path | str,
+    *,
+    source_git_sha: str | None = None,
+    expected_version: str | None = None,
+    execute: bool = False,
+    fail_stage: str | None = None,
+) -> dict[str, Any]:
+    """Preflight or explicitly execute the fixed-root live promotion contract."""
+    source_git_sha = LIVE_SOURCE_GIT_SHA if source_git_sha is None else source_git_sha
+    expected_version = LIVE_VERSION if expected_version is None else expected_version
+    if fail_stage not in {None, "before_cutover", "after_rotation"}:
+        raise OperationalReleaseError("PROMOTION_FAILURE_STAGE_INVALID")
+    source_bundle = Path(source_bundle_root).expanduser().resolve(strict=True)
+    preflight = _live_preflight(
+        source_bundle,
+        source_git_sha=source_git_sha,
+        expected_version=expected_version,
+        execute=execute,
+    )
+    if not execute:
+        return {
+            "status": "PREFLIGHT_PASS",
+            "operational_root": str(preflight["destination"]),
+            "source_data_root": str(preflight["source_data"]),
+            "rollback_root": str(preflight["rollback_root"]),
+            "stage_root": str(preflight["stage"]),
+            "source_bundle_sha256": preflight["source_bundle_snapshot"]["sha256"],
+            "source_data_sha256": preflight["source_data_snapshot"]["sha256"],
+            "required_bytes": preflight["required_bytes"],
+            "free_bytes": preflight["free_bytes"],
+        }
+    return _promote_staged_root(
+        source_bundle,
+        preflight["source_data"],
+        preflight["destination"],
+        source_git_sha=source_git_sha,
+        expected_version=expected_version,
+        status="PROMOTED_LIVE",
+        rollback_error="LIVE_ROLLBACK_ROOT_EXISTS",
+        strict_rollback=True,
+        fail_stage=fail_stage,
+        rollback_root=preflight["rollback_root"],
+        stage=preflight["stage"],
+        source_bundle_snapshot=preflight["source_bundle_snapshot"],
+        source_data_snapshot=preflight["source_data_snapshot"],
+    )
