@@ -21,6 +21,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import QCloseEvent
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QGroupBox, QMessageBox
 
 from qi_crawler import __version__, gui
@@ -1370,6 +1371,52 @@ def test_workspace_export_gui_blocks_stale_revision_without_cached_release_submi
     window.start_tender_workspace_export()
 
     assert not captured
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
+
+
+def test_workspace_export_button_invalidates_revision_context_from_user_edit(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="IB2600544922",
+        release_raw_id="IB2600544922-00",
+        release_id=19,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    destination = parent / "IB2600544922_STALE_REV_TEST_01"
+    submitted: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda *args, **_kwargs: submitted.append(args),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText(destination.name)
+    window.workspace_release_id.setFocus()
+    window.workspace_release_id.selectAll()
+    QTest.keyClicks(window.workspace_release_id, "IB2600544922-01")
+    window.workspace_export_button.click()
+
+    assert window._workspace_release_record_id is None
+    assert not submitted
+    assert not destination.exists()
     assert warnings == [
         (
             "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"

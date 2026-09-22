@@ -2446,8 +2446,12 @@ class QICrawlerWindow(QMainWindow):
         workspace_form = QFormLayout()
         self.workspace_case_id = QLineEdit()
         self.workspace_case_id.setPlaceholderText("Mã hồ sơ nội bộ, ví dụ: TB-2026-001")
+        self.workspace_case_id.textChanged.connect(self._invalidate_workspace_context_on_edit)
         self.workspace_release_id = QLineEdit()
         self.workspace_release_id.setPlaceholderText("IB2600000000-00 (bắt buộc phiên bản)")
+        self.workspace_release_id.textChanged.connect(
+            self._invalidate_workspace_context_on_edit
+        )
         self.workspace_search_query = QLineEdit()
         self.workspace_search_query.setPlaceholderText(
             "Tìm hồ sơ / IB / PL (không tự chọn phiên bản)"
@@ -3063,6 +3067,15 @@ class QICrawlerWindow(QMainWindow):
             self.workspace_status.setText("Vui lòng nhập mã IB có phiên bản chính xác.")
             return None
         return case_id, release_id
+
+    def _invalidate_workspace_context_on_edit(self) -> None:
+        if self._workspace_release_record_id is None:
+            return
+        if (
+            self.workspace_case_id.text().strip() != self._workspace_opened_case_id
+            or self.workspace_release_id.text().strip() != self._workspace_opened_release_id
+        ):
+            self._workspace_release_record_id = None
 
     @Slot()
     def start_tender_workspace_scan_folder(self) -> None:
@@ -3795,7 +3808,6 @@ class QICrawlerWindow(QMainWindow):
             has_open_context = all(
                 value is not None
                 for value in (
-                    self._workspace_release_record_id,
                     self._workspace_opened_case_id,
                     self._workspace_opened_release_id,
                 )
@@ -3811,7 +3823,7 @@ class QICrawlerWindow(QMainWindow):
                 if has_open_context
                 else self.workspace_case_id
             ).setFocus()
-            QMessageBox.warning(self, "Không thể xuất workspace", message)
+            QMessageBox.warning(self, "Không thể xuất hồ sơ làm việc", message)
             return
         case_id, release_record_id, _release_raw_id = context
         parent_text = self.workspace_export_parent.text().strip()
@@ -3841,7 +3853,7 @@ class QICrawlerWindow(QMainWindow):
             self.workspace_export_child.setFocus()
             QMessageBox.warning(
                 self,
-                "Không thể xuất workspace",
+                "Không thể xuất hồ sơ làm việc",
                 _WORKSPACE_EXPORT_DUPLICATE_MESSAGE,
             )
             return
