@@ -152,13 +152,25 @@ def test_bid_radar_is_reachable_without_removing_existing_pages(
     assert "HSMT / PHÂN TÍCH" in labels
 
 
+def test_phase2_bid_radar_labels_are_vietnamese_first(window: QICrawlerWindow) -> None:
+    group_titles = {box.title() for box in window.findChildren(gui.QGroupBox)}
+    assert "ĐÁNH GIÁ CỦA NGƯỜI DÙNG" in group_titles
+    assert "KẾT QUẢ BỔ SUNG" in group_titles
+    assert any(
+        label.text() == "XEM NHANH / KIỂM TRA THÔNG TIN"
+        for label in window.findChildren(gui.QLabel)
+    )
+    assert window.bid_radar_screening_button.text() == "SÀNG LỌC HUMAN-LIGHT (4 BẢNG)"
+    assert window.bid_radar_legal_button.text() == "TẠO DOCX PHÁP LÝ"
+
+
 def test_team_bid_workspace_is_thinly_wired_into_existing_document_page(
     window: QICrawlerWindow,
 ) -> None:
     assert window.workspace_zone.count() == 7
     assert window.workspace_zone.itemData(0) == "01_Source_E-HSMT"
     assert window.workspace_zone.itemData(6) == "07_Evidence_Archive"
-    assert window.workspace_status.text().startswith("Chưa mở TenderCase")
+    assert window.workspace_status.text().startswith("Chưa mở hồ sơ gói thầu")
 
 
 def test_team_bid_workspace_open_delegates_to_service(
@@ -286,7 +298,7 @@ def test_bid_radar_source_summary_is_compact_and_retains_identity_details(
     assert "Tên file: TBMT_3_9_2026.xlsx" in summary
     assert "Loại: TBMT" in summary
     assert "Số thông báo: 6" in summary
-    assert "Revision:" in summary
+    assert "Phiên bản (Revision):" in summary
     assert "Identity:" not in summary
     assert "(+5)" not in summary
     assert "IB2600488839-00" in window.bid_radar_source_summary.toolTip()
@@ -812,7 +824,7 @@ def test_khmt_workspace_handoff_success_prefills_provisional_case(
     assert window._workspace_release_record_id is None
     assert window._workspace_opened_case_id == "PL2600000001-00"
     assert window._workspace_opened_release_id is None
-    assert "Chưa có IB exact revision" in window.workspace_status.text()
+    assert "Chưa có IB phiên bản chính xác" in window.workspace_status.text()
 
 
 def test_failed_workspace_handoff_keeps_radar_selection(
@@ -840,7 +852,7 @@ def test_review_requires_reviewer(window: QICrawlerWindow) -> None:
     window.bid_radar_table.selectRow(0)
     window.start_bid_radar_review("CONFIRMED")
 
-    assert "reviewer" in window.bid_radar_status.text().lower()
+    assert "người đánh giá" in window.bid_radar_status.text().lower()
 
 
 def test_review_delegates_to_candidate_review_service(

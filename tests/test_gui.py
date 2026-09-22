@@ -21,6 +21,7 @@ from PySide6.QtCore import (
     QTimer,
 )
 from PySide6.QtGui import QCloseEvent
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QGroupBox, QMessageBox
 
 from qi_crawler import __version__, gui
@@ -56,6 +57,7 @@ from qi_crawler.tender_completeness import (
     PublicationPackageState,
     PublicationSummary,
 )
+from qi_crawler.tender_workspace import TenderWorkspaceError
 from qi_crawler.web_document_intake import WebDocumentIntakeSummary
 
 
@@ -121,7 +123,7 @@ def test_collection_navigation_keeps_all_crawl_capabilities_reachable(
     assert window.collection_tabs.count() == 3
     assert [window.collection_tabs.tabText(index) for index in range(3)] == [
         "QUÉT DANH SÁCH",
-        "CRAWL URL",
+        "QUÉT URL",
         "NGUỒN / ĐĂNG NHẬP",
     ]
     assert window.collection_tabs.widget(0) is window.collection_scan_page
@@ -131,6 +133,48 @@ def test_collection_navigation_keeps_all_crawl_capabilities_reachable(
     assert window.crawl_button.parentWidget() is not None
     assert window.login_button.parentWidget() is not None
     assert window.scan_advanced_options.title() == "TÙY CHỌN NÂNG CAO"
+
+
+def test_phase2_vietnamese_first_labels_cover_primary_team_bid_controls(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.collection_tabs.tabText(1) == "QUÉT URL"
+    assert window.workspace_open_button.text() == "MỞ / TẠO HỒ SƠ"
+    assert window.workspace_search_button.text() == "TÌM HỒ SƠ"
+    assert window.workspace_dashboard_button.text() == "BẢNG TỔNG QUAN"
+    assert window.workspace_revision_status_button.text() == "TRẠNG THÁI PHIÊN BẢN"
+    assert window.workspace_documents_box.title() == (
+        "TÀI LIỆU ĐƯỢC QUẢN LÝ — ĐÚNG PHIÊN BẢN HỒ SƠ"
+    )
+    assert window.workspace_export_parent.placeholderText() == (
+        "Chọn thư mục lưu bản xuất đã tồn tại"
+    )
+    assert window.workspace_export_path.placeholderText() == (
+        "Đường dẫn bản xuất được tính tự động"
+    )
+    labels = {label.text() for label in window.findChildren(gui.QLabel)}
+    assert "Hồ sơ gói thầu (TenderCase):" in labels
+    assert "Phiên bản IB (Revision):" in labels
+    assert "Khu vực hồ sơ Team Bid:" in labels
+    assert "Phân loại tài liệu (mục đích / giá trị sử dụng):" in labels
+    assert "Vai trò tài liệu do người dùng xác nhận:" in labels
+    assert window.completeness_core_summary.text().startswith(
+        "Mức bao phủ hồ sơ cốt lõi / Mức sẵn sàng nghiên cứu"
+    )
+    assert window.completeness_publication_summary.text().startswith(
+        "Mức đầy đủ hồ sơ công bố"
+    )
+
+
+def test_phase2_workspace_display_labels_preserve_canonical_combo_values(
+    window: QICrawlerWindow,
+) -> None:
+    assert window.workspace_zone.itemText(0) == "01 — Nguồn E-HSMT"
+    assert window.workspace_zone.itemData(0) == "01_Source_E-HSMT"
+    assert window.workspace_authority.itemText(0) == "Nguồn E-HSMT (SOURCE_E_HSMT)"
+    assert window.workspace_authority.itemData(0) == "SOURCE_E_HSMT"
+    assert window.workspace_role.itemText(0) == "C3 — Chương III"
+    assert window.workspace_role.itemData(0) == "C3"
 
 
 def test_window_uses_resizable_preferred_geometry(window: QICrawlerWindow) -> None:
@@ -844,7 +888,7 @@ def test_document_page_uses_existing_intake_service_and_renders_success(
     ]
     assert "Đã nhập tài liệu" in window.document_status.text()
     assert "Mã gói: IB2600000001-00" in window.document_status.text()
-    assert "Identity: Đúng gói" in window.document_status.text()
+    assert "Định danh (Identity): Đúng gói" in window.document_status.text()
     assert "Loại tài liệu: Hồ sơ mời thầu qua mạng" in window.document_status.text()
     assert window.document_classification_status.text() == "Nhận diện sơ bộ"
     assert window.document_confirm_type_button.isEnabled()
@@ -878,7 +922,7 @@ def test_content_verified_document_is_not_rendered_as_mismatch(
     window._render_document_result(batch)
 
     assert "xác thực từ nội dung" in window.document_status.text()
-    assert "Revision: 00" in window.document_status.text()
+    assert "Phiên bản (Revision): 00" in window.document_status.text()
     assert "KHÔNG KHỚP" not in window.document_status.text()
     assert window.document_confirm_type_button.isEnabled()
 
@@ -1208,7 +1252,7 @@ def test_document_workspace_layout_has_three_clear_blocks(
         "Loại tài liệu",
         "Mẫu hồ sơ",
         "Phiên bản",
-        "Identity",
+        "Định danh",
         "Trạng thái phân loại",
     ]
     assert window.document_table.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAsNeeded
@@ -1237,9 +1281,23 @@ def test_workspace_export_gui_builds_nonexistent_child_under_selected_parent(
     parent = tmp_path / "exports"
     parent.mkdir()
     captured: list[tuple[object, ...]] = []
+    _open_workspace_context(
+        window,
+        case_id="case-export",
+        release_raw_id="IB2600000001-00",
+        release_id=17,
+    )
     monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
 
-    window.workspace_case_id.setText("case-export")
+    context_calls: list[None] = []
+    refresh_context = window._workspace_refresh_context
+
+    def refresh_context_with_observation() -> tuple[str, int, str] | None:
+        context_calls.append(None)
+        return refresh_context()
+
+    monkeypatch.setattr(window, "_workspace_refresh_context", refresh_context_with_observation)
+
     window.workspace_export_parent.setText(str(parent))
     window.workspace_export_child.setText("IB2600000001-00")
 
@@ -1249,8 +1307,160 @@ def test_workspace_export_gui_builds_nonexistent_child_under_selected_parent(
 
     window.start_tender_workspace_export()
 
+    assert context_calls == [None]
     assert captured
+    assert captured[0][2] == "case-export"
     assert captured[0][3] == expected
+    assert captured[0][4] == 17
+
+
+def test_workspace_export_gui_rejects_empty_parent_without_worker_or_cwd_fallback(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _open_workspace_context(window, case_id="case-empty", release_id=18)
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.clear()
+    window.workspace_export_child.setText("empty-parent")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Chưa chọn thư mục lưu bản xuất.\n"
+            "Hãy chọn một thư mục cha trước khi xuất hồ sơ."
+        )
+    ]
+    assert window.workspace_export_path.text() == ""
+    assert "Chưa chọn thư mục lưu bản xuất" in window.workspace_status.text()
+
+
+def test_workspace_export_gui_blocks_stale_revision_without_cached_release_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="case-stale-revision",
+        release_raw_id="IB2600000002-00",
+        release_id=19,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("stale-revision")
+    window.workspace_release_id.setText("IB2600000002-01")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
+
+
+def test_workspace_export_button_invalidates_revision_context_from_user_edit(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="IB2600544922",
+        release_raw_id="IB2600544922-00",
+        release_id=19,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    destination = parent / "IB2600544922_STALE_REV_TEST_01"
+    submitted: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        window,
+        "_submit",
+        lambda *args, **_kwargs: submitted.append(args),
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText(destination.name)
+    window.workspace_release_id.setFocus()
+    window.workspace_release_id.selectAll()
+    QTest.keyClicks(window.workspace_release_id, "IB2600544922-01")
+    window.workspace_export_button.click()
+
+    assert window._workspace_release_record_id is None
+    assert not submitted
+    assert not destination.exists()
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
+
+
+def test_workspace_export_gui_blocks_stale_case_without_cached_release_submission(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _open_workspace_context(
+        window,
+        case_id="case-a",
+        release_raw_id="IB2600000003-00",
+        release_id=20,
+    )
+    parent = tmp_path / "exports"
+    parent.mkdir()
+    captured: list[tuple[object, ...]] = []
+    warnings: list[str] = []
+    monkeypatch.setattr(window, "_submit", lambda *args, **_kwargs: captured.append(args))
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+
+    window.workspace_export_parent.setText(str(parent))
+    window.workspace_export_child.setText("stale-case")
+    window.workspace_case_id.setText("case-b")
+    window.start_tender_workspace_export()
+
+    assert not captured
+    assert warnings == [
+        (
+            "Mã hồ sơ hoặc phiên bản đã thay đổi.\n"
+            "Hãy mở lại hồ sơ để xác nhận đúng ngữ cảnh trước khi xuất."
+        )
+    ]
+    assert "Mã hồ sơ hoặc phiên bản đã thay đổi" in window.workspace_status.text()
 
 
 def test_workspace_export_gui_rejects_existing_final_destination_before_or_through_existing_guard(
@@ -1262,20 +1472,67 @@ def test_workspace_export_gui_rejects_existing_final_destination_before_or_throu
     destination = parent / "existing"
     destination.mkdir(parents=True)
     called = False
+    warnings: list[str] = []
+    focused: list[object] = []
 
     def submit(*_args, **_kwargs) -> None:
         nonlocal called
         called = True
 
     monkeypatch.setattr(window, "_submit", submit)
-    window.workspace_case_id.setText("case-export")
+    _open_workspace_context(window, case_id="case-export", release_id=21)
+    monkeypatch.setattr(
+        QMessageBox,
+        "warning",
+        lambda _parent, _title, message: warnings.append(message),
+    )
+    monkeypatch.setattr(
+        type(window.workspace_export_child),
+        "setFocus",
+        lambda widget, *_args: focused.append(widget),
+    )
     window.workspace_export_parent.setText(str(parent))
     window.workspace_export_child.setText("existing")
 
     window.start_tender_workspace_export()
 
     assert not called
-    assert "đã tồn tại" in window.workspace_status.text()
+    assert window.workspace_export_child.text() == "existing"
+    assert focused == [window.workspace_export_child]
+    assert warnings == [
+        (
+            "Không thể xuất hồ sơ: thư mục đích đã tồn tại.\n"
+            "Hãy nhập tên thư mục mới.\n"
+            "Thư mục hiện có không bị ghi đè."
+        )
+    ]
+    assert "thư mục đích đã tồn tại" in window.workspace_status.text()
+
+
+def test_workspace_export_backend_duplicate_race_has_specific_visible_message(
+    window: QICrawlerWindow,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    messages: list[str] = []
+    monkeypatch.setattr(
+        QMessageBox,
+        "critical",
+        lambda _parent, _title, message: messages.append(message),
+    )
+
+    window._worker_error(
+        window.workspace_export_button,
+        TenderWorkspaceError("workspace export destination already exists"),
+        status=window.workspace_status,
+    )
+
+    expected = (
+        "Không thể xuất hồ sơ: thư mục đích đã tồn tại.\n"
+        "Hãy nhập tên thư mục mới.\n"
+        "Thư mục hiện có không bị ghi đè."
+    )
+    assert messages == [expected]
+    assert window.workspace_status.text() == expected
 
 
 def test_workspace_export_gui_requires_new_child_name(
@@ -1292,7 +1549,7 @@ def test_workspace_export_gui_requires_new_child_name(
         called = True
 
     monkeypatch.setattr(window, "_submit", submit)
-    window.workspace_case_id.setText("case-export")
+    _open_workspace_context(window, case_id="case-export", release_id=22)
     window.workspace_export_parent.setText(str(parent))
 
     for invalid_child in ("", ".", "..", "nested/folder", "nested\\folder"):
@@ -1454,20 +1711,20 @@ def test_workspace_document_surface_shows_exact_membership_and_selected_evidence
         window.workspace_document_table.item(0, column).text() for column in range(5)
     ] == [
         "chapter-v.pdf",
-        "01_Source_E-HSMT",
+        "01 — Nguồn E-HSMT",
         "02",
-        "SOURCE_E_HSMT",
+        "Nguồn E-HSMT (SOURCE_E_HSMT)",
         "VERIFIED",
     ]
     window.workspace_document_table.selectRow(0)
     detail = window.workspace_document_detail.toPlainText()
-    assert "Document ID: 61" in detail
-    assert "Membership ID: 41" in detail
-    assert f"SHA-256: {'a' * 64}" in detail
+    assert "Mã tài liệu (ID): 61" in detail
+    assert "Mã mục liên kết (Membership ID): 41" in detail
+    assert f"Mã băm SHA-256: {'a' * 64}" in detail
     assert str(row.stored_path) in detail
-    assert "Evidence: Human mapped Chapter V" in detail
-    assert "Slot: C5-01" in detail
-    assert "Operational state: ACTIVE" in detail
+    assert "Căn cứ xác nhận: Human mapped Chapter V" in detail
+    assert "Vị trí (Slot): C5-01" in detail
+    assert "Trạng thái vận hành: ACTIVE" in detail
 
 
 def test_workspace_document_surface_loads_through_exact_release_adapter(
@@ -2316,8 +2573,8 @@ def test_gui_identity_mismatch_releases_busy_state(
     assert window.document_progress.isHidden()
     assert all(button.isEnabled() for button in window._long_operation_buttons)
     assert "TÀI LIỆU KHÔNG KHỚP GÓI" in window.document_status.text()
-    assert "Expected: IB-EXPECTED" in window.document_status.text()
-    assert "Detected: IB-DETECTED" in window.document_status.text()
+    assert "Kỳ vọng (Expected): IB-EXPECTED" in window.document_status.text()
+    assert "Phát hiện (Detected): IB-DETECTED" in window.document_status.text()
     assert not window.document_identity_banner.isHidden()
     assert "KHÔNG KHỚP" in window.document_identity_banner.text()
     assert messages == [window.document_status.text()]
