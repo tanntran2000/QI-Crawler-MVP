@@ -389,7 +389,13 @@ def _assert_synthetic_roots(*roots: Path) -> None:
     local_app_data = os.getenv("LOCALAPPDATA")
     if local_app_data:
         protected.append((Path(local_app_data) / "QI-Crawler").resolve(strict=False))
-    for root in roots:
+    normalized = tuple(root.resolve(strict=False) for root in roots)
+    for index, root in enumerate(normalized):
+        if any(
+            _path_is_inside(root, other) or _path_is_inside(other, root)
+            for other in normalized[index + 1 :]
+        ):
+            raise OperationalReleaseError("SYNTHETIC_ROOT_OVERLAP")
         if not any(_path_is_inside(root, allowed_root) for allowed_root in allowed):
             raise OperationalReleaseError("SYNTHETIC_ROOT_REQUIRED")
         if any(_path_is_inside(root, item) or _path_is_inside(item, root) for item in protected):

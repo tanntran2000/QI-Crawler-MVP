@@ -236,6 +236,24 @@ def test_synthetic_promotion_migrates_copy_without_mutating_source(tmp_path: Pat
     assert validate_operational_acceptance(final.executable)["schema_revision"] == CURRENT_SCHEMA_REVISION
 
 
+def test_synthetic_promotion_rejects_overlapping_roots(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source_bundle = source / "app" / "QI-Crawler"
+    source_bundle.mkdir(parents=True)
+    _write_metadata(source_bundle)
+    source_data = source / "data"
+    _create_database_at_0020(source_data / "data" / "database" / "egp.db", source_data)
+    (source_data / "config.yaml").write_text("storage: {}\n", encoding="utf-8")
+
+    with pytest.raises(OperationalReleaseError, match="SYNTHETIC_ROOT_OVERLAP"):
+        promote_synthetic_operational_root(
+            source_bundle,
+            source_data,
+            source,
+            source_git_sha=SOURCE_SHA,
+        )
+
+
 def _promotion_inputs(tmp_path: Path) -> tuple[Path, Path, Path, str]:
     source = tmp_path / "source"
     bundle = source / "app" / "QI-Crawler"
