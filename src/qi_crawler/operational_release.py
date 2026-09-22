@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import csv
 import gc
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -665,10 +667,7 @@ def _tree_snapshot(root: Path) -> dict[str, Any]:
     return {"sha256": digest, "files": len([entry for entry in entries if entry.startswith("F|")]), "bytes": total_bytes}
 
 
-def _active_qi_crawler_processes() -> list[dict[str, str]]:
-    """Census only; never terminates or mutates a process."""
-    if os.name != "nt":
-        return []
+def _cim_process_census() -> list[dict[str, str | None]]:
     command = (
         "Get-CimInstance Win32_Process | "
         "Where-Object { $_.Name -eq 'QI-Crawler.exe' } | "
@@ -686,10 +685,86 @@ def _active_qi_crawler_processes() -> list[dict[str, str]]:
         if not raw:
             return []
         parsed = json.loads(raw)
+        if not isinstance(parsed, (dict, list)):
+            raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
         records = parsed if isinstance(parsed, list) else [parsed]
-        return [record for record in records if isinstance(record, dict)]
+        if not all(isinstance(record, dict) for record in records):
+            raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
+        return records
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
         raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED") from exc
+
+
+def _windows_system_executable(name: str) -> str:
+    system_root = os.environ.get("SystemRoot")
+    try:
+        if not system_root or Path(name).name != name:
+            raise OSError
+        system32 = (Path(system_root) / "System32").resolve(strict=True)
+        executable = (system32 / name).resolve(strict=True)
+    except OSError as exc:
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED") from exc
+    if executable.parent != system32 or not executable.is_file():
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
+    return str(executable)
+
+
+def _tasklist_process_census() -> list[dict[str, str | None]]:
+    try:
+        completed = subprocess.run(
+            [
+                _windows_system_executable("tasklist.exe"),
+                "/FI",
+                "IMAGENAME eq QI-Crawler.exe",
+                "/FO",
+                "CSV",
+                "/NH",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        raw = completed.stdout.strip()
+        if raw.startswith("INFO:"):
+            return []
+        rows = list(csv.reader(io.StringIO(raw)))
+        if not raw or not rows or any(len(row) < 2 or not row[1].isdigit() for row in rows):
+            raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
+        return [
+            {"ImageName": row[0], "ProcessId": row[1], "ExecutablePath": None}
+            for row in rows
+            if row[0].casefold() == "qi-crawler.exe"
+        ]
+    except (OSError, subprocess.SubprocessError, csv.Error) as exc:
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED") from exc
+
+
+def _windows_process_census() -> dict[str, Any]:
+    try:
+        processes = _cim_process_census()
+        method = "CIM"
+    except OperationalReleaseError:
+        processes = _tasklist_process_census()
+        method = "TASKLIST_FALLBACK"
+    return {
+        "method": method,
+        "processes": processes,
+        "path_authority": (
+            "NOT_APPLICABLE"
+            if not processes
+            else "EXACT"
+            if all(record.get("ExecutablePath") for record in processes)
+            else "UNKNOWN"
+        ),
+    }
+
+
+def _active_qi_crawler_processes() -> dict[str, Any]:
+    """Census only; never terminates or mutates a process."""
+    if os.name != "nt":
+        return {"method": "NOT_APPLICABLE", "processes": [], "path_authority": "NOT_APPLICABLE"}
+    return _windows_process_census()
 
 
 def _disk_usage(path: Path) -> Any:
@@ -780,12 +855,14 @@ def _live_preflight(
     source_database = source_data / "data" / "database" / "egp.db"
     if _schema_revision(source_database) != SOURCE_SCHEMA_REVISION:
         raise OperationalReleaseError("PROMOTION_SOURCE_SCHEMA_UNEXPECTED")
-    processes = _active_qi_crawler_processes()
+    process_census = _active_qi_crawler_processes()
+    processes = process_census["processes"]
     destination_text = str(destination).casefold()
     blocked = [
         record
         for record in processes
-        if str(record.get("ExecutablePath", "")).casefold().startswith(destination_text)
+        if not record.get("ExecutablePath")
+        or str(record["ExecutablePath"]).casefold().startswith(destination_text)
     ]
     if blocked:
         raise OperationalReleaseError("LIVE_ACTIVE_PROCESS_PRESENT")
@@ -816,6 +893,7 @@ def _live_preflight(
         "source_database": source_database,
         "source_bundle_snapshot": source_bundle_snapshot,
         "source_data_snapshot": source_data_snapshot,
+        "process_census": process_census,
         "free_bytes": usage.free,
         "required_bytes": required_bytes,
         "execute": execute,
@@ -851,6 +929,9 @@ def promote_live_operational_root(
             "stage_root": str(preflight["stage"]),
             "source_bundle_sha256": preflight["source_bundle_snapshot"]["sha256"],
             "source_data_sha256": preflight["source_data_snapshot"]["sha256"],
+            "process_census_method": preflight["process_census"]["method"],
+            "process_count": len(preflight["process_census"]["processes"]),
+            "path_authority": preflight["process_census"]["path_authority"],
             "required_bytes": preflight["required_bytes"],
             "free_bytes": preflight["free_bytes"],
         }

@@ -76,6 +76,16 @@ same HEAD throughout source-identity verification. Before any write the gate
 checks that identity, the bundle hashes, source schema, active process census,
 rollback-root collision, volume/free-space requirements and the untouched 4
 GiB reserve.
+
+On Windows the process census first uses CIM for exact executable-path
+authority. If CIM is unavailable, the gate invokes the trusted
+`%SystemRoot%\System32\tasklist.exe` directly with a fixed argument list and
+accepts only an exact `QI-Crawler.exe` image-name census. A fallback match has
+unknown path authority and blocks promotion. Command failure, malformed or
+ambiguous output, or inability to resolve the System32 executable fails closed
+as `LIVE_PROCESS_CENSUS_FAILED`. A successful no-execute preflight reports the
+census method, process count and path-authority level.
+
 Both entrypoints use the same staged-copy/migration/receipt/rotation core;
 only the root and authorization policy differs.
 

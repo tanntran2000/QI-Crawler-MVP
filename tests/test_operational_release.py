@@ -337,7 +337,11 @@ def _live_promotion_inputs(
     monkeypatch.setattr(
         operational_release,
         "_active_qi_crawler_processes",
-        list,
+        lambda: {
+            "method": "CIM",
+            "processes": [],
+            "path_authority": "NOT_APPLICABLE",
+        },
     )
     monkeypatch.setattr(
         operational_release,
@@ -467,6 +471,9 @@ def test_live_promotion_without_execute_flag_is_zero_mutation(
     before_destination = sorted(path.relative_to(destination).as_posix() for path in destination.rglob("*"))
     result = promote_live_operational_root(bundle, source_checkout_root=tmp_path)
     assert result["status"] == "PREFLIGHT_PASS"
+    assert result["process_census_method"] == "CIM"
+    assert result["process_count"] == 0
+    assert result["path_authority"] == "NOT_APPLICABLE"
     assert operational_release._tree_snapshot(source_data) == before_source
     assert sorted(path.relative_to(destination).as_posix() for path in destination.rglob("*")) == before_destination
     assert not (tmp_path / "rollback").exists()
@@ -582,10 +589,210 @@ def test_live_promotion_rejects_active_process(
     monkeypatch.setattr(
         operational_release,
         "_active_qi_crawler_processes",
-        lambda: [{"ProcessId": "42", "ExecutablePath": str(operational_release.OPERATIONAL_ROOT / "Current" / "QI-Crawler" / "QI-Crawler.exe")}],
+        lambda: {
+            "method": "CIM",
+            "processes": [
+                {
+                    "ProcessId": "42",
+                    "ExecutablePath": str(
+                        operational_release.OPERATIONAL_ROOT
+                        / "Current"
+                        / "QI-Crawler"
+                        / "QI-Crawler.exe"
+                    ),
+                }
+            ],
+            "path_authority": "EXACT",
+        },
     )
     with pytest.raises(OperationalReleaseError, match="LIVE_ACTIVE_PROCESS_PRESENT"):
         promote_live_operational_root(bundle, source_checkout_root=tmp_path)
+
+
+def test_windows_process_census_prefers_successful_cim(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(operational_release, "_cim_process_census", list, raising=False)
+    monkeypatch.setattr(
+        operational_release,
+        "_tasklist_process_census",
+        lambda: pytest.fail("fallback must not run after successful CIM"),
+        raising=False,
+    )
+
+    assert operational_release._windows_process_census() == {
+        "method": "CIM",
+        "processes": [],
+        "path_authority": "NOT_APPLICABLE",
+    }
+
+
+def test_windows_process_census_uses_tasklist_after_cim_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def denied() -> list[dict[str, str | None]]:
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
+
+    monkeypatch.setattr(operational_release, "_cim_process_census", denied, raising=False)
+    monkeypatch.setattr(operational_release, "_tasklist_process_census", list, raising=False)
+
+    assert operational_release._windows_process_census() == {
+        "method": "TASKLIST_FALLBACK",
+        "processes": [],
+        "path_authority": "NOT_APPLICABLE",
+    }
+
+
+def test_live_promotion_blocks_tasklist_match_with_unknown_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        operational_release,
+        "_active_qi_crawler_processes",
+        lambda: {
+            "method": "TASKLIST_FALLBACK",
+            "processes": [
+                {
+                    "ImageName": "QI-Crawler.exe",
+                    "ProcessId": "42",
+                    "ExecutablePath": None,
+                }
+            ],
+            "path_authority": "UNKNOWN",
+        },
+    )
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_ACTIVE_PROCESS_PRESENT"):
+        promote_live_operational_root(bundle, source_checkout_root=tmp_path)
+
+
+def test_live_promotion_allows_cim_process_outside_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        operational_release,
+        "_active_qi_crawler_processes",
+        lambda: {
+            "method": "CIM",
+            "processes": [
+                {
+                    "ProcessId": "42",
+                    "ExecutablePath": str(tmp_path / "other" / "QI-Crawler.exe"),
+                }
+            ],
+            "path_authority": "EXACT",
+        },
+    )
+
+    result = promote_live_operational_root(bundle, source_checkout_root=tmp_path)
+
+    assert result["status"] == "PREFLIGHT_PASS"
+    assert result["process_census_method"] == "CIM"
+    assert result["process_count"] == 1
+    assert result["path_authority"] == "EXACT"
+
+
+def test_windows_process_census_fails_when_both_methods_fail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failed() -> list[dict[str, str | None]]:
+        raise OperationalReleaseError("LIVE_PROCESS_CENSUS_FAILED")
+
+    monkeypatch.setattr(operational_release, "_cim_process_census", failed, raising=False)
+    monkeypatch.setattr(operational_release, "_tasklist_process_census", failed, raising=False)
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_PROCESS_CENSUS_FAILED"):
+        operational_release._windows_process_census()
+
+
+def test_tasklist_census_rejects_malformed_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(operational_release, "_windows_system_executable", lambda name: name)
+    monkeypatch.setattr(
+        operational_release.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="malformed tasklist output"),
+    )
+
+    with pytest.raises(OperationalReleaseError, match="LIVE_PROCESS_CENSUS_FAILED"):
+        operational_release._tasklist_process_census()
+
+
+def test_tasklist_census_ignores_unrelated_exact_image_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(operational_release, "_windows_system_executable", lambda name: name)
+    monkeypatch.setattr(
+        operational_release.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout='"not-QI-Crawler.exe","42","Console","1","1,024 K"\n'
+        ),
+    )
+
+    assert operational_release._tasklist_process_census() == []
+
+
+def test_tasklist_census_recognizes_exact_qi_crawler_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(operational_release, "_windows_system_executable", lambda name: name)
+    monkeypatch.setattr(
+        operational_release.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout='"QI-Crawler.exe","42","Console","1","1,024 K"\n'
+        ),
+    )
+
+    assert operational_release._tasklist_process_census() == [
+        {
+            "ImageName": "QI-Crawler.exe",
+            "ProcessId": "42",
+            "ExecutablePath": None,
+        }
+    ]
+
+
+def test_tasklist_census_uses_non_elevated_argument_list(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(operational_release, "_windows_system_executable", lambda name: name)
+    observed: dict[str, object] = {}
+
+    def run(args: list[str], **kwargs: object) -> SimpleNamespace:
+        observed["args"] = args
+        observed.update(kwargs)
+        return SimpleNamespace(stdout="INFO: No tasks are running which match the specified criteria.\n")
+
+    monkeypatch.setattr(operational_release.subprocess, "run", run)
+
+    assert operational_release._tasklist_process_census() == []
+    assert observed["args"] == [
+        "tasklist.exe",
+        "/FI",
+        "IMAGENAME eq QI-Crawler.exe",
+        "/FO",
+        "CSV",
+        "/NH",
+    ]
+    assert "shell" not in observed
+    assert "runas" not in " ".join(observed["args"]).casefold()
+
+
+def test_windows_system_executable_is_bound_to_system32(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    system_root = tmp_path / "Windows"
+    executable = system_root / "System32" / "tasklist.exe"
+    executable.parent.mkdir(parents=True)
+    executable.write_bytes(b"system tasklist")
+    monkeypatch.setenv("SystemRoot", str(system_root))
+
+    assert operational_release._windows_system_executable("tasklist.exe") == str(
+        executable.resolve()
+    )
 
 
 def test_live_promotion_staging_failure_preserves_old_root(
