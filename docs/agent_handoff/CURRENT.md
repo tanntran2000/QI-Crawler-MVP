@@ -18,8 +18,10 @@ ACTIVE_PARENT_WP = WP-REL-V010-B09-OPERATIONAL-REBIND-01
 ACTIVE_MICRO_WP = V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01
 ACTIVE_BRANCH = fix/v010-b09-operational-runtime-contract-01
 BASE_MAIN = 79b62ec93547f210aad162dcbf926c0bd2c81ab1
-HANDOFF_CAPTURE_BASE = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af
+HANDOFF_CAPTURE_BASE = c293ae8b1aa0fc4d7c782bdacb134db976227fa6
 AUDIT_TARGET_CODE_HEAD = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af
+ACTIVE_ADDENDUM = V010_B09_RUNTIME_CONTRACT_PATH_RECONCILIATION_01
+POST_CODE_DELTA = DOCS_ONLY
 REMOTE_CHECKPOINT = NOT_PUSHED
 PR_STATE = NOT_CREATED
 MERGE_STATE = NOT_AUTHORIZED
@@ -52,31 +54,61 @@ CONTENT_RECONCILIATION = PENDING
 MANAGED_FILE_RECONCILIATION = PENDING
 TEAM_BID_FUNCTIONAL_READINESS = PENDING
 TEST_SCRATCH = TASK_OWNED_KEEP_1055442671_BYTES; EIGHT_EXACT_ROOTS_LISTED_BELOW
-PATH_AUDIT = HOLD_SHORT_BASETEMP_PATHS_OUTSIDE_STANDARD_TEMPLATE
-ARTIFACT_DISPOSITION = RETAIN; NO_DELETE; PLANNER_TO_RESOLVE_WINDOWS_MAX_PATH_EXCEPTION_AND_LATER_CLEANUP_AUTHORITY
+PATH_REGISTRY = REVISION_1.0.10; EXISTING_PATH.DEV.TEST_TEMP_WITH_EXACT_WP_BOUND_ALIASES
+SHORT_PATH_COUNT = 8; SEVEN_SHORT_ALIASES_PLUS_ONE_WP_NAMED_NONCANONICAL_RUN_ROOT
+BYTE_ACCOUNTING = 1055442671_ENUMERATED; 1055442671_PREVIOUSLY_REPORTED; MATCH
+PATH_AUDIT = PASS
+ARTIFACT_DISPOSITION_COMPLETE = YES
+UNOWNED_NEW_ARTIFACTS = 0
+ARTIFACT_DISPOSITION = EIGHT_KEEP_EVIDENCE; NO_DELETE
+CLEANUP = DEFERRED_WITH_OWNER
+CLEANUP_OWNER = B09_RUNTIME_CONTRACT_CORRECTION
+CLEANUP_REASON = INDEPENDENT_AUDIT_PENDING
+NEXT_CLEANUP_REVIEW_CONDITION = AFTER_INDEPENDENT_RUNTIME_CONTRACT_AUDIT
 SPINE_IMPACT = MULTIPLE
 SPINE_AREAS = CURRENT; ROADMAP_DELTA; FAILURE_MEMORY; GOVERNANCE_CONTRACT; PATH_REGISTRY; CHANGELOG
 SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/OPERATIONAL_RELEASE_CONTRACT.md; docs/agent/PATH_REGISTRY.yaml; CHANGELOG.md
 SPINE_SYNC_STATE = PASS
-HANDOFF_READY = NO_PATH_AUDIT_HOLD
+HANDOFF_READY = YES_FOR_PLANNER_REVIEW_AND_INDEPENDENT_AUDIT_ASSIGNMENT
 PUSH = NO
 PR = NO
 MERGE = NO
-EXACTLY_ONE_NEXT_ACTION = RETURN_RUNTIME_CONTRACT_CORRECTION_PACKET_TO_PLANNER
+EXACTLY_ONE_NEXT_ACTION = RETURN_PATH_RECONCILIATION_PACKET_TO_PLANNER
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 ~~~
 
-Task-owned, ignored test scratch retained under `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp`:
-`V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01` (241419752 bytes),
-`b09f` (3947234), `b9-short-01` (915852), `b09-symlink-red` (926048),
-`b09-core-final` (30886343), `b09-full-final` (609473109), and
-`b09-target-final` (166959131), and
-`B09RC/20260923T031245Z` (915202). The full-suite root contains two verified
-task-local junctions. The standard long WP basetemp triggered a Windows
-PowerShell path-length failure in an unrelated A3/F5 test; the exact same
-focused test passed once with a short basetemp. The `B09RC` root follows the
-registered compact alias and held 23 passing governance tests. No scratch was
-deleted or moved, and no older/unknown B09 paths were claimed as task-owned.
+The exact task-owned pytest roots below were measured without following links.
+Each exact `REALPATH` is listed in the first column; all eight were resolved
+and remained inside this repository's `.tmp`.
+Root link/junction = NO for each. The Builder's completed test runs and their
+pytest fixture layouts establish ownership beyond names or timestamps; the
+recorded results and paths above are the durable evidence reference. All are
+reproducible pytest basetemp, currently retained as `KEEP_EVIDENCE` for the
+independent audit. `ACTIVE_WRITER = NO_OBSERVED_PATH_MATCHING_PROCESS` in a
+read-only Win32 process-command-line census; this is not a claim that every
+possible file handle was inspected.
+
+| Exact REALPATH | Bytes | Files | Dirs | Created by / run purpose | Disposition |
+| --- | ---: | ---: | ---: | --- | --- |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01` | 241419752 | 13022 | 10476 | WP RED, guard, targeted and initial full-suite pytest basetemp runs; includes failed Windows long-path attempt | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09f` | 3947234 | 313 | 212 | WP short-path full-suite/A3 diagnostic pytest run after long-path failure | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b9-short-01` | 915852 | 7 | 7 | WP focused A3 path-length control pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-symlink-red` | 926048 | 8 | 19 | WP operational-acceptance symlink RED/guard pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-core-final` | 30886343 | 572 | 1349 | WP core runtime-contract regression pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-full-final` | 609473109 | 13860 | 11202 | WP final repository full suite: 1621 passed, 2 skipped | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-target-final` | 166959131 | 9704 | 7072 | WP final four-file targeted suite: 186 passed, 2 skipped | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\B09RC\20260923T031245Z` | 915202 | 7 | 25 | WP docs/governance verification: 23 passed; registered compact alias | KEEP_EVIDENCE |
+
+`TOTAL_ENUMERATED = 1055442671 bytes`, equal to the prior reported total.
+The first root uses the full WP name but has noncanonical run subpaths; the
+other seven are exact short Windows test-path aliases bound only to this WP.
+The full-suite root contains two verified task-local junctions pointing inside
+that same root; they were not followed for byte accounting. No scratch was
+deleted or moved. Older or otherwise unknown B09 paths remain KEEP outside
+this task-owned inventory. Retention owner is `B09_RUNTIME_CONTRACT_CORRECTION`;
+review cleanup only after the independent runtime-contract audit under separate
+exact-target authority. Future scratch uses the canonical
+`.tmp/{wp_id}/{run_id}/{relative_path}` template.
 
 ## Historical v0.10 B09 process-census compatibility correction
 
