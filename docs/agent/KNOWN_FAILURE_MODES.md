@@ -1002,18 +1002,18 @@ PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong
 LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
 ```
 
-## FM-050 — Exact child launch barrier blocked parent generation rename on Windows
+## FM-050 — Open descendant barriers blocked parent generation rename on Windows
 
 ```text
 ID = FM-050
 STATE = VERIFIED_LOCAL_FEASIBILITY_BLOCKER
 PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / OPERATIONAL UPDATE CUTOVER
-SYMPTOM = A synthetic copied executable could be launch-blocked through Windows share semantics, but the parent application generation could not be renamed while that exact child handle remained open.
-ROOT_CAUSE = Windows delete-sharing on an open descendant file permits operations on that file identity but did not permit renaming the containing generation directory on the verified host. Standard directory rename and SetFileInformationByHandle(FileRenameInfoEx) with flags 0, POSIX_SEMANTICS, and REPLACE_IF_EXISTS plus POSIX all returned ERROR_ACCESS_DENIED (5).
-PREVENTION = Prove launch exclusion and whole-generation rename together as an early platform feasibility gate before implementing receipts, staging, cutover or recovery. Do not infer parent-directory rename compatibility from FILE_SHARE_DELETE on a child handle.
-EVIDENCE = WP-REL-V010-B09-OPTION-C-OPERATIONAL-UPDATE-01 Task 1B synthetic TDD; launch returned ERROR_SHARING_VIOLATION (32), parent rename returned ERROR_ACCESS_DENIED (5), and the low-level rename matrix also returned error 5.
-DISPOSITION = WINDOWS_BARRIER_FEASIBILITY_HOLD; STOP_FULL_UPDATER_IMPLEMENTATION; PLANNER_ARCHITECTURE_RECONCILIATION_REQUIRED
-LIMIT = Verified on Windows 10 build 19045 with a copied cmd.exe synthetic executable. This proves the specified exact-child-handle plus parent-generation-rename design did not satisfy F4 on this host; it does not prove every alternative update architecture impossible.
+SYMPTOM = Task 1B could launch-block a copied executable but could not rename its parent generation. A1 then quarantined the executable outside the generation, yet the parent rename still failed when every existing Data-file deny-write handle and the Data watcher remained active.
+ROOT_CAUSE = On the verified host, Windows did not permit renaming a directory while the required governed handles remained open on descendants inside it. Moving the executable barrier outside resolved that one descendant, but did not make the complete Data barrier set compatible with parent rename. The full A1 Q6 set returned ERROR_ACCESS_DENIED (5).
+PREVENTION = Prove the complete simultaneous handle set and whole-generation rename as an early platform feasibility gate before implementing receipts, staging, cutover or recovery. Do not infer parent-directory rename compatibility from FILE_SHARE_DELETE on any descendant handle or from a partial handle matrix.
+EVIDENCE = Task 1B launch returned ERROR_SHARING_VIOLATION (32) while parent rename and FileRenameInfoEx variants returned error 5. Human-authorized A1 Task 1C passed Q1-Q5 and Q7, then independently reproduced Q6 error 5 with the EXE already outside the generation; Q8-Q10 remained not proven.
+DISPOSITION = A1_FEASIBILITY_HOLD; TASKS_2_PLUS_NOT_AUTHORIZED; PLANNER_ARCHITECTURE_RECONCILIATION_REQUIRED
+LIMIT = Verified on Windows 10 build 19045 with a copied cmd.exe synthetic executable and synthetic SQLite/Data tree. This proves the approved complete-barrier plus parent-generation-rename design did not satisfy Q6 on this host; it does not prove every alternative update architecture impossible.
 ```
 
 ## Routing

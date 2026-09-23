@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.11",
+  "revision": "1.0.12",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -647,6 +647,16 @@
       "naming": "Exact update_id; never overwrite an existing generation"
     },
     {
+      "id": "PATH.RUNTIME.OPERATIONAL_UPDATE_HELD_OLD_EXE",
+      "root_id": "ROOT.OPERATIONAL.UPDATE_VOLUME",
+      "relative_template": "QI-Crawler-Update-State/{update_id}/held-old-exe/QI-Crawler.exe",
+      "purpose": "Quarantined exact old operational executable held outside the generation during A1 cutover",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "Exact update_id; same-volume atomic move only; destination collision fails closed"
+    },
+    {
       "id": "PATH.RUNTIME.OPERATIONAL_UPDATE_LOCK",
       "root_id": "ROOT.OPERATIONAL.UPDATE_VOLUME",
       "relative_template": "QI-Crawler-Update-State/locks/D_QI_CRAWLER.lock",
@@ -932,6 +942,7 @@
         "PATH.RUNTIME.OPERATIONAL_UPDATE_ROLLBACK",
         "PATH.RUNTIME.OPERATIONAL_UPDATE_STAGE",
         "PATH.RUNTIME.OPERATIONAL_UPDATE_FAILED_GENERATION",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_HELD_OLD_EXE",
         "PATH.RUNTIME.OPERATIONAL_UPDATE_LOCK",
         "PATH.RUNTIME.OPERATIONAL_UPDATE_LOCK_METADATA"
       ],

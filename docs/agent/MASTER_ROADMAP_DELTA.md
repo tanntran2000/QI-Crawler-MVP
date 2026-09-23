@@ -1344,7 +1344,7 @@ remain separate gates.
 ~~~text
 DELTA_ID = OPTION_C_OPERATIONAL_UPDATE
 STATE = BLOCKED_PENDING_PLANNER_ARCHITECTURE_RECONCILIATION
-SOURCE = Task 1B Windows synthetic TDD and direct Win32 FileRenameInfoEx diagnostics
+SOURCE = Task 1B Windows synthetic TDD; Human-authorized A1 amendment; Task 1C rerunnable Windows probe
 CRAWLER_VALUE = CRITICAL
 ACTIVE_PARENT = WP-REL-V010-B09-OPERATIONAL-REBIND-01
 ACTIVE_MICRO_WP = WP-REL-V010-B09-OPTION-C-OPERATIONAL-UPDATE-01
@@ -1357,8 +1357,16 @@ F4_PARENT_RENAME = FAILED_ERROR_ACCESS_DENIED_5
 FILE_RENAME_INFO_EX_FLAGS = 0; POSIX_SEMANTICS; REPLACE_IF_EXISTS_PLUS_POSIX
 FILE_RENAME_INFO_EX_RESULT = ALL_FAILED_ERROR_ACCESS_DENIED_5
 ARCHITECTURE_CONFLICT = EXACT_CHILD_HANDLE_REQUIRED_TO_BLOCK_LAUNCH_PREVENTS_WHOLE_PARENT_GENERATION_RENAME_ON_VERIFIED_HOST
+A1_ARCHITECTURE = EXE_QUARANTINE_OUTSIDE_GENERATION_PLUS_COMPLETE_DATA_BARRIER_SET
+A1_FEASIBILITY = HOLD
+A1_Q1_Q5 = PASS
+A1_Q6 = FAIL_PARENT_RENAME_ERROR_ACCESS_DENIED_5_WITH_UPDATER_LOCK_PLUS_HELD_EXE_BARRIER_PLUS_ALL_DATA_FILE_HANDLES_PLUS_WATCHER
+A1_Q7 = PASS
+A1_Q8_Q10 = NOT_PROVEN_Q6_PREREQUISITE_FAILED
+A1_PROBE_SHA256 = 2D525B785F32EB7F28241695063B1E52476377914ECD71600553859078EA9324
+RESIDUAL_EXTERNAL_WRITER_RISK = DECLARED_AND_NOT_ELIMINATED
 INVARIANT_WEAKENED = NO
-TASKS_2_PLUS = NOT_STARTED
+TASKS_2_PLUS = NOT_AUTHORIZED
 PARTIAL_SOURCE_IMPLEMENTATION = REMOVED
 REAL_UPDATE = NOT_EXECUTED
 LIVE_EXE = NOT_STARTED
@@ -1366,12 +1374,13 @@ LIVE_DATA_MUTATION = NO
 ROADMAP_IMPACT = REQUIRES_MORE_EVIDENCE
 PROMOTION_TARGET = MASTER_ROADMAP_OR_GOVERNANCE_AFTER_PLANNER_DECISION
 PROMOTION_CONDITION = PLANNER_SELECTS_AND_INDEPENDENTLY_VERIFIES_A_REVISED_CUTOVER_ARCHITECTURE
-NEXT = PLANNER_RECONCILES_OPTION_C_BARRIER_ARCHITECTURE
+NEXT = PLANNER_RECONCILES_A1_FULL_BARRIER_PARENT_RENAME_CONFLICT
 ~~~
 
-The current Option-C design cannot advance unchanged. Windows permits an
-exact-file sharing barrier to reject launch, but on the verified host the open
-descendant handle also prevents renaming the parent generation directory. The
-source Work Order correctly fails closed at its early feasibility gate; this
-does not prove that every alternative operational-update architecture is
-impossible.
+The original exact-EXE handle design failed because the executable handle was
+inside the generation. A1 successfully moved that EXE and its launch barrier
+outside the generation, but Q6 still proved that the complete required set of
+existing Data-file handles and the Data watcher prevents the parent-generation
+rename on the verified host. The amended source Work Order therefore remains
+fail-closed before Task 2. This does not prove that every alternative
+operational-update architecture is impossible.
