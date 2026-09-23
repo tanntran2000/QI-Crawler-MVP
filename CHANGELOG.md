@@ -4,6 +4,10 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased
 
+- Correct the operational promotion contract so persisted storage paths bind to
+  the final root and legitimate database writes do not block a later restart.
+  This source correction is pending independent audit; the existing live
+  installation remains on hold for a separately authorized remediation.
 - Align the Team Bid desktop workflows for location-filter state, persistent
   package/revision context, exact-release managed-document inspection,
   no-overwrite child-folder export and a distinct Tender Completeness view.

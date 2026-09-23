@@ -976,6 +976,32 @@ PREVENTION = Real temporary Git tests cover clean LF and clean CRLF worktrees pl
 LIMIT = Synthetic correction only until independent audit and a future Build Attempt #3. Attempt #2 was not retried.
 ```
 
+## FM-048 — Operational promotion persisted staging storage paths after cutover
+
+```text
+ID = FM-048
+STATE = LOCAL_CORRECTION_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / OPERATIONAL CONFIG
+SYMPTOM = The one-shot v0.10 promotion reported PROMOTED_LIVE, but the live persisted config still pointed its database and storage directories at the removed staging root; runtime acceptance was stopped before app launch.
+ROOT_CAUSE = Staging config was rewritten with absolute stage paths, then only receipt paths were rebound after directory rotation. Final acceptance checked config existence, not its persisted bindings.
+CORRECTION = Validate the stage first, rebind staged config to future final paths before rotation, validate that binding without writes, and require the same binding during final/startup acceptance.
+PREVENTION = Synthetic promotion and negative config tests cover all seven keys, malformed/missing values, outside paths, pre-cutover ordering and final acceptance; symlink tests are conditional on host permission.
+LIMIT = Source/test correction only. Existing live config was not changed, the app was not started, and independent audit plus a separate live remediation remain pending.
+```
+
+## FM-049 — Immutable DB SHA blocked legitimate operational restart
+
+```text
+ID = FM-049
+STATE = LOCAL_CORRECTION_PENDING_INDEPENDENT_AUDIT
+PRODUCT_HOUSE_LAYER = APPLICATION / OPERATIONAL DATABASE STARTUP
+SYMPTOM = A fixture-backed real authorization path rejected startup after one committed legitimate SQLite write with OPERATIONAL_DATABASE_SHA_MISMATCH.
+ROOT_CAUSE = Startup compared the current mutable DB file SHA to the immutable cutover acceptance SHA.
+CORRECTION = Treat acceptance.database_sha256 as historical promotion-baseline evidence equal to migration_receipt.output_db_sha256; retain exact path, schema/readability, release identity and migration receipt checks.
+PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong schema, unusable DB and tampered receipt controls remain fail-closed. A new application build cannot truthfully reuse the v1 receipt's coupled source/migration SHA without a separate update contract.
+LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
