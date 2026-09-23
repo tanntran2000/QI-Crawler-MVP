@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from qi_crawler import operational_release, standalone
 from qi_crawler.db import CURRENT_SCHEMA_REVISION
@@ -103,7 +104,8 @@ def _write_operational_fixture(
     paths = operational_paths(root)
     paths.application_root.mkdir(parents=True)
     paths.data_root.mkdir(parents=True)
-    paths.config_path.write_text("storage:\n  database_url: sqlite:///placeholder.db\n", encoding="utf-8")
+    paths.config_path.write_text("storage: {}\n", encoding="utf-8")
+    operational_release._rewrite_operational_config(paths.config_path, paths)
     for directory in paths.data_directories:
         directory.mkdir(parents=True, exist_ok=True)
     paths.control_root.mkdir(parents=True, exist_ok=True)
@@ -310,7 +312,208 @@ def test_successful_synthetic_promotion_is_internally_coherent(tmp_path: Path) -
     assert paths.config_path.is_file()
     assert paths.acceptance_path.is_file()
     assert paths.database_path.is_file()
-    assert validate_operational_acceptance(paths.executable)["operational_root"] == str(destination.resolve())
+    acceptance = validate_operational_acceptance(paths.executable)
+    assert acceptance["operational_root"] == str(destination.resolve())
+    migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
+    assert acceptance["database_sha256"] == migration["output_db_sha256"]
+    storage = yaml.safe_load(paths.config_path.read_text(encoding="utf-8"))["storage"]
+    assert storage == {
+        "database_url": f"sqlite:///{paths.database_path.as_posix()}",
+        "document_dir": str(paths.data_dir / "documents"),
+        "download_dir": str(paths.data_dir / "downloads"),
+        "discovery_dir": str(paths.data_dir / "discovery"),
+        "raw_dir": str(paths.data_dir / "raw"),
+        "rejects_dir": str(paths.data_dir / "rejects"),
+        "report_dir": str(paths.data_dir / "reports"),
+    }
+
+
+def test_operational_startup_accepts_legitimate_database_write_after_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "operational"
+    executable, database = _write_operational_fixture(root)
+    monkeypatch.setattr(operational_release, "OPERATIONAL_ROOT", root)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    for key in ("QI_CRAWLER_DATA_DIR", "QI_CRAWLER_CONFIG_PATH", "QI_CRAWLER_DATABASE_URL"):
+        monkeypatch.setenv(key, "before-test")
+
+    assert standalone.authorize_frozen_runtime([]) == "ACCEPTED_OPERATIONAL"
+    original_sha = _sha256(database)
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE operational_note (value TEXT NOT NULL)")
+        connection.execute("INSERT INTO operational_note VALUES ('saved')")
+    assert _sha256(database) != original_sha
+
+    assert standalone.authorize_frozen_runtime([]) == "ACCEPTED_OPERATIONAL"
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT value FROM operational_note").fetchone() == ("saved",)
+    paths = operational_paths(root)
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
+    assert acceptance["database_sha256"].lower() == migration["output_db_sha256"].lower()
+    assert _sha256(database).lower() != acceptance["database_sha256"].lower()
+
+
+def test_pre_cutover_config_is_rebound_only_after_stage_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, data, destination, source_sha = _promotion_inputs(tmp_path)
+    original_validate = operational_release.validate_operational_acceptance
+    original_replace = operational_release._atomic_directory_replace
+    stage_validated = False
+    prebound = False
+
+    def validate(executable: Path, *, expected_version: str = "0.10.0") -> dict[str, object]:
+        nonlocal stage_validated
+        if ".stage-" in str(executable):
+            stage_paths = operational_paths(executable.parent.parent.parent)
+            storage = yaml.safe_load(stage_paths.config_path.read_text(encoding="utf-8"))["storage"]
+            assert storage["database_url"] == f"sqlite:///{stage_paths.database_path.as_posix()}"
+            stage_validated = True
+        return original_validate(executable, expected_version=expected_version)
+
+    def replace(source: Path, target: Path) -> None:
+        nonlocal prebound
+        if target == destination.parent / "operational.rollback":
+            assert stage_validated
+            # The staged config must point to the future destination before old-root rotation.
+            staged = next(destination.parent.glob(f".{destination.name}.stage-*"))
+            storage = yaml.safe_load((staged / "Data" / "config.yaml").read_text(encoding="utf-8"))["storage"]
+            assert storage["database_url"] == f"sqlite:///{operational_paths(destination).database_path.as_posix()}"
+            prebound = True
+        original_replace(source, target)
+
+    monkeypatch.setattr(operational_release, "validate_operational_acceptance", validate)
+    monkeypatch.setattr(operational_release, "_atomic_directory_replace", replace)
+    promote_synthetic_operational_root(bundle, data, destination, source_git_sha=source_sha)
+    assert stage_validated and prebound
+
+
+@pytest.mark.parametrize(
+    "bad_config",
+    [
+        pytest.param("storage: [bad]\n", id="wrong-storage-type"),
+        pytest.param("other: value\n", id="missing-storage"),
+        pytest.param("storage: {database_url: sqlite:///missing.db}\n", id="missing-directories"),
+        pytest.param("storage: {database_url: 7}\n", id="wrong-database-url-type"),
+        pytest.param("storage: [\n", id="malformed-yaml"),
+        pytest.param("[]\n", id="wrong-root-type"),
+    ],
+)
+def test_operational_acceptance_rejects_invalid_persisted_config(
+    tmp_path: Path, bad_config: str
+) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    operational_paths(tmp_path / "operational").config_path.write_text(bad_config, encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+@pytest.mark.parametrize("key", ["database_url", "document_dir", "download_dir", "discovery_dir", "raw_dir", "rejects_dir", "report_dir"])
+def test_operational_acceptance_rejects_missing_storage_key(tmp_path: Path, key: str) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    config_path = operational_paths(tmp_path / "operational").config_path
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    del config["storage"][key]
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+@pytest.mark.parametrize("key", ["database_url", "document_dir", "download_dir", "discovery_dir", "raw_dir", "rejects_dir", "report_dir"])
+@pytest.mark.parametrize("escaped_root", [".operational.stage-old", "rollback", "AppData", "candidate"])
+def test_operational_acceptance_rejects_stale_storage_path(
+    tmp_path: Path, key: str, escaped_root: str
+) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    config_path = operational_paths(tmp_path / "operational").config_path
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    escaped = tmp_path / escaped_root / "Data" / "data" / "documents"
+    config["storage"][key] = f"sqlite:///{escaped.as_posix()}" if key == "database_url" else str(escaped)
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+    assert not escaped.parent.exists()
+
+
+@pytest.mark.parametrize("url", ["sqlite:///:memory:", "postgresql:///egp.db", "sqlite://user:pass@localhost/egp.db", "sqlite:///egp.db?mode=ro"])
+def test_operational_acceptance_rejects_invalid_database_url(tmp_path: Path, url: str) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    config_path = operational_paths(tmp_path / "operational").config_path
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["storage"]["database_url"] = url
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_configured_symlink_escape(tmp_path: Path) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    paths = operational_paths(tmp_path / "operational")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    document_dir = paths.data_dir / "documents"
+    document_dir.rmdir()
+    try:
+        document_dir.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks unavailable on this host")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_config_file_symlink_escape(tmp_path: Path) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    config_path = operational_paths(tmp_path / "operational").config_path
+    outside = tmp_path / "outside-config.yaml"
+    outside.write_bytes(config_path.read_bytes())
+    config_path.unlink()
+    try:
+        config_path.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("file symlinks unavailable on this host")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_CONFIG_BINDING_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_wrong_schema_after_database_write(tmp_path: Path) -> None:
+    executable, database = _write_operational_fixture(tmp_path / "operational")
+    with sqlite3.connect(database) as connection:
+        connection.execute("UPDATE alembic_version SET version_num = 'wrong'")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_SCHEMA_MISMATCH"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_unusable_database(tmp_path: Path) -> None:
+    executable, database = _write_operational_fixture(tmp_path / "operational")
+    database.write_bytes(b"not a SQLite database")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_DATABASE_INVALID"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_tampered_migration_baseline(tmp_path: Path) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    paths = operational_paths(tmp_path / "operational")
+    migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
+    migration["output_db_sha256"] = "0" * 64
+    paths.migration_receipt_path.write_text(json.dumps(migration), encoding="utf-8")
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["migration_receipt_sha256"] = _sha256(paths.migration_receipt_path)
+    paths.acceptance_path.write_text(json.dumps(acceptance), encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_DATABASE_BASELINE_MISMATCH"):
+        validate_operational_acceptance(executable)
+
+
+def test_operational_acceptance_rejects_tampered_acceptance_baseline(tmp_path: Path) -> None:
+    executable, _ = _write_operational_fixture(tmp_path / "operational")
+    paths = operational_paths(tmp_path / "operational")
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["database_sha256"] = "0" * 64
+    paths.acceptance_path.write_text(json.dumps(acceptance), encoding="utf-8")
+    with pytest.raises(OperationalReleaseError, match="OPERATIONAL_DATABASE_BASELINE_MISMATCH"):
+        validate_operational_acceptance(executable)
 
 
 def _live_promotion_inputs(
