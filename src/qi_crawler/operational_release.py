@@ -347,10 +347,17 @@ def validate_operational_acceptance(
         raise OperationalReleaseError("OPERATIONAL_MIGRATION_RECEIPT_SHA_MISMATCH")
     if not paths.config_path.is_file():
         raise OperationalReleaseError("OPERATIONAL_CONFIG_REQUIRED")
+    _validate_operational_config_binding(paths.config_path, paths)
     if _schema_revision(paths.database_path) != CURRENT_SCHEMA_REVISION:
         raise OperationalReleaseError("OPERATIONAL_SCHEMA_MISMATCH")
-    if _sha256(paths.database_path).lower() != str(receipt["database_sha256"]).lower():
-        raise OperationalReleaseError("OPERATIONAL_DATABASE_SHA_MISMATCH")
+    # The DB is mutable after promotion; this hash binds the accepted migration baseline.
+    baseline_sha = str(receipt["database_sha256"]).lower()
+    if (
+        len(baseline_sha) != 64
+        or set(baseline_sha) - _SHA64
+        or baseline_sha != str(migration.get("output_db_sha256", "")).lower()
+    ):
+        raise OperationalReleaseError("OPERATIONAL_DATABASE_BASELINE_MISMATCH")
     return receipt
 
 
@@ -382,13 +389,68 @@ def validate_operational_database_target(database_url: str, paths: OperationalPa
             or parsed.query
         ):
             raise ValueError
-        actual = Path(parsed.database).expanduser().resolve(strict=False)
+        raw = Path(parsed.database).expanduser()
+        actual = raw.resolve(strict=False)
     except Exception as exc:
         raise OperationalReleaseError("OPERATIONAL_DATABASE_PATH_INVALID") from exc
     expected = paths.database_path.resolve(strict=False)
-    if actual != expected or not _path_is_inside(actual, paths.data_root.resolve(strict=False)):
+    if (
+        not raw.is_absolute()
+        or not _path_is_inside(raw, paths.data_root)
+        or actual != expected
+        or not _path_is_inside(paths.data_root.resolve(strict=False), paths.root.resolve(strict=False))
+        or not _path_is_inside(actual, paths.data_root.resolve(strict=False))
+    ):
         raise OperationalReleaseError("OPERATIONAL_DATABASE_PATH_INVALID")
     return actual
+
+
+def _validate_operational_config_binding(config_path: Path, paths: OperationalPaths) -> None:
+    """Read persisted storage bindings without loading config or creating paths."""
+    error = "OPERATIONAL_CONFIG_BINDING_INVALID"
+    try:
+        if config_path.name != "config.yaml" or config_path.parent.name != "Data":
+            raise ValueError
+        physical_root = config_path.parent.parent.resolve(strict=False)
+        physical_data = config_path.parent.resolve(strict=False)
+        physical_config = config_path.resolve(strict=True)
+        if not _path_is_inside(physical_data, physical_root) or not _path_is_inside(
+            physical_config, physical_data
+        ):
+            raise ValueError
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        if not isinstance(config, dict) or not isinstance(config.get("storage"), dict):
+            raise TypeError
+        storage = config["storage"]
+        database_url = storage["database_url"]
+        if not isinstance(database_url, str):
+            raise TypeError
+        validate_operational_database_target(database_url, paths)
+        data_root = paths.data_root.resolve(strict=False)
+        if not _path_is_inside(data_root, paths.root.resolve(strict=False)):
+            raise ValueError
+        for key, expected in (
+            ("document_dir", paths.data_dir / "documents"),
+            ("download_dir", paths.data_dir / "downloads"),
+            ("discovery_dir", paths.data_dir / "discovery"),
+            ("raw_dir", paths.data_dir / "raw"),
+            ("rejects_dir", paths.data_dir / "rejects"),
+            ("report_dir", paths.data_dir / "reports"),
+        ):
+            value = storage[key]
+            if not isinstance(value, str) or not value:
+                raise ValueError
+            raw = Path(value).expanduser()
+            actual = raw.resolve(strict=False)
+            if (
+                not raw.is_absolute()
+                or not _path_is_inside(raw, paths.data_root)
+                or actual != expected.resolve(strict=False)
+                or not _path_is_inside(actual, data_root)
+            ):
+                raise ValueError
+    except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError, RuntimeError, OperationalReleaseError) as exc:
+        raise OperationalReleaseError(error) from exc
 
 
 def _assert_synthetic_roots(*roots: Path) -> None:
@@ -552,6 +614,9 @@ def _promote_staged_root(
         _write_json(stage_paths.migration_receipt_path, migration)
         _write_json(stage_paths.acceptance_path, _operational_acceptance_payload(stage_paths, bundle, migration))
         validate_operational_acceptance(stage_paths.executable, expected_version=expected_version)
+        final_paths = operational_paths(destination)
+        _rewrite_operational_config(stage_paths.config_path, final_paths)
+        _validate_operational_config_binding(stage_paths.config_path, final_paths)
         if fail_stage == "before_cutover":
             raise OperationalReleaseError(f"{failure_prefix}_FAILED_BEFORE_CUTOVER")
         if strict_rollback:
@@ -562,7 +627,6 @@ def _promote_staged_root(
         _atomic_directory_replace(stage, destination)
         if fail_stage == "after_rotation":
             raise OperationalReleaseError(f"{failure_prefix}_FAILED_AFTER_ROTATION")
-        final_paths = operational_paths(destination)
         final_receipt = _read_json(final_paths.acceptance_path, "OPERATIONAL_ACCEPTANCE_INVALID")
         final_receipt.update(
             {

@@ -1308,3 +1308,33 @@ access denial as process absence. Exact-name fallback matches remain blocked
 because tasklist cannot supply executable-path authority. The current fresh
 bundle remains historical preflight-hold evidence and was not promoted or
 deleted.
+
+## v0.10 B09 post-promotion runtime contract correction
+
+~~~text
+DELTA_ID = B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION
+STATE = IN_IMPLEMENTATION
+LOCAL_CODE_STATE = FROZEN_PENDING_INDEPENDENT_AUDIT
+SOURCE = Human-approved Work Order; one-shot live promotion evidence; fixture RED/GREEN
+CRAWLER_VALUE = HIGH
+ACTIVE_PARENT = WP-REL-V010-B09-OPERATIONAL-REBIND-01
+ACTIVE_MICRO_WP = V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01
+BASE_MAIN = 79b62ec93547f210aad162dcbf926c0bd2c81ab1
+CODE_HEAD = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af
+LIVE_PROMOTION = PROMOTED_LIVE_ONCE; NO_RETRY
+LIVE_RUNTIME_ACCEPTANCE = NOT_PERFORMED; CONFIG_BINDING_HOLD
+F1 = STAGE_ABSOLUTE_STORAGE_PATHS_PERSISTED_AFTER_ROTATION; SOURCE_CORRECTED_PENDING_AUDIT
+F2 = MUTABLE_DB_RESTART_REJECTED_BY_CURRENT_SHA_CHECK; SOURCE_CORRECTED_PENDING_AUDIT
+F3 = NEW_APPLICATION_SHA_COUPLED_TO_OLD_MIGRATION_SHA_BY_V1_RECEIPT
+INSTALLATION_REMEDIATION = SEPARATE_BOUNDED_UPDATE_CONTRACT_REQUIRED; NOT_EXECUTED
+DATA_RECONCILIATION = 35_COMMON_TABLE_ROW_COUNTS_PASS; CONTENT_AND_MANAGED_FILES_PENDING
+TEAM_BID_FUNCTIONAL_READINESS = PENDING
+NEW_PRODUCT_CAPABILITY = NONE
+NEXT = PLANNER_RECONCILES_LOCAL_CORRECTION_AND_ASSIGNMENT_FOR_INDEPENDENT_AUDIT
+~~~
+
+The code correction does not repair the already-promoted installation. A future
+update must preserve the migrated DB and historical migration provenance while
+binding a newly built application to its actual new source SHA. Real startup,
+restart, data-content reconciliation and representative Team Bid acceptance
+remain separate gates.

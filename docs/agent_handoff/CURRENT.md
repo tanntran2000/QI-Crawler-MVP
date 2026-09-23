@@ -1,6 +1,116 @@
 # QI-Crawler Agent Handoff
 
-## v0.10 B09 process-census compatibility correction (active)
+## v0.10 B09 post-promotion runtime contract correction (active local handoff)
+
+The one authorized live promotion returned `PROMOTED_LIVE`, but operational
+acceptance stopped before executable launch because persisted config paths
+still pointed at the removed staging root. A fixture RED test also proved that
+one committed legitimate DB write blocks a later startup under the old
+current-DB-SHA check. The source/test correction is frozen locally; it has not
+repaired or started the existing live installation.
+
+~~~text
+HANDOFF_ID = V010-B09-POSTPROMOTION-RUNTIME-CONTRACT-CORRECTION
+ROLE = BUILDER_SINGLE_WRITER
+CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
+EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
+ACTIVE_PARENT_WP = WP-REL-V010-B09-OPERATIONAL-REBIND-01
+ACTIVE_MICRO_WP = V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01
+ACTIVE_BRANCH = fix/v010-b09-operational-runtime-contract-01
+BASE_MAIN = 79b62ec93547f210aad162dcbf926c0bd2c81ab1
+HANDOFF_CAPTURE_BASE = c293ae8b1aa0fc4d7c782bdacb134db976227fa6
+AUDIT_TARGET_CODE_HEAD = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af
+ACTIVE_ADDENDUM = V010_B09_RUNTIME_CONTRACT_PATH_RECONCILIATION_01
+POST_CODE_DELTA = DOCS_ONLY
+REMOTE_CHECKPOINT = NOT_PUSHED
+PR_STATE = NOT_CREATED
+MERGE_STATE = NOT_AUTHORIZED
+HOSTED_CI_STATE = NOT_TRIGGERED
+ROADMAP_BASELINE = VERIFIED
+PRODUCT_FRONTIER = UNIFIED_TENDER_WAREHOUSE_PARTIAL
+ROADMAP_NODE = v0.10 Team Bid operational acceptance / live promotion gate
+ARCHITECTURE_LAYERS = DELIVERY_SURFACE; APPLICATION_BACKEND; INFRASTRUCTURE_PERSISTENCE
+READ_MODE = DELTA_SAME_PARENT
+RELEVANT_DELTA_IDS = RD-0013; B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION
+PROMOTION_STATUS = PROMOTED_LIVE_ONCE; NOT_RETRIED
+LIVE_RUNTIME_ACCEPTANCE = NOT_PERFORMED
+LIVE_CONFIG_BINDING = HOLD_STALE_STAGE_PATHS
+LIVE_EXE_STARTED = NO
+LIVE_CONFIG_MUTATED = NO
+LIVE_DB_MUTATED = NO
+ROLLBACK_MUTATED = NO
+APPDATA_MUTATED = NO
+CODE_CORRECTION = FINAL_CONFIG_PREBOUND_BEFORE_CUTOVER; SIDE_EFFECT_FREE_CONFIG_VALIDATION; MUTABLE_DB_BASELINE_SHA_SEMANTICS
+RED_EVIDENCE = STAGE_CONFIG_PERSISTED_AFTER_ROTATION; OPERATIONAL_DATABASE_SHA_MISMATCH_AFTER_COMMITTED_WRITE
+TARGETED_TESTS = 186_PASSED; 2_SKIPPED; 0_FAILED; 0_ERRORS
+FULL_SUITE = 1621_PASSED; 2_SKIPPED; 0_FAILED; 0_ERRORS; 1034.97_SECONDS
+COLLECTION = 1570_BASELINE; 1623_FINAL; 0_ERRORS
+RUFF = PASS
+DIFF_CHECK = PASS
+WINDOWS_SYMLINK_FIXTURE = SKIPPED_HOST_PRIVILEGE; SOURCE_GUARD_USES_PHYSICAL_PATH_RESOLUTION
+INSTALLATION_REMEDIATION = OPTION_C_BOUNDED_OPERATIONAL_UPDATE_CONTRACT_REQUIRED; NOT_EXECUTED
+ROW_COUNT_RECONCILIATION = PASS_35_COMMON_TABLES
+CONTENT_RECONCILIATION = PENDING
+MANAGED_FILE_RECONCILIATION = PENDING
+TEAM_BID_FUNCTIONAL_READINESS = PENDING
+TEST_SCRATCH = TASK_OWNED_KEEP_1055442671_BYTES; EIGHT_EXACT_ROOTS_LISTED_BELOW
+PATH_REGISTRY = REVISION_1.0.10; EXISTING_PATH.DEV.TEST_TEMP_WITH_EXACT_WP_BOUND_ALIASES
+SHORT_PATH_COUNT = 8; SEVEN_SHORT_ALIASES_PLUS_ONE_WP_NAMED_NONCANONICAL_RUN_ROOT
+BYTE_ACCOUNTING = 1055442671_ENUMERATED; 1055442671_PREVIOUSLY_REPORTED; MATCH
+PATH_AUDIT = PASS
+ARTIFACT_DISPOSITION_COMPLETE = YES
+UNOWNED_NEW_ARTIFACTS = 0
+ARTIFACT_DISPOSITION = EIGHT_KEEP_EVIDENCE; NO_DELETE
+CLEANUP = DEFERRED_WITH_OWNER
+CLEANUP_OWNER = B09_RUNTIME_CONTRACT_CORRECTION
+CLEANUP_REASON = INDEPENDENT_AUDIT_PENDING
+NEXT_CLEANUP_REVIEW_CONDITION = AFTER_INDEPENDENT_RUNTIME_CONTRACT_AUDIT
+SPINE_IMPACT = MULTIPLE
+SPINE_AREAS = CURRENT; ROADMAP_DELTA; FAILURE_MEMORY; GOVERNANCE_CONTRACT; PATH_REGISTRY; CHANGELOG
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/OPERATIONAL_RELEASE_CONTRACT.md; docs/agent/PATH_REGISTRY.yaml; CHANGELOG.md
+SPINE_SYNC_STATE = PASS
+HANDOFF_READY = YES_FOR_PLANNER_REVIEW_AND_INDEPENDENT_AUDIT_ASSIGNMENT
+PUSH = NO
+PR = NO
+MERGE = NO
+EXACTLY_ONE_NEXT_ACTION = RETURN_PATH_RECONCILIATION_PACKET_TO_PLANNER
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+~~~
+
+The exact task-owned pytest roots below were measured without following links.
+Each exact `REALPATH` is listed in the first column; all eight were resolved
+and remained inside this repository's `.tmp`.
+Root link/junction = NO for each. The Builder's completed test runs and their
+pytest fixture layouts establish ownership beyond names or timestamps; the
+recorded results and paths above are the durable evidence reference. All are
+reproducible pytest basetemp, currently retained as `KEEP_EVIDENCE` for the
+independent audit. `ACTIVE_WRITER = NO_OBSERVED_PATH_MATCHING_PROCESS` in a
+read-only Win32 process-command-line census; this is not a claim that every
+possible file handle was inspected.
+
+| Exact REALPATH | Bytes | Files | Dirs | Created by / run purpose | Disposition |
+| --- | ---: | ---: | ---: | --- | --- |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01` | 241419752 | 13022 | 10476 | WP RED, guard, targeted and initial full-suite pytest basetemp runs; includes failed Windows long-path attempt | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09f` | 3947234 | 313 | 212 | WP short-path full-suite/A3 diagnostic pytest run after long-path failure | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b9-short-01` | 915852 | 7 | 7 | WP focused A3 path-length control pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-symlink-red` | 926048 | 8 | 19 | WP operational-acceptance symlink RED/guard pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-core-final` | 30886343 | 572 | 1349 | WP core runtime-contract regression pytest run | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-full-final` | 609473109 | 13860 | 11202 | WP final repository full suite: 1621 passed, 2 skipped | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\b09-target-final` | 166959131 | 9704 | 7072 | WP final four-file targeted suite: 186 passed, 2 skipped | KEEP_EVIDENCE |
+| `D:\QI Technology\QI Crawler\egp-crawler-python\.tmp\B09RC\20260923T031245Z` | 915202 | 7 | 25 | WP docs/governance verification: 23 passed; registered compact alias | KEEP_EVIDENCE |
+
+`TOTAL_ENUMERATED = 1055442671 bytes`, equal to the prior reported total.
+The first root uses the full WP name but has noncanonical run subpaths; the
+other seven are exact short Windows test-path aliases bound only to this WP.
+The full-suite root contains two verified task-local junctions pointing inside
+that same root; they were not followed for byte accounting. No scratch was
+deleted or moved. Older or otherwise unknown B09 paths remain KEEP outside
+this task-owned inventory. Retention owner is `B09_RUNTIME_CONTRACT_CORRECTION`;
+review cleanup only after the independent runtime-contract audit under separate
+exact-target authority. Future scratch uses the canonical
+`.tmp/{wp_id}/{run_id}/{relative_path}` template.
+
+## Historical v0.10 B09 process-census compatibility correction
 
 The Windows live-promotion gate now retains CIM as its path-aware primary and
 uses a trusted System32 `tasklist.exe` exact-image fallback when CIM fails. A

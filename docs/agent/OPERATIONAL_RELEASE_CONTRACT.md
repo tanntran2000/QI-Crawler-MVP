@@ -51,6 +51,15 @@ The validator fails closed for a missing or substituted candidate receipt,
 unexpected layout, root/path escape, metadata/hash mismatch, unsupported
 schema, missing migration provenance or a database outside `Data`.
 
+Before setting these environment variables, operational acceptance also reads
+the persisted `Data\config.yaml` without calling `load_config()` or creating
+directories. All seven explicit storage bindings (database URL, documents,
+downloads, discovery, raw, rejects and reports) must resolve to their exact
+paths under this operational `Data` root. Missing/malformed fields, non-SQLite
+or ambiguous database URLs, and resolvable symlink/junction escapes fail closed
+as `OPERATIONAL_CONFIG_BINDING_INVALID`. Environment overrides cannot mask a
+bad persisted config.
+
 ## Acceptance receipt
 
 The canonical schema is `qi-crawler-operational-acceptance-v1` at
@@ -62,6 +71,21 @@ provenance. The companion
 `qi-crawler-operational-migration-v1` receipt records the source SHA,
 `0020_add_tender_operational_revision_events` input and
 `0022_add_tender_recovery_events` output.
+
+`acceptance.database_sha256` is the **historical promotion-baseline DB SHA**;
+it must equal `migration_receipt.output_db_sha256`. Runtime writes may change
+the current DB bytes without invalidating startup. Every startup still requires
+the exact operational DB path, a readable SQLite database, the current schema,
+matching release/build identity and unchanged receipt/migration provenance.
+The startup check reads the schema; it is not a full-file integrity scan.
+
+The v1 acceptance receipt also requires bundle source SHA to equal acceptance
+source SHA and migration source SHA. Therefore replacing only the application
+bundle with a newly built SHA while preserving the existing migrated DB and
+truthful old migration receipt is **not supported by the current v1 update
+contract**. A later bounded operational-update contract must separate current
+application-build provenance from historical migration provenance before any
+such live update. No update or repair is authorized by this document.
 
 ## Promotion model
 
@@ -97,6 +121,7 @@ read-only source
 → migration on the copy
 → staged operational receipt
 → staged validation
+→ bind staged config to future final root and validate it without writes
 → same-volume atomic root rotation
 → post-cutover validation
 → deterministic rollback on failure

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.8",
+  "revision": "1.0.10",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -812,6 +812,30 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "V010_PRE_FREEZE_THREE_STAGE_CANDIDATE_EVIDENCE_AND_FAIL_CLOSED_FIRST_START_READINESS; SYNTHETIC_TEST_DATA_ONLY; NO_BUILD_DATA_CLONE_REAL_MIGRATION_LAUNCH_INSTALL_PROMOTION_RELEASE_OR_MERGE_AUTHORITY"
+    },
+    {
+      "wp_id": "V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01",
+      "authority_ref": "Human-provided Work Order V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01 / Planner addendum V010_B09_RUNTIME_CONTRACT_PATH_RECONCILIATION_01",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery",
+      "path_ids": [
+        "PATH.REPO.SOURCE",
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "src/qi_crawler/operational_release.py",
+        "tests/test_operational_release.py",
+        "CHANGELOG.md",
+        "docs/agent/OPERATIONAL_RELEASE_CONTRACT.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md"
+      ],
+      "relation": "Post-promotion runtime-contract correction only. Exact Windows test-path compatibility aliases map exclusively to this WP: .tmp/b09f, .tmp/b9-short-01, .tmp/b09-symlink-red, .tmp/b09-core-final, .tmp/b09-full-final, .tmp/b09-target-final, and .tmp/B09RC/20260923T031245Z; the WP-named .tmp/V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01 root used noncanonical run subpaths and is also dispositioned in CURRENT. These are not a general alternate temp family; no future task may reuse them by inference. Canonical future scratch remains .tmp/{wp_id}/{run_id}/{relative_path}. Aliases grant no live-runtime, release, promotion, push, PR or merge authority."
     }
   ],
   "legacy_locations": [
