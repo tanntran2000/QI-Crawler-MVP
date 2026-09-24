@@ -348,6 +348,30 @@ def test_observation_is_read_only_and_preserves_tree_identity(tmp_path: Path) ->
     assert after == before
 
 
+def test_observation_reads_committed_wal_state_without_mutating_sidecars(tmp_path: Path) -> None:
+    paths, journal = _fixture(tmp_path, phase="DB_COMMITTED")
+    _install_backup(paths, journal)
+    _install_new_identity(paths)
+
+    with closing(sqlite3.connect(paths.database_path)) as writer:
+        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
+        writer.execute("PRAGMA wal_autocheckpoint = 0")
+        writer.executemany(
+            "UPDATE documents SET stored_path = ? WHERE id = ?",
+            [(value, int(key)) for key, value in NEW_PATHS.items()],
+        )
+        writer.commit()
+
+        before = _tree_identity(paths.root)
+        result = _classify(paths)
+        after = _tree_identity(paths.root)
+
+        assert result.classification == "DB_COMMITTED_JOURNAL_LAG"
+        identities = {item.name: item.value for item in result.evidence_identities}
+        assert identities["database_state"] == "NEW"
+        assert after == before
+
+
 def test_changed_input_during_observation_is_reported_unstable(tmp_path: Path) -> None:
     paths, _ = _fixture(tmp_path)
 

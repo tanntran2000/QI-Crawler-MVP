@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import stat
+import tempfile
 from collections.abc import Callable, Mapping
 from contextlib import closing
 from dataclasses import dataclass
@@ -171,14 +173,32 @@ def _unsafe_path(path: Path, root: Path) -> bool:
     return False
 
 
-def _database_paths(path: Path) -> tuple[dict[str, str] | None, str | None]:
+def _read_database_paths(path: Path, *, immutable: bool) -> tuple[dict[str, str] | None, str | None]:
+    uri = path.as_uri() + "?mode=ro"
+    if immutable:
+        uri += "&immutable=1"
     try:
-        with closing(sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True)) as connection:
+        with closing(sqlite3.connect(uri, uri=True)) as connection:
             connection.execute("PRAGMA query_only = ON")
             rows = connection.execute("SELECT id, stored_path FROM documents ORDER BY id").fetchall()
     except (OSError, sqlite3.Error):
         return None, "DATABASE_UNREADABLE"
     return {str(row[0]): str(row[1]) for row in rows}, None
+
+
+def _database_paths(path: Path, *, active_wal: bool) -> tuple[dict[str, str] | None, str | None]:
+    if not active_wal:
+        return _read_database_paths(path, immutable=True)
+    try:
+        with tempfile.TemporaryDirectory(prefix="qi-update-observation-") as directory:
+            snapshot = Path(directory) / path.name
+            for suffix in ("", "-wal", "-shm"):
+                source = Path(f"{path}{suffix}")
+                if source.exists():
+                    shutil.copyfile(source, Path(f"{snapshot}{suffix}"))
+            return _read_database_paths(snapshot, immutable=False)
+    except OSError:
+        return None, "DATABASE_UNREADABLE"
 
 
 def _artifact(name: str, path: Path, state: str) -> ArtifactState:
@@ -286,7 +306,7 @@ def _evaluate(
     if not config_sha or config_sha != expected_config:
         reasons.append("CONFIG_IDENTITY_MISMATCH")
 
-    active_rows, database_error = _database_paths(paths.database_path)
+    active_rows, database_error = _database_paths(paths.database_path, active_wal=True)
     old_rows = database.get("old_paths")
     new_rows = database.get("new_paths")
     if database_error:
@@ -314,7 +334,7 @@ def _evaluate(
                 artifacts.append(_artifact("backup", backup_path, "IDENTITY_MISMATCH"))
                 reasons.append("BACKUP_IDENTITY_MISMATCH")
             else:
-                backup_rows, backup_error = _database_paths(backup_path)
+                backup_rows, backup_error = _database_paths(backup_path, active_wal=False)
                 if backup_error or backup_rows != backup_spec.get("baseline_paths") or backup_rows != old_rows:
                     artifacts.append(_artifact("backup", backup_path, "IDENTITY_MISMATCH"))
                     reasons.append("BACKUP_BASELINE_MISMATCH")
