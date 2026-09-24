@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import sqlite3
 import stat
 import tempfile
+import time
 from collections.abc import Callable, Mapping
 from contextlib import closing
 from dataclasses import dataclass
@@ -173,12 +173,14 @@ def _unsafe_path(path: Path, root: Path) -> bool:
     return False
 
 
-def _read_database_paths(path: Path, *, immutable: bool) -> tuple[dict[str, str] | None, str | None]:
+def _read_database_paths(
+    path: Path, *, immutable: bool, timeout: float = 5.0
+) -> tuple[dict[str, str] | None, str | None]:
     uri = path.as_uri() + "?mode=ro"
     if immutable:
         uri += "&immutable=1"
     try:
-        with closing(sqlite3.connect(uri, uri=True)) as connection:
+        with closing(sqlite3.connect(uri, uri=True, timeout=timeout)) as connection:
             connection.execute("PRAGMA query_only = ON")
             rows = connection.execute("SELECT id, stored_path FROM documents ORDER BY id").fetchall()
     except (OSError, sqlite3.Error):
@@ -192,11 +194,33 @@ def _database_paths(path: Path, *, active_wal: bool) -> tuple[dict[str, str] | N
     try:
         with tempfile.TemporaryDirectory(prefix="qi-update-observation-") as directory:
             snapshot = Path(directory) / path.name
-            for suffix in ("", "-wal", "-shm"):
-                source = Path(f"{path}{suffix}")
-                if source.exists():
-                    shutil.copyfile(source, Path(f"{snapshot}{suffix}"))
-            return _read_database_paths(snapshot, immutable=False)
+            deadline = time.monotonic() + 5.0
+
+            def enforce_deadline(_status: int, _remaining: int, _total: int) -> None:
+                if time.monotonic() >= deadline:
+                    raise sqlite3.OperationalError("DATABASE_SNAPSHOT_TIMEOUT")
+
+            source_uri = path.resolve(strict=False).as_uri() + "?mode=ro"
+            with closing(sqlite3.connect(source_uri, uri=True, timeout=1.0)) as source:
+                source.execute("PRAGMA query_only = ON")
+                source.execute("PRAGMA busy_timeout = 1000")
+                data_version_start = int(source.execute("PRAGMA data_version").fetchone()[0])
+                with closing(sqlite3.connect(snapshot, timeout=1.0)) as destination:
+                    source.backup(
+                        destination,
+                        pages=128,
+                        progress=enforce_deadline,
+                        sleep=0.05,
+                    )
+                enforce_deadline(0, 0, 0)
+                data_version_end = int(source.execute("PRAGMA data_version").fetchone()[0])
+                if data_version_end != data_version_start:
+                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+            return _read_database_paths(snapshot, immutable=False, timeout=1.0)
+    except sqlite3.OperationalError as exc:
+        if str(exc) == "DATABASE_SNAPSHOT_TIMEOUT":
+            return None, "DATABASE_SNAPSHOT_TIMEOUT"
+        return None, "DATABASE_UNREADABLE"
     except OSError:
         return None, "DATABASE_UNREADABLE"
 

@@ -4,16 +4,19 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
 from contextlib import closing
 from pathlib import Path
 
 import pytest
 
+from qi_crawler import operational_update
 from qi_crawler.operational_release import OperationalPaths, operational_paths
 from qi_crawler.operational_update import (
     JOURNAL_SCHEMA,
     MARKER_SCHEMA,
     RECEIPT_SCHEMA,
+    _database_paths,
     classify_operational_update_state,
 )
 
@@ -370,6 +373,214 @@ def test_observation_reads_committed_wal_state_without_mutating_sidecars(tmp_pat
         identities = {item.name: item.value for item in result.evidence_identities}
         assert identities["database_state"] == "NEW"
         assert after == before
+
+
+def test_wal_snapshot_generation_coherence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    database.unlink()
+    initial = {
+        str(row_id): f"initial/{row_id:04d}/" + "x" * 500
+        for row_id in range(1, 3001)
+    }
+    generation_one = {**initial, "1": "generation-1/first.pdf"}
+    generation_two = {**generation_one, "3000": "generation-2/last.pdf"}
+
+    with closing(sqlite3.connect(database)) as setup:
+        setup.execute("CREATE TABLE documents (id INTEGER PRIMARY KEY, stored_path TEXT)")
+        setup.executemany(
+            "INSERT INTO documents(id, stored_path) VALUES (?, ?)",
+            [(int(key), value) for key, value in initial.items()],
+        )
+        setup.commit()
+        assert setup.execute("PRAGMA page_count").fetchone()[0] > 128
+
+    def source_sqlite_files() -> tuple[tuple[str, bytes | None], ...]:
+        return tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix in ("", "-wal", "-shm")
+            for path in (Path(f"{database}{suffix}"),)
+        )
+
+    def read_main_only(path: Path) -> dict[str, str]:
+        uri = path.as_uri() + "?mode=ro&immutable=1"
+        with closing(sqlite3.connect(uri, uri=True)) as connection:
+            rows = connection.execute("SELECT id, stored_path FROM documents ORDER BY id")
+            return {str(row[0]): str(row[1]) for row in rows.fetchall()}
+
+    with closing(sqlite3.connect(database)) as writer:
+        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
+        writer.execute("PRAGMA wal_autocheckpoint = 0")
+        writer.execute(
+            "UPDATE documents SET stored_path = ? WHERE id = 1",
+            (generation_one["1"],),
+        )
+        writer.commit()
+        wal_path = Path(f"{database}-wal")
+        assert wal_path.is_file() and wal_path.stat().st_size > 32
+        assert read_main_only(database) == initial
+        assert writer.execute(
+            "SELECT id, stored_path FROM documents WHERE id IN (1, 3000) ORDER BY id"
+        ).fetchall() == [(1, generation_one["1"]), (3000, initial["3000"])]
+
+        source_before_capture = source_sqlite_files()
+        interleavings: list[tuple[int, tuple[int, ...]]] = []
+        source_after_interleaving: list[tuple[tuple[str, bytes | None], ...]] = []
+        source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+        original_connect = sqlite3.connect
+
+        class InterleavingConnection:
+            def __init__(self, connection: sqlite3.Connection) -> None:
+                self.connection = connection
+
+            def __getattr__(self, name: str):
+                return getattr(self.connection, name)
+
+            def backup(self, destination: sqlite3.Connection, **kwargs: object) -> None:
+                original_progress = kwargs["progress"]
+
+                def checkpoint_between_backup_pages(
+                    status: int, remaining: int, total: int
+                ) -> None:
+                    if remaining > 0 and not interleavings:
+                        checkpoint = writer.execute(
+                            "PRAGMA wal_checkpoint(PASSIVE)"
+                        ).fetchone()
+                        writer.execute(
+                            "UPDATE documents SET stored_path = ? WHERE id = 3000",
+                            (generation_two["3000"],),
+                        )
+                        writer.commit()
+                        interleavings.append((remaining, checkpoint))
+                        source_after_interleaving.append(source_sqlite_files())
+                    if original_progress is not None:
+                        original_progress(status, remaining, total)
+
+                self.connection.backup(
+                    destination,
+                    **{**kwargs, "progress": checkpoint_between_backup_pages},
+                )
+
+        def connect_with_interleaving(database_name, *args, **kwargs):
+            connection = original_connect(database_name, *args, **kwargs)
+            if str(database_name) == source_uri:
+                return InterleavingConnection(connection)
+            return connection
+
+        monkeypatch.setattr(sqlite3, "connect", connect_with_interleaving)
+        rows, error = _database_paths(database, active_wal=True)
+        source_after_capture = source_sqlite_files()
+
+    assert interleavings and interleavings[0][0] > 0
+    assert interleavings[0][1][0] == 0
+    assert interleavings[0][1][2] > 0
+    assert source_before_capture != source_after_interleaving[0]
+    assert source_after_capture == source_after_interleaving[0]
+    if error is not None:
+        assert rows is None
+        assert error in {
+            "DATABASE_UNREADABLE",
+            "DATABASE_CHANGED_DURING_SNAPSHOT",
+            "DATABASE_SNAPSHOT_TIMEOUT",
+        }
+    else:
+        assert rows in (generation_one, generation_two), (
+            "snapshot returned a generation that never existed during capture"
+        )
+
+
+def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    locked_copied_databases: list[Path] = []
+    original_reader = operational_update._read_database_paths
+
+    def lock_backup_database(path: Path, **kwargs):
+        if path.resolve() != database.resolve():
+            blocker = sqlite3.connect(path, timeout=0.1)
+            blocker.execute("BEGIN EXCLUSIVE")
+            locked_copied_databases.append(path)
+            try:
+                return original_reader(path, **kwargs)
+            finally:
+                blocker.close()
+        return original_reader(path, **kwargs)
+
+    monkeypatch.setattr(operational_update, "_read_database_paths", lock_backup_database)
+
+    started = time.monotonic()
+    rows, error = _database_paths(database, active_wal=True)
+    elapsed = time.monotonic() - started
+
+    assert locked_copied_databases
+    assert rows is None
+    assert error == "DATABASE_UNREADABLE"
+    assert elapsed < 10.0
+
+
+def test_active_wal_exclusive_lock_returns_unreadable_within_finite_timeout(
+    tmp_path: Path,
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    wal_path = Path(f"{database}-wal")
+    shm_path = Path(f"{database}-shm")
+    busy_probe: list[bool] = []
+
+    def source_sqlite_files() -> tuple[tuple[str, bytes | None], ...]:
+        return tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix in ("", "-wal", "-shm")
+            for path in (Path(f"{database}{suffix}"),)
+        )
+
+    with closing(sqlite3.connect(database, timeout=0.1)) as writer:
+        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
+        writer.execute("PRAGMA wal_autocheckpoint = 0")
+        writer.execute(
+            "UPDATE documents SET stored_path = ? WHERE id = 1",
+            (NEW_PATHS["1"],),
+        )
+        writer.commit()
+        assert wal_path.is_file() and wal_path.stat().st_size > 32
+        assert shm_path.is_file()
+        blocker = sqlite3.connect(database, timeout=0.1)
+        try:
+            assert blocker.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone() == (
+                "exclusive",
+            )
+            blocker.execute("SELECT id FROM documents LIMIT 1").fetchone()
+            assert wal_path.is_file() and wal_path.stat().st_size > 32
+            assert shm_path.is_file()
+            source_before_read = source_sqlite_files()
+            uri = database.as_uri() + "?mode=ro"
+            try:
+                with closing(sqlite3.connect(uri, uri=True, timeout=0)) as probe:
+                    probe.execute("SELECT id FROM documents LIMIT 1").fetchone()
+            except sqlite3.OperationalError as exc:
+                busy_probe.append("locked" in str(exc).lower() or "busy" in str(exc).lower())
+            else:
+                busy_probe.append(False)
+
+            started = time.monotonic()
+            rows, error = _database_paths(database, active_wal=True)
+            elapsed = time.monotonic() - started
+            source_after_read = source_sqlite_files()
+        finally:
+            blocker.close()
+
+    assert source_after_read == source_before_read
+    if not busy_probe or not busy_probe[0]:
+        assert error is None
+        assert rows == {**OLD_PATHS, "1": NEW_PATHS["1"]}
+        pytest.skip("SQLite active-WAL exclusive-reader contention was not induced")
+    assert rows is None
+    assert error in {"DATABASE_UNREADABLE", "DATABASE_SNAPSHOT_TIMEOUT"}
+    assert elapsed < 10.0
 
 
 def test_changed_input_during_observation_is_reported_unstable(tmp_path: Path) -> None:
