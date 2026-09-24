@@ -72,6 +72,11 @@ Historical tags and releases must never be silently moved.
    Human-only decisions. These are authority roles, not model names. One
    Writer, independent review and Human final material authority remain
    mandatory.
+   A normal Builder completion report goes to the assigned Planner. Keep
+   delivery, verified receipt, and Planner review distinct:
+   `SEND_COMPLETED != RECEIPT_VERIFIED != PLANNER_REVIEWED`. Tool success does
+   not prove readback, and one supervised handoff does not establish
+   exactly-once delivery or autonomous orchestration.
 3. **LAW 3 — SYSTEMIC LESSONS ONLY**: Record durable architectural lessons; do not pollute lessons with minor typos.
 4. **LAW 4 — PROOF-GATED DEFINITION OF DONE**: Verify against the explicit Work Order contract; never claim unqualified perfection.
 5. **LAW 5 — MINIMAL COMPLETE FIX**: Fix at root cause with the smallest complete change; no masking or speculative refactoring.
@@ -80,6 +85,9 @@ Historical tags and releases must never be silently moved.
 8. **LAW 8 — ADAPTIVE VERIFICATION**: Before judging implementation correctness, the Reviewer must verify that the current CI/test contract matches the current Work Package's capability under change, risk profile, acceptance criteria, and maturity stage.
 
 9. **LAW 9 — HANDOFF READ-IN & CONTINUITY**: `READ → VERIFY → ENTRY REVIEW → ONE APPROVAL → EXECUTE MANY`. Approval leases a bounded Work Package, not individual commands. Re-approval is required only when scope, baseline, handoff authority, writer, or a material blocker changes.
+   A material safety, data, scope, or authority blocker outside the lease stops
+   execution; the detecting role preserves state, escalates to Human authority,
+   and notifies the Planner through an authorized route.
 
 10. **LAW 10 — DOCUMENTATION LIFECYCLE**: Every Parent and Micro Work Package has a bounded PRE and POST state. `ALWAYS CHECK != ALWAYS MODIFY`: inspect the required documents at every governed transition, but update only the tier and trigger that applies. `CURRENT.md` is active handoff authority, not a diary, roadmap, review report, or chat summary; historical snapshots are non-normative after capture; durable contracts change only through approved governance.
 
@@ -136,6 +144,10 @@ Historical tags and releases must never be silently moved.
     assumption with evidence, must not silently override an A0 business
     decision, and must independently reconcile Reviewer evidence before
     recommending merge or next work.
+
+   A Builder report is evidence for Planner review, not a disposition; critical
+   out-of-lease conflicts reach Human authority at the detecting role and are
+   surfaced to the Planner without silently changing scope.
 
 16. **LAW 16 — CANONICAL PATH & ARTIFACT LIFECYCLE**: Every new governed
     file/directory family must use a registered `PATH_ID` in

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.12",
+  "revision": "1.0.13",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -966,6 +966,33 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "Option-C source and synthetic-test implementation only; fixed live path families are reserved for a later separately authorized one-shot update or recovery. No live root creation, mutation, launch, migration rerun, push, PR, merge, tag or release authority."
+    },
+    {
+      "wp_id": "WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01",
+      "authority_ref": "Planner Work Order WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01 rev3 under Human-approved Agent Loop governance intent",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "path_ids": [
+        "PATH.REPO.ROOT_HELPERS",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.PLUGINS",
+        "PATH.REPO.TESTS"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "AGENTS.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/OPERATING_MODEL.md",
+        "docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md",
+        "plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md",
+        "plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md",
+        "plugins/qi-agent-workbench/skills-lock.json",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "docs/agent/QI_AGENT_WORKBENCH.md",
+        "tests/agent_workbench/test_skills_lock.py"
+      ],
+      "relation": "One supervised, role-separated task handoff with verified delivery states; governance-only Agent Loop sync. Preserve B09 HOLD pending Spine routing and Planner review. No autonomous/background runner, product behavior, B09 technical execution, commit, push, PR, merge or release authority."
     }
   ],
   "legacy_locations": [

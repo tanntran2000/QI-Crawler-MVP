@@ -222,7 +222,13 @@ WHAT_I_MUST_NOT_WRITE = Out-of-scope files, Work Order authority, Reviewer
   output, Human decisions, product areas not authorized, or remote state not
   explicitly leased.
 NORMAL_FLOW = Authority → checkout → base → scope → Roadmap/Delta → prompt
-  contract → role gate → execute → verify → commit → handoff.
+  contract → role gate → execute → verify → approved local commit if leased
+  → return bounded report to assigned Planner → track receipt/review evidence.
+REPORT_ROUTING = NORMAL_RESULT_TO_ASSIGNED_PLANNER; CRITICAL_OUT_OF_LEASE
+  SAFETY_DATA_SCOPE_OR_AUTHORITY_CONFLICT_TO_HUMAN_PLUS_PLANNER_NOTICE.
+DELIVERY_STATES = SEND_REQUESTED → SEND_COMPLETED → RECEIPT_VERIFIED →
+  PLANNER_REVIEWED → DISPOSITION_RECORDED; SEND_COMPLETED !=
+  RECEIPT_VERIFIED != PLANNER_REVIEWED.
 STOP_CONDITIONS = Baseline drift, wrong checkout, scope expansion, authority
   conflict, material ambiguity, destructive action or required file outside
   scope.
@@ -234,6 +240,12 @@ HANDOFF_TO = PLANNER_ARCHITECT / MACHINE_VERIFIER / REVIEWER_AUDITOR.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return exactly one next action and authority;
   never silently continue beyond a material boundary.
 ```
+
+A successful messaging-tool result proves send completion only. Receipt needs
+authorized readback; Planner review is recorded only with Planner evidence.
+For a critical out-of-lease safety, data, scope, or authority conflict, stop,
+preserve the state, escalate to Human authority, and notify the Planner through
+an authorized route. `MODEL_NAME != AGENT_ROLE` remains in force.
 
 ## 5. REVIEWER_AUDITOR boot profile
 

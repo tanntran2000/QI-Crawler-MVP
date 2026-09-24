@@ -18,6 +18,7 @@ EXPECTED_ARTIFACTS = {
     "skills/qi-context-boot/SKILL.md",
     "skills/qi-evidence-check/SKILL.md",
     "skills/qi-impact-map/SKILL.md",
+    "skills/qi-agent-loop/SKILL.md",
     "skills/qi-python-change/SKILL.md",
     "skills/qi-review-handoff/SKILL.md",
     "skills/qi-task-envelope/SKILL.md",
@@ -69,7 +70,7 @@ def test_canonical_lock_covers_every_approved_skill_and_reference() -> None:
     assert manifest["algorithm"] == "sha256"
     assert manifest["normalization"] == "utf8_text_lf"
     assert set(manifest["files"]) == EXPECTED_ARTIFACTS
-    assert len(manifest["files"]) == 9
+    assert len(manifest["files"]) == 10
     for relative, expected_hash in manifest["files"].items():
         artifact = ROOT / "plugins" / "qi-agent-workbench" / relative
         assert artifact.is_file()

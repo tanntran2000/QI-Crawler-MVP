@@ -639,6 +639,143 @@ Missing evidence, baseline drift, material contradiction or required scope
 expansion is `HOLD` and routes to the Planner/Human authority. A terminal sync
 does not recurse into implementation.
 
+## SUPERVISED_AGENT_LOOP_CONTRACT
+
+The supervised Agent Loop carries one approved task report across the existing
+role boundary. The canonical Work Order remains authoritative; the envelope is
+derived, and a task or messaging tool supplies connectivity rather than
+workflow or authority.
+
+```text
+TASK_ENVELOPE = MISSION, ASSIGNED_ROLE, BASELINE, SCOPE, EXCLUSIONS,
+                INVARIANTS, ACCEPTANCE, REQUIRED_SKILLS_TOOLS,
+                VERIFICATION, NEXT_AUTHORITY
+NORMAL_BUILDER_REPORT_DESTINATION = ASSIGNED_PLANNER
+HANDOFF_STATES = SEND_REQUESTED → SEND_COMPLETED → RECEIPT_VERIFIED
+                 → PLANNER_REVIEWED → DISPOSITION_RECORDED
+SEND_COMPLETED != RECEIPT_VERIFIED != PLANNER_REVIEWED
+```
+
+`SEND_COMPLETED` records only the send operation. Receipt requires authorized
+readback matching the intended report; Planner review and disposition require
+Planner evidence. Uncertain delivery is inspected before retry; no blind retry
+or exactly-once guarantee is implied. An out-of-lease material safety, data,
+scope, or authority blocker stops execution and preserves state; the detecting
+role escalates to Human authority and notifies the Planner through an
+authorized route. This contract creates no autonomous or background runner.
+
+The supervised Agent Loop does not merge the role duties: the Builder reports,
+the Tester/Machine Verifier supplies execution evidence without decision
+authority, the Planner performs `PLANNER_BUILDER_RESULT_REVIEW`, and the
+independent Reviewer audits. Planner review is not Human approval or
+merge/release authority.
+
+### Report identity and admission
+
+Each report carries `REPORT_METADATA` separately from the unchanged
+ten-field `TASK_ENVELOPE`:
+
+```text
+REPORT_METADATA = WO_ID, RUN_OR_ATTEMPT_ID, REPORT_ID, SOURCE_TASK_ID,
+                  DESTINATION_TASK_ID, OBJECT_ID, IN_REPLY_TO
+OBJECT_ID = EXACT_COMMIT_RANGE | IMMUTABLE_CANDIDATE_SNAPSHOT_ID
+```
+
+### Expected transition and idempotent admission
+
+Before using a report to advance state, require the Planner or Work Order to
+have explicitly opened the exact pending transition for the finding being
+answered. The expected binding is established from that authority, not inferred
+from the arriving report:
+
+```text
+EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
+                              OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
+```
+
+All six values must match the pending binding, and the required report sections
+must be complete. Missing, truncated, stale, wrong-route, wrong-object, or
+wrong-attempt reports are `HOLD` and cannot advance state. `REPORT_ID` is stable
+for the same logical report across a transport retry. Before acting or
+redispatching, consult the existing supervised task-message handoff record; a
+transition is consumed when it advances governed state, and that consumed state
+is recorded before any follow-on dispatch. Any later report for that consumed
+binding is recorded as a duplicate and cannot advance state or redispatch, even
+if its `REPORT_ID` differs. A repeated `REPORT_ID` is also a duplicate.
+
+A corrected report is a new logical report and transition only after the
+Planner explicitly opens a new expected attempt/transition. It uses its own
+stable `REPORT_ID`, the newly expected `RUN_OR_ATTEMPT_ID`, and `IN_REPLY_TO`
+that identifies the superseded report or finding, plus the exact expected
+`OBJECT_ID`. A new `REPORT_ID` or arbitrary metadata change alone does not
+reopen a consumed transition. If the expected transition or its consumed state
+is uncertain, hold and inspect the authorized task history before acting. These
+checks use supervised task-message tracking; they do not guarantee exactly-once
+transport or add a database,
+broker, runner, or scheduler. If the candidate changes after audit, the Planner
+performs delta reconciliation and assigns a new `OBJECT_ID` for the next audit.
+
+### Supervised report routing
+
+For a Work Order using this loop, every normal completed Builder,
+Tester/Machine Verifier, and Reviewer report returns to the assigned Planner.
+Send an additional copy to another role only when the Work Order declares
+that route. The Reviewer keeps its independent verdict; the Planner may
+challenge scope or evidence and request clarification, but does not rewrite
+the verdict.
+
+### In-lease correction and stop rule
+
+An in-scope finding follows one bounded path:
+
+```text
+Tester finding → Planner scope judgment → same sole Builder corrects within
+lease → Tester rechecks affected acceptance → independent Reviewer audits the
+new object → Planner reconciles
+```
+
+The Work Order sets finite correction-attempt, runtime, and cost budgets. A
+correction within the existing lease does not need a new Human approval.
+Exhausting a budget, changing scope or authority, or repeating a symptom
+without a new hypothesis or evidence stops the loop for Planner triage; it
+does not authorize another Writer or blind retry. Each corrected candidate is
+a new audit object, and the Reviewer examines that object independently.
+
+### Minimal complete fix
+
+Every Builder return and Reviewer challenge answers the same four checks:
+
+| Check | Required question |
+| --- | --- |
+| Root cause | Does the change address the cause rather than hide the symptom? |
+| Reuse | Which existing helper or module was checked and reused, or why was reuse insufficient? |
+| New surface | Why is each new file, dependency, or abstraction needed? |
+| Acceptance | Which acceptance item justifies each change, and is any work opportunistic? |
+
+Reviewer objections cite a defect, invariant, acceptance criterion, or concrete
+maintainability cost. Line count alone does not decide a finding; added code or
+tests may be necessary for a complete safe fix.
+
+### Candidate identity and evidence limits
+
+Before local integration, bind the exact candidate to its base SHA and a
+sorted manifest of every changed or new repository-relative path, including
+untracked files, with the raw-byte SHA-256 of each file. Serialize the base
+line as `BASE_SHA=<lowercase-hex>\n`, then each path in POSIX form and
+code-point sort order as `<path><TAB><lowercase-raw-sha256>\n`, using UTF-8
+and LF. `OBJECT_ID` is `sha256:` followed by the SHA-256 of those serialized
+bytes. Compare that manifest and ID with the audited candidate before
+integration. A skill lock over a subset of artifacts does not bind the whole
+candidate. If an authorized post-audit handoff changes only `CURRENT.md`,
+follow `SELF_REFERENTIAL_TERMINAL_SYNC_RULE` and report the audited object ID
+alongside the pre- and post-sync raw `CURRENT.md` hashes as a separate delta.
+
+Passing 13 lock tests demonstrates locked-artifact integrity and the static
+lock/verifier contracts they exercise; it does not demonstrate 13 observed
+role scenarios or a real supervised code-correction cycle. Historical
+handoff evidence and its limits remain in the applicable Feedback Ledger
+entry.
+
 ## Planner orchestration contracts
 
 `PLANNER_BUILDER_RESULT_REVIEW` is the Planner's pre-review orchestration and

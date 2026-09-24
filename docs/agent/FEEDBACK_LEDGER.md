@@ -1185,3 +1185,84 @@ installation, publish, promotion, tag, GitHub Release, RealF5 or new product
 capability.
 Disposition: ACCEPTED / ROUTED_TO_MASTER_ROADMAP_DELTA_AND_CURRENT
 ```
+
+### FB-0043 — Supervised Agent Loop and bounded A2A evidence
+
+```text
+State: ACCEPTED / ROUTED / IMPLEMENTATION_IN_PROGRESS
+Author: Human A0
+Role: HUMAN_AUTHORITY
+WP: WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01
+Type: PROCESS
+Authority: A0 HUMAN_DECISION
+Decision:
+- Route a normal bounded Builder result to its assigned Planner and track
+  send, verified receipt, Planner review, and disposition as separate states.
+- A material out-of-lease safety, data, scope, or authority conflict is held;
+  the detecting role escalates to Human authority and notifies the Planner.
+- Keep the loop supervised, task-based, role-separated, and without
+  autonomous/background execution or new Human/merge/release authority.
+- Current Human model deployment preferences, never role/authority evidence:
+  Planner = GPT-6 Sol/high; Builder = GPT-6 Luna/Lunar max/fast;
+  Reviewer = GPT-6 Sol/high; Tester = GPT-5.6 Sol/medium. `ROLE > MODEL NAME`.
+- Prioritize a concise repository skill for workflow; task/messaging MCP
+  capability supplies connectivity. Add a custom server only if a verified
+  capability gap requires it under a separate approved scope.
+- Preserve the B09 technical HOLD pending Spine routing and Planner review;
+  this governance work does not resume B09 execution.
+Evidence:
+- Tester independently recomputed the arithmetic/schema result and marked
+  Planner-side raw JSON readback `NOT_VERIFIED`.
+- A later independent Reviewer addendum established exact sender/Planner
+  inbound raw payload equality for one 657-byte snapshot; the Reviewer verdict
+  remains `PASS_WITH_LIMITATIONS`.
+Boundary: The payload equality evidence covers that single snapshot only. It
+does not establish general exactly-once delivery, autonomous orchestration,
+background execution, CLI/model smoke coverage, or merge/release authority.
+Disposition: ACCEPTED / ROUTED_TO_GOVERNANCE_AND_CURRENT
+```
+
+### FB-0044 — Supervised Agent Loop correction and candidate identity
+
+```text
+State: ACCEPTED / ROUTED / CORRECTION_IN_PROGRESS
+Author: Human A0
+Role: HUMAN_AUTHORITY
+WP: WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01 rev4
+Type: PROCESS / EVIDENCE / IMPLEMENTATION_INTEGRITY
+Authority: HUMAN_A0_CORRECTION_RELAYED_IN_PLANNER_WORK_ORDER_REV4
+Decision:
+- Preserve the supervised four-role architecture; do not add a role, runner,
+  server, scheduler, or autonomous/background execution.
+- Keep the ten-field TASK_ENVELOPE unchanged and add separate report/object/
+  attempt metadata so stale, duplicate, truncated, and wrong-object reports
+  cannot advance state or trigger duplicate dispatch.
+- Route normal completed Builder, Tester, and Reviewer reports to their
+  assigned Planner. Preserve the Reviewer verdict; Planner challenge does not
+  rewrite it.
+- Bound in-lease correction through Planner scope judgment, the same Builder,
+  Tester recheck, independent Reviewer audit of a new object, and Planner
+  reconciliation. Work Orders carry finite attempt/runtime/cost budgets;
+  repeated symptoms without new hypothesis or evidence stop for triage.
+- Require a minimal-complete-fix explanation at Builder return and Reviewer
+  challenge, grounded in root cause, reuse, need for new surface, and
+  acceptance mapping. Line count alone is not a verdict.
+- Bind the full changed/new candidate path manifest to the base SHA and raw
+  per-file hashes, including untracked files, before integration; keep a later
+  authorized terminal CURRENT-only delta distinct from the audited object.
+Maturity:
+ROLE_SEPARATION = WELL_DEFINED
+SUPERVISED_HANDOFF = SUPPORTED
+REAL_CODE_CORRECTION_CYCLE = NOT_YET_DEMONSTRATED
+CODE_BLOAT_PREVENTION = POLICY_PRESENT_EFFECTIVENESS_NOT_YET_PROVEN
+AUTONOMOUS_LOOP = NOT_IMPLEMENTED
+MODEL_FAST = HUMAN_PREFERENCE_ONLY_UNLESS_RUNTIME_VERIFIED
+Evidence limits:
+- The 13 lock tests evidence locked-artifact integrity and the static
+  lock/verifier contract; they are not 13 observed role scenarios.
+- Historical A2A payload evidence and its bounds remain in FB-0043; it does not
+  establish a general exactly-once guarantee or a real code-correction cycle.
+Boundary: This accepted correction does not authorize new architecture,
+autonomous execution, a commit, push, PR, merge, release, or B09 technical work.
+Disposition: ACCEPTED / ROUTED_TO_OPERATING_MODEL_AGENT_LOOP_SKILL_AND_CURRENT
+```
