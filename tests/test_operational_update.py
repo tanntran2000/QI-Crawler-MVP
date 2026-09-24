@@ -428,6 +428,11 @@ def test_wal_snapshot_generation_coherence(
         source_before_capture = source_sqlite_files()
         interleavings: list[tuple[int, tuple[int, ...]]] = []
         source_after_interleaving: list[tuple[tuple[str, bytes | None], ...]] = []
+        source_states: list[tuple[str, tuple[tuple[str, bytes | None], ...]]] = []
+
+        def record_source_state(label: str) -> None:
+            source_states.append((label, source_sqlite_files()))
+
         source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
         original_connect = sqlite3.connect
 
@@ -438,8 +443,25 @@ def test_wal_snapshot_generation_coherence(
             def __getattr__(self, name: str):
                 return getattr(self.connection, name)
 
+            def execute(self, sql: str, *args, **kwargs):
+                result = self.connection.execute(sql, *args, **kwargs)
+                normalized_sql = sql.casefold().replace(" ", "")
+                if normalized_sql == "pragmaquery_only=on":
+                    record_source_state("query_only")
+                elif normalized_sql == "pragmabusy_timeout=1000":
+                    record_source_state("busy_timeout")
+                elif normalized_sql == "pragmadata_version":
+                    label = (
+                        "data_version_start"
+                        if not any(name == "data_version_start" for name, _ in source_states)
+                        else "data_version_end"
+                    )
+                    record_source_state(label)
+                return result
+
             def backup(self, destination: sqlite3.Connection, **kwargs: object) -> None:
                 original_progress = kwargs["progress"]
+                record_source_state("backup_start")
 
                 def checkpoint_between_backup_pages(
                     status: int, remaining: int, total: int
@@ -455,6 +477,7 @@ def test_wal_snapshot_generation_coherence(
                         writer.commit()
                         interleavings.append((remaining, checkpoint))
                         source_after_interleaving.append(source_sqlite_files())
+                        source_states.append(("post_writer", source_after_interleaving[-1]))
                     if original_progress is not None:
                         original_progress(status, remaining, total)
 
@@ -462,33 +485,72 @@ def test_wal_snapshot_generation_coherence(
                     destination,
                     **{**kwargs, "progress": checkpoint_between_backup_pages},
                 )
+                record_source_state("backup_end")
+
+            def close(self) -> None:
+                self.connection.close()
+                record_source_state("source_close")
 
         def connect_with_interleaving(database_name, *args, **kwargs):
             connection = original_connect(database_name, *args, **kwargs)
             if str(database_name) == source_uri:
-                return InterleavingConnection(connection)
+                wrapped = InterleavingConnection(connection)
+                record_source_state("source_open")
+                return wrapped
             return connection
 
         monkeypatch.setattr(sqlite3, "connect", connect_with_interleaving)
         rows, error = _database_paths(database, active_wal=True)
         source_after_capture = source_sqlite_files()
+        source_states.append(("helper_return", source_after_capture))
 
     assert interleavings and interleavings[0][0] > 0
     assert interleavings[0][1][0] == 0
     assert interleavings[0][1][2] > 0
     assert source_before_capture != source_after_interleaving[0]
-    assert source_after_capture == source_after_interleaving[0]
     if error is not None:
-        assert rows is None
-        assert error in {
+        logical_result_valid = rows is None and error in {
             "DATABASE_UNREADABLE",
             "DATABASE_CHANGED_DURING_SNAPSHOT",
             "DATABASE_SNAPSHOT_TIMEOUT",
         }
+        logical_outcome = f"explicit_error:{error}"
     else:
-        assert rows in (generation_one, generation_two), (
-            "snapshot returned a generation that never existed during capture"
+        logical_result_valid = rows in (generation_one, generation_two)
+        logical_outcome = (
+            "generation_one"
+            if rows == generation_one
+            else "generation_two"
+            if rows == generation_two
+            else "mixed_or_unknown_generation"
         )
+    post_writer_index = next(
+        index for index, (label, _state) in enumerate(source_states) if label == "post_writer"
+    )
+    post_writer_state = source_states[post_writer_index][1]
+    source_state_changes = {
+        label: tuple(
+            suffix
+            for (suffix, data), (_baseline_suffix, baseline_data) in zip(state, post_writer_state)
+            if data != baseline_data
+        )
+        for label, state in source_states[post_writer_index + 1 :]
+        if state != post_writer_state
+    }
+    source_state_digests = {
+        label: {
+            suffix: None if data is None else hashlib.sha256(data).hexdigest()
+            for suffix, data in state
+        }
+        for label, state in source_states
+    }
+    source_bytes_unchanged = source_after_capture == post_writer_state
+    assert logical_result_valid and source_bytes_unchanged, (
+        f"logical_outcome={logical_outcome}; error={error!r}; "
+        f"source_bytes_unchanged={source_bytes_unchanged}; "
+        f"source_state_changes_after_post_writer={source_state_changes!r}; "
+        f"source_state_digests={source_state_digests!r}"
+    )
 
 
 def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout(
@@ -523,14 +585,20 @@ def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout
 
 
 def test_active_wal_exclusive_lock_returns_unreadable_within_finite_timeout(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     paths, _ = _fixture(tmp_path)
     database = paths.database_path
     wal_path = Path(f"{database}-wal")
     shm_path = Path(f"{database}-shm")
-    busy_probe: list[bool] = []
+    helper_calls: list[tuple[Path, bool]] = []
+    original_database_paths = _database_paths
 
+    def observe_helper(path: Path, *, active_wal: bool):
+        helper_calls.append((path, active_wal))
+        return original_database_paths(path, active_wal=active_wal)
+
+    monkeypatch.setattr(operational_update, "_database_paths", observe_helper)
     def source_sqlite_files() -> tuple[tuple[str, bytes | None], ...]:
         return tuple(
             (suffix, path.read_bytes() if path.exists() else None)
@@ -538,46 +606,40 @@ def test_active_wal_exclusive_lock_returns_unreadable_within_finite_timeout(
             for path in (Path(f"{database}{suffix}"),)
         )
 
-    with closing(sqlite3.connect(database, timeout=0.1)) as writer:
-        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
-        writer.execute("PRAGMA wal_autocheckpoint = 0")
-        writer.execute(
+    with closing(sqlite3.connect(database, timeout=0.1)) as blocker:
+        assert blocker.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone() == (
+            "exclusive",
+        )
+        assert blocker.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
+        blocker.execute("PRAGMA wal_autocheckpoint = 0")
+        blocker.execute(
             "UPDATE documents SET stored_path = ? WHERE id = 1",
             (NEW_PATHS["1"],),
         )
-        writer.commit()
+        blocker.commit()
         assert wal_path.is_file() and wal_path.stat().st_size > 32
-        assert shm_path.is_file()
-        blocker = sqlite3.connect(database, timeout=0.1)
+        blocker.execute("SELECT id FROM documents LIMIT 1").fetchone()
+        assert wal_path.is_file() and wal_path.stat().st_size > 32
+        assert not shm_path.exists()
+        source_before_probe = source_sqlite_files()
+        uri = database.as_uri() + "?mode=ro"
+        probe_error: sqlite3.OperationalError | None = None
         try:
-            assert blocker.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone() == (
-                "exclusive",
-            )
-            blocker.execute("SELECT id FROM documents LIMIT 1").fetchone()
-            assert wal_path.is_file() and wal_path.stat().st_size > 32
-            assert shm_path.is_file()
-            source_before_read = source_sqlite_files()
-            uri = database.as_uri() + "?mode=ro"
-            try:
-                with closing(sqlite3.connect(uri, uri=True, timeout=0)) as probe:
-                    probe.execute("SELECT id FROM documents LIMIT 1").fetchone()
-            except sqlite3.OperationalError as exc:
-                busy_probe.append("locked" in str(exc).lower() or "busy" in str(exc).lower())
-            else:
-                busy_probe.append(False)
+            with closing(sqlite3.connect(uri, uri=True, timeout=0)) as probe:
+                probe.execute("SELECT id FROM documents LIMIT 1").fetchone()
+        except sqlite3.OperationalError as exc:
+            probe_error = exc
+        assert probe_error is not None, "zero-time read probe unexpectedly acquired the database"
+        assert "locked" in str(probe_error).lower() or "busy" in str(probe_error).lower()
+        source_before_helper = source_sqlite_files()
 
-            started = time.monotonic()
-            rows, error = _database_paths(database, active_wal=True)
-            elapsed = time.monotonic() - started
-            source_after_read = source_sqlite_files()
-        finally:
-            blocker.close()
+        started = time.monotonic()
+        rows, error = operational_update._database_paths(database, active_wal=True)
+        elapsed = time.monotonic() - started
+        source_after_read = source_sqlite_files()
 
-    assert source_after_read == source_before_read
-    if not busy_probe or not busy_probe[0]:
-        assert error is None
-        assert rows == {**OLD_PATHS, "1": NEW_PATHS["1"]}
-        pytest.skip("SQLite active-WAL exclusive-reader contention was not induced")
+    assert helper_calls == [(database, True)]
+    assert source_after_read == source_before_helper
     assert rows is None
     assert error in {"DATABASE_UNREADABLE", "DATABASE_SNAPSHOT_TIMEOUT"}
     assert elapsed < 10.0
