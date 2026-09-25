@@ -5,15 +5,15 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = CORRECTION_01_APPROVED_FOR_ENTRY_RECONCILIATION_THEN_LOCAL_EXECUTION
-APPROVAL_SCOPE = DESIGN_B09_PRESERVATION_GOVERNANCE_BRANCH_AND_LOCAL_EXECUTION
+STATE = CORRECTION_02_PROPOSED_AWAITING_HUMAN_SCOPE_APPROVAL
+APPROVAL_SCOPE = EXISTING_LOCAL_LEASE_PLUS_PROPOSED_EXACT_LOCK_TEST_CORRECTION
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
 ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
 ACTIVE_MICRO_WP = NOT_STARTED
 CURRENT_AUTHORITY = PLANNER_ARCHITECT
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_ENTRY_RECONCILIATION_ONLY
+NEXT_AUTHORITY = HUMAN_A0
+HANDOFF_READY = NO_SCOPE_EXPANSION_APPROVAL_REQUIRED
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -291,6 +291,7 @@ still repeat canonical checkout and entry-gate verification before writing.
 7. `docs/agent_handoff/CURRENT.md`
 8. `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md`
 9. `plugins/qi-agent-workbench/skills-lock.json`
+10. `tests/agent_workbench/test_skills_lock.py`
 
 ### 10.2 Read-only authorities and verification inputs
 
@@ -300,12 +301,45 @@ still repeat canonical checkout and entry-gate verification before writing.
 - `docs/agent/CI_CONTRACT.md`
 - `docs/agent/PATH_REGISTRY_CONTRACT.md`
 - `plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md`
-- `tests/agent_workbench/test_skills_lock.py`
 - directly relevant existing Agent Workbench tests
 
 If meeting acceptance requires editing a read-only or unlisted file, the Builder
 returns `SCOPE_EXPANSION_REQUIRED` and stops. The Work Order does not
 automatically expand.
+
+### 10.3 Correction 02: exact lock-test scope proposal
+
+Stage 2 added the approved tenth lock artifact,
+`skills/qi-agent-loop/SKILL.md`. The existing canonical lock test still hard-
+codes the previous nine-artifact set and the assertion
+`len(manifest["files"]) == 9`. The lock verifier and skill validator pass, while
+the targeted test returns 12 PASS and one failure at this obsolete expectation.
+
+Subject to direct Human A0 approval, the minimum test correction is limited to:
+
+1. add `skills/qi-agent-loop/SKILL.md` to `EXPECTED_ARTIFACTS`; and
+2. change the exact expected count from `9` to `10`.
+
+No test abstraction, verifier change, skip, xfail, gate weakening or unrelated
+test edit is authorized. After correction, run the exact targeted file once and,
+if green, continue the existing full sequential verification contract.
+
+The first measured registered targeted run created 156 files, 87 directories
+and 1,443,266 bytes. The earlier 64-file/eight-directory estimate is therefore
+superseded by measured evidence; it is not represented as having passed. Revise
+the uncommitted WP artifact budget to:
+
+```text
+TARGETED_RUN_ROOT_MAX_FILES = 256
+TARGETED_RUN_ROOT_MAX_DIRS = 128
+TARGETED_RUN_ROOT_MAX_BYTES = 16777216
+CUMULATIVE_WP_TEMP_MAX_FILES = 10000
+CUMULATIVE_WP_TEMP_MAX_DIRS = 5000
+CUMULATIVE_WP_TEMP_MAX_BYTES = 1073741824
+MIN_D_FREE_BYTES = 10737418240
+```
+
+Existing test artifacts remain `KEEP`; this correction grants no cleanup.
 
 ## 11. Explicit exclusions
 
@@ -609,6 +643,12 @@ business, merge or release authority.
   machinery;
 - two targeted verification attempts and one full local run unless root-cause
   evidence requires a bounded repeat;
+- Correction 02 permits one additional exact targeted lock-test run after the
+  two-line expectation update, followed by the one full sequential run only if
+  targeted verification is green;
+- measured scratch limits are 256 files/128 directories/16 MiB per targeted
+  run root and 10,000 files/5,000 directories/1 GiB cumulatively for this WP,
+  while preserving at least 10 GiB free on drive D;
 - no cleanup;
 - no scope expansion by implication; and
 - stop when the correction budget is exhausted.
@@ -714,13 +754,16 @@ hosted CI, final exact-head review and Planner reconciliation.
 
 ```text
 DESIGN = HUMAN_APPROVED
-WO_FILE = READY_FOR_PLANNER_COMMIT
+WO_FILE = CORRECTION_02_PROPOSED
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
-BUILDER_EXECUTION = HUMAN_AUTHORIZED_LOCAL_ONLY; STAGE_0_ENTRY_RECONCILIATION_REQUIRED
+STAGE_0 = COMPLETE_LOCAL; 66f331c3392537fafcd48b8ed6360f4ee4939985
+STAGE_1 = COMPLETE_LOCAL; 9557b63a977037c7de8356f66eadbd65e53fc394
+STAGE_2 = HOLD_UNCOMMITTED; EXACT_LOCK_TEST_SCOPE_EXPANSION_REQUIRED
+BUILDER_EXECUTION = HOLD_PENDING_DIRECT_HUMAN_CORRECTION_02_SCOPE_APPROVAL
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_UPDATES_CURRENT_AND_FEEDBACK_ONLY_COMMITS_STAGE_0_THEN_RERUNS_ROLE_ENTRY_GATE
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER_ENTRY_RECONCILIATION_ONLY
+EXACTLY_ONE_NEXT_ACTION = HUMAN_A0_APPROVES_OR_REJECTS_EXACT_TWO_LINE_LOCK_TEST_CORRECTION_AND_MEASURED_TEMP_BUDGET
+NEXT_AUTHORITY = HUMAN_A0
 ```
