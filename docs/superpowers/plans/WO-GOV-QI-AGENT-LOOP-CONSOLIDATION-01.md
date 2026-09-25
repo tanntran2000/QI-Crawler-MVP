@@ -5,15 +5,15 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = CORRECTION_02_PROPOSED_AWAITING_HUMAN_SCOPE_APPROVAL
-APPROVAL_SCOPE = EXISTING_LOCAL_LEASE_PLUS_PROPOSED_EXACT_LOCK_TEST_CORRECTION
+STATE = CORRECTION_03_HUMAN_DIRECTED_FORWARD_CORRECTION
+APPROVAL_SCOPE = THIRTEEN_PATH_LOCAL_GOVERNANCE_ROLE_REPORT_LOCK_AND_TEST_CORRECTION
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
 ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
-ACTIVE_MICRO_WP = NOT_STARTED
+ACTIVE_MICRO_WP = CORRECTION_03_FORWARD_STAGE_2
 CURRENT_AUTHORITY = PLANNER_ARCHITECT
-NEXT_AUTHORITY = HUMAN_A0
-HANDOFF_READY = NO_SCOPE_EXPANSION_APPROVAL_REQUIRED
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+HANDOFF_READY = YES_FOR_FORWARD_CORRECTION_03
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -67,16 +67,20 @@ HUMAN A0
        -> INDEPENDENT_REVIEWER_AUDITOR
 ```
 
-### 3.1 Execution-control poles
+### 3.1 Four operational roles
 
-The three execution-control poles under Human A0 are:
+The supervised Agent Loop has four operational roles beneath Human A0:
 
 1. `PLANNER_ARCHITECT`
 2. `BUILDER_SINGLE_WRITER`
-3. `INDEPENDENT_REVIEWER_AUDITOR`
+3. `MACHINE_VERIFIER` / Tester
+4. `INDEPENDENT_REVIEWER_AUDITOR`
 
-The Machine Verifier/Tester is evidence-only and is not a fourth authority
-pole.
+Role membership does not imply equal authority. Tester is a full operational
+role for machine evidence while remaining evidence-only: it has no scope,
+acceptance, WP-closure, routing-policy, merge or release authority. The active
+governance model does not maintain a second structural abstraction over these
+roles.
 
 ### 3.2 Planner
 
@@ -164,7 +168,7 @@ another Planner task.
 | Commit, checkpoint, push, PR, audit and merge lifecycle | `docs/agent/LOCAL_STAGED_INTEGRATION.md` | Canonical integration definition |
 | Human A0 decisions | `docs/agent/FEEDBACK_LEDGER.md` | Record decision and disposition once |
 | Active handoff state | `docs/agent_handoff/CURRENT.md` | One current actionable snapshot only |
-| Product strategy and layer classification | `docs/agent/MASTER_ROADMAP.md` | Read-only authority for this Work Order |
+| Product strategy and layer classification | `docs/agent/MASTER_ROADMAP.md` | Update only the active Agent Loop role terminology authorized by Correction 03 |
 | Unresolved strategic/product change | `docs/agent/MASTER_ROADMAP_DELTA.md` | Update only on an actual Delta trigger |
 | Agent Loop operational workflow | `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md` | Workflow only; cannot originate authority |
 | Skill content identity | `plugins/qi-agent-workbench/skills-lock.json` | Generated from actual governed skill content |
@@ -182,7 +186,7 @@ PRODUCTION_RUNTIME_CHANGE = NO
 DATABASE_CHANGE = NO
 GUI_CHANGE = NO
 PACKAGING_CHANGE = NO
-RELEASE_IMPACT = DOCS_SKILL_INTERNAL_ONLY
+RELEASE_IMPACT = GOVERNANCE_DOCS_SKILL_AND_GOVERNANCE_TEST_ONLY
 MODEL_RUNTIME_OR_RUNNER = OUT_OF_SCOPE
 ```
 
@@ -292,11 +296,12 @@ still repeat canonical checkout and entry-gate verification before writing.
 8. `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md`
 9. `plugins/qi-agent-workbench/skills-lock.json`
 10. `tests/agent_workbench/test_skills_lock.py`
+11. `AGENTS.md`
+12. `docs/agent/MASTER_ROADMAP.md`
+13. `docs/agent/HUMAN_COLLABORATION.md`
 
-### 10.2 Read-only authorities and verification inputs
+### 10.2 Mandatory authorities and verification inputs
 
-- `AGENTS.md`
-- `docs/agent/MASTER_ROADMAP.md`
 - `docs/agent/MASTER_ROADMAP_DELTA.md`
 - `docs/agent/CI_CONTRACT.md`
 - `docs/agent/PATH_REGISTRY_CONTRACT.md`
@@ -315,7 +320,8 @@ codes the previous nine-artifact set and the assertion
 `len(manifest["files"]) == 9`. The lock verifier and skill validator pass, while
 the targeted test returns 12 PASS and one failure at this obsolete expectation.
 
-Subject to direct Human A0 approval, the minimum test correction is limited to:
+Correction 03 incorporates the Human-directed minimum test correction, limited
+to:
 
 1. add `skills/qi-agent-loop/SKILL.md` to `EXPECTED_ARTIFACTS`; and
 2. change the exact expected count from `9` to `10`.
@@ -327,12 +333,14 @@ if green, continue the existing full sequential verification contract.
 The first measured registered targeted run created 156 files, 87 directories
 and 1,443,266 bytes. The earlier 64-file/eight-directory estimate is therefore
 superseded by measured evidence; it is not represented as having passed. Revise
-the uncommitted WP artifact budget to:
+the uncommitted WP artifact budget using the measured targeted ceiling and the
+separate proposed full-WP ceiling below:
 
 ```text
 TARGETED_RUN_ROOT_MAX_FILES = 256
 TARGETED_RUN_ROOT_MAX_DIRS = 128
 TARGETED_RUN_ROOT_MAX_BYTES = 16777216
+# Proposed finite full-WP ceiling; not a measured targeted limit.
 CUMULATIVE_WP_TEMP_MAX_FILES = 10000
 CUMULATIVE_WP_TEMP_MAX_DIRS = 5000
 CUMULATIVE_WP_TEMP_MAX_BYTES = 1073741824
@@ -340,6 +348,70 @@ MIN_D_FREE_BYTES = 10737418240
 ```
 
 Existing test artifacts remain `KEEP`; this correction grants no cleanup.
+
+### 10.4 Correction 03: four-role and report-admission forward correction
+
+Human A0 requested one supervised four-role model without the additional
+three-authority-layer interpretation. Direct inspection confirmed the obsolete
+layer language in
+`AGENTS.md`, the Master Roadmap, Operating Model, Role Boot, Human Collaboration,
+this Work Order and the new skill. Historical Feedback entries may retain the
+wording as contemporaneous evidence; add a new decision entry that supersedes
+their active operational effect rather than rewriting history.
+
+The final active contract shall state:
+
+```text
+HUMAN_A0 = MATERIAL_AUTHORITY_ABOVE_THE_LOOP
+OPERATIONAL_ROLES = PLANNER; BUILDER; TESTER_MACHINE_VERIFIER; REVIEWER
+TESTER = OPERATIONAL_ROLE_WITH_EVIDENCE_ONLY_AUTHORITY
+FOUR_ROLES != FOUR_EQUAL_AUTHORITIES
+ROLE > MODEL_NAME
+```
+
+Forward-correct the existing Stage 1 commit; do not amend or rewrite it. Remove
+the obsolete structural-layer terminology from the exact active canonical files
+in the allowlist. Use role, cross-role challenge and authority-boundary wording. Do not
+rewrite historical Feedback text; record the new Human decision and its
+supersession boundary in a new Feedback entry.
+
+The Operating Model is the single canonical owner of report identity and
+admission. Restore the minimum complete supervised report contract:
+
+```text
+TASK_ENVELOPE = existing ten fields
+REPORT_METADATA = WO_ID, RUN_OR_ATTEMPT_ID, REPORT_ID, SOURCE_TASK_ID,
+                  DESTINATION_TASK_ID, OBJECT_ID, IN_REPLY_TO
+EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
+                              OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
+```
+
+Required behavior:
+
+- missing, truncated, stale, wrong-route, wrong-object or wrong-attempt reports
+  are `HOLD` and cannot advance state;
+- one consumed transition cannot advance or redispatch again;
+- a repeated `REPORT_ID` or later report for a consumed binding is a duplicate;
+- a correction proceeds only after Planner opens a new expected attempt and
+  `IN_REPLY_TO` identifies the superseded report/finding;
+- candidate drift requires a new `OBJECT_ID`; and
+- this is supervised admission tracking, not exactly-once transport and not a
+  runner, broker, database or scheduler.
+
+The skill shall link to that canonical contract and carry only the workflow
+summary needed to use it. It must not duplicate the entire Operating Model.
+
+Correction 03 supersedes Correction 02 as the active forward correction and
+includes its exact two-line lock-test change. It does not reopen Stage 0, amend
+Stage 1, continue B09, modify product/runtime code, alter workflows, install a
+plugin, create new scaffolding or authorize a remote action.
+
+```text
+CORRECTION_03_BASE_HEAD = a794a13ff5c229e436f21b47a2d52db05a671dd8
+STAGE_2_CANDIDATE_BASE = 9557b63a977037c7de8356f66eadbd65e53fc394
+PRODUCT_OR_RUNTIME_CODE_CHANGE = NO
+GOVERNANCE_TEST_CHANGE = EXACT_TWO_LINE_LOCK_EXPECTATION_ONLY
+```
 
 ## 11. Explicit exclusions
 
@@ -391,7 +463,8 @@ starting Stage 1.
 
 The Builder shall:
 
-1. establish the three execution-control poles and evidence-only Tester;
+1. establish the four operational roles beneath Human A0 and Tester as the
+   evidence-only role;
 2. align all normal reporting to the Planner;
 3. preserve the distinct meanings of Builder result, Tester evidence, Reviewer
    verdict, Planner reconciliation and Human decision;
@@ -437,9 +510,12 @@ Delta items and audit evidence remain in their canonical owners.
 The Work Order passes only when all statements below are true:
 
 1. Human A0 is authority above the Agent Loop.
-2. Planner, Builder and Reviewer are the three execution-control poles.
-3. Tester/Machine Verifier is consistently evidence-only.
-4. No governed file presents Tester as a fourth authority pole.
+2. Planner, Builder, Tester/Machine Verifier and Reviewer are the four
+   operational roles.
+3. Tester/Machine Verifier is consistently evidence-only and has no acceptance,
+   WP-closure, merge, release, scope or routing-policy authority.
+4. No active canonical file keeps a second structural abstraction over the four roles;
+   historical Feedback remains historical evidence only.
 5. Builder, Tester and Reviewer normal reports return to the Planner.
 6. Critical matters outside role authority route through Planner to Human.
 7. Planner cannot edit Builder output or replace machine verification.
@@ -467,6 +543,12 @@ The Work Order passes only when all statements below are true:
 27. Hosted CI is evaluated on the exact governance PR head.
 28. Reviewer audits the exact final head after any correction.
 29. Human performs or explicitly authorizes merge.
+30. Operating Model owns the seven-field `REPORT_METADATA` and six-field
+    `EXPECTED_PENDING_TRANSITION` contracts.
+31. Wrong object, attempt or route and stale, truncated or duplicate reports
+    cannot advance or redispatch a consumed transition.
+32. A correction requires a Planner-opened attempt with `IN_REPLY_TO`, and
+    supervised admission never claims exactly-once transport.
 
 ### Allowed claims
 
@@ -500,6 +582,12 @@ The contract review must exercise or statically prove these scenarios:
 8. A remote checkpoint is created without a PR.
 9. A skill instruction conflicts with repository authority.
 10. A terminal sync records completion without claiming its own future commit.
+11. Every active canonical file in the correction scope uses the four-role
+    model and contains no obsolete structural-layer terminology.
+12. Report admission rejects missing, truncated, stale, duplicate, wrong-route,
+    wrong-object and wrong-attempt inputs without advancing or redispatching.
+13. A correction report is admitted only for a Planner-opened attempt with an
+    `IN_REPLY_TO` binding to the superseded report or finding.
 
 ## 16. CI fitness contract
 
@@ -559,6 +647,17 @@ python -m pytest tests/agent_workbench/test_skills_lock.py
 
 Run additional existing Agent Workbench tests only when directly affected by the
 skill metadata or contract.
+
+Static inspection must also prove:
+
+- the active correction-scope authorities consistently name four operational
+  roles and no secondary structural layer;
+- Operating Model contains the exact `REPORT_METADATA` and
+  `EXPECTED_PENDING_TRANSITION` fields and their fail-closed admission rules;
+- the skill links to the Operating Model rather than duplicating the complete
+  contract; and
+- historical Feedback wording remains unchanged while a new Human decision
+  records the supersession boundary.
 
 ### Full local
 
@@ -643,12 +742,12 @@ business, merge or release authority.
   machinery;
 - two targeted verification attempts and one full local run unless root-cause
   evidence requires a bounded repeat;
-- Correction 02 permits one additional exact targeted lock-test run after the
+- Correction 03 permits one additional exact targeted lock-test run after the
   two-line expectation update, followed by the one full sequential run only if
   targeted verification is green;
 - measured scratch limits are 256 files/128 directories/16 MiB per targeted
-  run root and 10,000 files/5,000 directories/1 GiB cumulatively for this WP,
-  while preserving at least 10 GiB free on drive D;
+  run root; the separate proposed finite full-WP ceiling is 10,000 files/5,000
+  directories/1 GiB, while preserving at least 10 GiB free on drive D;
 - no cleanup;
 - no scope expansion by implication; and
 - stop when the correction budget is exhausted.
@@ -663,7 +762,7 @@ HUMAN APPROVES DESIGN
   -> HUMAN AUTHORIZES GOVERNANCE BRANCH
   -> PLANNER RECORDS FINAL WO/LEASE OBJECT
   -> HUMAN AUTHORIZES BUILDER EXECUTION
-  -> BUILDER EXECUTES STAGES 1 AND 2
+  -> BUILDER EXECUTES FORWARD CORRECTION 03 AND COMPLETES STAGE 2
   -> PLANNER BUILDER-RESULT REVIEW
   -> TESTER MACHINE EVIDENCE
   -> PLANNER EVIDENCE REVIEW
@@ -702,11 +801,14 @@ Stop and report to Planner when any of these occurs:
 ## 23. Spine contract
 
 ```text
-SPINE_IMPACT = GOVERNANCE | CURRENT | FEEDBACK
+SPINE_IMPACT = GOVERNANCE | ROADMAP | CURRENT | FEEDBACK
 SPINE_TARGET_FILES =
+  AGENTS.md
+  docs/agent/MASTER_ROADMAP.md
   docs/agent/OPERATING_MODEL.md
   docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md
   docs/agent/LOCAL_STAGED_INTEGRATION.md
+  docs/agent/HUMAN_COLLABORATION.md
   docs/agent/FEEDBACK_LEDGER.md
   docs/agent/PATH_REGISTRY.yaml
   docs/agent_handoff/CURRENT.md
@@ -714,9 +816,9 @@ SPINE_SYNC_STATE = HOLD_UNTIL_IMPLEMENTED_REVIEWED_AND_RECONCILED
 PROJECT_MEMORY_PROMOTION = NOT_BEFORE_MERGE
 ```
 
-`AGENTS.md` and the Master Roadmap must be inspected at reconciliation but are
-not automatically modified. Material conflict returns to Planner/Human rather
-than being silently resolved by the Builder.
+Every listed target is modified only when the Correction 03 trigger applies.
+Material conflict outside the explicit four-role/report-admission correction
+returns to Planner/Human rather than being silently resolved by the Builder.
 
 ## 24. Separate Human A0 decisions still required
 
@@ -734,6 +836,13 @@ After clean entry is verified, authorize creation of
 
 Authorize the named Builder Single Writer to execute this Work Order's exact
 allowlist, stages, commands and bounded local commits.
+
+### Decision C2: Correction 03 — HUMAN DIRECTED
+
+Human A0 directed Planner to reconcile the four-role model, restore complete
+report admission protection, include the exact lock-test correction and issue a
+forward Work Order to Builder. This local correction expands the allowlist only
+to the thirteen paths in section 10.1 and retains every remote/Human boundary.
 
 ### Decision D: push
 
@@ -754,16 +863,16 @@ hosted CI, final exact-head review and Planner reconciliation.
 
 ```text
 DESIGN = HUMAN_APPROVED
-WO_FILE = CORRECTION_02_PROPOSED
+WO_FILE = CORRECTION_03_HUMAN_DIRECTED
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
 STAGE_0 = COMPLETE_LOCAL; 66f331c3392537fafcd48b8ed6360f4ee4939985
 STAGE_1 = COMPLETE_LOCAL; 9557b63a977037c7de8356f66eadbd65e53fc394
-STAGE_2 = HOLD_UNCOMMITTED; EXACT_LOCK_TEST_SCOPE_EXPANSION_REQUIRED
-BUILDER_EXECUTION = HOLD_PENDING_DIRECT_HUMAN_CORRECTION_02_SCOPE_APPROVAL
+STAGE_2 = HOLD_UNCOMMITTED; CORRECTION_03_FORWARD_SCOPE_OPENED
+BUILDER_EXECUTION = HUMAN_DIRECTED_LOCAL_FORWARD_CORRECTION_03
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = HUMAN_A0_APPROVES_OR_REJECTS_EXACT_TWO_LINE_LOCK_TEST_CORRECTION_AND_MEASURED_TEMP_BUDGET
-NEXT_AUTHORITY = HUMAN_A0
+EXACTLY_ONE_NEXT_ACTION = BUILDER_APPLIES_CORRECTION_03_TO_FINAL_CONTENT_THEN_RUNS_ONE_TARGETED_AND_ONE_FULL_VERIFICATION_SEQUENCE
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 ```
