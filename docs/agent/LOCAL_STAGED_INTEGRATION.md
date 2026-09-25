@@ -17,29 +17,19 @@ explicit Human decision, or an approved Work Order.
 
 ## 2. Authority boundary
 
-Roles remain separate:
-
-- `HUMAN_AUTHORITY` approves Parent-WP scope, merge, release, and exceptions.
-- `PLANNER_ARCHITECT` designs and decomposes the approved Parent WP.
-- `BUILDER_SINGLE_WRITER` is the only writer for one active micro-WP.
-- Local machine execution supplies `MACHINE_VERIFIER` evidence when required.
-- `REVIEWER_AUDITOR` independently judges scope, logic, invariants, risks,
-  diff, test adequacy, and the validity of supplied evidence after Builder and
-  Machine-Verifier evidence.
-- GitHub CI supplies clean-environment and multi-platform verification when
-  available.
-
-`REVIEWER_AUDITOR` is not a runtime CI runner. Local execution evidence and
-independent reasoning review must not be collapsed into one authority.
+Role contracts, authority and normal report routing are defined in
+`docs/agent/OPERATING_MODEL.md`. This contract governs integration gates only:
+Machine Verifier and hosted CI produce execution evidence; `REVIEWER_AUDITOR`
+independently judges the exact object and is never the runtime CI runner.
 
 ## 3. Parent-WP execution flow
 
+Role dispatch and report routing follow the Operating Model. This contract
+starts at local integration and owns the following gates:
+
 ```text
-Human approves Parent WP
-→ Planner decomposes bounded micro-WPs
-→ Single Writer implements one micro-WP
-→ local verification
-→ local commit
+local verification
+→ local semantic commit
 → REVIEWER HANDOFF CHECKPOINT
 → INDEPENDENT REVIEW
 → PASS / HOLD / FAIL
@@ -90,47 +80,16 @@ with the architectural reason.
 
 ### 4.1 Large bounded batch and Approval Lease
 
-`LARGE_BOUNDED_BATCH` is a coherent set of internal stages under one approved
-Work Order, not a bypass around review. Before approval, the Planner records:
-
-```text
-BATCH_OBJECTIVE
-BATCH_SCOPE / BATCH_EXCLUSIONS
-INTERNAL_STAGES
-STAGE_ENTRY / STAGE_OUTPUT / STAGE_VERIFICATION / STAGE_STOP
-SEMANTIC_LOCAL_COMMITS
-FINAL_CUMULATIVE_VERIFICATION
-MATERIAL_BOUNDARY_ESCALATION
-```
-
-The Human `APPROVAL_LEASE` covers that bounded batch, including safe in-scope
-commands, git add, semantic local commits and ordinary stage transitions. It
-does not authorize another file family, writer, architecture/data boundary,
-future Work Package, scope expansion, material architecture expansion,
-destructive/data-destroying operation, audited-history rewrite, amend, rebase,
-force push, unauthorized remote push, PR creation/state change, merge, release,
-Human business/A0 decision, Reviewer verdict creation or Planner reconciliation
-creation. A material blocker or boundary pauses execution for Planner/Human
-reapproval. The Builder reports stage evidence as it works, but the independent
-Reviewer audits the complete coherent batch at its governed handoff.
+Batch shape, approval lease and prohibited implicit permissions are owned by
+`LARGE_BOUNDED_BATCH and APPROVAL_LEASE_CONTRACT` in
+`docs/agent/OPERATING_MODEL.md`. This contract adds no second lease or scope
+rule; its integration stages still require semantic commits, bounded evidence
+and the gates in section 3.
 
 ### 4.2 Planner follow-through lifecycle
 
-Planner ownership continues through the complete governed unit:
-
-```text
-PLANNED → AUTHORIZED → BUILDER_RUNNING → BUILDER_RETURNED
-→ PLANNER_BUILDER_RESULT_REVIEW → REVIEWER_ASSIGNED → REVIEWER_RETURNED
-→ PLANNER_POST_REVIEW_RECONCILIATION → INTEGRATION_OR_HUMAN_DECISION
-→ POST_STATE_VERIFIED → CLOSED
-```
-
-`WORK_ORDER_ISSUED != DONE`, `AUTHORIZED != BUILDER_COMPLETE`,
-`BUILDER_RETURNED != REVIEWED`, `REVIEWER_PASS != MERGE_AUTHORIZATION`,
-`MERGE_PERFORMED != POST_STATE_VERIFIED`, and
-`POST_STATE_VERIFIED != RELEASE_AUTHORIZATION`. `CLOSED` requires terminal
-evidence; Planner does not implement, audit independently or replace Human
-authority.
+The Planner-owned lifecycle and state distinctions are defined by
+`PLANNER_FOLLOW_THROUGH_CONTRACT` in `docs/agent/OPERATING_MODEL.md`.
 
 ## 5. Commit freeze and forward correction
 
@@ -407,6 +366,12 @@ LAST_AUDIT
 REMOTE_CHECKPOINT
 PR_STATE
 HOSTED_CI_STATE
+CHECKPOINT_WITHOUT_PR
+NO_PR_REASON
+INTEGRATION_TARGET
+PR_OPENING_TRIGGER
+OWNER
+EXACTLY_ONE_NEXT_ACTION
 NEXT_MICRO_WP
 NEXT_AUTHORITY
 STOP_STATE
@@ -451,22 +416,9 @@ checkpoint or Micro POST alone does not establish this continuity result.
 
 ### 8.2 CURRENT write authority and Builder handoff discipline
 
-`CURRENT.md` is the active handoff/transition authority and is conditionally
-writable by the active `BUILDER_SINGLE_WRITER` only when it is in the approved
-`WRITE_SCOPE`, a governed transition trigger exists, and each fact has resolved
-evidence and authority provenance. The Builder may record observable execution
-facts and already-resolved Reviewer, Planner or Human decisions from exact
-evidence, but may not originate them:
-
-```text
-RECORD_AUTHORITY != ORIGINATE_AUTHORITY
-CURRENT_UPDATE_FREQUENCY = GOVERNED_STATE_TRANSITION_FREQUENCY
-CURRENT_UPDATE_FREQUENCY != COMMAND_FREQUENCY
-```
-
-CURRENT is not a command, test, edit or chat diary. Large-Batch stage progress
-does not require a refresh unless a material transition, handoff or blocker
-occurs.
+CURRENT write authority and evidence provenance are defined by
+`CURRENT_WRITE_AUTHORITY_CONTRACT` in `docs/agent/OPERATING_MODEL.md`. This
+section defines only when integration transitions require a handoff refresh.
 
 The Builder refreshes `CURRENT.md` only at these governed state transitions:
 
@@ -475,9 +427,8 @@ The Builder refreshes `CURRENT.md` only at these governed state transitions:
 - work crosses an agent or session boundary;
 - Parent merge or closeout occurs.
 
-Do not refresh it for each file edit, test run, unaudited progress update,
-speculative idea, or chat narration. A handoff must be short, factual,
-evidence-backed and actionable, identifying at minimum:
+Do not refresh it for ordinary edits, tests or chat narration. At a required
+handoff, keep it short, factual and actionable, identifying at minimum:
 
 ```text
 ACTIVE_PARENT_OR_MICRO_WP

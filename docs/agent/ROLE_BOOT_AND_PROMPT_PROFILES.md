@@ -173,24 +173,10 @@ EXACTLY_ONE_NEXT_ACTION_RULE = Emit one actionable next authority/action; do
   not leave competing paths active.
 ```
 
-Planner phase tree:
-
-```text
-A. No active WP → Human intent → Delta/Master alignment → bounded design →
-   Human A0 → Builder Work Order
-B. Builder running → do not reissue Work Order; wait or reconcile a material
-   finding
-C. Builder returned → Planner builder-result review → Delta/Master comparison →
-   Reviewer challenge
-D. Reviewer returned → Planner post-review reconciliation → exact evidence →
-   correction/integration/Human decision
-E. PR + CI complete → exact-head verification → Human merge authority
-F. Merged → post-merge reconciliation → CURRENT/Delta/Master promotion check →
-   Project Memory/Feedback/Failure/Lessons triggers → one next action
-```
-
-Planner must not issue a new technical Work Order until the current phase is
-resolved.
+Planner phase ownership and the return path for Builder, Tester and Reviewer
+reports follow the `PLANNER_FOLLOW_THROUGH_CONTRACT` in
+`docs/agent/OPERATING_MODEL.md`. Resolve the current phase there before issuing
+another technical Work Order.
 
 ## 4. BUILDER_SINGLE_WRITER boot profile
 
@@ -230,7 +216,7 @@ INPUT_PACKET = Approved Work Order, CURRENT, exact base, context authorities,
   and applicable plugin/verification contract.
 REQUIRED_OUTPUT_PACKET = Changed files, commits, tests/checks, findings,
   Spine impact, tree, remote effects and one next action.
-HANDOFF_TO = PLANNER_ARCHITECT / MACHINE_VERIFIER / REVIEWER_AUDITOR.
+HANDOFF_TO = PLANNER_ARCHITECT; Planner routes approved verification and review.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return exactly one next action and authority;
   never silently continue beyond a material boundary.
 ```
@@ -269,26 +255,17 @@ INPUT_PACKET = Approved Work Order, challenge contract, exact Git range and
   Builder/Machine-Verifier evidence.
 REQUIRED_OUTPUT_PACKET = Exact range, evidence, findings/severity, scope and
   Spine impact, verdict and one next authority/action.
-HANDOFF_TO = PLANNER_ARCHITECT / HUMAN_AUTHORITY when material.
+HANDOFF_TO = PLANNER_ARCHITECT; material Human decisions route through Planner.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return one disposition path; a PASS is not merge
   authorization.
 ```
 
 ## 6. Three-pole mutual challenge contract
 
-Human A0 is above the three independent execution-control poles:
-
-```text
-HUMAN A0
-  ↓ material authority
-PLANNER_ARCHITECT ↔ BUILDER_SINGLE_WRITER ↔ REVIEWER_AUDITOR
-                         ↑ evidence-only MACHINE_VERIFIER
-```
-
-Planner designs and reconciles; Builder executes as Single Writer; Reviewer
-audits independently. Any pole may and must HOLD on a material prompt,
-authority, scope, evidence or invariant conflict. A challenge is evidence,
-not a vote, override or rewrite:
+The execution-control poles and their authorities are defined in
+`docs/agent/OPERATING_MODEL.md`. This section defines only mutual challenge:
+any pole may HOLD on a material prompt, authority, scope, evidence or invariant
+conflict. A challenge is evidence, not a vote, override or rewrite:
 
 ```text
 RIGHT_TO_CHALLENGE != RIGHT_TO_OVERRIDE
@@ -297,12 +274,9 @@ RECEIVED_CORRECTION != AUTOMATIC_AUTHORITY
 BLIND_PROMPT_EXECUTION = FORBIDDEN
 ```
 
-Technical/prompt/evidence conflicts route to `PLANNER_ARCHITECT`. Unresolved
-Planner versus Human A0 or business authority conflicts route to
-`HUMAN_AUTHORITY`. The Machine Verifier never becomes a fourth decision pole.
-
-The Master Roadmap's “Planning & Audit Pole” is a high-level responsibility
-family; operational governance keeps Planner and Reviewer separate inside it.
+Technical, prompt and evidence conflicts return to Planner. Unresolved
+Planner/Human or business-authority conflicts go through Planner to Human A0.
+The Machine Verifier remains evidence-only.
 
 ## 7. Action-first prompt standard
 
