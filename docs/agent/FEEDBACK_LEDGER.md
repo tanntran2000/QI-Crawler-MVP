@@ -1438,3 +1438,19 @@ Invariant: Bridge A remains HOLD while the supervised maintenance capture barrie
 Boundary: Preserve preceding source/test working-tree modifications but exclude them from this checkpoint. Do not stage untracked artifacts or clean anything. No tests, manual CI invocation, PR creation/API action, merge, release, B/C/D, mutation engine, startup integration or live update. An existing automatic hosted workflow triggered by a branch push is not a manually requested CI run and must not be represented as Bridge A evidence.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ~~~
+
+### FB-0053 — Human A0 approval of Agent Loop direction and local B09 preservation
+
+~~~text
+State: ACCEPTED / ROUTED / BOUNDED_LOCAL_PRESERVATION
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Type: PROCESS / HANDOFF
+Authority: Human A0 approval relayed by Planner in task 01a0d14b-4e41-7480-9179-d1b230295f77; explicit response: "cho phép những điều trên và chấp nhận cho Planner tiến hành quy trình Agent Loop"
+Decision: A0 approved the presented Agent Loop direction and authorized Planner to proceed. For the prerequisite B09 preservation, A0 authorized exactly two local commits in order: first CURRENT.md and FEEDBACK_LEDGER.md to reconcile this authority; then, only after ROLE_ENTRY_GATE passes and hashes are reverified, the exact existing operational_update.py and test_operational_update.py bytes.
+Supersedes: FB-0052's source/test exclusion only for these exact local preservation commits. B09 remains incomplete and Bridge A remains HOLD.
+Invariant: No source/test byte changes; the strict B09 source DB/WAL/SHM byte-and-existence invariant remains binding.
+Boundary: Both commits are local only. No tests, CI, push, PR, merge, release, cleanup, reset, stash, rebase, amend, force operation, B/C/D, mutation engine, startup integration or live update. Keep every untracked artifact, including the untracked governance WO, unstaged.
+Expected source SHA-256: operational_update.py=87DD4D680C716CDB0FC54AE03DF18FCDD3ED82EB6A0F98E4621F0D565C824ED9; test_operational_update.py=7A49CEA99CE9F994C81199C646E0B867FCE7FCD48B4148D76E0EF0C945AA1559.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT; local preservation sequence pending.
+~~~
