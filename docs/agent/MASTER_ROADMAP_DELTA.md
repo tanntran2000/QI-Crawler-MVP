@@ -1599,7 +1599,7 @@ HUMAN_A0_GATES = CHANGING_ACTIVE_AMBIGUOUS_OR_UNPROVEN_SOURCE_HOLD_WITH_REASON; 
 SOURCE_BYTE_INVARIANT = DB_WAL_SHM_BYTES_AND_EXISTENCE_EXACTLY_EQUAL; UNCHANGED
 MAINTENANCE_TRANSACTION = BEGIN_IMMEDIATE_AND_MAINTENANCE_LOCK_HELD_THROUGH_COMPLETE; OPENS_SOURCE_SQLITE; LOCK_IS_COOPERATIVE; TEST_LEGACY_WRITE_CLIENT_BYPASSES_LOCK; NO_B09_STARTUP_OR_RESTART_INTEGRATION_FOUND
 OPERATIONAL_RELEASE_PREFLIGHT = ONE_TIME_QI_CRAWLER_PROCESS_CENSUS_BEFORE_COPY; NOT_HELD_THROUGH_COPY; DOES_NOT_PREVENT_RELAUNCH_OR_EXTERNAL_SQLITE_WRITER
-A3_SCOPE = PROCESS_PROOF_BOUNDED_TO_CONTROLLED_JOB_TREE; NOT_WHOLE_HOST_MAINTENANCE_LEASE; SQLITE_WRITER_PROBE_ROLLS_BACK_BEFORE_COPY_AND_OPENS_SOURCE
+A3_SCOPE = PROCESS_PROOF_BOUNDED_TRIAL_PID_JOB_SCOPE; NOT_WHOLE_HOST_MAINTENANCE_LEASE; SQLITE_WRITER_PROBE_ROLLS_BACK_BEFORE_COPY_AND_OPENS_SOURCE
 BRIDGE_A_SOURCE_PATH = CURRENT_ONLINE_BACKUP_OBSERVED_TO_CHANGE_SOURCE_SHM; PRIOR_RAW_THREE_FILE_COPY_INTERLEAVING_RETURNED_FALSE_SAFE_RESULT; NEITHER_IS_ACCEPTABLE_AS_PROOF
 EXISTING_CAPTURE_BARRIER = NONE_FOUND_THAT_HOLDS_WRITER_STOP_AND_NO_RESTART_THROUGH_COPY_AND_ISOLATED_COPY_VERIFICATION_WHILE_PRESERVING_EXACT_SOURCE_BYTES
 AUDIT_PATHS = src/qi_crawler/operational_update.py::_database_paths; src/qi_crawler/update_transaction.py::MaintenanceTransaction.start/complete; tests/test_update_transaction.py::legacy_write; src/qi_crawler/operational_release.py::_live_preflight/_promote_staged_root; tools/release/a3_process_observer.py::A3ProcessObserver.census; tools/release/a3_recovery.py::sqlite_writer_quiescence_probe; tools/release/a3_probe_windows.ps1
@@ -1608,8 +1608,8 @@ REVIEWER_TEST_CHALLENGE = STABLE_COMMITTED_UNCHECKPOINTED_WAL_POSITIVE; WRITER_R
 TEST_STATUS = NO_TEST_OR_PROTOTYPE_RUN_IN_THIS_READ_ONLY_AUDIT; CANONICAL_SEQUENTIAL_SUITE_NOT_RUN; PRIOR_XDIST_N2_REMAINS_UNKNOWN
 NEXT_WO_RECOMMENDATION = ONE_BOUNDED_BRIDGE_A_SUPERVISED_MAINTENANCE_CAPTURE_BARRIER_IMPLEMENTATION_AND_TEST_WO; PROVE_STOP_AND_RESTART_EXCLUSION_FOR_COMPLETE_COPY_AND_VALIDATION; FAIL_CLOSED_WITH_REASON_ON_CENSUS_OR_BARRIER_GAP; PRESERVE_SOURCE_DB_WAL_SHM_BYTES_AND_EXISTENCE; STOP_IF_NO_SUPPORTED_BOUNDARY_CAN_PASS
 BRIDGE_A_STATUS = HOLD; THIS_SCOPE_DECISION_IS_NOT_PASS; NO_LIVE_UPDATE_AUTHORITY
-CODEGRAPH = USED_WITH_FALLBACK; INDEXED_IMPACT_DISCOVERY_PLUS_BOUNDED_DIRECT_SOURCE_READ_FOR_OMITTED_BODIES
-SUPERPOWERS = BRAINSTORMING_SPIKE_DISCIPLINE_USED; STATIC_FEASIBILITY_AUDIT; NO_PROTOTYPE
+CODEGRAPH = USED_WITH_FALLBACK; EXACT_OBSERVED_QUERY_IDS_AND_STRINGS_IN_CORRECTED_BUILDER_REPORT; MAINTENANCE_AND_A3_DETAILS_FROM_BOUNDED_DIRECT_SOURCE_TEST_READS
+SUPERPOWERS = VERIFIED_SKILL_DOCUMENT_READS_ONLY; BRAINSTORMING=USAGE_NOT_PROVEN; INVOCATION_IDS_IN_CORRECTED_BUILDER_REPORT; STATIC_READ_ONLY_SOURCE_AUDIT_FALLBACK; NO_PROTOTYPE
 EDIT_RADIUS = CURRENT.md; MASTER_ROADMAP_DELTA.md; FEEDBACK_LEDGER.md
 TEST_RADIUS = NONE
 SPINE_IMPACT = CURRENT; ROADMAP_DELTA; FEEDBACK
@@ -1626,7 +1626,7 @@ the lock is effective only for clients that take it, and the inspected test
 `legacy_write` client does not. No B09 startup/restart gate was found. The
 release preflight's process census is a single observation before promotion;
 it does not hold the source stable or prevent relaunch or another SQLite
-client. A3's process proof is scoped to its controlled Job tree, while its
+client. A3's process evidence is bounded to its trial PID/Job scope, while its
 SQLite probe rolls back before any copy. These components therefore do not
 form a reusable B09 capture lease and do not prove observer access preserves
 source sidecar bytes.
@@ -1642,3 +1642,23 @@ not force HOLD. If no supported boundary can pass these gates without
 mutating source bytes, stop and return HOLD for Planner/Human disposition. No
 source implementation is authorized by this audit, and no Bridge A pass or
 Roadmap maturity promotion is claimed.
+
+## B09 post-closeout HOLD and audit-report correction
+
+Human A0's sequencing is to continue B09 only under new bounded
+implementation authority while Bridge A remains technical HOLD. After B09
+closeout, enter HOLD for a joint Human/Planner review of Agent Loop and role
+layers before selecting the next Work Package. This defers that review; it does
+not cancel current B09 work.
+
+This addendum corrects only the next-action interpretation in Builder report
+`B09-BRIDGE-A-MAINTENANCE-BARRIER-01-BUILDER-REPORT-01`; the report and technical
+barrier evidence remain preserved. Corrected packet:
+`B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01-BUILDER-REPORT-01`. The packet
+records exact CodeGraph query IDs/strings, verified Superpowers skill reads,
+the `brainstorming` claim as `USAGE_NOT_PROVEN`, and the direct-source fallback.
+The immediate Bridge A action remains Planner review and a new bounded
+implementation/test Work Order; this docs-only correction grants no such
+implementation authority. Provenance: Human message
+`01a0d64c-e309-7233-a7e8-01101c311878`, reconfirmed by Planner correction WO
+`exec-b28fa689-a4af-4724-bc07-061c4f7c4e69`.

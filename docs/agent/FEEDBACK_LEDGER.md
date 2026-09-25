@@ -1331,7 +1331,7 @@ Technical reconciliation:
   `legacy_write` client does not take that lock and no B09 startup/restart
   gate was found.
 - The release preflight is a one-time process census; A3's process scope is a
-  controlled Job tree and its SQLite probe releases its transaction before
+  bounded trial PID/Job scope and its SQLite probe releases its transaction before
   copy. None proves a B09 capture lease across copy and isolated-copy
   verification under the exact byte invariant.
 - Bridge A remains HOLD. A next implementation/test Work Order must prove a
@@ -1343,4 +1343,25 @@ Boundary: This decision does not authorize source/test edits, test runs,
 checkpoint/sidecar mutation, live update, Bridges B/C/D, the mutation engine,
 push, PR, merge or release.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA
+```
+
+### FB-0047 — B09 post-closeout HOLD and joint role review
+
+```text
+State: ACCEPTED / ROUTED / DEFERRED_POST_B09_TRANSITION
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Authority: USER_MESSAGE_01A0D64C-E309-7233-A7E8-01101C311878; reconfirmed in Planner WO B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01 (exec-b28fa689-a4af-4724-bc07-061c4f7c4e69)
+Decision: Continue B09 only under new bounded implementation authority;
+Bridge A remains technical HOLD until its barrier is proven. After B09
+closeout, enter HOLD for a joint Human/Planner Agent Loop and role review
+before selecting the next post-B09 WP. This is deferred; it does not cancel
+B09 after the audit.
+Report correction: Prior Builder report
+`B09-BRIDGE-A-MAINTENANCE-BARRIER-01-BUILDER-REPORT-01` is preserved. Its
+next-action wording is clarified by corrected report
+`B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01-BUILDER-REPORT-01`.
+Boundary: No B/C/D, mutation engine, live update, or post-B09 WP before the
+joint review. This correction grants no implementation authority.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
