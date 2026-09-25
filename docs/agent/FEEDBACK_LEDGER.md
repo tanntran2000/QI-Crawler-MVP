@@ -1266,3 +1266,41 @@ Boundary: This accepted correction does not authorize new architecture,
 autonomous execution, a commit, push, PR, merge, release, or B09 technical work.
 Disposition: ACCEPTED / ROUTED_TO_OPERATING_MODEL_AGENT_LOOP_SKILL_AND_CURRENT
 ```
+
+### FB-0045 — Bridge A exact source-byte invariant and diagnostic WIP retention
+
+```text
+State: ACCEPTED / ROUTED / FEASIBILITY_HOLD
+Author: Human A0
+Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Type: DATA_SAFETY / ARCHITECTURE / AUTHORITY_PROVENANCE
+Authority: DIRECT_HUMAN_DECISIONS_IN_PLANNER_TASK_01A0D14B-4E41-7480-9179-D1B230295F77
+Decision:
+- Preserve exact byte equality and existence for the source DB, WAL and SHM.
+  No SHM exemption is authorized. Bridge A remains HOLD until a different
+  capture design preserves this invariant or explicitly fails closed.
+- Keep the existing remote diagnostic WIP checkpoint
+  `17277b7a89495713e3003e3896e99b0fb68ba079` and record the route deviation.
+  No further remote action is authorized until a new Work Order states it.
+Technical context:
+- The existing focused diagnostic returned
+  `DATABASE_CHANGED_DURING_SNAPSHOT`; DB and WAL hashes were stable, while the
+  SHM hash changed after the post-writer state during SQLite backup. The
+  generation test's logical fail-closed result is valid evidence, but the
+  strict source-byte assertion remains red. This is an observed mechanism, not
+  a generalized root-cause claim or Bridge A pass.
+- The independent Reviewer pre-audit of `17277b7` is preliminary test-validity
+  evidence only; it is not a final Bridge A verdict.
+Route deviation:
+- The Builder's push command was rejected by automatic approval review. The
+  Planner later pushed from the Planner task before receiving the later warning
+  against using another task/path for the same action. Human A0 chose to retain
+  the WIP ref and record this deviation. That disposition preserves the
+  current remote state; it is not retroactive preauthorization and does not
+  authorize another remote action.
+Boundary: This decision does not authorize source/test changes, another
+regression run, cleanup, Bridges B/C/D, the mutation engine, startup/live update,
+PR creation, merge, release, or amendment of the strict source-byte invariant.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA_PATH_REGISTRY
+```

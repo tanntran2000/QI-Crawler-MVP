@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.14",
+  "revision": "1.0.15",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -996,8 +996,8 @@
     },
     {
       "wp_id": "WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01",
-      "authority_ref": "Human A0 branch-checkpoint and bounded-correction instruction / Planner Work Order WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01; entry binding B09-BRIDGE-A-ENTRY-02",
-      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery",
+      "authority_ref": "Human A0 strict source DB/WAL/SHM byte decision and remote WIP retention/route-deviation decision / Planner docs-only feasibility Work Order B09-BRIDGE-A-STRICT-DESIGN-01 under WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#lane-3--unified-tender-warehouse; RD-0013 in docs/agent/MASTER_ROADMAP_DELTA.md",
       "path_ids": [
         "PATH.REPO.SOURCE",
         "PATH.REPO.TESTS",
@@ -1010,11 +1010,12 @@
         "src/qi_crawler/operational_update.py",
         "tests/test_operational_update.py",
         "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
         "docs/agent/PATH_REGISTRY.yaml",
         "docs/agent_handoff/CURRENT.md",
         "docs/agent/KNOWN_FAILURE_MODES.md"
       ],
-      "relation": "Bridge A WAL snapshot coherence only; KNOWN_FAILURE_MODES.md is conditional on a proven material root cause and Planner acceptance of routing. Human A0 and Planner authorize one semantic WIP checkpoint commit and push of the codex/ branch; the push is not CI evidence. No Bridges B/C/D, mutation engine, startup integration, live update, real DB mutation, PR, Builder merge or release authority."
+      "relation": "Locator for Bridge A WAL snapshot coherence and its governed evidence/Spine records. KNOWN_FAILURE_MODES.md remains conditional on a proven material root cause and Planner acceptance of routing. This binding is locator-only; current scope and transition authority remain in the approved Work Order and CURRENT."
     }
   ],
   "legacy_locations": [
