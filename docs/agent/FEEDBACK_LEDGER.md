@@ -1361,7 +1361,6 @@ Report correction: Prior Builder report
 `B09-BRIDGE-A-MAINTENANCE-BARRIER-01-BUILDER-REPORT-01` is preserved. Its
 next-action wording is clarified by corrected report
 `B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01-BUILDER-REPORT-01`.
-Boundary: No B/C/D, mutation engine, live update, or post-B09 WP before the
-joint review. This correction grants no implementation authority.
+Boundary: This docs correction grants no B/C/D, mutation engine, or live-update authority; each B09 stage requires its own bounded WO and gates; after B09 closeout, no next post-B09 WP may begin before the joint Human/Planner role review.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
