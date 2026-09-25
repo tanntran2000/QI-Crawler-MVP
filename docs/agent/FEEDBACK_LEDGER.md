@@ -1335,3 +1335,34 @@ docs/agent/OPERATING_MODEL.md; docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md;
 docs/agent/HUMAN_COLLABORATION.md; plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md;
 docs/agent_handoff/CURRENT.md
 ```
+
+### FB-0048 — Human A0 Stage 0 re-entry under selected Work Order object
+
+```text
+State: ACCEPTED / ACTIVE_STAGE_0_EXECUTION_BOUNDARY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct instruction in Builder task 01a0d2be-6de8-7690-a41c-2b522363181d, 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  STAGE_0_COMMIT_PATHS = docs/agent_handoff/CURRENT.md;
+    docs/agent/FEEDBACK_LEDGER.md
+  STAGE_0_COMMIT_MESSAGE = docs(agent-loop): reconcile builder entry state
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+  SELECTED_WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+  POST_COMMIT = RERUN_ROLE_ENTRY_GATE
+  STAGE_1_AND_2 = CONDITIONAL_ON_ROLE_ENTRY_GATE_PASS
+  EXECUTION = LOCAL_ONLY
+  B09 = PARKED; NO_EXECUTION
+Boundary:
+Preserve earlier correction records and technical evidence unchanged. The
+selected historical Work Order's Stage 1 says three execution-control poles,
+while FB-0047 and active canonical governance specify four operational roles;
+the current checkout also contains later C04-C06 Work Order corrections.
+This conflict must be resolved by the post-commit entry gate and Planner
+reconciliation before any Stage 1 or Stage 2 write. No untracked staging,
+cleanup, push, PR, merge, release or B09 action is authorized.
+Disposition: ACCEPTED / STAGE_0_ONLY_PENDING_POST_COMMIT_GATE
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/FEEDBACK_LEDGER.md
+```
