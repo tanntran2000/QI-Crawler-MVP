@@ -1366,3 +1366,28 @@ cleanup, push, PR, merge, release or B09 action is authorized.
 Disposition: ACCEPTED / STAGE_0_ONLY_PENDING_POST_COMMIT_GATE
 Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/FEEDBACK_LEDGER.md
 ```
+
+### FB-0049 — Correction to FB-0048 authority classification
+
+~~~text
+State: ACCEPTED / CORRECTIVE_AUTHORITY_DISPOSITION
+Author: Human A0, relayed through Planner
+Role: HUMAN_AUTHORITY
+Authority: Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 for C06-FORWARD-RECOVERY-01
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  FB-0048 = PRESERVE_UNCHANGED_AS_HISTORICAL_INCIDENT_EVIDENCE; NOT_VALID_CURRENT_AUTHORITY
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf; SUPERSEDED_FOR_REMAINING_WORK
+  CURRENT_C06_WORK_ORDER = 3ba789be00a61c056dd1532efa133b2acba72bde; SHA256=E5EEA505D2CDA461359C140598C8C423011914F0F759B0B8BD04E98B3CAE20DF
+  FORMER_BUILDER_LEASE = REVOKED_BEFORE_403D4F45
+  INCIDENT_COMMIT = 403d4f45a2c33b4ae8d9b955e7f358f4413b9084; RETAINED_ONLY_AS_INCIDENT_EVIDENCE; NO_VALID_STAGE_0_AUTHORITY
+  CORRECTION = FORWARD_ONLY; DO_NOT_REWRITE_FB-0048_OR_INCIDENT_COMMIT
+Boundary: The C06 recovery action is limited to restoring CURRENT.md and
+appending this correction entry. The C06 machine evidence and raw-log limitation
+are recorded in CURRENT.md. No B09, product/test, workflow, cleanup or remote
+action is authorized.
+Disposition: FB-0048 remains byte-for-byte historical evidence; its authority
+claim is superseded and cannot authorize the incident commit or any later work.
+Promoted to: docs/agent_handoff/CURRENT.md
+~~~
