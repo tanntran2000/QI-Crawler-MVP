@@ -1304,3 +1304,43 @@ regression run, cleanup, Bridges B/C/D, the mutation engine, startup/live update
 PR creation, merge, release, or amendment of the strict source-byte invariant.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA_PATH_REGISTRY
 ```
+
+### FB-0046 — B09 supervised maintenance window scope
+
+```text
+State: ACCEPTED / ROUTED / IMPLEMENTATION_GATE_UNPROVED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Type: PRODUCT_SCOPE / DATA_SAFETY / AUTHORITY_PROVENANCE
+Authority: DIRECT_HUMAN_DECISION_IN_PLANNER_TASK_01A0D14B-4E41-7480-9179-D1B230295F77
+Decision:
+- B09's supported update path is supervised maintenance: Crawler and related
+  writers must be stopped; source stability must be proved and maintained
+  through copying; the isolated copy must be verified before proceeding.
+- A changing, active, ambiguous or unproven source must receive a bounded HOLD
+  with a reason. Do not retry indefinitely, checkpoint or mutate source
+  sidecars, or accept an unproven snapshot.
+- A `-wal` file's presence alone does not prove an active writer. Keep the
+  strict source DB/WAL/SHM byte and existence invariant.
+- This scope does not require a live-source snapshot and does not declare
+  Bridge A PASS or authorize a live update.
+Technical reconciliation:
+- The inspected `MaintenanceTransaction` holds `BEGIN IMMEDIATE` and a
+  cooperative `maintenance.lock`, but opens the source SQLite DB; the test
+  `legacy_write` client does not take that lock and no B09 startup/restart
+  gate was found.
+- The release preflight is a one-time process census; A3's process scope is a
+  controlled Job tree and its SQLite probe releases its transaction before
+  copy. None proves a B09 capture lease across copy and isolated-copy
+  verification under the exact byte invariant.
+- Bridge A remains HOLD. A next implementation/test Work Order must prove a
+  supervised maintenance capture boundary or return finite HOLD. Required
+  challenge cases include committed uncheckpointed WAL, restart and
+  uncooperative writer interleavings, sidecar present/absent transitions,
+  byte/existence checks through barrier release, and isolated-copy integrity.
+Boundary: This decision does not authorize source/test edits, test runs,
+checkpoint/sidecar mutation, live update, Bridges B/C/D, the mutation engine,
+push, PR, merge or release.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA
+```
