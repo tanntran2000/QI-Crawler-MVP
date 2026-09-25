@@ -629,6 +629,162 @@ After Builder return, Planner reviews the result, Tester verifies the exact new
 object and a new independent Reviewer audits the final range. No prior Tester
 classification or Reviewer verdict carries forward as acceptance.
 
+### 10.7 Correction 06: host-suspension recovery and final completeness
+
+Correction 05 content commit
+`b0d905a7ecf09a2307ee8eb642e09021a042ddc0` and terminal HOLD commit
+`e748646a9fe40f2eb2f43e58fffd7b42d47407c8` remain preserved evidence.
+The Tester verified the exact content range and classified scope, report
+admission, skill lock and inventory `PASS`. It identified one remaining active
+completeness defect: the `MASTER_ROADMAP.md` engineering-toolbox row for AI
+coding agents names Planner, Builder and Reviewer but omits Tester. The
+Operating Model takeover list omission is not a functional bypass because its
+general new-agent, agent-entry and material-reassignment triggers cover Tester.
+
+The Correction 05 full sequential run is invalid verification evidence. Windows
+System events prove that the host entered a low-power state during the run:
+
+```text
+FULL_RUN_START_LOCAL = 2026-09-25T16:59:35+07:00
+HOST_SLEEP_UTC = 2026-09-25T10:12:39.568821000Z
+HOST_WAKE_UTC = 2026-09-25T12:31:00.247312800Z
+POWER_EVIDENCE = Power-Troubleshooter Event 1; Kernel-Power Events 42 and 107;
+                 Kernel-General clock synchronization after resume
+ROOT_CAUSE_CLASS = CI_INFRASTRUCTURE_DEFECT
+MECHANISM = HOST_SUSPENSION_DURING_LOCAL_FULL_RUN
+RESULT = HOLD_INCONCLUSIVE; NO_FINAL_PYTEST_SUMMARY
+```
+
+This evidence replaces the earlier `UNKNOWN` timeout classification. It does
+not convert the run to PASS or FAIL, does not prove a product defect and does
+not authorize a timeout increase. The global transient-infrastructure rule
+permits at most one bounded rerun; Correction 06 grants exactly that rerun under
+an execution-state guard and event-log continuity check.
+
+#### 10.7.1 Exact write scope and commits
+
+The Builder receives a narrow forward lease after one `CURRENT.md`-only entry
+transition. The complete Correction 06 write scope is:
+
+```text
+docs/agent_handoff/CURRENT.md
+docs/agent/MASTER_ROADMAP.md
+docs/agent/KNOWN_FAILURE_MODES.md
+docs/agent/PATH_REGISTRY.yaml
+```
+
+The entry transition may change only `CURRENT.md`, bind this Correction 06
+object and return authority to the same Builder. After its Role Entry Gate
+passes, one content commit shall:
+
+1. change the Roadmap AI-coding-agents row to name Planner, Builder, Tester and
+   Reviewer without adding a new structural model;
+2. append `FM-050` to `KNOWN_FAILURE_MODES.md` using its existing schema, with
+   `STATE = OPEN`, root cause `HOST_SUSPENSION_DURING_LOCAL_FULL_RUN`, the exact
+   event evidence above, no product-defect inference, and prevention through a
+   bounded execution-state guard plus post-run sleep-event check; and
+3. register `.tmp/al06` in the existing WP binding as an exact one-run alias for
+   `.tmp/al06/f/p`, with no general reuse, cleanup or other authority.
+
+One terminal `CURRENT.md`-only commit is permitted if needed to record the
+exact verification result and next authority. No other file may change.
+
+#### 10.7.2 Plugin and boot evidence
+
+Before the governed action, the Builder shall invoke/read and apply:
+
+```text
+qi-context-boot = REQUIRED_FOR_ENTRY
+ecc:living-docs-governance = REQUIRED_BEFORE_DOCUMENT_ROUTING
+ecc:agent-architecture-audit = REQUIRED_BEFORE_FINAL_AGENT_STACK_CLAIM
+ecc:systematic-debugging = REQUIRED_FOR_TIMEOUT_INCIDENT_CLASSIFICATION
+skill-creator = REQUIRED_FOR_POST_CREATION_SKILL_CONTRACT_VALIDATION
+qi-agent-loop = REQUIRED_AS_OUTPUT_AND_POST_CREATION_VALIDATION
+CodeGraph = NOT_APPLICABLE; NO_SOURCE_OR_PRODUCT_TEST_IMPACT_DISCOVERY
+```
+
+The final Builder report records, for every applicable item, `PLUGIN`,
+`PURPOSE`, `INVOCATION`, `RESULT`, `FALLBACK`, `IMPACT_RADIUS`, `EDIT_RADIUS`,
+`TEST_RADIUS` and `LIMITATION`. Reading an installed-file path is acceptable
+invocation evidence when the skill is instruction-only; installation or a lock
+entry alone is not. Validate the existing Agent Loop skill once with the
+current `skill-creator` validator. Do not edit the skill or lock in Correction
+06.
+
+#### 10.7.3 One guarded verification run
+
+Correction 05's targeted lock result remains valid for the unchanged skill and
+lock object: `13 passed in 2.79s`. Do not rerun it. Before the new full run:
+
+- prove at least 10 GiB free on drive D;
+- prove `.tmp/al06` is absent, resolves inside the canonical repository, then
+  create only `.tmp/al06/f`;
+- record start time and the latest relevant Windows System power-event record;
+- obtain a Windows `SetThreadExecutionState(ES_CONTINUOUS |
+  ES_SYSTEM_REQUIRED)` guard in the same PowerShell process that waits for
+  pytest; fail closed if the API returns zero; and
+- do not alter global power-plan or lid/power-button settings.
+
+Run the sequential suite once at the exact candidate head:
+
+```powershell
+.venv\Scripts\python.exe -m pytest `
+  -p no:cacheprovider --basetemp=.tmp/al06/f/p
+```
+
+The supervising PowerShell process shall enforce a 25-minute wall-clock limit,
+terminate only its exact owned pytest process tree when that limit expires, and
+restore `SetThreadExecutionState(ES_CONTINUOUS)` in `finally`. After exit,
+inspect Windows System events covering the run interval. Any sleep/resume event,
+missing final pytest summary, non-zero exit, collection decrease/error, guard
+failure or timeout is `HOLD`; no further rerun is permitted.
+
+Only after a valid green full summary, run once:
+
+```powershell
+$agentLoopTrackedPython = @(git ls-files '*.py')
+.venv\Scripts\python.exe -m ruff check -- $agentLoopTrackedPython
+```
+
+Then run `git diff --check` and `git diff --name-status` for the exact
+Correction 06 range. No test, Ruff or command may inspect, stage, modify or
+delete unknown untracked KEEP artifacts.
+
+#### 10.7.4 Scratch and stop budget
+
+The individual full-run ceilings remain 20,000 files, 15,000 directories and
+1 GiB. Because all prior evidence must remain and cleanup is forbidden, the
+cumulative retained ceilings for the additional one-run alias are:
+
+```text
+CORRECTION_06_CUMULATIVE_MAX_FILES = 48000
+CORRECTION_06_CUMULATIVE_MAX_DIRECTORIES_ROOT_INCLUSIVE = 38000
+CORRECTION_06_CUMULATIVE_MAX_BYTES = 3221225472
+MIN_D_FREE_BYTES = 10737418240
+```
+
+Count descendant directories and run roots separately; do not mix conventions.
+Reparse points are counted and reported without following their targets. Any
+ceiling breach is `HOLD`; no cleanup is authorized.
+
+```text
+CORRECTION_06_BASE_HEAD = e748646a9fe40f2eb2f43e58fffd7b42d47407c8
+ENTRY_CURRENT_COMMITS = ONE
+CONTENT_CORRECTION_COMMITS = ONE
+TERMINAL_CURRENT_COMMITS = ONE_IF_REQUIRED
+SKILL_VALIDATION_RUNS = ONE
+TARGETED_PYTEST_RUNS = ZERO
+FULL_SEQUENTIAL_RUNS = ONE
+RUFF_RUNS = ONE_ONLY_AFTER_VALID_FULL_PASS
+RETRY = NONE
+```
+
+Stop on any role-entry conflict, path drift, plugin-evidence failure, guard
+failure, power event, timeout, invalid/missing summary, red verification,
+scratch breach, scope expansion or unexpected tracked deletion. Return the
+complete result to Planner. Tester then verifies the exact new object and a new
+independent Reviewer audits the stable final range before any remote action.
+
 ## 11. Explicit exclusions
 
 - `src/**`
