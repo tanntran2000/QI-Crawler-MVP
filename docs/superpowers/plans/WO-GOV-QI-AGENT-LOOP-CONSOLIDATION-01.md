@@ -5,15 +5,15 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = CORRECTION_03_HUMAN_DIRECTED_FORWARD_CORRECTION
-APPROVAL_SCOPE = THIRTEEN_PATH_LOCAL_GOVERNANCE_ROLE_REPORT_LOCK_AND_TEST_CORRECTION
+STATE = CORRECTION_04_PLANNER_ENTRY_RECONCILIATION_AND_SCOPE_COMPLETION
+APPROVAL_SCOPE = FOURTEEN_PATH_LOCAL_GOVERNANCE_ROLE_REPORT_LOCK_AND_TEST_CORRECTION
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
 ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
-ACTIVE_MICRO_WP = CORRECTION_03_FORWARD_STAGE_2
+ACTIVE_MICRO_WP = CORRECTION_04_ENTRY_SYNC_AND_FORWARD_STAGE_2
 CURRENT_AUTHORITY = PLANNER_ARCHITECT
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_FORWARD_CORRECTION_03
+HANDOFF_READY = YES_FOR_ENTRY_RECONCILIATION_ONLY_THEN_FORWARD_CORRECTION_04
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -168,7 +168,8 @@ another Planner task.
 | Commit, checkpoint, push, PR, audit and merge lifecycle | `docs/agent/LOCAL_STAGED_INTEGRATION.md` | Canonical integration definition |
 | Human A0 decisions | `docs/agent/FEEDBACK_LEDGER.md` | Record decision and disposition once |
 | Active handoff state | `docs/agent_handoff/CURRENT.md` | One current actionable snapshot only |
-| Product strategy and layer classification | `docs/agent/MASTER_ROADMAP.md` | Update only the active Agent Loop role terminology authorized by Correction 03 |
+| Product strategy and layer classification | `docs/agent/MASTER_ROADMAP.md` | Update only the active Agent Loop role terminology authorized by Correction 04 |
+| Agent Workbench overview and artifact count | `docs/agent/QI_AGENT_WORKBENCH.md` | Update only the stale approved-artifact count from nine to ten |
 | Unresolved strategic/product change | `docs/agent/MASTER_ROADMAP_DELTA.md` | Update only on an actual Delta trigger |
 | Agent Loop operational workflow | `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md` | Workflow only; cannot originate authority |
 | Skill content identity | `plugins/qi-agent-workbench/skills-lock.json` | Generated from actual governed skill content |
@@ -299,6 +300,7 @@ still repeat canonical checkout and entry-gate verification before writing.
 11. `AGENTS.md`
 12. `docs/agent/MASTER_ROADMAP.md`
 13. `docs/agent/HUMAN_COLLABORATION.md`
+14. `docs/agent/QI_AGENT_WORKBENCH.md`
 
 ### 10.2 Mandatory authorities and verification inputs
 
@@ -411,6 +413,53 @@ CORRECTION_03_BASE_HEAD = a794a13ff5c229e436f21b47a2d52db05a671dd8
 STAGE_2_CANDIDATE_BASE = 9557b63a977037c7de8356f66eadbd65e53fc394
 PRODUCT_OR_RUNTIME_CODE_CHANGE = NO
 GOVERNANCE_TEST_CHANGE = EXACT_TWO_LINE_LOCK_EXPECTATION_ONLY
+```
+
+### 10.5 Correction 04: entry sync and complete active-doc scope
+
+The Builder's Correction 03 FULL read-in correctly returned `ENTRY_HOLD` before
+writing because the uncommitted active `CURRENT.md` still binds Correction 02,
+the former nine-path lease and Planner disposition. Planner now resolves that
+handoff as stale relative to Human A0's approved Agent Loop execution and the
+forward Work Order. This finding does not authorize bypassing the gate.
+
+Before any other Correction 04 edit or test, the same Builder task may perform
+one narrow pre-entry transition:
+
+1. enter only as `BUILDER_SINGLE_WRITER; ENTRY_RECONCILIATION_ONLY`;
+2. edit only `docs/agent_handoff/CURRENT.md`;
+3. bind the latest Work Order commit and SHA supplied by Planner, the fourteen-
+   path scope, `CORRECTION_04_ENTRY_SYNC_AND_FORWARD_STAGE_2`, the local-only
+   boundary, `NO_PRODUCT_OR_RUNTIME_CODE_CHANGE`, the pending exact governance-
+   test correction and the exact next action;
+4. preserve Stage 0/1 evidence, Stage 2 candidate evidence, B09 parked state,
+   scratch accounting and all unknown/untracked `KEEP` dispositions;
+5. create one local semantic commit containing exactly `CURRENT.md`; and
+6. rerun the canonical Role Entry Gate against that new local head.
+
+The entry-sync record uses the verified Work Order head as
+`HANDOFF_CAPTURE_BASE` and must not claim its own future commit. If the gate is
+not `PASS`, stop without editing another file. If it passes, continue Correction
+04 under the complete allowlist.
+
+The read-in also verified that active
+`docs/agent/QI_AGENT_WORKBENCH.md` still says the lock contains nine approved
+artifacts. That sentence is active documentation, not historical evidence.
+Correction 04 therefore adds this file to the allowlist and authorizes only the
+minimum count correction from nine to ten. Update the existing
+`PATH_REGISTRY.yaml` binding so its `scope_paths` exactly matches all fourteen
+allowed paths. No other Workbench overview edit is authorized.
+
+Correction 04 supersedes Correction 03 only for entry reconciliation and the
+newly discovered active-document scope omission. All four-role, report-
+admission, lock-test, finite-budget, B09 exclusion and remote-action boundaries
+from Correction 03 remain mandatory.
+
+```text
+CORRECTION_04_BASE_HEAD = 58ecd5650e7ea534a1fa3bac3feafd3a33233e9b
+CORRECTION_03_WO_SHA256 = 89BD44DB3B21348EDDDBD6D6818C79F04D9ED19F29680227C1859482FB977A78
+ENTRY_SYNC_WRITE_SCOPE = docs/agent_handoff/CURRENT.md ONLY
+POST_ENTRY_WRITE_SCOPE = EXACT_FOURTEEN_PATHS_IN_SECTION_10_1
 ```
 
 ## 11. Explicit exclusions
@@ -549,6 +598,13 @@ The Work Order passes only when all statements below are true:
     cannot advance or redispatch a consumed transition.
 32. A correction requires a Planner-opened attempt with `IN_REPLY_TO`, and
     supervised admission never claims exactly-once transport.
+33. `QI_AGENT_WORKBENCH.md` and `skills-lock.json` both identify exactly ten
+    approved artifacts, while the lock test preserves exact set and hash checks.
+34. The Work Order locator binding lists all fourteen allowlisted paths and no
+    unapproved path.
+35. The pre-entry `CURRENT.md` sync is a one-file forward commit, preserves the
+    previous evidence and produces a subsequent Role Entry Gate `PASS` before
+    any other write or test.
 
 ### Allowed claims
 
@@ -658,6 +714,10 @@ Static inspection must also prove:
   contract; and
 - historical Feedback wording remains unchanged while a new Human decision
   records the supersession boundary.
+- `QI_AGENT_WORKBENCH.md`, the lock manifest and the exact lock test consistently
+  identify ten approved artifacts; and
+- the Path Registry WP binding contains exactly the fourteen write-allowlist
+  paths.
 
 ### Full local
 
@@ -742,7 +802,7 @@ business, merge or release authority.
   machinery;
 - two targeted verification attempts and one full local run unless root-cause
   evidence requires a bounded repeat;
-- Correction 03 permits one additional exact targeted lock-test run after the
+- Correction 04 permits one additional exact targeted lock-test run after the
   two-line expectation update, followed by the one full sequential run only if
   targeted verification is green;
 - measured scratch limits are 256 files/128 directories/16 MiB per targeted
@@ -762,7 +822,9 @@ HUMAN APPROVES DESIGN
   -> HUMAN AUTHORIZES GOVERNANCE BRANCH
   -> PLANNER RECORDS FINAL WO/LEASE OBJECT
   -> HUMAN AUTHORIZES BUILDER EXECUTION
-  -> BUILDER EXECUTES FORWARD CORRECTION 03 AND COMPLETES STAGE 2
+  -> BUILDER COMMITS ONE-FILE CORRECTION 04 ENTRY SYNC
+  -> BUILDER RE-RUNS ROLE ENTRY GATE
+  -> BUILDER EXECUTES FORWARD CORRECTION 04 AND COMPLETES STAGE 2 ONLY ON PASS
   -> PLANNER BUILDER-RESULT REVIEW
   -> TESTER MACHINE EVIDENCE
   -> PLANNER EVIDENCE REVIEW
@@ -809,6 +871,7 @@ SPINE_TARGET_FILES =
   docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md
   docs/agent/LOCAL_STAGED_INTEGRATION.md
   docs/agent/HUMAN_COLLABORATION.md
+  docs/agent/QI_AGENT_WORKBENCH.md
   docs/agent/FEEDBACK_LEDGER.md
   docs/agent/PATH_REGISTRY.yaml
   docs/agent_handoff/CURRENT.md
@@ -816,7 +879,7 @@ SPINE_SYNC_STATE = HOLD_UNTIL_IMPLEMENTED_REVIEWED_AND_RECONCILED
 PROJECT_MEMORY_PROMOTION = NOT_BEFORE_MERGE
 ```
 
-Every listed target is modified only when the Correction 03 trigger applies.
+Every listed target is modified only when the Correction 04 trigger applies.
 Material conflict outside the explicit four-role/report-admission correction
 returns to Planner/Human rather than being silently resolved by the Builder.
 
@@ -844,6 +907,15 @@ report admission protection, include the exact lock-test correction and issue a
 forward Work Order to Builder. This local correction expands the allowlist only
 to the thirteen paths in section 10.1 and retains every remote/Human boundary.
 
+### Decision C3: Correction 04 — PLANNER RECONCILED UNDER APPROVED LEASE
+
+Builder's read-in proved that active `CURRENT.md` still bound Correction 02 and
+that `QI_AGENT_WORKBENCH.md` retained an active nine-artifact count. Planner
+reconciled the first as an entry-sync transition and the second as the minimum
+active-document scope completion needed to satisfy Human's approved Agent Loop
+objective. Correction 04 adds only `QI_AGENT_WORKBENCH.md`, updates the locator
+to the same fourteen-path set, and preserves every remote/Human boundary.
+
 ### Decision D: push
 
 Authorize push only after local evidence, Planner result review and independent
@@ -863,16 +935,16 @@ hosted CI, final exact-head review and Planner reconciliation.
 
 ```text
 DESIGN = HUMAN_APPROVED
-WO_FILE = CORRECTION_03_HUMAN_DIRECTED
+WO_FILE = CORRECTION_04_PLANNER_RECONCILED
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
 STAGE_0 = COMPLETE_LOCAL; 66f331c3392537fafcd48b8ed6360f4ee4939985
 STAGE_1 = COMPLETE_LOCAL; 9557b63a977037c7de8356f66eadbd65e53fc394
-STAGE_2 = HOLD_UNCOMMITTED; CORRECTION_03_FORWARD_SCOPE_OPENED
-BUILDER_EXECUTION = HUMAN_DIRECTED_LOCAL_FORWARD_CORRECTION_03
+STAGE_2 = HOLD_UNCOMMITTED; CORRECTION_04_ENTRY_SYNC_REQUIRED
+BUILDER_EXECUTION = ENTRY_RECONCILIATION_ONLY_THEN_LOCAL_FORWARD_CORRECTION_04
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_APPLIES_CORRECTION_03_TO_FINAL_CONTENT_THEN_RUNS_ONE_TARGETED_AND_ONE_FULL_VERIFICATION_SEQUENCE
+EXACTLY_ONE_NEXT_ACTION = BUILDER_COMMITS_EXACT_CURRENT_ENTRY_SYNC_RERUNS_ROLE_ENTRY_GATE_AND_ONLY_ON_PASS_APPLIES_CORRECTION_04
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 ```
