@@ -234,7 +234,7 @@ The toolbox is outside the Product House:
 | Alembic | Controlled plumbing renovation | Database migration mechanism | Does not authorize migration. |
 | Git | Construction ledger | Exact version/change history | No merge authority by itself. |
 | GitHub | Site control room | Remote history, PRs, collaboration and CI metadata | Human merge/release authority remains. |
-| CI | Machine inspection gate | Automated verification | Not a business-authority pole. |
+| CI | Machine inspection gate | Automated verification | Produces evidence; it has no Human material authority. |
 | Golden / regression corpus | Reference specimen | Deterministic evidence | Not automatically Human Ground Truth. |
 | Build/Installer tools | Handover/build crew | Windows artifacts | Not release authority. |
 | Diagnostics/logging | Sensors/meters | Failure evidence | Not automatic root-cause authority. |
@@ -346,31 +346,21 @@ false-safe result, data-loss/security risk, architecture blocker, external
 dependency or explicit Human priority. It must name the trigger, risk,
 affected capability, bounded intervention, return point and Human approval.
 
-## THREE-POLE DEVELOPMENT MODEL
+## FOUR-ROLE DEVELOPMENT MODEL
+
+Human A0 retains material authority above the supervised loop. The four
+operational roles are Planner, Builder, Tester/Machine Verifier and independent
+Reviewer; the Operating Model defines their distinct authorities. Tester
+produces evidence only. Four roles do not imply equal authority.
 
 ```text
-Human Authority
-→ domain truth / intent / priorities / approvals /
-  Ground Truth authority / business decisions
-
-Planning & Audit Pole
-→ clarification / reasoning / architecture /
-  Blueprint alignment / Work Order / risk / audit
-
-Builder / Single Writer Pole
-→ implementation / testing / verification evidence /
-  bounded findings
-
-Machine Verifier
-→ CI / Golden / local machine verification as governed
-→ external evidence gate
-→ NOT a fourth business-authority pole
+PLANNER_ARCHITECT → plans, routes and reconciles
+BUILDER_SINGLE_WRITER → implements within the approved lease
+TESTER_MACHINE_VERIFIER → runs approved checks and returns evidence
+REVIEWER_AUDITOR → independently audits the exact authorized object
 ```
 
-"Planning & Audit Pole" is a high-level responsibility-family abstraction
-only. Canonical operational authority is defined by
-`docs/agent/OPERATING_MODEL.md` and
-`docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. Operationally:
+The roles remain separate:
 
 ```text
 PLANNER_ARCHITECT != REVIEWER_AUDITOR
@@ -383,9 +373,8 @@ Reviewer independence remains mandatory wherever governance requires it.
 ROLE > MODEL NAME
 ```
 
-No pole may silently assume another pole's authority. Planner, Reviewer and
-Auditor roles remain separated wherever `AGENTS.md` or the approved Work Order
-requires independence.
+No role may silently assume another role's authority. The independent Reviewer
+remains separate from Planner reconciliation and Builder implementation.
 
 ### Triangle closure
 

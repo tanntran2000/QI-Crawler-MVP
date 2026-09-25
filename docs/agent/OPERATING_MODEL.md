@@ -2,12 +2,11 @@
 
 ## Roles and authority
 
-Human A0 is the top material authority. The three execution-control poles are
-`PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER` and `REVIEWER_AUDITOR`. They plan,
-write and independently audit under separate authority. `MACHINE_VERIFIER` /
-Tester supplies evidence only; it is not a fourth pole. `DOMAIN_REVIEWER` and
-Team Bid supply delegated domain review or operational input, not another
-execution-control pole.
+Human A0 is the top material authority. The supervised Agent Loop has four
+operational roles: `PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER`,
+`TESTER_MACHINE_VERIFIER` and `REVIEWER_AUDITOR`. Their authorities are
+distinct, not equal; Tester supplies evidence only. `DOMAIN_REVIEWER` and Team
+Bid may provide delegated domain review or operational input.
 
 Normal reports from Builder, Machine Verifier/Tester and Reviewer return to the
 Planner in the coordinating task. The Planner routes bounded correction,
@@ -45,16 +44,20 @@ EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
                               OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
 ```
 
-The Planner establishes the expected pending transition. A report is admitted
-only when every required metadata field matches it. Missing, truncated, stale,
-wrong-route, wrong-object or wrong-attempt reports are `HOLD` and cannot advance
-state. Once consumed, a transition cannot advance or redispatch again; a
-repeated `REPORT_ID` or any later report for that consumed binding is a duplicate
-and leaves state unchanged. A correction requires a new expected attempt opened
-by the Planner, with `IN_REPLY_TO` identifying the superseded report or finding.
-Candidate drift requires a new `OBJECT_ID` and expected binding. This is
-supervised admission tracking, not exactly-once transport and not a runner,
-broker, database or scheduler.
+The Planner establishes the expected pending transition. The six binding
+fields—`WO_ID`, `SOURCE_TASK_ID`, `DESTINATION_TASK_ID`, `OBJECT_ID`,
+`RUN_OR_ATTEMPT_ID` and `IN_REPLY_TO`—must match it. Separately,
+`REPORT_ID` must be non-empty and unseen for that pending transition. A report
+is admitted only when both checks pass.
+
+An initial attempt uses `IN_REPLY_TO = NONE` in both the report and expected
+binding. A correction requires a new expected attempt opened by the Planner and
+the exact superseded report or finding ID in `IN_REPLY_TO`; a correction never
+uses `NONE`. Missing, truncated, stale, wrong-route, wrong-object or
+wrong-attempt reports are `HOLD` and cannot advance state. A consumed binding
+or duplicate `REPORT_ID` cannot advance or redispatch. Candidate drift requires
+a new `OBJECT_ID` and expected binding. This is supervised admission tracking,
+not exactly-once transport and not a runner, broker, database or scheduler.
 
 ## Canonical role contract schema
 
@@ -83,7 +86,7 @@ SPINE_RESPONSIBILITY
 
 `ROLE_CONTRACT` above remains the canonical role-definition authority.
 `ROLE_BOOT_PROFILE` is the execution-entry orientation built on that contract;
-the detailed profiles, action-first prompt standard and cross-pole challenge
+the detailed profiles, action-first prompt standard and cross-role challenge
 protocol live in `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`.
 
 When a new agent, Parent, takeover or material governance transition triggers
@@ -95,11 +98,10 @@ READ MODE → ROADMAP / DELTA → ROLE_BOOT_PROFILE → ROLE_ENTRY_GATE
 ```
 
 Builder Work Orders and Reviewer Challenge profiles must reference the
-canonical Action-First Prompt Standard and Cross-Pole Challenge Gate.
-Planner, Builder and Reviewer remain independent beneath Human A0; Reviewer
-independence and Human material authority are not collapsed. The Roadmap's
-high-level “Planning & Audit Pole” is a responsibility family, decomposed here
-into independent Planner and Reviewer poles.
+canonical Action-First Prompt Standard and Cross-Role Challenge Gate.
+Planner, Builder, Tester and Reviewer remain distinct beneath Human A0;
+Reviewer independence and Human material authority are preserved. The
+Operating Model is the canonical source for role definitions and boundaries.
 
 ## CANONICAL_CHECKOUT_IDENTITY_GATE
 

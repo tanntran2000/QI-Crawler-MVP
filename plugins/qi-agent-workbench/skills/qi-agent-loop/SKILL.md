@@ -12,9 +12,9 @@ grants authority or changes the approved scope.
 
 - Resolve role from explicit Human assignment → approved Work Order → governed
   `docs/agent_handoff/CURRENT.md`. Any material conflict is `ENTRY_HOLD`.
-- Human A0 is the material authority. Planner, Builder and Reviewer are the
-  three execution-control poles. Tester/Machine Verifier supplies evidence
-  only; it is not a fourth pole.
+- Human A0 is the material authority. The four operational roles are Planner,
+  Builder, Tester/Machine Verifier and independent Reviewer; their authorities
+  differ, and Tester is evidence-only.
 - `docs/agent/OPERATING_MODEL.md` owns roles, reports and Planner follow-through.
   `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` owns boot and prompt contracts.
   `docs/agent/LOCAL_STAGED_INTEGRATION.md` owns commits, audits, checkpoints,
@@ -29,12 +29,10 @@ Human intent → Planner Work Order → Builder result → Planner review
 → Human decision when required
 ```
 
-- Bind reports to `REPORT_METADATA` and admit them only against the Planner's
-  `EXPECTED_PENDING_TRANSITION` in `docs/agent/OPERATING_MODEL.md`. Missing,
-  truncated, stale, wrong-route/object/attempt or duplicate reports are `HOLD`
-  and do not advance or redispatch. Corrections require a new Planner-opened
-  attempt with matching `IN_REPLY_TO`; candidate drift requires a new
-  `OBJECT_ID`.
+- Include all seven report fields. The six binding fields, separate `REPORT_ID`
+  check, initial `IN_REPLY_TO = NONE` and correction-ID rules are owned by
+  `docs/agent/OPERATING_MODEL.md`; consumed or duplicate reports cannot advance
+  or redispatch.
 - This is supervised admission tracking, not exactly-once transport or an
   autonomous runner, broker, database or scheduler.
 

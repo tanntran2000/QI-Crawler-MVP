@@ -1308,3 +1308,30 @@ Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_CORRECTION_05_EXECUTION
 Promoted to: docs/agent_handoff/CURRENT.md;
 docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
 ```
+
+### FB-0047 — Human A0 establishes four operational roles
+
+```text
+State: ACCEPTED / ACTIVE_GOVERNANCE_MODEL
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Human direction recorded in approved Correction 05 section 10.6.1;
+  execution lease approved by FB-0046
+Type: GOVERNANCE / ROLE_MODEL / AUTHORITY_BOUNDARY
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  OPERATIONAL_ROLES = PLANNER_ARCHITECT; BUILDER_SINGLE_WRITER;
+    TESTER_MACHINE_VERIFIER; REVIEWER_AUDITOR
+  TESTER_AUTHORITY = EVIDENCE_ONLY
+  FOUR_ROLES = DISTINCT_AUTHORITIES; NOT_EQUAL_AUTHORITIES
+  PRIOR_THREE_POLE_STRUCTURAL_EFFECT = SUPERSEDED_FOR_ACTIVE_AUTHORITIES
+  HISTORICAL_FEEDBACK = PRESERVE_UNCHANGED
+Boundary: Keep Human A0 material authority, Builder single-writer scope,
+independent review, and Planner reconciliation separate. No runtime, product,
+B09, workflow, remote, merge or release authority is created.
+Disposition: ACCEPTED / ROUTED_TO_ACTIVE_ROLE_AUTHORITIES
+Promoted to: AGENTS.md; docs/agent/MASTER_ROADMAP.md;
+docs/agent/OPERATING_MODEL.md; docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md;
+docs/agent/HUMAN_COLLABORATION.md; plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md;
+docs/agent_handoff/CURRENT.md
+```

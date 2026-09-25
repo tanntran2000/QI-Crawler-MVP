@@ -3,20 +3,21 @@
 ## 1. Purpose, authority and non-duplication
 
 This document is the canonical detailed contract for role boot orientation,
-action-first prompt construction and mutual challenge among the execution
-control poles. It implements the accepted FB-0028 governance design. It does
-not authorize product implementation, a release, a Team Bid pilot, a merge,
-or a new Work Package, and it does not replace `AGENTS.md`, the Operating
-Model, the Master Roadmap, the Delta or `CURRENT.md`.
+action-first prompt construction and mutual challenge among the four
+operational roles. The Operating Model owns their current authority definitions.
+This document carries forward the approved boot and prompt standards under that
+model. It does not authorize product implementation, a release, a Team Bid
+pilot, a merge or a new Work Package, and it does not replace `AGENTS.md`, the
+Operating Model, the Master Roadmap, the Delta or `CURRENT.md`.
 
 `OPERATING_MODEL.md` remains the canonical role-definition authority.
 `CURRENT.md` remains the active handoff authority. This file is the single
 detailed source for the boot and prompt contract; supporting documents point
 here rather than duplicating the full text.
 
-Human A0 is the top material authority. Planner, Builder and Reviewer are
-independent execution-control poles beneath Human A0. A Machine Verifier
-provides evidence and is not a fourth decision pole.
+Human A0 is the top material authority. Planner, Builder, Tester/Machine
+Verifier and independent Reviewer are the four operational roles. Their
+authorities differ; Tester supplies evidence only.
 
 ### Canonical QI BOOT protocol
 
@@ -260,12 +261,12 @@ EXACTLY_ONE_NEXT_ACTION_RULE = Return one disposition path; a PASS is not merge
   authorization.
 ```
 
-## 6. Three-pole mutual challenge contract
+## 6. Four-role mutual challenge contract
 
-The execution-control poles and their authorities are defined in
+Role definitions and authorities are defined in
 `docs/agent/OPERATING_MODEL.md`. This section defines only mutual challenge:
-any pole may HOLD on a material prompt, authority, scope, evidence or invariant
-conflict. A challenge is evidence, not a vote, override or rewrite:
+any operational role may HOLD on a material prompt, authority, scope, evidence
+or invariant conflict. A challenge is evidence, not a vote, override or rewrite:
 
 ```text
 RIGHT_TO_CHALLENGE != RIGHT_TO_OVERRIDE
@@ -371,7 +372,7 @@ AGENT_SHOULD_NOT_NEED_TO_ASK "WHAT DO YOU WANT ME TO DO?" = YES
 
 Any required `NO` yields `PROMPT_READY = HOLD`.
 
-## 11. Cross-pole hold / escalation protocol
+## 11. Cross-role hold / escalation protocol
 
 When a conflict is material, preserve the object and return:
 
@@ -381,16 +382,17 @@ ROLE_ALIGNMENT = PASS | HOLD
 AUTHORITY_ALIGNMENT = PASS | HOLD
 DELTA_ALIGNMENT = PASS | HOLD
 MASTER_ROADMAP_ALIGNMENT = PASS | HOLD
-CROSS_POLE_CONFLICT = NO | YES
-CONFLICT_SOURCE = PLANNER | BUILDER | REVIEWER
+CROSS_ROLE_CONFLICT = NO | YES
+CONFLICT_SOURCE = PLANNER_ARCHITECT | BUILDER_SINGLE_WRITER |
+                  TESTER_MACHINE_VERIFIER | REVIEWER_AUDITOR
 CONFLICT_DESCRIPTION =
 EVIDENCE =
 SAFE_ACTION = HOLD
 NEXT_AUTHORITY = PLANNER_ARCHITECT | HUMAN_AUTHORITY
 ```
 
-Do not create a voting model. The pole with challenge rights does not gain
-override rights; the role with write access does not gain audit authority.
+Do not create a voting model. Challenge rights do not grant override rights;
+the role with write access does not gain audit authority.
 
 ## 12. Standard return packets
 
@@ -399,7 +401,7 @@ branch/head, checkout identity, prompt/role gates, scope and changed files,
 evidence, Delta/Master alignment, Spine impact/sync, blockers, tree, remote
 effects, and exactly one next authority/action. For this Parent the Builder
 packet also records canonical file creation, supporting-document references,
-three-pole contract, action-first standard, Delta cadence/comparator, prompt
+four-role contract, action-first standard, Delta cadence/comparator, prompt
 quality and hold protocol, no product/code/test/roadmap/Delta/Memory/Feedback/
 Failure/Lessons writes beyond the approved scope, and `PUSH = NO`, `PR = NO`,
 `MERGE = NO`, `RELEASE = NO`, `TEAM_BID_PILOT = NO`.
