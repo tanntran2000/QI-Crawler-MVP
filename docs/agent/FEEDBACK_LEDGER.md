@@ -1408,3 +1408,19 @@ Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A 
 Boundary: No B09 completion, source/test edit, test or manual CI invocation, PR creation/API action, merge, release, cleanup, B/C/D, mutation engine, startup integration or live update. The authorized exact-branch WIP push may trigger existing hosted automation; do not treat that as CI evidence. Keep all untracked artifacts untouched and unstaged.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
+
+### FB-0051 — Resume bounded PR #131 CI correction after Human conflict resolution
+
+```text
+State: ACCEPTED / ROUTED / BOUNDED_CI_CORRECTION_ACTIVE
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Work Order: B09-PR131-CI-REPAIR-02; continuation of B09-PR131-CI-REPAIR-01
+Authority: HUMAN_MESSAGE_01A0D69E-CBE9-7C01-BFCF-6AF2CB82C4F0, direct answer in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
+Decision: Continue the bounded correction of existing PR #131 until all required CI checks pass on one exact head; notify Human for manual merge. Human retains merge authority.
+Supersedes: FB-0050 stop/no-CI terms only for this bounded PR correction. B09 is not declared complete and Bridge A remains HOLD.
+Observed CI: PR head 17264c0f5cea5a80adb2da72a61189f099ec1804, completed run 36090626876. Code Quality failed Ruff F841 for unused source_before_probe at tests/test_operational_update.py:624. Compatibility Ubuntu 3.11 and Tests Ubuntu 3.12/Windows 3.12 each failed the same three strict sidecar tests; Required CI Gate failed; CodeQL passed. Test logs show source -shm bytes changed during read-only snapshot, including generation coherence returning DATABASE_CHANGED_DURING_SNAPSHOT with source_bytes_unchanged=False.
+Invariant: Source DB/WAL/SHM bytes and existence must remain exactly equal. No immutable mode on a changing source.
+Boundary: Only the two approved source/test paths and CURRENT/Delta/Feedback PRE/POST docs; no CI gate/workflow changes, weakened tests, B/C/D, mutation engine, startup integration, live update, Builder merge or release, or cleanup. Preserve all untracked artifacts.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+```
