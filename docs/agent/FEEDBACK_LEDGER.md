@@ -1378,3 +1378,33 @@ Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A 
 Boundary: B09 is not complete. B/C/D, the mutation engine, startup integration and live update remain unopened. The WIP push is not CI PASS or implementation acceptance; no PR, merge or release is authorized.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
+
+### FB-0049 — PR #131 CI correction while B09 Bridge A remains HOLD
+
+```text
+State: ACCEPTED / ROUTED / BOUNDED_CI_CORRECTION_ACTIVE
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Work Order: B09-PR131-CI-REPAIR-01
+Authority: HUMAN_MESSAGE_01A0D684-A4AE-7F32-AFD0-0373A7A4820A in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
+Decision: Builder may correct and monitor existing PR #131 until every required check passes at one exact PR head, then notify Human. Human retains manual merge authority.
+Supersedes: FB-0048 stop/NO_CI sequencing only for this bounded PR correction; the Bridge A technical HOLD and strict source invariant remain.
+Observed CI: Run 36088490524 at be315d23cab138598330d8cf54c82b93522058cb. Ruff reports F841 for source_before_probe. Ubuntu 3.11, Ubuntu 3.12 and Windows 3.12 each fail the same three tests because the read-only SQLite snapshot path changes source -shm bytes. Required CI Gate fails; CodeQL checks pass.
+Invariant: Source DB/WAL/SHM bytes and existence must remain exactly equal. Do not use immutable on a changing source. CI green is not proof of Bridge A snapshot coherence.
+Boundary: Only src/qi_crawler/operational_update.py and tests/test_operational_update.py may be changed for code/test work; this and CURRENT/Delta are the only permitted PRE/POST Spine files. No CI gate weakening, B/C/D, mutation engine, startup integration, live update, merge, release or cleanup.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+```
+
+### FB-0050 — Immediate B09 HOLD at Bridge A; WIP checkpoint only
+
+```text
+State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Authority: Latest direct Human A0 instruction in source task 01a0d2be-6de8-7690-a41c-2b522363181d; this instruction replaces the immediately preceding request to complete B09 and run CI.
+Decision: Hold B09 now at Bridge A. Only CURRENT.md, MASTER_ROADMAP_DELTA.md and FEEDBACK_LEDGER.md may be staged, diff-checked, committed locally and pushed to codex/b09-bridge-a-wal-coherence as a WIP checkpoint. Verify the remote SHA, report to the assigned Planner task, then stop B09 work.
+Supersedes: FB-0049's active CI-correction execution authorization; its recorded CI failure remains historical evidence.
+Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A remains HOLD while the maintenance capture barrier is unproven.
+Boundary: No B09 completion, source/test edit, test or manual CI invocation, PR creation/API action, merge, release, cleanup, B/C/D, mutation engine, startup integration or live update. The authorized exact-branch WIP push may trigger existing hosted automation; do not treat that as CI evidence. Keep all untracked artifacts untouched and unstaged.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+```
