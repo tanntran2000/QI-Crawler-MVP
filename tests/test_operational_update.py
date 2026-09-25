@@ -335,7 +335,9 @@ def test_reparse_or_symlink_artifact_fails_closed(tmp_path: Path) -> None:
     assert "BACKUP_PATH_UNSAFE" in result.reasons
 
 
-def test_observation_is_read_only_and_preserves_tree_identity(tmp_path: Path) -> None:
+def test_observation_rejects_ambiguous_sidecars_without_opening_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     paths, journal = _fixture(tmp_path, phase="BACKUP_REQUIRED")
     _install_backup(paths, journal)
     wal = Path(f"{paths.database_path}-wal")
@@ -343,19 +345,86 @@ def test_observation_is_read_only_and_preserves_tree_identity(tmp_path: Path) ->
     wal.write_bytes(b"pre-existing wal evidence")
     shm.write_bytes(b"pre-existing shm evidence")
 
+    source_uri = paths.database_path.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+
+    def reject_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", reject_source_open)
     before = _tree_identity(paths.root)
     result = _classify(paths)
     after = _tree_identity(paths.root)
 
-    assert result.classification == "BACKUP_VALID"
+    assert result.classification == "RECOVERY_REQUIRED_AMBIGUOUS"
+    assert "DATABASE_CAPTURE_UNPROVEN" in result.reasons
+    assert source_opens == []
     assert after == before
 
 
-def test_observation_reads_committed_wal_state_without_mutating_sidecars(tmp_path: Path) -> None:
+def test_stable_rollback_source_reads_only_hash_matched_private_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    before = (database.stat().st_size, _sha(database))
+    assert database.read_bytes()[18:20] == b"\x01\x01"
+    assert not Path(f"{database}-wal").exists()
+    assert not Path(f"{database}-shm").exists()
+    assert not Path(f"{database}-journal").exists()
+
+    source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+    original_copy = operational_update._copy_database
+    copy_states: list[tuple[int, str, int, str]] = []
+
+    def track_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    def record_private_copy(source: Path, destination: Path, deadline: float) -> None:
+        original_copy(source, destination, deadline)
+        copy_states.append(
+            (source.stat().st_size, _sha(source), destination.stat().st_size, _sha(destination))
+        )
+
+    monkeypatch.setattr(sqlite3, "connect", track_source_open)
+    monkeypatch.setattr(operational_update, "_copy_database", record_private_copy)
+    rows, error = _database_paths(database, active_wal=True)
+    after = (database.stat().st_size, _sha(database))
+
+    assert rows == OLD_PATHS
+    assert error is None
+    assert source_opens == []
+    assert copy_states == [(before[0], before[1], before[0], before[1])]
+    assert after == before
+    assert not Path(f"{database}-wal").exists()
+    assert not Path(f"{database}-shm").exists()
+    assert not Path(f"{database}-journal").exists()
+
+
+def test_valid_uncheckpointed_wal_without_capture_barrier_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     paths, journal = _fixture(tmp_path, phase="DB_COMMITTED")
     _install_backup(paths, journal)
     _install_new_identity(paths)
 
+    source_uri = paths.database_path.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+
+    def reject_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", reject_source_open)
     with closing(sqlite3.connect(paths.database_path)) as writer:
         assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
         writer.execute("PRAGMA wal_autocheckpoint = 0")
@@ -365,17 +434,71 @@ def test_observation_reads_committed_wal_state_without_mutating_sidecars(tmp_pat
         )
         writer.commit()
 
-        before = _tree_identity(paths.root)
+        wal = Path(f"{paths.database_path}-wal")
+        shm = Path(f"{paths.database_path}-shm")
+        assert wal.is_file() and wal.stat().st_size > 32
+        assert shm.is_file()
+        before = tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix, path in (("", paths.database_path), ("-wal", wal), ("-shm", shm))
+        )
         result = _classify(paths)
-        after = _tree_identity(paths.root)
+        after = tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix, path in (("", paths.database_path), ("-wal", wal), ("-shm", shm))
+        )
 
-        assert result.classification == "DB_COMMITTED_JOURNAL_LAG"
-        identities = {item.name: item.value for item in result.evidence_identities}
-        assert identities["database_state"] == "NEW"
+        assert result.classification == "RECOVERY_REQUIRED_AMBIGUOUS"
+        assert "DATABASE_CAPTURE_UNPROVEN" in result.reasons
+        assert source_opens == []
         assert after == before
 
 
-def test_wal_snapshot_generation_coherence(
+def test_wal_header_without_sidecars_is_not_eligible_for_capture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    with closing(sqlite3.connect(database)) as writer:
+        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
+        writer.execute("UPDATE documents SET stored_path = ? WHERE id = 1", (NEW_PATHS["1"],))
+        writer.commit()
+        assert writer.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0] == 0
+    wal = Path(f"{database}-wal")
+    shm = Path(f"{database}-shm")
+    journal = Path(f"{database}-journal")
+    assert not wal.exists()
+    assert not shm.exists()
+    assert not journal.exists()
+    assert database.read_bytes()[18:20] == b"\x02\x02"
+    before = tuple(
+        (suffix, path.read_bytes() if path.exists() else None)
+        for suffix, path in (("", database), ("-wal", wal), ("-shm", shm))
+    )
+
+    source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+
+    def track_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", track_source_open)
+    rows, error = _database_paths(database, active_wal=True)
+    after = tuple(
+        (suffix, path.read_bytes() if path.exists() else None)
+        for suffix, path in (("", database), ("-wal", wal), ("-shm", shm))
+    )
+
+    assert rows is None
+    assert error == "DATABASE_CAPTURE_UNPROVEN"
+    assert source_opens == []
+    assert after == before
+
+
+def test_stable_rollback_copy_rejects_mixed_generation_during_concurrent_writer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     paths, _ = _fixture(tmp_path)
@@ -411,146 +534,48 @@ def test_wal_snapshot_generation_coherence(
             return {str(row[0]): str(row[1]) for row in rows.fetchall()}
 
     with closing(sqlite3.connect(database)) as writer:
-        assert writer.execute("PRAGMA journal_mode = WAL").fetchone() == ("wal",)
-        writer.execute("PRAGMA wal_autocheckpoint = 0")
         writer.execute(
             "UPDATE documents SET stored_path = ? WHERE id = 1",
             (generation_one["1"],),
         )
         writer.commit()
-        wal_path = Path(f"{database}-wal")
-        assert wal_path.is_file() and wal_path.stat().st_size > 32
-        assert read_main_only(database) == initial
-        assert writer.execute(
-            "SELECT id, stored_path FROM documents WHERE id IN (1, 3000) ORDER BY id"
-        ).fetchall() == [(1, generation_one["1"]), (3000, initial["3000"])]
+        assert not Path(f"{database}-wal").exists()
+        assert not Path(f"{database}-shm").exists()
+        assert not Path(f"{database}-journal").exists()
+        assert read_main_only(database) == generation_one
 
         source_before_capture = source_sqlite_files()
-        interleavings: list[tuple[int, tuple[int, ...]]] = []
         source_after_interleaving: list[tuple[tuple[str, bytes | None], ...]] = []
-        source_states: list[tuple[str, tuple[tuple[str, bytes | None], ...]]] = []
+        copied_generations: list[tuple[str, str]] = []
 
-        def record_source_state(label: str) -> None:
-            source_states.append((label, source_sqlite_files()))
-
-        source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
-        original_connect = sqlite3.connect
-
-        class InterleavingConnection:
-            def __init__(self, connection: sqlite3.Connection) -> None:
-                self.connection = connection
-
-            def __getattr__(self, name: str):
-                return getattr(self.connection, name)
-
-            def execute(self, sql: str, *args, **kwargs):
-                result = self.connection.execute(sql, *args, **kwargs)
-                normalized_sql = sql.casefold().replace(" ", "")
-                if normalized_sql == "pragmaquery_only=on":
-                    record_source_state("query_only")
-                elif normalized_sql == "pragmabusy_timeout=1000":
-                    record_source_state("busy_timeout")
-                elif normalized_sql == "pragmadata_version":
-                    label = (
-                        "data_version_start"
-                        if not any(name == "data_version_start" for name, _ in source_states)
-                        else "data_version_end"
-                    )
-                    record_source_state(label)
-                return result
-
-            def backup(self, destination: sqlite3.Connection, **kwargs: object) -> None:
-                original_progress = kwargs["progress"]
-                record_source_state("backup_start")
-
-                def checkpoint_between_backup_pages(
-                    status: int, remaining: int, total: int
-                ) -> None:
-                    if remaining > 0 and not interleavings:
-                        checkpoint = writer.execute(
-                            "PRAGMA wal_checkpoint(PASSIVE)"
-                        ).fetchone()
-                        writer.execute(
-                            "UPDATE documents SET stored_path = ? WHERE id = 3000",
-                            (generation_two["3000"],),
-                        )
-                        writer.commit()
-                        interleavings.append((remaining, checkpoint))
-                        source_after_interleaving.append(source_sqlite_files())
-                        source_states.append(("post_writer", source_after_interleaving[-1]))
-                    if original_progress is not None:
-                        original_progress(status, remaining, total)
-
-                self.connection.backup(
-                    destination,
-                    **{**kwargs, "progress": checkpoint_between_backup_pages},
+        def copy_with_writer_interleaving(
+            source: Path, destination: Path, deadline: float
+        ) -> None:
+            size = source.stat().st_size
+            with source.open("rb") as input_stream, destination.open("wb") as output_stream:
+                output_stream.write(input_stream.read(size // 2))
+                output_stream.flush()
+                writer.execute(
+                    "UPDATE documents SET stored_path = ? WHERE id = 3000",
+                    (generation_two["3000"],),
                 )
-                record_source_state("backup_end")
+                writer.commit()
+                source_after_interleaving.append(source_sqlite_files())
+                output_stream.write(input_stream.read())
+            captured = read_main_only(destination)
+            copied_generations.append((captured["1"], captured["3000"]))
 
-            def close(self) -> None:
-                self.connection.close()
-                record_source_state("source_close")
-
-        def connect_with_interleaving(database_name, *args, **kwargs):
-            connection = original_connect(database_name, *args, **kwargs)
-            if str(database_name) == source_uri:
-                wrapped = InterleavingConnection(connection)
-                record_source_state("source_open")
-                return wrapped
-            return connection
-
-        monkeypatch.setattr(sqlite3, "connect", connect_with_interleaving)
+        monkeypatch.setattr(
+            operational_update, "_copy_database", copy_with_writer_interleaving
+        )
         rows, error = _database_paths(database, active_wal=True)
         source_after_capture = source_sqlite_files()
-        source_states.append(("helper_return", source_after_capture))
 
-    assert interleavings and interleavings[0][0] > 0
-    assert interleavings[0][1][0] == 0
-    assert interleavings[0][1][2] > 0
+    assert copied_generations == [(generation_one["1"], generation_two["3000"])]
     assert source_before_capture != source_after_interleaving[0]
-    if error is not None:
-        logical_result_valid = rows is None and error in {
-            "DATABASE_UNREADABLE",
-            "DATABASE_CHANGED_DURING_SNAPSHOT",
-            "DATABASE_SNAPSHOT_TIMEOUT",
-        }
-        logical_outcome = f"explicit_error:{error}"
-    else:
-        logical_result_valid = rows in (generation_one, generation_two)
-        logical_outcome = (
-            "generation_one"
-            if rows == generation_one
-            else "generation_two"
-            if rows == generation_two
-            else "mixed_or_unknown_generation"
-        )
-    post_writer_index = next(
-        index for index, (label, _state) in enumerate(source_states) if label == "post_writer"
-    )
-    post_writer_state = source_states[post_writer_index][1]
-    source_state_changes = {
-        label: tuple(
-            suffix
-            for (suffix, data), (_baseline_suffix, baseline_data) in zip(state, post_writer_state)
-            if data != baseline_data
-        )
-        for label, state in source_states[post_writer_index + 1 :]
-        if state != post_writer_state
-    }
-    source_state_digests = {
-        label: {
-            suffix: None if data is None else hashlib.sha256(data).hexdigest()
-            for suffix, data in state
-        }
-        for label, state in source_states
-    }
-    source_bytes_unchanged = source_after_capture == post_writer_state
-    assert logical_result_valid and source_bytes_unchanged, (
-        f"logical_outcome={logical_outcome}; error={error!r}; "
-        f"source_bytes_unchanged={source_bytes_unchanged}; "
-        f"source_state_changes_after_post_writer={source_state_changes!r}; "
-        f"source_state_digests={source_state_digests!r}"
-    )
+    assert rows is None
+    assert error == "DATABASE_CHANGED_DURING_SNAPSHOT"
+    assert source_after_capture == source_after_interleaving[0]
 
 
 def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout(
@@ -584,29 +609,34 @@ def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout
     assert elapsed < 10.0
 
 
-def test_active_wal_exclusive_lock_returns_unreadable_within_finite_timeout(
+def test_active_wal_without_capture_barrier_is_rejected_before_source_open(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     paths, _ = _fixture(tmp_path)
     database = paths.database_path
     wal_path = Path(f"{database}-wal")
     shm_path = Path(f"{database}-shm")
-    helper_calls: list[tuple[Path, bool]] = []
-    original_database_paths = _database_paths
 
-    def observe_helper(path: Path, *, active_wal: bool):
-        helper_calls.append((path, active_wal))
-        return original_database_paths(path, active_wal=active_wal)
-
-    monkeypatch.setattr(operational_update, "_database_paths", observe_helper)
     def source_sqlite_files() -> tuple[tuple[str, bytes | None], ...]:
         return tuple(
             (suffix, path.read_bytes() if path.exists() else None)
-            for suffix in ("", "-wal", "-shm")
-            for path in (Path(f"{database}{suffix}"),)
+            for suffix, path in (
+                ("", database),
+                ("-wal", wal_path),
+                ("-shm", shm_path),
+            )
         )
 
-    with closing(sqlite3.connect(database, timeout=0.1)) as blocker:
+    original_connect = sqlite3.connect
+    source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+    source_opens: list[str] = []
+
+    def reject_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    with closing(original_connect(database, timeout=0.1)) as blocker:
         assert blocker.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone() == (
             "exclusive",
         )
@@ -618,31 +648,20 @@ def test_active_wal_exclusive_lock_returns_unreadable_within_finite_timeout(
         )
         blocker.commit()
         assert wal_path.is_file() and wal_path.stat().st_size > 32
-        blocker.execute("SELECT id FROM documents LIMIT 1").fetchone()
-        assert wal_path.is_file() and wal_path.stat().st_size > 32
         assert not shm_path.exists()
-        source_before_probe = source_sqlite_files()
-        uri = database.as_uri() + "?mode=ro"
-        probe_error: sqlite3.OperationalError | None = None
-        try:
-            with closing(sqlite3.connect(uri, uri=True, timeout=0)) as probe:
-                probe.execute("SELECT id FROM documents LIMIT 1").fetchone()
-        except sqlite3.OperationalError as exc:
-            probe_error = exc
-        assert probe_error is not None, "zero-time read probe unexpectedly acquired the database"
-        assert "locked" in str(probe_error).lower() or "busy" in str(probe_error).lower()
-        source_before_helper = source_sqlite_files()
+        before = source_sqlite_files()
+        monkeypatch.setattr(sqlite3, "connect", reject_source_open)
 
         started = time.monotonic()
-        rows, error = operational_update._database_paths(database, active_wal=True)
+        rows, error = _database_paths(database, active_wal=True)
         elapsed = time.monotonic() - started
-        source_after_read = source_sqlite_files()
+        after = source_sqlite_files()
 
-    assert helper_calls == [(database, True)]
-    assert source_after_read == source_before_helper
+    assert source_opens == []
+    assert after == before
     assert rows is None
-    assert error in {"DATABASE_UNREADABLE", "DATABASE_SNAPSHOT_TIMEOUT"}
-    assert elapsed < 10.0
+    assert error == "DATABASE_CAPTURE_UNPROVEN"
+    assert elapsed < 1.0
 
 
 def test_changed_input_during_observation_is_reported_unstable(tmp_path: Path) -> None:

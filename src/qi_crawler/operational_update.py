@@ -174,56 +174,135 @@ def _unsafe_path(path: Path, root: Path) -> bool:
 
 
 def _read_database_paths(
-    path: Path, *, immutable: bool, timeout: float = 5.0
+    path: Path,
+    *,
+    immutable: bool,
+    timeout: float = 5.0,
+    deadline: float | None = None,
 ) -> tuple[dict[str, str] | None, str | None]:
     uri = path.as_uri() + "?mode=ro"
     if immutable:
         uri += "&immutable=1"
     try:
-        with closing(sqlite3.connect(uri, uri=True, timeout=timeout)) as connection:
+        remaining = timeout if deadline is None else max(0.0, deadline - time.monotonic())
+        with closing(sqlite3.connect(uri, uri=True, timeout=min(timeout, remaining))) as connection:
             connection.execute("PRAGMA query_only = ON")
+            if deadline is not None:
+                connection.set_progress_handler(
+                    lambda: int(time.monotonic() >= deadline), 1000
+                )
             rows = connection.execute("SELECT id, stored_path FROM documents ORDER BY id").fetchall()
     except (OSError, sqlite3.Error):
+        if deadline is not None and time.monotonic() >= deadline:
+            return None, "DATABASE_SNAPSHOT_TIMEOUT"
         return None, "DATABASE_UNREADABLE"
+    if deadline is not None and time.monotonic() >= deadline:
+        return None, "DATABASE_SNAPSHOT_TIMEOUT"
     return {str(row[0]): str(row[1]) for row in rows}, None
+
+
+def _database_sidecars_absent(path: Path) -> bool:
+    for suffix in ("-wal", "-shm", "-journal"):
+        try:
+            Path(f"{path}{suffix}").lstat()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return False
+        return False
+    return True
+
+
+def _database_file_state(path: Path, deadline: float) -> tuple[bytes, int, str] | None:
+    try:
+        before = path.lstat()
+        attributes = int(getattr(before, "st_file_attributes", 0))
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or stat.S_ISLNK(before.st_mode)
+            or attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT
+        ):
+            return None
+        digest = hashlib.sha256()
+        header = bytearray()
+        size = 0
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                if time.monotonic() >= deadline:
+                    raise TimeoutError
+                if len(header) < 100:
+                    header.extend(chunk[: 100 - len(header)])
+                digest.update(chunk)
+                size += len(chunk)
+        after = path.lstat()
+    except TimeoutError:
+        raise
+    except OSError:
+        return None
+    if (
+        len(header) < 100
+        or size != before.st_size
+        or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+        != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    ):
+        return None
+    return bytes(header), size, digest.hexdigest().upper()
+
+
+def _copy_database(path: Path, destination: Path, deadline: float) -> None:
+    with path.open("rb") as source, destination.open("wb") as target:
+        while chunk := source.read(1024 * 1024):
+            if time.monotonic() >= deadline:
+                raise TimeoutError
+            target.write(chunk)
+    if time.monotonic() >= deadline:
+        raise TimeoutError
 
 
 def _database_paths(path: Path, *, active_wal: bool) -> tuple[dict[str, str] | None, str | None]:
     if not active_wal:
         return _read_database_paths(path, immutable=True)
+    # Do not open a live SQLite source without a capture boundary: WAL reads can
+    # update -shm even in read-only mode.
+    deadline = time.monotonic() + 5.0
     try:
+        if not _database_sidecars_absent(path):
+            return None, "DATABASE_CAPTURE_UNPROVEN"
+        source_before = _database_file_state(path, deadline)
+        if source_before is None:
+            return None, "DATABASE_UNREADABLE"
+        if source_before[0][:16] != b"SQLite format 3\x00":
+            return None, "DATABASE_UNREADABLE"
+        if source_before[0][18:20] != b"\x01\x01":
+            return None, "DATABASE_CAPTURE_UNPROVEN"
         with tempfile.TemporaryDirectory(prefix="qi-update-observation-") as directory:
             snapshot = Path(directory) / path.name
-            deadline = time.monotonic() + 5.0
-
-            def enforce_deadline(_status: int, _remaining: int, _total: int) -> None:
-                if time.monotonic() >= deadline:
-                    raise sqlite3.OperationalError("DATABASE_SNAPSHOT_TIMEOUT")
-
-            source_uri = path.resolve(strict=False).as_uri() + "?mode=ro"
-            with closing(sqlite3.connect(source_uri, uri=True, timeout=1.0)) as source:
-                source.execute("PRAGMA query_only = ON")
-                source.execute("PRAGMA busy_timeout = 1000")
-                data_version_start = int(source.execute("PRAGMA data_version").fetchone()[0])
-                with closing(sqlite3.connect(snapshot, timeout=1.0)) as destination:
-                    source.backup(
-                        destination,
-                        pages=128,
-                        progress=enforce_deadline,
-                        sleep=0.05,
-                    )
-                enforce_deadline(0, 0, 0)
-                data_version_end = int(source.execute("PRAGMA data_version").fetchone()[0])
-                if data_version_end != data_version_start:
-                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
-            return _read_database_paths(snapshot, immutable=False, timeout=1.0)
-    except sqlite3.OperationalError as exc:
-        if str(exc) == "DATABASE_SNAPSHOT_TIMEOUT":
-            return None, "DATABASE_SNAPSHOT_TIMEOUT"
-        return None, "DATABASE_UNREADABLE"
+            _copy_database(path, snapshot, deadline)
+            source_after = _database_file_state(path, deadline)
+            snapshot_state = _database_file_state(snapshot, deadline)
+            if not _database_sidecars_absent(path):
+                return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+            if source_after is None or snapshot_state is None:
+                return None, "DATABASE_UNREADABLE"
+            if (
+                source_after[0][:16] != b"SQLite format 3\x00"
+                or source_after[0][18:20] != b"\x01\x01"
+                or snapshot_state[0][:16] != b"SQLite format 3\x00"
+                or snapshot_state[0][18:20] != b"\x01\x01"
+            ):
+                return None, "DATABASE_CAPTURE_UNPROVEN"
+            if source_before != source_after or source_after != snapshot_state:
+                return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+            return _read_database_paths(
+                snapshot,
+                immutable=False,
+                timeout=1.0,
+                deadline=deadline,
+            )
+    except TimeoutError:
+        return None, "DATABASE_SNAPSHOT_TIMEOUT"
     except OSError:
         return None, "DATABASE_UNREADABLE"
-
 
 def _artifact(name: str, path: Path, state: str) -> ArtifactState:
     return ArtifactState(name=name, path=str(path), state=state)
