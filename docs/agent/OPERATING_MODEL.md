@@ -31,6 +31,31 @@ Roles describe authority, not a particular model or tool. The assignment
 source is the approved Work Order, `CURRENT.md` and Human authority, never a
 ChatGPT/Codex/CI/tool/model name.
 
+## Supervised report identity and admission
+
+The Task Envelope remains the existing ten-field subordinate view defined by
+`plugins/qi-agent-workbench/skills/qi-task-envelope/SKILL.md`; this contract
+does not change it. The Operating Model is the single canonical owner of report
+identity and admission:
+
+```text
+REPORT_METADATA = WO_ID, RUN_OR_ATTEMPT_ID, REPORT_ID, SOURCE_TASK_ID,
+                  DESTINATION_TASK_ID, OBJECT_ID, IN_REPLY_TO
+EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
+                              OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
+```
+
+The Planner establishes the expected pending transition. A report is admitted
+only when every required metadata field matches it. Missing, truncated, stale,
+wrong-route, wrong-object or wrong-attempt reports are `HOLD` and cannot advance
+state. Once consumed, a transition cannot advance or redispatch again; a
+repeated `REPORT_ID` or any later report for that consumed binding is a duplicate
+and leaves state unchanged. A correction requires a new expected attempt opened
+by the Planner, with `IN_REPLY_TO` identifying the superseded report or finding.
+Candidate drift requires a new `OBJECT_ID` and expected binding. This is
+supervised admission tracking, not exactly-once transport and not a runner,
+broker, database or scheduler.
+
 ## Canonical role contract schema
 
 Every durable role contract uses this minimum schema:

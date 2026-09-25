@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.10",
+  "revision": "1.0.11",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -836,6 +836,38 @@
         "docs/agent_handoff/CURRENT.md"
       ],
       "relation": "Post-promotion runtime-contract correction only. Exact Windows test-path compatibility aliases map exclusively to this WP: .tmp/b09f, .tmp/b9-short-01, .tmp/b09-symlink-red, .tmp/b09-core-final, .tmp/b09-full-final, .tmp/b09-target-final, and .tmp/B09RC/20260923T031245Z; the WP-named .tmp/V010_B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION_01 root used noncanonical run subpaths and is also dispositioned in CURRENT. These are not a general alternate temp family; no future task may reuse them by inference. Canonical future scratch remains .tmp/{wp_id}/{run_id}/{relative_path}. Aliases grant no live-runtime, release, promotion, push, PR or merge authority."
+    },
+    {
+      "wp_id": "WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01",
+      "authority_ref": "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.PLUGINS",
+        "PATH.REPO.TESTS",
+        "PATH.REPO.ROOT_HELPERS",
+        "PATH.DEV.TEST_TEMP"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md",
+        "docs/agent/OPERATING_MODEL.md",
+        "docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md",
+        "docs/agent/LOCAL_STAGED_INTEGRATION.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md",
+        "plugins/qi-agent-workbench/skills-lock.json",
+        "tests/agent_workbench/test_skills_lock.py",
+        "AGENTS.md",
+        "docs/agent/MASTER_ROADMAP.md",
+        "docs/agent/HUMAN_COLLABORATION.md",
+        "docs/agent/QI_AGENT_WORKBENCH.md"
+      ],
+      "relation": "LOCATOR_ONLY_FOR_APPROVED_AGENT_LOOP_GOVERNANCE_WORK_ORDER; NO_PRODUCT_IMPLEMENTATION; NO_B09; NO_WORKFLOW; NO_REMOTE_AUTHORITY"
     }
   ],
   "legacy_locations": [

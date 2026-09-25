@@ -80,7 +80,7 @@ audited candidate.
 
 ## 9. Integrity lock and verifier
 
-`skills-lock.json` records SHA-256 for the nine approved Workbench skill and
+`skills-lock.json` records SHA-256 for the ten approved Workbench skill and
 reference artifacts. `verify_lock.py` is deterministic, local, read-only,
 fail-closed, and has no network, registry, auto-fix, or auto-sync behavior.
 Missing artifacts, digest mismatches, and malformed manifests fail with
