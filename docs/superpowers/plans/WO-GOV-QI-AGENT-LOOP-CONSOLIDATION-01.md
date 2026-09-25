@@ -5,7 +5,7 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = APPROVED_FOR_LOCAL_BUILDER_EXECUTION
+STATE = CORRECTION_01_APPROVED_FOR_ENTRY_RECONCILIATION_THEN_LOCAL_EXECUTION
 APPROVAL_SCOPE = DESIGN_B09_PRESERVATION_GOVERNANCE_BRANCH_AND_LOCAL_EXECUTION
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
@@ -13,7 +13,7 @@ ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
 ACTIVE_MICRO_WP = NOT_STARTED
 CURRENT_AUTHORITY = PLANNER_ARCHITECT
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_BUILDER_ENTRY
+HANDOFF_READY = YES_FOR_ENTRY_RECONCILIATION_ONLY
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -268,6 +268,10 @@ GOVERNANCE_BRANCH = codex/agent-loop-consolidation-01
 GOVERNANCE_BASE = 179c0712a14161ea25096e66a127f6022bf696fd
 TRACKED_ENTRY_TREE = CLEAN
 UNTRACKED = KEEP
+LIVE_QI_AGENT_LOOP_SKILL = ABSENT_ON_ORIGIN_MAIN
+REFERENCE_QI_AGENT_LOOP_SKILL =
+  17532fc544f8ae5c9b8c1ed131af40e81e02b5de:plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md
+REFERENCE_USE = SEMANTIC_INPUT_ONLY; NO_BLIND_CHERRY_PICK
 ```
 
 These facts were verified by the Planner after the Builder returned the local
@@ -322,6 +326,33 @@ automatically expand.
 
 ## 12. Internal stages under one future execution lease
 
+### Stage 0: governed entry reconciliation
+
+The `origin/main` baseline contains a stale B09 active block in `CURRENT.md`.
+The first Builder entry therefore has a known Work Order/CURRENT conflict and
+cannot declare general implementation readiness. Human A0's approved Agent Loop
+transition and this Planner correction authorize one narrow pre-entry action:
+
+1. enter as `BUILDER_SINGLE_WRITER` with
+   `ENTRY_RECONCILIATION_ONLY`, not general implementation authority;
+2. update only `docs/agent_handoff/CURRENT.md` and
+   `docs/agent/FEEDBACK_LEDGER.md`;
+3. record the approved governance Parent/WP, canonical branch/base/WO object,
+   B09 `PARKED_PRESERVED_LOCAL` disposition, exact role model, write allowlist,
+   local-only execution boundary and next action;
+4. retain the displaced B09 active state through a verifiable Git locator and
+   preserve its technical HOLD without copying its history into the new active
+   block;
+5. commit exactly those two files as a local semantic entry-transition commit;
+   and
+6. re-run the canonical `ROLE_ENTRY_GATE` against the new local head before any
+   Stage 1 or Stage 2 edit.
+
+This Stage 0 exception exists only to repair the stale handoff that blocks the
+normal entry gate. It does not allow the Builder to originate Human or Planner
+decisions. If the post-commit gate still conflicts, return `ENTRY_HOLD` without
+starting Stage 1.
+
 ### Stage 1: role, routing and integration contract
 
 The Builder shall:
@@ -347,7 +378,7 @@ The Builder shall:
    one blocker set and one exactly-one-next-action; and
 5. preserve removed active-history content through verified locators.
 
-Both stages belong to one lease only after Human execution approval. A stage
+All three stages belong to one lease under Human execution approval. A stage
 boundary does not require repeat approval when baseline, scope, writer and
 authority remain unchanged.
 
@@ -530,7 +561,7 @@ Requirements:
 | `ecc:agent-architecture-audit` | REQUIRED | Detect role, routing and persistence conflicts |
 | `skill-creator` | REQUIRED when editing the skill | Frontmatter, triggers, progressive disclosure and checks |
 | `qi-context-boot` | REQUIRED | Governed context read-in |
-| `qi-agent-loop` | REQUIRED | Workflow under change |
+| `qi-agent-loop` | REQUIRED_AS_OUTPUT_AND_POST_CREATION_VALIDATION | The skill is absent on `origin/main`; create the minimum approved workflow, then invoke/validate it without claiming pre-creation use |
 | CodeGraph | OPTIONAL | Use only for actual code/test impact discovery |
 | Other plugins/MCPs | NOT_APPLICABLE | No inventory, install or fabricated evidence |
 
@@ -568,10 +599,14 @@ business, merge or release authority.
 ## 20. Finite execution budget
 
 - one Builder Single Writer;
-- two internal stages;
+- one entry-reconciliation stage and two implementation stages;
 - at most two in-lease correction attempts;
-- at most two implementation commits and one terminal handoff sync commit;
-- at most one new governed file, this Work Order;
+- at most three implementation/transition commits and one terminal handoff sync
+  commit;
+- at most two new governed files: this Work Order and
+  `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md`;
+- no new skill reference/eval/scaffolding files; reuse existing tests and lock
+  machinery;
 - two targeted verification attempts and one full local run unless root-cause
   evidence requires a bounded repeat;
 - no cleanup;
@@ -682,10 +717,10 @@ DESIGN = HUMAN_APPROVED
 WO_FILE = READY_FOR_PLANNER_COMMIT
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
-BUILDER_EXECUTION = HUMAN_AUTHORIZED_LOCAL_ONLY
+BUILDER_EXECUTION = HUMAN_AUTHORIZED_LOCAL_ONLY; STAGE_0_ENTRY_RECONCILIATION_REQUIRED
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = PLANNER_COMMITS_WO_THEN_ASSIGN_BUILDER_SINGLE_WRITER
-NEXT_AUTHORITY = PLANNER_THEN_BUILDER_SINGLE_WRITER
+EXACTLY_ONE_NEXT_ACTION = BUILDER_UPDATES_CURRENT_AND_FEEDBACK_ONLY_COMMITS_STAGE_0_THEN_RERUNS_ROLE_ENTRY_GATE
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER_ENTRY_RECONCILIATION_ONLY
 ```
