@@ -1185,3 +1185,33 @@ installation, publish, promotion, tag, GitHub Release, RealF5 or new product
 capability.
 Disposition: ACCEPTED / ROUTED_TO_MASTER_ROADMAP_DELTA_AND_CURRENT
 ```
+
+### FB-0043 — QI Agent Loop governance execution and B09 park
+
+```text
+State: ACCEPTED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION recorded in the approved Work Order and Planner correction
+Type: GOVERNANCE / AGENT_WORKBENCH / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
+BUILDER_ROLE = BUILDER_SINGLE_WRITER
+GOVERNANCE_BRANCH = codex/agent-loop-consolidation-01
+BASE_SHA = 179c0712a14161ea25096e66a127f6022bf696fd
+WORK_ORDER_HEAD = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+EXECUTION = LOCAL_ONLY
+PUSH = NOT_AUTHORIZED
+PR = NOT_AUTHORIZED
+MERGE = NOT_AUTHORIZED
+RELEASE = NOT_AUTHORIZED
+B09 = PARKED_PRESERVED_LOCAL; BRIDGE_A_HOLD; NOT_PUSHED
+Evidence: Work Order correction 01 at the exact governance head above; B09 local preservation commit 9bc64942f35c41d002ef80a74c7a02851422b0e8 contains only `src/qi_crawler/operational_update.py` and `tests/test_operational_update.py`.
+Boundary: This decision authorizes only the bounded Agent Loop governance Work Order and its local stages. It does not claim B09/Bridge A completion or authorize B09 continuation, push, PR, merge, release, product changes, cleanup or scope expansion.
+Response: Stage 0 records the active governance handoff and preserves the displaced B09 HOLD by exact Git locator; Stage 1/2 remain subject to the post-Stage-0 ROLE_ENTRY_GATE and the Work Order's exact allowlist.
+Scope change required: NO
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_GOVERNANCE_WP
+Promoted to: docs/agent_handoff/CURRENT.md
+```
