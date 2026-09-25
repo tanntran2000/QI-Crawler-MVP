@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.12",
+  "revision": "1.0.13",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -864,10 +864,11 @@
         "tests/agent_workbench/test_skills_lock.py",
         "AGENTS.md",
         "docs/agent/MASTER_ROADMAP.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
         "docs/agent/HUMAN_COLLABORATION.md",
         "docs/agent/QI_AGENT_WORKBENCH.md"
       ],
-      "relation": "LOCATOR_ONLY_FOR_APPROVED_AGENT_LOOP_GOVERNANCE_WORK_ORDER; TASK_ONLY_VERIFICATION_ALIAS=.tmp/al05 maps only to .tmp/al05/t/p (Correction 05 targeted) and .tmp/al05/f/p (Correction 05 full); NO_GENERAL_TEMP_FAMILY_OR_REUSE; NO_PRODUCT_IMPLEMENTATION; NO_B09; NO_WORKFLOW; NO_REMOTE_AUTHORITY; NO_CLEANUP"
+      "relation": "LOCATOR_ONLY_FOR_APPROVED_AGENT_LOOP_GOVERNANCE_WORK_ORDER; TASK_ONLY_VERIFICATION_ALIAS=.tmp/al05 maps only to .tmp/al05/t/p (Correction 05 targeted) and .tmp/al05/f/p (Correction 05 full); CORRECTION_06_ONE_RUN_ALIAS=.tmp/al06 maps only to .tmp/al06/f/p (one full sequential run); NO_GENERAL_TEMP_FAMILY_OR_REUSE; NO_PRODUCT_IMPLEMENTATION; NO_B09; NO_WORKFLOW; NO_REMOTE_AUTHORITY; NO_CLEANUP"
     }
   ],
   "legacy_locations": [

@@ -238,7 +238,7 @@ The toolbox is outside the Product House:
 | Golden / regression corpus | Reference specimen | Deterministic evidence | Not automatically Human Ground Truth. |
 | Build/Installer tools | Handover/build crew | Windows artifacts | Not release authority. |
 | Diagnostics/logging | Sensors/meters | Failure evidence | Not automatic root-cause authority. |
-| AI coding agents | Engineers/workers | Assigned Planner/Builder/Reviewer roles | `ROLE > MODEL NAME`. |
+| AI coding agents | Engineers/workers | Assigned Planner/Builder/Tester/Reviewer roles | `ROLE > MODEL NAME`; see the Operating Model for distinct authorities. |
 
 ```text
 TOOL != PRODUCT CAPABILITY

@@ -1002,6 +1002,21 @@ PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong
 LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
 ```
 
+## FM-050 — Host suspension invalidated a local full-sequential verification run
+
+```text
+ID = FM-050
+STATE = OPEN
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+SYMPTOM = The local full sequential pytest run remained alive across a Windows host sleep/resume interval and produced no final pytest summary, so its verification result is inconclusive.
+ROOT_CAUSE = HOST_SUSPENSION_DURING_LOCAL_FULL_RUN; the host entered a low-power state while pytest was running.
+CLASSIFICATION = CI_INFRASTRUCTURE_DEFECT
+EVIDENCE = Run started 2026-09-25T16:59:35+07:00; Power-Troubleshooter Event 1 recorded sleep at 2026-09-25T10:12:39.568821000Z and wake at 2026-09-25T12:31:00.247312800Z; Kernel-Power Events 42 and 107 and a Kernel-General clock synchronization followed resume; no final pytest summary exists. Evidence is recorded in Work Order 3ba789be00a61c056dd1532efa133b2acba72bde, section 10.7.
+CORRECTION = Preserve the prior attempt as HOLD_INCONCLUSIVE with no test or product-defect verdict. Correction 06 permits one guarded sequential rerun only; the attempt is not retried again.
+PREVENTION = Before the rerun, record the start time and latest relevant System power event. Hold a process-scoped SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED) guard in the supervising PowerShell process, fail closed if the API returns zero, enforce the fixed 25-minute limit against only the owned pytest process tree, restore execution state in finally, and inspect System sleep/resume events after exit. Do not change global power or lid settings and do not increase the timeout.
+LIMIT = Host suspension invalidates the prior run but does not establish a test failure or product defect. The Correction 06 rerun result remains pending.
+```
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
