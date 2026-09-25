@@ -1215,3 +1215,28 @@ Scope change required: NO
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_GOVERNANCE_WP
 Promoted to: docs/agent_handoff/CURRENT.md
 ```
+
+### FB-0044 — Human A0 Stage 0 re-entry and local commit boundary
+
+```text
+State: ACCEPTED / ACTIVE_EXECUTION_BOUNDARY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 instruction dated 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  Stage 0 local commit contains exactly:
+    docs/agent_handoff/CURRENT.md
+    docs/agent/FEEDBACK_LEDGER.md
+  Commit message: docs(agent-loop): reconcile builder entry state
+  After commit, rerun ROLE_ENTRY_GATE. Stage 1 and Stage 2 may continue only
+  when that gate passes, using Work Order object
+  4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf and its recorded SHA-256.
+  Execution remains local only. B09 stays parked.
+Boundary: No B09 execution, untracked staging, cleanup, push, PR, merge or
+release. This decision supersedes the prior direct-commit limit that applied
+only to the two B09 source/test files, solely for this Stage 0 transition.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md
+```
