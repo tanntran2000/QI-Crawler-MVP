@@ -1014,7 +1014,15 @@ CLASSIFICATION = CI_INFRASTRUCTURE_DEFECT
 EVIDENCE = Run started 2026-09-25T16:59:35+07:00; Power-Troubleshooter Event 1 recorded sleep at 2026-09-25T10:12:39.568821000Z and wake at 2026-09-25T12:31:00.247312800Z; Kernel-Power Events 42 and 107 and a Kernel-General clock synchronization followed resume; no final pytest summary exists. Evidence is recorded in Work Order 3ba789be00a61c056dd1532efa133b2acba72bde, section 10.7.
 CORRECTION = Preserve the prior attempt as HOLD_INCONCLUSIVE with no test or product-defect verdict. Correction 06 permits one guarded sequential rerun only; the attempt is not retried again.
 PREVENTION = Before the rerun, record the start time and latest relevant System power event. Hold a process-scoped SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED) guard in the supervising PowerShell process, fail closed if the API returns zero, enforce the fixed 25-minute limit against only the owned pytest process tree, restore execution state in finally, and inspect System sleep/resume events after exit. Do not change global power or lid settings and do not increase the timeout.
-LIMIT = Host suspension invalidates the prior run but does not establish a test failure or product defect. The Correction 06 rerun result remains pending.
+LIMIT = The initial suspended attempt remains HOLD_INCONCLUSIVE and does not
+  establish a test failure or product defect. Accepted evidence records the C06
+  guarded rerun as PASS: 1623 collected; 1621 passed; 2 skipped; 0 collection
+  errors; exit 0; no sleep/resume event; timeout none. The raw pytest log is
+  unavailable in the current readback. Wrapper flags
+  FINAL_PYTEST_SUMMARY_PRESENT=False and C06_FULL_RUN_VALID_GREEN=False are
+  classified as a parser false-negative from the accepted evidence, not product
+  behavior. This result does not prove that all future host suspension is
+  prevented.
 ```
 
 ## Routing

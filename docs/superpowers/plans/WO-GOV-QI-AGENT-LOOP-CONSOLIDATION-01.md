@@ -5,15 +5,15 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = CORRECTION_05_INDEPENDENT_REVIEW_HOLD_FORWARD_CORRECTION
-APPROVAL_SCOPE = FOURTEEN_PATH_LOCAL_GOVERNANCE_ROLE_REPORT_LOCK_AND_TEST_CORRECTION
+STATE = CORRECTION_07_PR_READINESS_DOC_FRESHNESS
+APPROVAL_SCOPE = FIFTEEN_PATH_AGGREGATE_AGENT_LOOP; THREE_PATH_CORRECTION_07
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
 ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
-ACTIVE_MICRO_WP = CORRECTION_05_ROLE_ADMISSION_AND_VERIFICATION_REPAIR
-CURRENT_AUTHORITY = PLANNER_ARCHITECT
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_BOUNDED_CORRECTION_05
+ACTIVE_MICRO_WP = CORRECTION_07_PR_READINESS_DOC_FRESHNESS
+CURRENT_AUTHORITY = BUILDER_SINGLE_WRITER
+NEXT_AUTHORITY = TESTER_MACHINE_VERIFIER
+HANDOFF_READY = YES_FOR_CORRECTION_07_MACHINE_VERIFICATION_AFTER_BUILDER_COMMIT
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -785,6 +785,34 @@ scratch breach, scope expansion or unexpected tracked deletion. Return the
 complete result to Planner. Tester then verifies the exact new object and a new
 independent Reviewer audits the stable final range before any remote action.
 
+### 10.8 Correction 07: PR-readiness document freshness
+
+The admitted full-branch Independent Reviewer report
+`QI-AGENT-LOOP-FULL-BRANCH-REVIEW-774327D-01` returned `HOLD` on the exact
+range `179c0712a14161ea25096e66a127f6022bf696fd..774327d7e809571b523c2a1d78f8f3381c0bebb4`
+for two documentation-freshness findings only:
+
+1. The active Work Order control and terminal state still described C05 and a
+   fourteen-path aggregate after C06 completion and registration of the final
+   fifteen-path aggregate.
+2. `FM-050` said the C06 guarded rerun was pending after its accepted result.
+
+The review passed the exact fifteen-path aggregate, B09 exclusion, four-role
+model, report admission, skill/lock, registry and forward-history contracts.
+Correction 07 forward-corrects only these three files:
+
+```text
+docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
+docs/agent/KNOWN_FAILURE_MODES.md
+docs/agent_handoff/CURRENT.md
+```
+
+This is a documentation-only correction. No behavioral test or product
+verification is rerun. After the Builder commit, Tester verifies that exact
+object, an independent Reviewer re-audits it, and Planner reconciles both
+results before any remote action. Prior review evidence is not promoted to
+acceptance of the corrected object.
+
 ## 11. Explicit exclusions
 
 - `src/**`
@@ -923,8 +951,8 @@ The Work Order passes only when all statements below are true:
     supervised admission never claims exactly-once transport.
 33. `QI_AGENT_WORKBENCH.md` and `skills-lock.json` both identify exactly ten
     approved artifacts, while the lock test preserves exact set and hash checks.
-34. The Work Order locator binding lists all fourteen allowlisted paths and no
-    unapproved path.
+34. The final registered fifteen-path aggregate exactly matches the governance
+    branch diff and contains no unapproved path.
 35. The pre-entry `CURRENT.md` sync is a one-file forward commit, preserves the
     previous evidence and produces a subsequent Role Entry Gate `PASS` before
     any other write or test.
@@ -1050,8 +1078,8 @@ Static inspection must also prove:
   records the supersession boundary.
 - `QI_AGENT_WORKBENCH.md`, the lock manifest and the exact lock test consistently
   identify ten approved artifacts; and
-- the Path Registry WP binding contains exactly the fourteen write-allowlist
-  paths.
+- the Path Registry WP binding contains exactly the fifteen paths in the final
+  registered aggregate.
 
 ### Full local
 
@@ -1289,20 +1317,27 @@ hosted CI, final exact-head review and Planner reconciliation.
 
 ```text
 DESIGN = HUMAN_APPROVED
-WO_FILE = CORRECTION_05_INDEPENDENT_REVIEW_HOLD_FORWARD_CORRECTION
+WO_FILE = CORRECTION_07_PR_READINESS_DOC_FRESHNESS; BUILDER_RESULT_PENDING_TESTER_AND_REVIEWER
+ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
+ACTIVE_MICRO_WP = CORRECTION_07_PR_READINESS_DOC_FRESHNESS
+APPROVAL_SCOPE = FIFTEEN_PATH_AGGREGATE_AGENT_LOOP; THREE_PATH_CORRECTION_07
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
-STAGE_0 = COMPLETE_LOCAL; 66f331c3392537fafcd48b8ed6360f4ee4939985
-STAGE_1 = COMPLETE_LOCAL; 9557b63a977037c7de8356f66eadbd65e53fc394
-CORRECTION_04_IMPLEMENTATION = c674f77b65cc38987f201229e0efe9e79d98acf5
-CORRECTION_04_TERMINAL_EVIDENCE = e9b6f62c30ee46054c0d617b639831baa8e9fba5
-CORRECTION_04_TESTER = TARGETED_PASS; FULL_FAIL; PATH_CAUSATION_INCONCLUSIVE
-CORRECTION_04_REVIEWER = HOLD; QI-AGENT-LOOP-C04-REVIEW-C674-01
-STAGE_2 = CORRECTION_05_FORWARD_CORRECTION_OPEN
-BUILDER_EXECUTION = ONE_LOCAL_FORWARD_CORRECTION_THEN_BOUNDED_VERIFICATION
+C06_GUARDED_VERIFICATION = COMPLETED_WITH_LIMITATIONS; 1623_COLLECTED; 1621_PASSED; 2_SKIPPED; 0_COLLECTION_ERRORS; EXIT_0; NO_SLEEP_RESUME; TIMEOUT_NONE
+C06_RECOVERY_AND_EXACT_HEAD_REVIEW = COMPLETE; C06_REVIEW_PASS_WITH_LIMITATIONS; HEAD_774327D
+FULL_BRANCH_REVIEW = HOLD; QI-AGENT-LOOP-FULL-BRANCH-REVIEW-774327D-01
+FULL_BRANCH_REVIEW_RANGE = 179c0712a14161ea25096e66a127f6022bf696fd..774327d7e809571b523c2a1d78f8f3381c0bebb4
+FULL_BRANCH_REVIEW_FINDINGS = TWO_DOCUMENT_FRESHNESS_FINDINGS_ONLY; WORK_ORDER_C05_14_PATH_STATE; FM050_RERUN_PENDING_STATE
+FINAL_REGISTERED_AGGREGATE = EXACTLY_15_PATHS; B09_EXCLUDED
+C07_BUILDER_CORRECTION = THREE_DOCUMENTS_COMPLETE; PENDING_TESTER_AND_INDEPENDENT_REAUDIT
+C07_WRITE_SCOPE = docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent_handoff/CURRENT.md
+BEHAVIORAL_RERUN = NONE; DOCUMENTATION_ONLY
+REMOTE_CHECKPOINT = NOT_PUSHED; NOT_AUTHORIZED
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
+HOSTED_CI = NOT_RUN; NO_PR
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_APPLIES_CORRECTION_05_AND_RETURNS_EXACT_OBJECT_EVIDENCE_TO_PLANNER
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
+RELEASE = NOT_AUTHORIZED
+EXACTLY_ONE_NEXT_ACTION = TESTER_VERIFIES_EXACT_C07_COMMIT_AND_RETURNS_TO_PLANNER
+NEXT_AUTHORITY = TESTER_MACHINE_VERIFIER
 ```
