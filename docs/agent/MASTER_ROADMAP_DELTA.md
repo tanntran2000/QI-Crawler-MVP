@@ -1754,6 +1754,48 @@ NEXT = FINISH_PRE_DOC_COMMIT; RUN_CODEGRAPH_AND_BOUNDED_ROOT_CAUSE_CORRECTION; S
 ROADMAP_IMPACT = NO_PRODUCT_CAPABILITY_OR_MATURITY_CHANGE; RD-0013_REMAINS_OPEN
 ~~~
 
+## v0.10 B09 HOLD reasserted after PR #131 correction — docs-only WIP checkpoint
+
+Human A0's latest direct instruction in the Builder task supersedes FB-0051's
+active PR #131 correction direction. Stop B09 at Bridge A. The maintenance
+capture barrier remains unproven, Bridge A remains HOLD, and B09 is incomplete.
+The exact source DB/WAL/SHM byte-and-existence invariant remains mandatory.
+Only CURRENT, this Delta and FEEDBACK_LEDGER may be staged, diff-checked,
+committed locally and pushed to the exact B09 feature branch, followed by live
+remote SHA verification and a report to the assigned Planner. Do not resume
+technical B09 work from this checkpoint.
+
+At entry, the preceding bounded correction left source/test files modified in
+the working tree. Preserve them unchanged and exclude them from this docs-only
+checkpoint; preserve all untracked artifacts and do not clean them. No test or
+manual CI run is authorized. A branch push may trigger existing automation;
+that side effect is not a Builder CI invocation or Bridge A evidence. No PR
+creation/action, merge, release, B/C/D, mutation engine, startup integration or
+live update is authorized.
+
+~~~text
+AUTHORITY = LATEST_DIRECT_HUMAN_A0_IN_BUILDER_TASK_01A0D2BE-6DE8-7690-A41C-2B522363181D; DIRECTLY_RECEIVED
+SUPERSEDES = FB-0051_ACTIVE_PR131_CI_CORRECTION_EXECUTION_ONLY; HISTORICAL_CI_EVIDENCE_RETAINED
+STATE = HUMAN_A0_HOLD_NOW; B09_INCOMPLETE; BRIDGE_A_HOLD
+ACTIVE_PARENT = WP-REL-V010-B09-OPERATIONAL-REBIND-01
+ACTIVE_MICRO_WP = WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+SOURCE_BYTE_INVARIANT = EXACT_SOURCE_DB_WAL_SHM_BYTES_AND_EXISTENCE_EQUALITY; NO_SHM_EXEMPTION
+MAINTENANCE_CAPTURE_BARRIER = UNPROVEN
+SOURCE_TEST_WORKTREE = PRECEDING_CI_CORRECTION_MODIFICATIONS_PRESENT_UNCOMMITTED; PRESERVE; EXCLUDE_FROM_CHECKPOINT
+CHECKPOINT_SCOPE = CURRENT; MASTER_ROADMAP_DELTA; FEEDBACK_LEDGER_ONLY
+UNTRACKED = KEEP_ALL; NEVER_STAGE_OR_CLEAN
+CI = NO_TEST_OR_MANUAL_CI_INVOCATION_AUTHORIZED; AUTOMATIC_PUSH_SIDE_EFFECT_IS_NOT_BUILDER_EVIDENCE
+B_C_D = NOT_AUTHORIZED
+MUTATION_ENGINE = NOT_AUTHORIZED
+STARTUP_INTEGRATION = NOT_AUTHORIZED
+LIVE_UPDATE = NOT_AUTHORIZED
+PUSH = EXACT_BRANCH_WIP_CHECKPOINT_AUTHORIZED; VERIFY_LIVE_REMOTE_SHA
+NEXT = REPORT_VERIFIED_REMOTE_SHA_TO_PLANNER; STOP_B09
+MERGE = NOT_AUTHORIZED
+RELEASE = NOT_AUTHORIZED
+ROADMAP_IMPACT = NO_PRODUCT_CAPABILITY_OR_MATURITY_CHANGE; RD-0013_REMAINS_OPEN
+~~~
+
 ## v0.10 B09 HOLD restored at Bridge A — docs-only WIP checkpoint
 
 The latest direct Human A0 instruction supersedes the intervening request to

@@ -1424,3 +1424,17 @@ Invariant: Source DB/WAL/SHM bytes and existence must remain exactly equal. No i
 Boundary: Only the two approved source/test paths and CURRENT/Delta/Feedback PRE/POST docs; no CI gate/workflow changes, weakened tests, B/C/D, mutation engine, startup integration, live update, Builder merge or release, or cleanup. Preserve all untracked artifacts.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
+
+### FB-0052 — Immediate B09 HOLD reasserted at Bridge A
+
+~~~text
+State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Authority: Latest direct Human A0 instruction in Builder task 01a0d2be-6de8-7690-a41c-2b522363181d, received after FB-0051
+Decision: Hold B09 immediately at Bridge A. B09 is not complete; no further B09 implementation, tests, full regression or CI run is requested. Only the three named Context Spine files may be diff-checked, committed locally and pushed to codex/b09-bridge-a-wal-coherence as a WIP checkpoint. Verify the remote SHA, report to the assigned Planner, then stop B09.
+Supersedes: FB-0051's active PR #131 CI-correction execution direction. FB-0051's recorded CI results remain historical evidence.
+Invariant: Bridge A remains HOLD while the supervised maintenance capture barrier is unproven. Source DB/WAL/SHM bytes and existence must remain exactly equal; no SHM exemption is authorized.
+Boundary: Preserve preceding source/test working-tree modifications but exclude them from this checkpoint. Do not stage untracked artifacts or clean anything. No tests, manual CI invocation, PR creation/API action, merge, release, B/C/D, mutation engine, startup integration or live update. An existing automatic hosted workflow triggered by a branch push is not a manually requested CI run and must not be represented as Bridge A evidence.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+~~~
