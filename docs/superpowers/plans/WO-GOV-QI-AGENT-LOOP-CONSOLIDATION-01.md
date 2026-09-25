@@ -5,15 +5,15 @@
 ```text
 WORK_ORDER_ID = WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 TITLE = QI Agent Loop role, routing, handoff and skill consolidation
-STATE = CORRECTION_04_PLANNER_ENTRY_RECONCILIATION_AND_SCOPE_COMPLETION
+STATE = CORRECTION_05_INDEPENDENT_REVIEW_HOLD_FORWARD_CORRECTION
 APPROVAL_SCOPE = FOURTEEN_PATH_LOCAL_GOVERNANCE_ROLE_REPORT_LOCK_AND_TEST_CORRECTION
 HUMAN_DESIGN_DECISION = APPROVED
 HUMAN_DESIGN_DECISION_DATE = 2026-09-25
 ACTIVE_PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
-ACTIVE_MICRO_WP = CORRECTION_04_ENTRY_SYNC_AND_FORWARD_STAGE_2
+ACTIVE_MICRO_WP = CORRECTION_05_ROLE_ADMISSION_AND_VERIFICATION_REPAIR
 CURRENT_AUTHORITY = PLANNER_ARCHITECT
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
-HANDOFF_READY = YES_FOR_ENTRY_RECONCILIATION_ONLY_THEN_FORWARD_CORRECTION_04
+HANDOFF_READY = YES_FOR_BOUNDED_CORRECTION_05
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 PATH_ID = PATH.GOV.PLAN
@@ -462,6 +462,173 @@ ENTRY_SYNC_WRITE_SCOPE = docs/agent_handoff/CURRENT.md ONLY
 POST_ENTRY_WRITE_SCOPE = EXACT_FOURTEEN_PATHS_IN_SECTION_10_1
 ```
 
+### 10.6 Correction 05: independent-review HOLD forward correction
+
+Correction 04 implementation commit
+`c674f77b65cc38987f201229e0efe9e79d98acf5` and terminal evidence commit
+`e9b6f62c30ee46054c0d617b639831baa8e9fba5` were inspected by the Tester and
+independent Reviewer. The Tester classified scope, lock identity and the
+targeted gate `PASS`, full machine evidence `FAIL`, and Windows path causation
+`INCONCLUSIVE`. The independent Reviewer returned `HOLD` in report
+`QI-AGENT-LOOP-C04-REVIEW-C674-01`.
+
+The review found four in-scope defects:
+
+1. active canonical authorities still preserve the competing three-pole layer;
+2. report admission does not explicitly separate six binding comparisons from
+   `REPORT_ID` freshness or define the initial `IN_REPLY_TO` value;
+3. active `CURRENT.md` still lists the now-tracked Agent Loop skill as
+   untracked; and
+4. required plugin invocation evidence is not bound to a complete Builder
+   report.
+
+The existing 14-path allowlist already contains every required correction
+target. No scope expansion, new Parent, product/runtime edit or workflow edit is
+authorized.
+
+#### 10.6.1 Four-role correction
+
+Forward-correct these active authorities:
+
+- `AGENTS.md`;
+- `docs/agent/MASTER_ROADMAP.md`;
+- `docs/agent/OPERATING_MODEL.md`;
+- `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`;
+- `docs/agent/HUMAN_COLLABORATION.md`;
+- `plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md`; and
+- the active block of `docs/agent_handoff/CURRENT.md`.
+
+They shall use one structural model only:
+
+```text
+HUMAN_A0 = MATERIAL_AUTHORITY_ABOVE_THE_LOOP
+OPERATIONAL_ROLES = PLANNER; BUILDER; TESTER_MACHINE_VERIFIER; REVIEWER
+TESTER = EVIDENCE_ONLY_AUTHORITY
+FOUR_ROLES != FOUR_EQUAL_AUTHORITIES
+```
+
+Remove active `three-pole`, `execution-control pole`, `not a fourth pole` and
+equivalent second-layer claims. Express unequal authority directly per role.
+Do not rewrite historical Feedback entries. Append one new Feedback decision
+that records Human's four-role supersession of the old active structural effect.
+
+#### 10.6.2 Report-admission correction
+
+The Operating Model remains the single canonical owner. It shall state:
+
+- all seven `REPORT_METADATA` fields are present;
+- the six binding fields are compared with
+  `EXPECTED_PENDING_TRANSITION`;
+- `REPORT_ID` is non-empty and unseen for the pending transition;
+- an initial attempt uses the canonical value `IN_REPLY_TO = NONE` in both the
+  report and expected binding;
+- a correction uses the exact superseded report or finding ID, never `NONE`;
+- a correction still requires a Planner-opened new attempt;
+- a consumed binding and duplicate `REPORT_ID` cannot advance or redispatch;
+  and
+- candidate drift requires a new `OBJECT_ID`.
+
+The skill keeps a short workflow summary and names the canonical owner. Update
+its lock digest after final content.
+
+#### 10.6.3 Active inventory and plugin evidence
+
+Refresh the active `CURRENT.md` inventory from live Git. The tracked
+`plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md` must not remain in
+`UNTRACKED_KEEP` or be described as pending untracked staging. Do not inspect,
+stage, delete or reclassify unrelated unknown artifacts.
+
+Before the action each required skill governs, invoke/read it and report:
+
+```text
+PLUGIN
+PURPOSE
+INVOCATION
+RESULT
+FALLBACK
+IMPACT_RADIUS
+EDIT_RADIUS
+TEST_RADIUS
+LIMITATION
+```
+
+This applies to `ecc:living-docs-governance`,
+`ecc:agent-architecture-audit`, `qi-context-boot` and `skill-creator`. If an
+invocation cannot be proven, report `USAGE_NOT_PROVEN`; do not fabricate it.
+The final Builder packet must include complete `REPORT_METADATA` and bind the
+plugin evidence to the exact correction object.
+
+#### 10.6.4 Verification correction
+
+The prior full run used an absolute basetemp root of 118 characters; retained
+children reached 254 characters before deeper managed writes. This supports
+path-pressure risk but does not prove the cause of all 136 failures and eight
+errors. The prior red run remains evidence and is not converted to PASS.
+
+Register `.tmp/al05` in `PATH_REGISTRY.yaml` as an exact task-owned short-path
+verification alias for this WP only. It is not a new general temp family and
+grants no cleanup or reuse authority. Planner verified the alias does not exist
+at Correction 05 design time. Before running, prove it remains absent, resolve
+its absolute path inside the canonical repository, and create only the required
+fresh parents.
+
+Run once, in order:
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests/agent_workbench/test_skills_lock.py `
+  -p no:cacheprovider --basetemp=.tmp/al05/t/p
+
+.venv\Scripts\python.exe -m pytest `
+  -p no:cacheprovider --basetemp=.tmp/al05/f/p
+
+$agentLoopTrackedPython = @(git ls-files '*.py')
+.venv\Scripts\python.exe -m ruff check -- $agentLoopTrackedPython
+
+git diff --check e9b6f62c30ee46054c0d617b639831baa8e9fba5..<CORRECTION_05_HEAD>
+git diff --name-status e9b6f62c30ee46054c0d617b639831baa8e9fba5..<CORRECTION_05_HEAD>
+```
+
+Create `.tmp/al05/t` before targeted and `.tmp/al05/f` before full. Run full
+only when targeted is green. A red targeted/full/Ruff result stops without
+retry or content change.
+
+The tracked-only Ruff invocation preserves all tracked Python coverage while
+excluding unknown untracked `KEEP` artifacts that are outside this WP. Hosted
+CI on a clean checkout remains required before integration.
+
+Revised finite scratch limits, based on the retained measured run, are:
+
+```text
+CORRECTION_05_FULL_RUN_MAX_FILES = 20000
+CORRECTION_05_FULL_RUN_MAX_DIRS = 15000
+CORRECTION_05_FULL_RUN_MAX_BYTES = 1073741824
+CUMULATIVE_RETAINED_MAX_FILES = 32000
+CUMULATIVE_RETAINED_MAX_DIRS = 26000
+CUMULATIVE_RETAINED_MAX_BYTES = 2147483648
+MIN_D_FREE_BYTES = 10737418240
+```
+
+No retained artifact may be cleaned. Exceeding any revised ceiling is `HOLD`.
+
+#### 10.6.5 Correction 05 budget and stop
+
+```text
+CORRECTION_05_BASE_HEAD = e9b6f62c30ee46054c0d617b639831baa8e9fba5
+IMPLEMENTATION_AUDIT_TARGET = c674f77b65cc38987f201229e0efe9e79d98acf5
+REVIEW_REPORT_ID = QI-AGENT-LOOP-C04-REVIEW-C674-01
+REVIEW_VERDICT = HOLD
+BUILDER_CORRECTION_COMMITS = ONE
+TERMINAL_CURRENT_SYNC_COMMITS = ONE_IF_REQUIRED
+TARGETED_RUNS = ONE
+FULL_RUNS = ONE_ONLY_AFTER_TARGETED_PASS
+RUFF_RUNS = ONE_TRACKED_ONLY
+RETRY = NONE
+```
+
+After Builder return, Planner reviews the result, Tester verifies the exact new
+object and a new independent Reviewer audits the final range. No prior Tester
+classification or Reviewer verdict carries forward as acceptance.
+
 ## 11. Explicit exclusions
 
 - `src/**`
@@ -605,6 +772,17 @@ The Work Order passes only when all statements below are true:
 35. The pre-entry `CURRENT.md` sync is a one-file forward commit, preserves the
     previous evidence and produces a subsequent Role Entry Gate `PASS` before
     any other write or test.
+36. No active authority retains a competing pole-based structural model over
+    the four operational roles.
+37. Report admission distinguishes six expected-binding comparisons from a
+    present, non-empty, unseen `REPORT_ID` and defines `IN_REPLY_TO = NONE` for
+    initial attempts.
+38. Active `CURRENT.md` does not list a tracked governed artifact as untracked.
+39. Required plugin evidence is bound to the exact Builder report or honestly
+    classified `USAGE_NOT_PROVEN`.
+40. Short-path full verification, tracked-only Ruff, revised finite scratch
+    ceilings, Tester verification and new independent review satisfy their
+    exact-object contracts before any remote action.
 
 ### Allowed claims
 
@@ -812,6 +990,10 @@ business, merge or release authority.
 - no scope expansion by implication; and
 - stop when the correction budget is exhausted.
 
+Correction 05 supersedes the remaining execution budget above after the
+independent-review HOLD. Its exact budget is section 10.6.5; prior runs and
+commits remain historical evidence and are not reset.
+
 ## 21. Proposed integration lifecycle
 
 ```text
@@ -825,6 +1007,12 @@ HUMAN APPROVES DESIGN
   -> BUILDER COMMITS ONE-FILE CORRECTION 04 ENTRY SYNC
   -> BUILDER RE-RUNS ROLE ENTRY GATE
   -> BUILDER EXECUTES FORWARD CORRECTION 04 AND COMPLETES STAGE 2 ONLY ON PASS
+  -> TESTER VERIFIES CORRECTION 04 EVIDENCE
+  -> REVIEWER RETURNS CORRECTION 04 HOLD
+  -> PLANNER ISSUES BOUNDED CORRECTION 05
+  -> BUILDER EXECUTES ONE FORWARD CORRECTION AND SHORT-PATH VERIFICATION
+  -> TESTER VERIFIES CORRECTION 05 EXACT OBJECT
+  -> NEW INDEPENDENT REVIEWER AUDITS CORRECTION 05 EXACT RANGE
   -> PLANNER BUILDER-RESULT REVIEW
   -> TESTER MACHINE EVIDENCE
   -> PLANNER EVIDENCE REVIEW
@@ -916,6 +1104,16 @@ active-document scope completion needed to satisfy Human's approved Agent Loop
 objective. Correction 04 adds only `QI_AGENT_WORKBENCH.md`, updates the locator
 to the same fourteen-path set, and preserves every remote/Human boundary.
 
+### Decision C4: Correction 05 — PLANNER POST-REVIEW RECONCILIATION
+
+Tester evidence and independent Reviewer report
+`QI-AGENT-LOOP-C04-REVIEW-C674-01` confirm that Correction 04 stayed inside
+scope and passed its targeted lock gate, but retained the forbidden competing
+structural layer, left report-admission ambiguity and produced red full/Ruff
+evidence. Planner accepts the Reviewer `HOLD` and issues the minimum forward
+correction inside the existing fourteen-path scope. This does not rewrite the
+verdict or convert prior red evidence to PASS.
+
 ### Decision D: push
 
 Authorize push only after local evidence, Planner result review and independent
@@ -935,16 +1133,20 @@ hosted CI, final exact-head review and Planner reconciliation.
 
 ```text
 DESIGN = HUMAN_APPROVED
-WO_FILE = CORRECTION_04_PLANNER_RECONCILED
+WO_FILE = CORRECTION_05_INDEPENDENT_REVIEW_HOLD_FORWARD_CORRECTION
 B09_PRESERVATION = COMPLETE_LOCAL_ONLY; 9bc64942f35c41d002ef80a74c7a02851422b0e8
 GOVERNANCE_BRANCH = CREATED_FROM_EXACT_ORIGIN_MAIN; 179c0712a14161ea25096e66a127f6022bf696fd
 STAGE_0 = COMPLETE_LOCAL; 66f331c3392537fafcd48b8ed6360f4ee4939985
 STAGE_1 = COMPLETE_LOCAL; 9557b63a977037c7de8356f66eadbd65e53fc394
-STAGE_2 = HOLD_UNCOMMITTED; CORRECTION_04_ENTRY_SYNC_REQUIRED
-BUILDER_EXECUTION = ENTRY_RECONCILIATION_ONLY_THEN_LOCAL_FORWARD_CORRECTION_04
+CORRECTION_04_IMPLEMENTATION = c674f77b65cc38987f201229e0efe9e79d98acf5
+CORRECTION_04_TERMINAL_EVIDENCE = e9b6f62c30ee46054c0d617b639831baa8e9fba5
+CORRECTION_04_TESTER = TARGETED_PASS; FULL_FAIL; PATH_CAUSATION_INCONCLUSIVE
+CORRECTION_04_REVIEWER = HOLD; QI-AGENT-LOOP-C04-REVIEW-C674-01
+STAGE_2 = CORRECTION_05_FORWARD_CORRECTION_OPEN
+BUILDER_EXECUTION = ONE_LOCAL_FORWARD_CORRECTION_THEN_BOUNDED_VERIFICATION
 PUSH = NOT_AUTHORIZED
 PULL_REQUEST = NOT_AUTHORIZED
 MERGE = NOT_AUTHORIZED
-EXACTLY_ONE_NEXT_ACTION = BUILDER_COMMITS_EXACT_CURRENT_ENTRY_SYNC_RERUNS_ROLE_ENTRY_GATE_AND_ONLY_ON_PASS_APPLIES_CORRECTION_04
+EXACTLY_ONE_NEXT_ACTION = BUILDER_APPLIES_CORRECTION_05_AND_RETURNS_EXACT_OBJECT_EVIDENCE_TO_PLANNER
 NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 ```
