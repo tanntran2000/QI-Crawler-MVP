@@ -1364,3 +1364,17 @@ next-action wording is clarified by corrected report
 Boundary: This docs correction grants no B/C/D, mutation engine, or live-update authority; each B09 stage requires its own bounded WO and gates; after B09 closeout, no next post-B09 WP may begin before the joint Human/Planner role review.
 Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
 ```
+
+### FB-0048 — B09 HOLD-now and Agent Loop overlap priority
+
+```text
+State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
+Author: Human A0 | Role: HUMAN_AUTHORITY
+WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
+Authority: HUMAN_MESSAGE_01A0D66C-DEA8-7BE1-BF26-25C5767B90D2 in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; Planner WO B09-HOLD-CHECKPOINT-20260925-01
+Decision: Hold B09 at its current step. Record and push the exact feature-branch WIP checkpoint, then notify Human and shift to a joint Human/Planner review of Agent Loop and role-document overlap.
+Supersedes: FB-0047 post-B09-closeout timing only; its technical evidence and strict source-byte invariant remain.
+Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A stays HOLD while the maintenance capture barrier is unproven.
+Boundary: B09 is not complete. B/C/D, the mutation engine, startup integration and live update remain unopened. The WIP push is not CI PASS or implementation acceptance; no PR, merge or release is authorized.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+```
