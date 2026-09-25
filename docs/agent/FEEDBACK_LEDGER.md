@@ -1185,3 +1185,209 @@ installation, publish, promotion, tag, GitHub Release, RealF5 or new product
 capability.
 Disposition: ACCEPTED / ROUTED_TO_MASTER_ROADMAP_DELTA_AND_CURRENT
 ```
+
+### FB-0043 — QI Agent Loop governance execution and B09 park
+
+```text
+State: ACCEPTED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: A0 HUMAN_DECISION recorded in the approved Work Order and Planner correction
+Type: GOVERNANCE / AGENT_WORKBENCH / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
+BUILDER_ROLE = BUILDER_SINGLE_WRITER
+GOVERNANCE_BRANCH = codex/agent-loop-consolidation-01
+BASE_SHA = 179c0712a14161ea25096e66a127f6022bf696fd
+WORK_ORDER_HEAD = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+EXECUTION = LOCAL_ONLY
+PUSH = NOT_AUTHORIZED
+PR = NOT_AUTHORIZED
+MERGE = NOT_AUTHORIZED
+RELEASE = NOT_AUTHORIZED
+B09 = PARKED_PRESERVED_LOCAL; BRIDGE_A_HOLD; NOT_PUSHED
+Evidence: Work Order correction 01 at the exact governance head above; B09 local preservation commit 9bc64942f35c41d002ef80a74c7a02851422b0e8 contains only `src/qi_crawler/operational_update.py` and `tests/test_operational_update.py`.
+Boundary: This decision authorizes only the bounded Agent Loop governance Work Order and its local stages. It does not claim B09/Bridge A completion or authorize B09 continuation, push, PR, merge, release, product changes, cleanup or scope expansion.
+Response: Stage 0 records the active governance handoff and preserves the displaced B09 HOLD by exact Git locator; Stage 1/2 remain subject to the post-Stage-0 ROLE_ENTRY_GATE and the Work Order's exact allowlist.
+Scope change required: NO
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_GOVERNANCE_WP
+Promoted to: docs/agent_handoff/CURRENT.md
+```
+
+### FB-0044 — Human A0 Stage 0 re-entry and local commit boundary
+
+```text
+State: ACCEPTED / ACTIVE_EXECUTION_BOUNDARY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 instruction dated 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  Stage 0 local commit contains exactly:
+    docs/agent_handoff/CURRENT.md
+    docs/agent/FEEDBACK_LEDGER.md
+  Commit message: docs(agent-loop): reconcile builder entry state
+  After commit, rerun ROLE_ENTRY_GATE. Stage 1 and Stage 2 may continue only
+  when that gate passes, using Work Order object
+  4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf and its recorded SHA-256.
+  Execution remains local only. B09 stays parked.
+Boundary: No B09 execution, untracked staging, cleanup, push, PR, merge or
+release. This decision supersedes the prior direct-commit limit that applied
+only to the two B09 source/test files, solely for this Stage 0 transition.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md
+```
+
+### FB-0045 — Human A0 supersedes Agent Loop Work Order selection
+
+```text
+State: ACCEPTED / ACTIVE_EXECUTION_AUTHORITY
+Author: Human A0, relayed through Planner
+Role: HUMAN_AUTHORITY
+Authority: Direct A0 supersession carried in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  REMAINING_WORK_ORDER = CORRECTION_04
+  WORK_ORDER_COMMIT = 3c7ac861e578d9c548e409f4529ef3c25ba33f91
+  WORK_ORDER_SHA256 = E12A2EB64E63F9AC82E2EED45956415812AC1EDF4A58183C7E140E9FC9812F79
+  PRIOR_4CD_SELECTION = SUPERSEDED_FOR_REMAINING_WORK; HISTORICAL_FB_0044_RETAINS_ORIGINAL_RECORD
+  ENTRY_SYNC = ONE_FORWARD_LOCAL_COMMIT; EXACT_CURRENT_AND_FEEDBACK_LEDGER
+  POST_SYNC = RERUN_ROLE_ENTRY_GATE; CONTINUE_ONLY_ON_PASS
+  POST_ENTRY_SCOPE = EXACT_FOURTEEN_PATHS_IN_CORRECTION_04_SECTION_10_1
+  EXECUTION = LOCAL_ONLY
+  PRESERVED_CHECKPOINTS = c92474e7e9c93073f23a778221b3d13313b5416f; 0c34330931e7743a907399eb5057ae374cee1319
+  INDEPENDENT_AUDIT_PASS = NOT_CLAIMED_FOR_PRIOR_CHECKPOINTS
+  PLANNER_REMAINING_BUDGET = ONE_ENTRY_TRANSITION; ONE_CONTENT_TEST_SKILL_LOCK_CORRECTION_IF_GATE_PASS; ONE_TERMINAL_CURRENT_SYNC_ONLY_IF_REQUIRED; ONE_POST_CORRECTION_SKILL_QUICK_VALIDATE; ONE_TARGETED_LOCK_TEST; ONE_FULL_SEQUENTIAL_RUN_ONLY_IF_TARGETED_GREEN; ONE_RUFF_AND_DIFF_SCOPE_ACCOUNTING_SEQUENCE
+  RETRIES = NONE_BY_INFERENCE
+Boundary: Keep the uncommitted Stage 2 candidate, B09 parked state, scratch
+accounting and all unknown/untracked artifacts as KEEP. No B09, product/runtime,
+workflow/CI, cleanup, broad untracked staging, push, PR, merge or release.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_CORRECTION_04_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md;
+docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
+```
+
+### FB-0046 — Human A0 approves Correction 05 execution lease
+
+```text
+State: ACCEPTED / ACTIVE_EXECUTION_AUTHORITY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 approval delivered in the Planner handoff for Correction 05
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  REMAINING_WORK_ORDER = CORRECTION_05
+  WORK_ORDER_COMMIT = 07f2bdaf81561cc21db4de6b6e3dec8758858f2e
+  WORK_ORDER_SHA256 = 97C5DA8203A61D3F2C12505D7037E53ED21E7D5E4318685837A21374FF43EE23
+  CORRECTION_04 = SUPERSEDED_FOR_REMAINING_WORK; HISTORICAL_COMMITS_AND_EVIDENCE_PRESERVED
+  ENTRY_TRANSITION = ONE_FORWARD_LOCAL_COMMIT; EXACT_CURRENT_AND_FEEDBACK_LEDGER
+  ENTRY_CAPTURE_BASE = 07f2bdaf81561cc21db4de6b6e3dec8758858f2e
+  POST_TRANSITION = RERUN_ROLE_ENTRY_GATE; CONTINUE_ONLY_ON_PASS
+  POST_ENTRY_SCOPE = EXACT_FOURTEEN_PATHS_IN_CORRECTION_05_SECTION_10_1
+  CONTENT_CORRECTION_COMMITS = ONE; LOCAL_ONLY
+  TERMINAL_CURRENT_SYNC = ONE_IF_REQUIRED; CURRENT_ONLY
+  TARGETED_RUNS = ONE; .tmp/al05/t/p
+  FULL_RUNS = ONE_ONLY_AFTER_TARGETED_PASS; .tmp/al05/f/p
+  RUFF_RUNS = ONE_TRACKED_PYTHON_ONLY
+  RETRIES = NONE
+  SCRATCH_ALIAS = .tmp/al05; TASK_ONLY; REGISTER_BEFORE_CREATE
+  FULL_RUN_LIMITS = 20000_FILES; 15000_DIRS; 1073741824_BYTES
+  CUMULATIVE_RETAINED_LIMITS = 32000_FILES; 26000_DIRS; 2147483648_BYTES
+  MIN_D_FREE_BYTES = 10737418240
+  B09 = PARKED_PRESERVED_LOCAL; BRIDGE_A_HOLD; NO_EXECUTION
+  REMOTE_ACTIONS = NO_PUSH; NO_PR; NO_MERGE; NO_RELEASE
+Boundary: No cleanup, product/runtime source, workflow CI, broad untracked staging,
+stash/reset/rebase/amend/worktree/clone or scope expansion. Preserve all Correction
+04 decisions, commits, red verification and Reviewer HOLD as immutable evidence.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_CORRECTION_05_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md;
+docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
+```
+
+### FB-0047 — Human A0 establishes four operational roles
+
+```text
+State: ACCEPTED / ACTIVE_GOVERNANCE_MODEL
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Human direction recorded in approved Correction 05 section 10.6.1;
+  execution lease approved by FB-0046
+Type: GOVERNANCE / ROLE_MODEL / AUTHORITY_BOUNDARY
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  OPERATIONAL_ROLES = PLANNER_ARCHITECT; BUILDER_SINGLE_WRITER;
+    TESTER_MACHINE_VERIFIER; REVIEWER_AUDITOR
+  TESTER_AUTHORITY = EVIDENCE_ONLY
+  FOUR_ROLES = DISTINCT_AUTHORITIES; NOT_EQUAL_AUTHORITIES
+  PRIOR_THREE_POLE_STRUCTURAL_EFFECT = SUPERSEDED_FOR_ACTIVE_AUTHORITIES
+  HISTORICAL_FEEDBACK = PRESERVE_UNCHANGED
+Boundary: Keep Human A0 material authority, Builder single-writer scope,
+independent review, and Planner reconciliation separate. No runtime, product,
+B09, workflow, remote, merge or release authority is created.
+Disposition: ACCEPTED / ROUTED_TO_ACTIVE_ROLE_AUTHORITIES
+Promoted to: AGENTS.md; docs/agent/MASTER_ROADMAP.md;
+docs/agent/OPERATING_MODEL.md; docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md;
+docs/agent/HUMAN_COLLABORATION.md; plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md;
+docs/agent_handoff/CURRENT.md
+```
+
+### FB-0048 — Human A0 Stage 0 re-entry under selected Work Order object
+
+```text
+State: ACCEPTED / ACTIVE_STAGE_0_EXECUTION_BOUNDARY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct instruction in Builder task 01a0d2be-6de8-7690-a41c-2b522363181d, 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  STAGE_0_COMMIT_PATHS = docs/agent_handoff/CURRENT.md;
+    docs/agent/FEEDBACK_LEDGER.md
+  STAGE_0_COMMIT_MESSAGE = docs(agent-loop): reconcile builder entry state
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+  SELECTED_WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+  POST_COMMIT = RERUN_ROLE_ENTRY_GATE
+  STAGE_1_AND_2 = CONDITIONAL_ON_ROLE_ENTRY_GATE_PASS
+  EXECUTION = LOCAL_ONLY
+  B09 = PARKED; NO_EXECUTION
+Boundary:
+Preserve earlier correction records and technical evidence unchanged. The
+selected historical Work Order's Stage 1 says three execution-control poles,
+while FB-0047 and active canonical governance specify four operational roles;
+the current checkout also contains later C04-C06 Work Order corrections.
+This conflict must be resolved by the post-commit entry gate and Planner
+reconciliation before any Stage 1 or Stage 2 write. No untracked staging,
+cleanup, push, PR, merge, release or B09 action is authorized.
+Disposition: ACCEPTED / STAGE_0_ONLY_PENDING_POST_COMMIT_GATE
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/FEEDBACK_LEDGER.md
+```
+
+### FB-0049 — Correction to FB-0048 authority classification
+
+~~~text
+State: ACCEPTED / CORRECTIVE_AUTHORITY_DISPOSITION
+Author: Human A0, relayed through Planner
+Role: HUMAN_AUTHORITY
+Authority: Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 for C06-FORWARD-RECOVERY-01
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  FB-0048 = PRESERVE_UNCHANGED_AS_HISTORICAL_INCIDENT_EVIDENCE; NOT_VALID_CURRENT_AUTHORITY
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf; SUPERSEDED_FOR_REMAINING_WORK
+  CURRENT_C06_WORK_ORDER = 3ba789be00a61c056dd1532efa133b2acba72bde; SHA256=E5EEA505D2CDA461359C140598C8C423011914F0F759B0B8BD04E98B3CAE20DF
+  FORMER_BUILDER_LEASE = REVOKED_BEFORE_403D4F45
+  INCIDENT_COMMIT = 403d4f45a2c33b4ae8d9b955e7f358f4413b9084; RETAINED_ONLY_AS_INCIDENT_EVIDENCE; NO_VALID_STAGE_0_AUTHORITY
+  CORRECTION = FORWARD_ONLY; DO_NOT_REWRITE_FB-0048_OR_INCIDENT_COMMIT
+Boundary: The C06 recovery action is limited to restoring CURRENT.md and
+appending this correction entry. The C06 machine evidence and raw-log limitation
+are recorded in CURRENT.md. No B09, product/test, workflow, cleanup or remote
+action is authorized.
+Disposition: FB-0048 remains byte-for-byte historical evidence; its authority
+claim is superseded and cannot authorize the incident commit or any later work.
+Promoted to: docs/agent_handoff/CURRENT.md
+~~~

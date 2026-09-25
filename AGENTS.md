@@ -167,14 +167,15 @@ Historical tags and releases must never be silently moved.
 
 The canonical detailed boot and prompt contract is
 `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. It orients the independent
-`PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER` and `REVIEWER_AUDITOR` execution-
-control poles beneath Human A0; the Machine Verifier remains evidence-only.
+operational roles beneath Human A0: `PLANNER_ARCHITECT`,
+`BUILDER_SINGLE_WRITER`, `TESTER_MACHINE_VERIFIER` and `REVIEWER_AUDITOR`.
+The Operating Model owns their distinct authorities; Tester is evidence-only.
 At relevant new-agent, takeover, Parent and material governance transitions,
 role boot and the prompt quality gate are required after Roadmap/Delta
-reconciliation. Any pole may and must HOLD on a material prompt, authority,
-scope or evidence conflict. Challenge is evidence and escalation, not override
-or a voting mechanism. Delta reconciliation follows the cadence in the
-canonical file (`CHECK DELTA OFTEN != WRITE DELTA OFTEN`).
+reconciliation. Any assigned role may and must HOLD on a material prompt,
+authority, scope or evidence conflict. Challenge is evidence and escalation,
+not override or a voting mechanism. Delta reconciliation follows the cadence
+in the canonical file (`CHECK DELTA OFTEN != WRITE DELTA OFTEN`).
 
 ### Canonical Context Spine routing
 

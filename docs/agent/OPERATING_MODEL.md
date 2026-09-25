@@ -2,34 +2,62 @@
 
 ## Roles and authority
 
-- **HUMAN_AUTHORITY** approves scope, decisions, merges, and release actions.
-- **PLANNER_ARCHITECT** turns an approved request into a bounded Work Order;
-  planning does not edit production code.
-- **DOMAIN_REVIEWER** checks business meaning and source evidence.
-- **BUILDER_SINGLE_WRITER** is the only writer for a micro-Work Package.
-- **MACHINE_VERIFIER** runs the required tests, lint, and repository checks.
-- **REVIEWER_AUDITOR** checks scope, risk, and proof against the Work Order
-  after Builder/Machine-Verifier evidence; it never edits the implementation
-  under review.
-- **Team Bid** supplies operational observations and explicit human decisions.
+Human A0 is the top material authority. The supervised Agent Loop has four
+operational roles: `PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER`,
+`TESTER_MACHINE_VERIFIER` and `REVIEWER_AUDITOR`. Their authorities are
+distinct, not equal; Tester supplies evidence only. `DOMAIN_REVIEWER` and Team
+Bid may provide delegated domain review or operational input.
 
-The canonical coordination flow is:
+Normal reports from Builder, Machine Verifier/Tester and Reviewer return to the
+Planner in the coordinating task. The Planner routes bounded correction,
+independent review and material Human escalation; no role bypasses the Planner
+to create a different work route.
+
+The canonical reporting flow is:
 
 ```text
 HUMAN / APPROVED MATERIAL INTENT
 → PLANNER WORK ORDER
-→ BUILDER IMPLEMENTATION
-→ MACHINE VERIFIER EVIDENCE WHEN APPLICABLE
-→ PLANNER BUILDER-RESULT REVIEW
-→ REVIEWER INDEPENDENT AUDIT
-→ PLANNER POST-REVIEW STRATEGIC RECONCILIATION
+→ BUILDER RESULT → PLANNER BUILDER-RESULT REVIEW
+→ MACHINE VERIFIER EVIDENCE WHEN APPLICABLE → PLANNER EVIDENCE REVIEW
+→ REVIEWER INDEPENDENT AUDIT → PLANNER POST-REVIEW RECONCILIATION
 → HUMAN MATERIAL / MERGE / RELEASE DECISION WHEN REQUIRED
 ```
 
-`REVIEWER VERDICT != PLANNER RECONCILIATION != HUMAN AUTHORIZATION`.
+`BUILDER_RESULT != MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
+PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION`.
 Roles describe authority, not a particular model or tool. The assignment
 source is the approved Work Order, `CURRENT.md` and Human authority, never a
 ChatGPT/Codex/CI/tool/model name.
+
+## Supervised report identity and admission
+
+The Task Envelope remains the existing ten-field subordinate view defined by
+`plugins/qi-agent-workbench/skills/qi-task-envelope/SKILL.md`; this contract
+does not change it. The Operating Model is the single canonical owner of report
+identity and admission:
+
+```text
+REPORT_METADATA = WO_ID, RUN_OR_ATTEMPT_ID, REPORT_ID, SOURCE_TASK_ID,
+                  DESTINATION_TASK_ID, OBJECT_ID, IN_REPLY_TO
+EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
+                              OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
+```
+
+The Planner establishes the expected pending transition. The six binding
+fields—`WO_ID`, `SOURCE_TASK_ID`, `DESTINATION_TASK_ID`, `OBJECT_ID`,
+`RUN_OR_ATTEMPT_ID` and `IN_REPLY_TO`—must match it. Separately,
+`REPORT_ID` must be non-empty and unseen for that pending transition. A report
+is admitted only when both checks pass.
+
+An initial attempt uses `IN_REPLY_TO = NONE` in both the report and expected
+binding. A correction requires a new expected attempt opened by the Planner and
+the exact superseded report or finding ID in `IN_REPLY_TO`; a correction never
+uses `NONE`. Missing, truncated, stale, wrong-route, wrong-object or
+wrong-attempt reports are `HOLD` and cannot advance state. A consumed binding
+or duplicate `REPORT_ID` cannot advance or redispatch. Candidate drift requires
+a new `OBJECT_ID` and expected binding. This is supervised admission tracking,
+not exactly-once transport and not a runner, broker, database or scheduler.
 
 ## Canonical role contract schema
 
@@ -58,7 +86,7 @@ SPINE_RESPONSIBILITY
 
 `ROLE_CONTRACT` above remains the canonical role-definition authority.
 `ROLE_BOOT_PROFILE` is the execution-entry orientation built on that contract;
-the detailed profiles, action-first prompt standard and cross-pole challenge
+the detailed profiles, action-first prompt standard and cross-role challenge
 protocol live in `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`.
 
 When a new agent, Parent, takeover or material governance transition triggers
@@ -70,11 +98,10 @@ READ MODE → ROADMAP / DELTA → ROLE_BOOT_PROFILE → ROLE_ENTRY_GATE
 ```
 
 Builder Work Orders and Reviewer Challenge profiles must reference the
-canonical Action-First Prompt Standard and Cross-Pole Challenge Gate.
-Planner, Builder and Reviewer remain independent beneath Human A0; Reviewer
-independence and Human material authority are not collapsed. The Roadmap's
-high-level “Planning & Audit Pole” is a responsibility family, decomposed here
-into independent Planner and Reviewer poles.
+canonical Action-First Prompt Standard and Cross-Role Challenge Gate.
+Planner, Builder, Tester and Reviewer remain distinct beneath Human A0;
+Reviewer independence and Human material authority are preserved. The
+Operating Model is the canonical source for role definitions and boundaries.
 
 ## CANONICAL_CHECKOUT_IDENTITY_GATE
 
@@ -216,7 +243,8 @@ MUST_NOT = Write implementation; become Reviewer; silently override Human A0;
 REQUIRED_OUTPUT = PLANNER_DECISION_PACKET, WORK_ORDER,
   REVIEWER_CHALLENGE_CONTRACT, PLANNER_POST_REVIEW_DECISION and Spine/Delta
   routing or Human escalation as applicable.
-HANDOFF_TO = BUILDER_SINGLE_WRITER, REVIEWER_AUDITOR or HUMAN_AUTHORITY.
+HANDOFF_TO = BUILDER_SINGLE_WRITER, REVIEWER_AUDITOR or HUMAN_AUTHORITY under
+  a bounded Planner decision; normal role reports return to PLANNER_ARCHITECT.
 STOP_CONDITIONS = Unverifiable baseline; consequential ambiguity; material
   Roadmap/Delta conflict; scope excess; unresolved authority; correction or
   Human decision required; exact reviewed object drift.
@@ -244,8 +272,7 @@ MANDATORY_DUTIES = Verify baseline; implement bounded scope; preserve layers
 MUST_NOT = Redesign Roadmap; expand scope; act as Reviewer; self-authorize
   merge; claim CI PASS without evidence; rewrite audited history; hide findings.
 REQUIRED_OUTPUT = REVIEWER_HANDOFF_CHECKPOINT or bounded blocker packet.
-HANDOFF_TO = PLANNER_ARCHITECT for result interpretation, then
-  REVIEWER_AUDITOR under governed orchestration.
+HANDOFF_TO = PLANNER_ARCHITECT for result interpretation and review routing.
 STOP_CONDITIONS = Unexpected scope; baseline drift; authority ambiguity;
   material blocker; invariant cannot be preserved; Human/Planner decision.
 ESCALATION_PATH = PLANNER_ARCHITECT.
@@ -263,15 +290,15 @@ AUTHORITY = Run approved tests, lint, builds and repository checks only; no
 MANDATORY_READ = Approved verification contract and command scope.
 INPUTS = Approved commands; repository state; execution environment.
 MANDATORY_DUTIES = Return exact command, exit code, result, relevant logs or
-  artifacts and environment when material.
+  artifacts and environment when material to PLANNER_ARCHITECT.
 MUST_NOT = Turn green tests into approval; judge business acceptance; authorize
   merge/release; substitute Reviewer reasoning; infer unexecuted CI PASS; edit
-  files unless explicitly assigned another role.
+  code or governance documents.
 REQUIRED_OUTPUT = MACHINE_VERIFICATION_EVIDENCE.
-HANDOFF_TO = BUILDER, PLANNER or REVIEWER as evidence consumers.
+HANDOFF_TO = PLANNER_ARCHITECT; Planner routes evidence to other roles as needed.
 STOP_CONDITIONS = Execution unavailable, invalid environment, unavailable
   dependency or command cannot be executed faithfully.
-ESCALATION_PATH = BUILDER or PLANNER by execution stage.
+ESCALATION_PATH = PLANNER_ARCHITECT.
 SPINE_RESPONSIBILITY = No independent promotion authority; governed roles route
   material execution facts.
 ```
@@ -297,8 +324,8 @@ MUST_NOT = Edit reviewed output; act as Planner; generate implementation scope;
   promote/remove Delta; rewrite Roadmap; make Human-only decisions; claim merge
   authorization.
 REQUIRED_OUTPUT = INDEPENDENT_REVIEW_PACKET with verdict and Planner findings.
-HANDOFF_TO = PLANNER_ARCHITECT on PASS or strategic finding; Builder only for
-  an explicitly bounded correction.
+HANDOFF_TO = PLANNER_ARCHITECT; the Planner may issue a bounded correction to
+  Builder after reconciling the Reviewer packet.
 STOP_CONDITIONS = Unavailable audit object; baseline drift; authority conflict;
   insufficient evidence; material Roadmap/Delta conflict.
 ESCALATION_PATH = PLANNER_ARCHITECT → HUMAN_AUTHORITY when material.
@@ -323,7 +350,8 @@ MANDATORY_DUTIES = Distinguish source fact from inference; distinguish domain
 MUST_NOT = Create implementation authority; decide A0 business matters;
   rewrite Builder output; treat incomplete evidence as truth.
 REQUIRED_OUTPUT = DOMAIN_REVIEW_PACKET / findings.
-HANDOFF_TO = PLANNER_ARCHITECT or HUMAN_AUTHORITY for material domain decisions.
+HANDOFF_TO = PLANNER_ARCHITECT; material domain decisions route to Human through
+  the Planner.
 STOP_CONDITIONS = Consequential source evidence missing or ambiguous.
 ESCALATION_PATH = PLANNER_ARCHITECT → Human/Team Bid domain authority.
 SPINE_RESPONSIBILITY = Report durable domain findings for Planner routing.
@@ -345,7 +373,8 @@ MUST_NOT = Alter code scope; grant merge/release authority; convert preference
   into verified fact; bypass Human/Planner governance.
 REQUIRED_OUTPUT = Operational observation, domain validation, Human-grounded
   acceptance evidence or explicit delegated decision.
-HANDOFF_TO = PLANNER_ARCHITECT / HUMAN_AUTHORITY.
+HANDOFF_TO = PLANNER_ARCHITECT; delegated Human decisions follow their explicit
+  authority path.
 STOP_CONDITIONS = Material ambiguity or authority uncertainty.
 ESCALATION_PATH = HUMAN_AUTHORITY.
 SPINE_RESPONSIBILITY = Planner routes material Team Bid findings to Feedback,
@@ -750,29 +779,10 @@ verified repository/GitHub evidence.
    approval.
 6. Stop and request re-approval if scope, baseline, writer, authority, or a
    material blocker changes.
-7. Follow the governed sequence:
-
-   ```text
-   IMPLEMENT
-   → VERIFY
-   → COMMIT
-   → INDEPENDENT AUDIT
-   → AUDIT PASS
-   → SPINE PROMOTION CHECK
-   → SPINE SYNC PASS
-   → REMOTE CHECKPOINT
-   → POST CURRENT
-   → HANDOFF READY
-   ```
-
-   A PRE/POST checkpoint is required for every Work Package, but ordinary
-   checks do not require rewriting every document or creating a history file.
-
-   For a `LARGE_BOUNDED_BATCH`, repeat `STAGE_ENTRY → STAGE_OUTPUT →
-   STAGE_VERIFICATION → semantic local commit` for each approved internal
-   stage, then perform one final cumulative verification and one coherent
-   Reviewer handoff. A material boundary interrupts this sequence for
-   Planner/Human review.
+7. Follow the commit, independent-audit, Spine, remote-checkpoint and handoff
+   lifecycle in `docs/agent/LOCAL_STAGED_INTEGRATION.md`. That document owns
+   integration gates and staged-commit procedure; this model owns role
+   authority and report routing.
 
 Before advancing a handoff, the Builder reports material findings and
 `SPINE_IMPACT` but does not silently change an out-of-scope authority. The
@@ -898,41 +908,10 @@ collaboration medium; files are organizational memory; Git/GitHub is truth.
 
 ## Local Staged Integration
 
-The default development procedure for Parent Work Packages is defined in
-`docs/agent/LOCAL_STAGED_INTEGRATION.md`.
-
-The operating sequence is:
-
-```text
-Human-approved Parent WP
-→ Planner decomposition
-→ one Single Writer micro-WP
-→ local Machine Verifier evidence
-→ local commit
-→ REVIEWER HANDOFF CHECKPOINT
-→ INDEPENDENT REVIEW
-→ PASS/HOLD/FAIL
-→ PASS: feature-branch remote checkpoint without PR
-→ MICRO POST
-→ next micro-WP
-→ Parent Integration Gate
-→ Draft PR
-→ hosted CI when available
-→ exact-head audit
-→ Human merge
-```
-
-A remote feature-branch checkpoint is backup/provenance, not CI evidence.
-Audited commits are preserved by default; later corrections use explicit
-forward-correction commits instead of silently rewriting accepted history.
-
-Slice Parent work by coherence, capability risk, architectural/data
-boundaries and independent auditability. A larger bounded batch is acceptable
-when its internal stages, semantic commits, evidence and final stop condition
-remain explicit. Trigger `SPLIT_REVIEW_REQUIRED` when cumulative risk is no
-longer bounded or a new major boundary appears, then decide `CONTINUE_PARENT`
-or `SPLIT_PARENT_WP` before expanding further. No universal numeric micro-WP
-target authorizes continued execution by itself.
+`docs/agent/LOCAL_STAGED_INTEGRATION.md` is the canonical owner of commit,
+independent-audit, remote-checkpoint, Pull Request, hosted-CI and merge gates.
+Use its procedure after the Planner's role routing and result-reconciliation
+contract above; do not maintain a second integration sequence here.
 
 ## Temporary hosted-CI unavailability
 
