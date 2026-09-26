@@ -865,6 +865,165 @@ def test_sidecar_added_during_copy_fails_closed(
     assert wal_path.read_bytes() == injected_wal
 
 
+def _seed_uncheckpointed_wal(database: Path) -> tuple[Path, Path, bytes, bytes]:
+    writer = """
+import os, sqlite3, sys
+connection = sqlite3.connect(sys.argv[1], timeout=0.1)
+connection.execute("PRAGMA journal_mode = WAL")
+connection.execute("PRAGMA wal_autocheckpoint = 0")
+connection.execute("UPDATE documents SET stored_path = ? WHERE id = 1", (sys.argv[2],))
+connection.commit()
+print("COMMITTED", flush=True)
+os._exit(0)
+"""
+    setup = subprocess.run(
+        [sys.executable, "-c", writer, str(database), NEW_PATHS["1"]],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert setup.returncode == 0, setup.stderr
+    assert setup.stdout.strip() == "COMMITTED"
+
+    wal_path = Path(f"{database}-wal")
+    shm_path = Path(f"{database}-shm")
+    assert wal_path.is_file() and shm_path.is_file()
+    wal_bytes = wal_path.read_bytes()
+    shm_bytes = shm_path.read_bytes()
+    page_size = int.from_bytes(wal_bytes[8:12], "big")
+    frame_size = 24 + page_size
+    assert wal_bytes[:4] in (b"\x37\x7f\x06\x82", b"\x37\x7f\x06\x83")
+    assert int.from_bytes(wal_bytes[4:8], "big") == 3007000
+    assert page_size >= 512 and page_size <= 65536 and page_size & (page_size - 1) == 0
+    database_page_size = int.from_bytes(database.read_bytes()[16:18], "big")
+    assert page_size == (65536 if database_page_size == 1 else database_page_size)
+    assert len(wal_bytes) >= 32 + frame_size
+    assert (len(wal_bytes) - 32) % frame_size == 0
+    assert len(shm_bytes) >= 32768 and len(shm_bytes) % 32768 == 0
+    return wal_path, shm_path, wal_bytes, shm_bytes
+
+
+def _assert_partial_sidecar_rejected_before_private_verification(
+    database: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_paths = tuple(
+        Path(f"{database}{suffix}") for suffix in ("", "-wal", "-shm")
+    )
+
+    def source_state() -> tuple[tuple[bool, bytes | None], ...]:
+        return tuple(
+            (path.is_file(), path.read_bytes() if path.is_file() else None)
+            for path in source_paths
+        )
+
+    before = source_state()
+    private_verification_paths: list[Path] = []
+    original_read = operational_update._read_database_paths
+
+    def observe_private_verification(path: Path, *args, **kwargs):
+        if kwargs.get("immutable") is False:
+            private_verification_paths.append(path)
+        return original_read(path, *args, **kwargs)
+
+    monkeypatch.setattr(operational_update, "_read_database_paths", observe_private_verification)
+    rows, error = _database_paths(database, active_wal=True)
+    after = source_state()
+
+    assert after == before
+    assert not private_verification_paths, (
+        f"invalid source sidecar reached private SQLite: rows={rows!r}, error={error!r}"
+    )
+    assert rows is None
+    assert error == "DATABASE_CAPTURE_UNPROVEN"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_capture_rejects_wal_header_without_complete_frame(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    wal_path, _shm_path, valid_wal, _valid_shm = _seed_uncheckpointed_wal(
+        paths.database_path
+    )
+    wal_path.write_bytes(valid_wal[:32])
+
+    _assert_partial_sidecar_rejected_before_private_verification(
+        paths.database_path, monkeypatch
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_capture_rejects_misaligned_wal_frame_tail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    wal_path, _shm_path, valid_wal, _valid_shm = _seed_uncheckpointed_wal(
+        paths.database_path
+    )
+    wal_path.write_bytes(valid_wal + b"\x00")
+
+    _assert_partial_sidecar_rejected_before_private_verification(
+        paths.database_path, monkeypatch
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+@pytest.mark.parametrize(
+    ("field_offset", "invalid_value"),
+    [(8, 1000), (4, 0)],
+    ids=("invalid-page-size", "unsupported-format-version"),
+)
+def test_capture_rejects_untrusted_wal_header_fields(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field_offset: int,
+    invalid_value: int,
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    wal_path, _shm_path, valid_wal, _valid_shm = _seed_uncheckpointed_wal(
+        paths.database_path
+    )
+    invalid_wal = bytearray(valid_wal)
+    invalid_wal[field_offset : field_offset + 4] = invalid_value.to_bytes(4, "big")
+    wal_path.write_bytes(invalid_wal)
+
+    _assert_partial_sidecar_rejected_before_private_verification(
+        paths.database_path, monkeypatch
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_capture_rejects_shm_truncated_below_region(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    _wal_path, shm_path, _valid_wal, valid_shm = _seed_uncheckpointed_wal(
+        paths.database_path
+    )
+    shm_path.write_bytes(valid_shm[: len(valid_shm) // 2])
+
+    _assert_partial_sidecar_rejected_before_private_verification(
+        paths.database_path, monkeypatch
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_capture_rejects_misaligned_shm_region(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    _wal_path, shm_path, _valid_wal, valid_shm = _seed_uncheckpointed_wal(
+        paths.database_path
+    )
+    shm_path.write_bytes(valid_shm + b"\x00")
+
+    _assert_partial_sidecar_rejected_before_private_verification(
+        paths.database_path, monkeypatch
+    )
+
+
 @pytest.mark.skipif(os.name == "nt", reason="only verifies unsupported non-Windows behavior")
 def test_active_capture_fails_closed_off_windows_without_source_sqlite_open(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

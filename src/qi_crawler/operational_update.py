@@ -22,6 +22,10 @@ from .operational_release import OperationalPaths
 MARKER_SCHEMA = "qi-crawler-operational-update-marker-v1"
 JOURNAL_SCHEMA = "qi-crawler-operational-update-journal-v1"
 RECEIPT_SCHEMA = "qi-crawler-operational-update-receipt-v1"
+_WAL_HEADER_SIZE = 32
+_WAL_FRAME_HEADER_SIZE = 24
+_WAL_FORMAT_VERSION = 3_007_000
+_SHM_REGION_SIZE = 32_768
 
 _PHASES = {
     "EARLY_ACTIVE",
@@ -382,10 +386,22 @@ def _database_paths(path: Path, *, active_wal: bool) -> tuple[dict[str, str] | N
                 if database_header[18:20] != b"\x02\x02":
                     return None, "DATABASE_CAPTURE_UNPROVEN"
                 wal_state, shm_state = source_before[1:]
+                wal_header, wal_size = wal_state[:2]
+                wal_page_size = int.from_bytes(wal_header[8:12], "big")
+                database_page_size = int.from_bytes(database_header[16:18], "big")
+                if database_page_size == 1:
+                    database_page_size = 65_536
+                frame_size = _WAL_FRAME_HEADER_SIZE + wal_page_size
                 if (
-                    wal_state[1] < 32
-                    or wal_state[0][:4] not in (b"\x37\x7f\x06\x82", b"\x37\x7f\x06\x83")
-                    or shm_state[1] < 1
+                    wal_header[:4] not in (b"\x37\x7f\x06\x82", b"\x37\x7f\x06\x83")
+                    or int.from_bytes(wal_header[4:8], "big") != _WAL_FORMAT_VERSION
+                    or not 512 <= wal_page_size <= 65_536
+                    or wal_page_size & (wal_page_size - 1)
+                    or wal_page_size != database_page_size
+                    or wal_size < _WAL_HEADER_SIZE + frame_size
+                    or (wal_size - _WAL_HEADER_SIZE) % frame_size
+                    or shm_state[1] < _SHM_REGION_SIZE
+                    or shm_state[1] % _SHM_REGION_SIZE
                 ):
                     return None, "DATABASE_CAPTURE_UNPROVEN"
             elif database_header[18:20] != b"\x01\x01":
