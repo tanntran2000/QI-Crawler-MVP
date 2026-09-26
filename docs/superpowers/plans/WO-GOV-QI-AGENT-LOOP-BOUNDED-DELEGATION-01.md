@@ -117,7 +117,7 @@ Plugin applicability and evidence use the repository fields (`PLUGIN`, `PURPOSE`
 | `ecc:living-docs-governance` | Stage 0 REQUIRED; invoked before document writes to preserve one owner per fact and the active/history lifecycle; `USED_AND_SUCCEEDED`; no fallback; impact/edit radius is the four Stage 0 paths; test radius is document/YAML/key/diff validation. |
 | `qi-context-boot` | REQUIRED when available; Stage 0 availability check found it unavailable (`TOOL_UNAVAILABLE`); fallback was the explicit full read sequence above. |
 | CodeGraph | Stage 0 `NOT_APPLICABLE` because this stage is docs-only. Stage 1 impact discovery is REQUIRED before any test-file edit; use the repo shell or MCP fallback and record the result. |
-| `ecc:skill-creator` | REQUIRED if Stage 1 edits `qi-agent-loop/SKILL.md`. |
+| `skill-creator` | REQUIRED if Stage 1 edits `qi-agent-loop/SKILL.md`. |
 | `ecc:python-testing` | REQUIRED if Stage 1 edits the Agent Workbench test; tests prove text contracts only. |
 | `ecc:verification-before-completion` | REQUIRED before a later stage reports PASS/DONE, if available; otherwise document availability and use only a sufficient approved fallback. |
 

@@ -61,6 +61,97 @@ wrong-attempt reports are `HOLD` and cannot advance state. A consumed binding
 or duplicate `REPORT_ID` cannot advance or redispatch. Candidate drift requires
 a new `OBJECT_ID` and expected binding. This is supervised admission tracking,
 not exactly-once transport and not a runner, broker, database or scheduler.
+This is a documented contract, not an executable admission engine.
+
+## Bounded role-helper delegation
+
+A helper is a bounded capability of its owning canonical role. It is not a
+fifth role, a role takeover, or a new report source. The authority must be an
+explicit Human planning authority or a delegation clause in the active lease;
+helper availability alone grants no access or authority. Requested depth one
+is prompt-governed unless tool enforcement is separately verified.
+
+The brief is a task message derived from the owner's authority and the existing
+ten Task Envelope concepts. It does not change the Task Envelope schema or
+template and does not assign a canonical role to the helper. The lease must
+specify the exact question and object, read allowlist, tools, data and
+sensitivity, exclusions, finite budget, stop rule, and return owner. Sensitive,
+untracked, or operational content and external transmission remain forbidden
+unless explicitly authorized. A clean Git status does not prove the absence of
+helper writes, reads, or transmission.
+
+```text
+HELPER_IS = OWNER_ROLE_CAPABILITY; NOT_FIFTH_ROLE; NOT_TAKEOVER
+HELPER_AUTHORITY_SOURCE = EXPLICIT_HUMAN_PLANNING_AUTHORITY_OR_ACTIVE_LEASE_DELEGATION_CLAUSE
+HELPER_DEFAULT_DISPATCH_BUDGET = 0; EACH_WP_SETS_FINITE_BUDGET
+HELPER_DEPTH = 1; PROMPT_GOVERNED_UNLESS_TOOL_ENFORCEMENT_IS_SEPARATELY_VERIFIED
+HELPER_BRIEF = TASK_MESSAGE_FROM_AUTHORITY; TEN_TASK_ENVELOPE_CONCEPTS; NO_NEW_SCHEMA_OR_ROLE
+REQUIRED_HELPER_BRIEF_FIELDS = QUESTION, OBJECT, READ_ALLOWLIST, TOOLS, DATA, SENSITIVITY, EXCLUSIONS, BUDGET, STOP_RULE, RETURN_OWNER
+HELPER_RESULT=SUPPORTING_EVIDENCE_ONLY
+HELPER_CANNOT = ADVANCE_STATE, CONSUME_TRANSITION, OPEN_CORRECTION, CREATE_VERDICT, GRANT_AUTHORITY
+HELPER_OWNER_VERIFIES_EVIDENCE_BEFORE_CITATION = YES
+PROVENANCE_LABELS = PROMPT_GOVERNED, OBSERVED, TOOL_ENFORCED
+UNKNOWN = UNKNOWN
+CLEAN_GIT_STATUS_PROVES_ALL_HELPER_WRITES_READS_OR_TRANSMISSION = NO
+SENSITIVE_UNTRACKED_OPERATIONAL_CONTENT_OR_EXTERNAL_TRANSMISSION = FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED
+STOP_STATES = STOP_REQUESTED, STOP_CONFIRMED, STOP_STATUS_UNKNOWN
+NO_WRITER_TRANSFER_OR_CONFLICTING_RESOURCE_WORK_UNTIL_STOP_CONFIRMED = YES
+STOP_STATUS_UNKNOWN = HOLD_NO_TRANSFER
+```
+
+The owning role remains accountable and verifies every evidence locator before
+citation. Prompt constraints and observations are not tool enforcement. A
+helper result cannot advance workflow state, consume a transition, open a
+correction, create a verdict, or grant authority.
+
+## Finite correction accounting
+
+The correction budget is finite in the active Work Order and follows the same
+authority lease across revision, name, task, session, model, and takeover. The
+unit is one correction attempt explicitly opened by the Planner. Development
+RED/GREEN, a verified transient infrastructure rerun, and bounded metadata
+completion are separate accounting categories; none silently resets a
+Planner-opened correction attempt. A dispatched timeout, error, or unknown
+result consumes the applicable helper or correction attempt. Do not silently
+resend. A rename or revision never resets a budget. Exhaustion is
+`HOLD_AND_REPORT`; the budget cannot change acceptance or make stale evidence
+valid.
+
+```text
+CORRECTION_BUDGET_FOLLOWS_AUTHORITY_LEASE = ACROSS_REVISION, NAME, TASK, SESSION, MODEL, TAKEOVER
+CORRECTION_ATTEMPT_UNIT = ONE_PLANNER_OPENED_ATTEMPT
+SEPARATE_ACCOUNTING_CATEGORIES = DEVELOPMENT_RED_GREEN, VERIFIED_TRANSIENT_INFRA_RERUN, BOUNDED_METADATA_COMPLETION
+DISPATCH_TIMEOUT_ERROR_OR_UNKNOWN = ATTEMPT_USED_AS_APPLICABLE; NO_SILENT_RESEND
+BUDGET_RESET_BY_RENAME_OR_REVISION = FORBIDDEN
+BUDGET_EXHAUSTION = HOLD_AND_REPORT
+BUDGET_CANNOT_CHANGE_ACCEPTANCE_OR_REVALIDATE_STALE_EVIDENCE = YES
+```
+
+## Canonical Reviewer finding shape
+
+The Reviewer records all fields below as one finding. Severity, integration
+disposition, and fix authority are independent dimensions. Severity alone does
+not decide whether a finding blocks integration; an out-of-scope finding may
+block. The Reviewer returns its verdict unchanged, while the Planner verifies
+fix authority and routes any authorized correction.
+
+```text
+REVIEWER_FINDING_FIELDS = FINDING_ID, SEVERITY, INTEGRATION_DISPOSITION, FIX_AUTHORITY, LOCATION, IMPACT, EVIDENCE, RESOLUTION_CONDITION
+FINDING_DIMENSIONS_ARE_INDEPENDENT = SEVERITY, INTEGRATION_DISPOSITION, FIX_AUTHORITY
+REVIEWER_VERDICT = PASS, HOLD, FAIL
+FIX_AUTHORITY_VERIFICATION_AND_CORRECTION_ROUTING = PLANNER
+OUT_OF_SCOPE_FINDING_MAY_BLOCK = YES; SEVERITY_ALONE_DECIDES_BLOCKING = NO
+```
+
+## Verification claim boundaries
+
+```text
+VERIFICATION_CLAIMS = STATIC_CONTRACT_VERIFIED, SCENARIO_REPLAY_VERIFIED, DELEGATION_PILOT_VERIFIED, AUTONOMOUS_ENFORCEMENT_NOT_PROVEN
+STATIC_CONTRACT_VERIFIED = TEXT_CONTRACT_EVIDENCE_ONLY; NOT_RUNTIME_ENFORCEMENT
+```
+
+These claims are distinct. Passing static contract tests does not prove
+scenario replay, a delegation pilot, or autonomous enforcement.
 
 ## Canonical role contract schema
 

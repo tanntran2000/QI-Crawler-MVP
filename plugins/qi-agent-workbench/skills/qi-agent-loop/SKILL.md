@@ -20,6 +20,9 @@ grants authority or changes the approved scope.
   `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` owns boot and prompt contracts.
   `docs/agent/LOCAL_STAGED_INTEGRATION.md` owns commits, audits, checkpoints,
   Pull Requests, CI and merge gates. The Work Order owns the task's exact scope.
+- The bounded helper contract, finite correction accounting and finding shape
+  are owned by [`Bounded role-helper delegation`](../../../../docs/agent/OPERATING_MODEL.md#bounded-role-helper-delegation).
+  This skill only routes helper requests and grants no delegation authority.
 
 ## Route reports
 
