@@ -13,8 +13,9 @@ grants authority or changes the approved scope.
 - Resolve role from explicit Human assignment → approved Work Order → governed
   `docs/agent_handoff/CURRENT.md`. Any material conflict is `ENTRY_HOLD`.
 - Human A0 is the material authority. The four operational roles are Planner,
-  Builder, Tester/Machine Verifier and independent Reviewer; their authorities
-  differ, and Tester is evidence-only.
+  Builder, `TESTER_MACHINE_VERIFIER` and independent Reviewer; their authorities
+  differ, and Tester is evidence-only. `MACHINE_VERIFIER` is a compatibility
+  alias only.
 - `docs/agent/OPERATING_MODEL.md` owns roles, reports and Planner follow-through.
   `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` owns boot and prompt contracts.
   `docs/agent/LOCAL_STAGED_INTEGRATION.md` owns commits, audits, checkpoints,
@@ -40,17 +41,20 @@ Human intent → Planner Work Order → Builder result → Planner review
   machine verification or independent review.
 - Builder is the sole writer for the approved lease and returns its result,
   blockers and out-of-scope findings to the Planner.
-- Tester runs only approved checks. Return the exact command, environment,
+- `TESTER_MACHINE_VERIFIER` runs only approved checks and classifies their
+  evidence as PASS, FAIL or INCONCLUSIVE. Return the exact command, environment,
   Git object, exit code, result and limitations to the Planner. Tester cannot
-  edit, change acceptance, route work, close a WP, or decide merge/release.
+  edit, change acceptance or scope, close a WP, or decide merge/release.
 - Reviewer inspects the exact authorized Git range independently and returns
   `PASS`, `HOLD` or `FAIL` to the Planner. Reviewer does not edit; any bounded
   correction is routed by the Planner to Builder.
-- Critical authority, safety, scope or evidence matters go through Planner to
-  Human A0. Preserve distinct states:
+- Routine questions and reports return to Planner. For a critical data-loss,
+  safety, authority or out-of-scope incident, the detecting role stops dependent
+  work, preserves state, may alert Human A0 directly, and must notify Planner.
+  Preserve distinct states:
 
 ```text
-BUILDER_RESULT != MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
+BUILDER_RESULT != TESTER_MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
 PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION
 ```
 
@@ -85,7 +89,9 @@ Planner to Human A0.
   correction to Builder.
 - Reviewer `HOLD` → preserve the verdict and return it to Planner unchanged.
 - Green CI plus an unresolved blocker → remain on `HOLD`.
-- CI red within scope → report it to Planner; do not expand into B09 or workflow repair.
+- CI red within scope → report it to Planner; never expand into any capability
+  or workflow outside the approved scope. The Planner routes any authorized
+  correction to Builder.
 - Checkpoint without PR → record all five checkpoint handoff fields above.
 - Terminal sync → do not claim its own future commit; follow the narrow rule in
   `docs/agent/LOCAL_STAGED_INTEGRATION.md`.

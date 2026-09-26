@@ -150,6 +150,15 @@ def test_handoff_template_contains_exact_object_and_terminal_sentinel() -> None:
     fields = _template_fields(_load(TEMPLATE))
     required = {
         "ROLE",
+        "REPORT_METADATA",
+        "WO_ID",
+        "RUN_OR_ATTEMPT_ID",
+        "REPORT_ID",
+        "SOURCE_TASK_ID",
+        "DESTINATION_TASK_ID",
+        "OBJECT_ID",
+        "IN_REPLY_TO",
+        "REPORT_ADMISSION_CONTRACT",
         "STATUS",
         "PARENT_WP",
         "MICRO_WP",
