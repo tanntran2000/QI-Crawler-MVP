@@ -40,7 +40,6 @@ reinterpret scope and never grants edit authority.
 - Bug/test failure: QI Boot, impact map, systematic debugging, TDD, Evidence Check, Review Handoff.
 - Migration/schema: QI Boot, impact map, canonical migration/data-safety contract, Evidence Check, Review Handoff.
 - Governance docs: QI Boot, Task Envelope, Evidence Check, Review Handoff.
-- Supervised cross-task handoff: QI Boot, Task Envelope, Agent Loop, Evidence Check, Review Handoff.
 - Bounded security: QI Boot, impact map, Work-Order-approved security skill/tool, Evidence Check, Review Handoff.
 
 Routing names candidate skills only; `ROUTER != SCOPE_AUTHORITY`.

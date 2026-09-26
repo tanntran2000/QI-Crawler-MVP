@@ -1002,18 +1002,27 @@ PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong
 LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
 ```
 
-## FM-050 — Open descendant barriers blocked parent generation rename on Windows
+## FM-050 — Host suspension invalidated a local full-sequential verification run
 
 ```text
 ID = FM-050
-STATE = VERIFIED_LOCAL_FEASIBILITY_BLOCKER
-PRODUCT_HOUSE_LAYER = RELEASE ENGINEERING / OPERATIONAL UPDATE CUTOVER
-SYMPTOM = Task 1B could launch-block a copied executable but could not rename its parent generation. A1 then quarantined the executable outside the generation, yet the parent rename still failed when every existing Data-file deny-write handle and the Data watcher remained active.
-ROOT_CAUSE = On the verified host, Windows did not permit renaming a directory while the required governed handles remained open on descendants inside it. Moving the executable barrier outside resolved that one descendant, but did not make the complete Data barrier set compatible with parent rename. The full A1 Q6 set returned ERROR_ACCESS_DENIED (5).
-PREVENTION = Prove the complete simultaneous handle set and whole-generation rename as an early platform feasibility gate before implementing receipts, staging, cutover or recovery. Do not infer parent-directory rename compatibility from FILE_SHARE_DELETE on any descendant handle or from a partial handle matrix.
-EVIDENCE = Task 1B launch returned ERROR_SHARING_VIOLATION (32) while parent rename and FileRenameInfoEx variants returned error 5. Human-authorized A1 Task 1C passed Q1-Q5 and Q7, then independently reproduced Q6 error 5 with the EXE already outside the generation; Q8-Q10 remained not proven.
-DISPOSITION = A1_FEASIBILITY_HOLD; TASKS_2_PLUS_NOT_AUTHORIZED; PLANNER_ARCHITECTURE_RECONCILIATION_REQUIRED
-LIMIT = Verified on Windows 10 build 19045 with a copied cmd.exe synthetic executable and synthetic SQLite/Data tree. This proves the approved complete-barrier plus parent-generation-rename design did not satisfy Q6 on this host; it does not prove every alternative update architecture impossible.
+STATE = OPEN
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+SYMPTOM = The local full sequential pytest run remained alive across a Windows host sleep/resume interval and produced no final pytest summary, so its verification result is inconclusive.
+ROOT_CAUSE = HOST_SUSPENSION_DURING_LOCAL_FULL_RUN; the host entered a low-power state while pytest was running.
+CLASSIFICATION = CI_INFRASTRUCTURE_DEFECT
+EVIDENCE = Run started 2026-09-25T16:59:35+07:00; Power-Troubleshooter Event 1 recorded sleep at 2026-09-25T10:12:39.568821000Z and wake at 2026-09-25T12:31:00.247312800Z; Kernel-Power Events 42 and 107 and a Kernel-General clock synchronization followed resume; no final pytest summary exists. Evidence is recorded in Work Order 3ba789be00a61c056dd1532efa133b2acba72bde, section 10.7.
+CORRECTION = Preserve the prior attempt as HOLD_INCONCLUSIVE with no test or product-defect verdict. Correction 06 permits one guarded sequential rerun only; the attempt is not retried again.
+PREVENTION = Before the rerun, record the start time and latest relevant System power event. Hold a process-scoped SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED) guard in the supervising PowerShell process, fail closed if the API returns zero, enforce the fixed 25-minute limit against only the owned pytest process tree, restore execution state in finally, and inspect System sleep/resume events after exit. Do not change global power or lid settings and do not increase the timeout.
+LIMIT = The initial suspended attempt remains HOLD_INCONCLUSIVE and does not
+  establish a test failure or product defect. Accepted evidence records the C06
+  guarded rerun as PASS: 1623 collected; 1621 passed; 2 skipped; 0 collection
+  errors; exit 0; no sleep/resume event; timeout none. The raw pytest log is
+  unavailable in the current readback. Wrapper flags
+  FINAL_PYTEST_SUMMARY_PRESENT=False and C06_FULL_RUN_VALID_GREEN=False are
+  classified as a parser false-negative from the accepted evidence, not product
+  behavior. This result does not prove that all future host suspension is
+  prevented.
 ```
 
 ## Routing

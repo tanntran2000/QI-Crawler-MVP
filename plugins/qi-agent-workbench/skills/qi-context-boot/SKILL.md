@@ -1,6 +1,6 @@
 ---
 name: qi-context-boot
-description: Read-only QI checkout, role, and context orientation before planning, building, reviewing, or handing a completed Builder report to its assigned Planner.
+description: Read-only QI checkout, role, and context orientation before delegated work.
 ---
 
 # QI Context Boot
@@ -73,10 +73,3 @@ platform instructions, so a material instruction conflict escalates to
 Planner/Human.
 
 Required output: `BOOT_REPORT` with `READY_STATE = READY | ENTRY_HOLD`, `WHAT_I_AM_ALLOWED_TO_DO`, `WHAT_I_AM_NOT_ALLOWED_TO_DO`, `EXACTLY_ONE_NEXT_ACTION`, and `NEXT_AUTHORITY`.
-
-For a normal completed Builder task, route the bounded result to the assigned
-Planner and report delivery separately from verified receipt and Planner
-review. A tool's successful send result is not receipt evidence. If a material
-out-of-lease safety, data, scope, or authority conflict appears, stop and
-preserve state; escalate to Human authority and notify the Planner through an
-authorized route.

@@ -99,10 +99,11 @@ boundaries or independent review.
 The detailed role-boot and action-first standard is canonical in
 `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md`. Material prompts are
 ACTION-FIRST and must orient the assigned role before requesting execution.
-Planner, Builder and Reviewer are independent execution-control poles beneath
-Human A0; mutual challenge is evidence and escalation, not voting, and
-`challenge != override`. The receiving agent should not need to ask what action
-is wanted when the prompt satisfies the quality gate.
+The Operating Model defines the four operational roles and their distinct
+authorities beneath Human A0. Tester/Machine Verifier is evidence-only; mutual
+challenge is evidence and escalation, not voting, and `challenge != override`.
+The receiving agent should not need to ask what action is wanted when the
+prompt satisfies the quality gate.
 
 ### 4.1 Human shorthand: QI BOOT
 

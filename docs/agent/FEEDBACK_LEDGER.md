@@ -1186,271 +1186,236 @@ capability.
 Disposition: ACCEPTED / ROUTED_TO_MASTER_ROADMAP_DELTA_AND_CURRENT
 ```
 
-### FB-0043 — Supervised Agent Loop and bounded A2A evidence
+### FB-0043 — QI Agent Loop governance execution and B09 park
 
 ```text
-State: ACCEPTED / ROUTED / IMPLEMENTATION_IN_PROGRESS
+State: ACCEPTED
 Author: Human A0
 Role: HUMAN_AUTHORITY
-WP: WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01
-Type: PROCESS
-Authority: A0 HUMAN_DECISION
+Authority: A0 HUMAN_DECISION recorded in the approved Work Order and Planner correction
+Type: GOVERNANCE / AGENT_WORKBENCH / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 Decision:
-- Route a normal bounded Builder result to its assigned Planner and track
-  send, verified receipt, Planner review, and disposition as separate states.
-- A material out-of-lease safety, data, scope, or authority conflict is held;
-  the detecting role escalates to Human authority and notifies the Planner.
-- Keep the loop supervised, task-based, role-separated, and without
-  autonomous/background execution or new Human/merge/release authority.
-- Current Human model deployment preferences, never role/authority evidence:
-  Planner = GPT-6 Sol/high; Builder = GPT-6 Luna/Lunar max/fast;
-  Reviewer = GPT-6 Sol/high; Tester = GPT-5.6 Sol/medium. `ROLE > MODEL NAME`.
-- Prioritize a concise repository skill for workflow; task/messaging MCP
-  capability supplies connectivity. Add a custom server only if a verified
-  capability gap requires it under a separate approved scope.
-- Preserve the B09 technical HOLD pending Spine routing and Planner review;
-  this governance work does not resume B09 execution.
-Evidence:
-- Tester independently recomputed the arithmetic/schema result and marked
-  Planner-side raw JSON readback `NOT_VERIFIED`.
-- A later independent Reviewer addendum established exact sender/Planner
-  inbound raw payload equality for one 657-byte snapshot; the Reviewer verdict
-  remains `PASS_WITH_LIMITATIONS`.
-Boundary: The payload equality evidence covers that single snapshot only. It
-does not establish general exactly-once delivery, autonomous orchestration,
-background execution, CLI/model smoke coverage, or merge/release authority.
-Disposition: ACCEPTED / ROUTED_TO_GOVERNANCE_AND_CURRENT
+PARENT_WP = GOVERNANCE_AGENT_LOOP_CONSOLIDATION
+BUILDER_ROLE = BUILDER_SINGLE_WRITER
+GOVERNANCE_BRANCH = codex/agent-loop-consolidation-01
+BASE_SHA = 179c0712a14161ea25096e66a127f6022bf696fd
+WORK_ORDER_HEAD = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+EXECUTION = LOCAL_ONLY
+PUSH = NOT_AUTHORIZED
+PR = NOT_AUTHORIZED
+MERGE = NOT_AUTHORIZED
+RELEASE = NOT_AUTHORIZED
+B09 = PARKED_PRESERVED_LOCAL; BRIDGE_A_HOLD; NOT_PUSHED
+Evidence: Work Order correction 01 at the exact governance head above; B09 local preservation commit 9bc64942f35c41d002ef80a74c7a02851422b0e8 contains only `src/qi_crawler/operational_update.py` and `tests/test_operational_update.py`.
+Boundary: This decision authorizes only the bounded Agent Loop governance Work Order and its local stages. It does not claim B09/Bridge A completion or authorize B09 continuation, push, PR, merge, release, product changes, cleanup or scope expansion.
+Response: Stage 0 records the active governance handoff and preserves the displaced B09 HOLD by exact Git locator; Stage 1/2 remain subject to the post-Stage-0 ROLE_ENTRY_GATE and the Work Order's exact allowlist.
+Scope change required: NO
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_GOVERNANCE_WP
+Promoted to: docs/agent_handoff/CURRENT.md
 ```
 
-### FB-0044 — Supervised Agent Loop correction and candidate identity
+### FB-0044 — Human A0 Stage 0 re-entry and local commit boundary
 
 ```text
-State: ACCEPTED / ROUTED / CORRECTION_IN_PROGRESS
+State: ACCEPTED / ACTIVE_EXECUTION_BOUNDARY
 Author: Human A0
 Role: HUMAN_AUTHORITY
-WP: WO-ENG-QI-AGENT-LOOP-01-GOV-SYNC-01 rev4
-Type: PROCESS / EVIDENCE / IMPLEMENTATION_INTEGRITY
-Authority: HUMAN_A0_CORRECTION_RELAYED_IN_PLANNER_WORK_ORDER_REV4
+Authority: Direct Human A0 instruction dated 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 Decision:
-- Preserve the supervised four-role architecture; do not add a role, runner,
-  server, scheduler, or autonomous/background execution.
-- Keep the ten-field TASK_ENVELOPE unchanged and add separate report/object/
-  attempt metadata so stale, duplicate, truncated, and wrong-object reports
-  cannot advance state or trigger duplicate dispatch.
-- Route normal completed Builder, Tester, and Reviewer reports to their
-  assigned Planner. Preserve the Reviewer verdict; Planner challenge does not
-  rewrite it.
-- Bound in-lease correction through Planner scope judgment, the same Builder,
-  Tester recheck, independent Reviewer audit of a new object, and Planner
-  reconciliation. Work Orders carry finite attempt/runtime/cost budgets;
-  repeated symptoms without new hypothesis or evidence stop for triage.
-- Require a minimal-complete-fix explanation at Builder return and Reviewer
-  challenge, grounded in root cause, reuse, need for new surface, and
-  acceptance mapping. Line count alone is not a verdict.
-- Bind the full changed/new candidate path manifest to the base SHA and raw
-  per-file hashes, including untracked files, before integration; keep a later
-  authorized terminal CURRENT-only delta distinct from the audited object.
-Maturity:
-ROLE_SEPARATION = WELL_DEFINED
-SUPERVISED_HANDOFF = SUPPORTED
-REAL_CODE_CORRECTION_CYCLE = NOT_YET_DEMONSTRATED
-CODE_BLOAT_PREVENTION = POLICY_PRESENT_EFFECTIVENESS_NOT_YET_PROVEN
-AUTONOMOUS_LOOP = NOT_IMPLEMENTED
-MODEL_FAST = HUMAN_PREFERENCE_ONLY_UNLESS_RUNTIME_VERIFIED
-Evidence limits:
-- The 13 lock tests evidence locked-artifact integrity and the static
-  lock/verifier contract; they are not 13 observed role scenarios.
-- Historical A2A payload evidence and its bounds remain in FB-0043; it does not
-  establish a general exactly-once guarantee or a real code-correction cycle.
-Boundary: This accepted correction does not authorize new architecture,
-autonomous execution, a commit, push, PR, merge, release, or B09 technical work.
-Disposition: ACCEPTED / ROUTED_TO_OPERATING_MODEL_AGENT_LOOP_SKILL_AND_CURRENT
+  Stage 0 local commit contains exactly:
+    docs/agent_handoff/CURRENT.md
+    docs/agent/FEEDBACK_LEDGER.md
+  Commit message: docs(agent-loop): reconcile builder entry state
+  After commit, rerun ROLE_ENTRY_GATE. Stage 1 and Stage 2 may continue only
+  when that gate passes, using Work Order object
+  4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf and its recorded SHA-256.
+  Execution remains local only. B09 stays parked.
+Boundary: No B09 execution, untracked staging, cleanup, push, PR, merge or
+release. This decision supersedes the prior direct-commit limit that applied
+only to the two B09 source/test files, solely for this Stage 0 transition.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_AGENT_LOOP_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md
 ```
 
-### FB-0045 — Bridge A exact source-byte invariant and diagnostic WIP retention
+### FB-0045 — Human A0 supersedes Agent Loop Work Order selection
 
 ```text
-State: ACCEPTED / ROUTED / FEASIBILITY_HOLD
+State: ACCEPTED / ACTIVE_EXECUTION_AUTHORITY
+Author: Human A0, relayed through Planner
+Role: HUMAN_AUTHORITY
+Authority: Direct A0 supersession carried in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  REMAINING_WORK_ORDER = CORRECTION_04
+  WORK_ORDER_COMMIT = 3c7ac861e578d9c548e409f4529ef3c25ba33f91
+  WORK_ORDER_SHA256 = E12A2EB64E63F9AC82E2EED45956415812AC1EDF4A58183C7E140E9FC9812F79
+  PRIOR_4CD_SELECTION = SUPERSEDED_FOR_REMAINING_WORK; HISTORICAL_FB_0044_RETAINS_ORIGINAL_RECORD
+  ENTRY_SYNC = ONE_FORWARD_LOCAL_COMMIT; EXACT_CURRENT_AND_FEEDBACK_LEDGER
+  POST_SYNC = RERUN_ROLE_ENTRY_GATE; CONTINUE_ONLY_ON_PASS
+  POST_ENTRY_SCOPE = EXACT_FOURTEEN_PATHS_IN_CORRECTION_04_SECTION_10_1
+  EXECUTION = LOCAL_ONLY
+  PRESERVED_CHECKPOINTS = c92474e7e9c93073f23a778221b3d13313b5416f; 0c34330931e7743a907399eb5057ae374cee1319
+  INDEPENDENT_AUDIT_PASS = NOT_CLAIMED_FOR_PRIOR_CHECKPOINTS
+  PLANNER_REMAINING_BUDGET = ONE_ENTRY_TRANSITION; ONE_CONTENT_TEST_SKILL_LOCK_CORRECTION_IF_GATE_PASS; ONE_TERMINAL_CURRENT_SYNC_ONLY_IF_REQUIRED; ONE_POST_CORRECTION_SKILL_QUICK_VALIDATE; ONE_TARGETED_LOCK_TEST; ONE_FULL_SEQUENTIAL_RUN_ONLY_IF_TARGETED_GREEN; ONE_RUFF_AND_DIFF_SCOPE_ACCOUNTING_SEQUENCE
+  RETRIES = NONE_BY_INFERENCE
+Boundary: Keep the uncommitted Stage 2 candidate, B09 parked state, scratch
+accounting and all unknown/untracked artifacts as KEEP. No B09, product/runtime,
+workflow/CI, cleanup, broad untracked staging, push, PR, merge or release.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_CORRECTION_04_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md;
+docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
+```
+
+### FB-0046 — Human A0 approves Correction 05 execution lease
+
+```text
+State: ACCEPTED / ACTIVE_EXECUTION_AUTHORITY
 Author: Human A0
 Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Type: DATA_SAFETY / ARCHITECTURE / AUTHORITY_PROVENANCE
-Authority: DIRECT_HUMAN_DECISIONS_IN_PLANNER_TASK_01A0D14B-4E41-7480-9179-D1B230295F77
+Authority: Direct Human A0 approval delivered in the Planner handoff for Correction 05
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 Decision:
-- Preserve exact byte equality and existence for the source DB, WAL and SHM.
-  No SHM exemption is authorized. Bridge A remains HOLD until a different
-  capture design preserves this invariant or explicitly fails closed.
-- Keep the existing remote diagnostic WIP checkpoint
-  `17277b7a89495713e3003e3896e99b0fb68ba079` and record the route deviation.
-  No further remote action is authorized until a new Work Order states it.
-Technical context:
-- The existing focused diagnostic returned
-  `DATABASE_CHANGED_DURING_SNAPSHOT`; DB and WAL hashes were stable, while the
-  SHM hash changed after the post-writer state during SQLite backup. The
-  generation test's logical fail-closed result is valid evidence, but the
-  strict source-byte assertion remains red. This is an observed mechanism, not
-  a generalized root-cause claim or Bridge A pass.
-- The independent Reviewer pre-audit of `17277b7` is preliminary test-validity
-  evidence only; it is not a final Bridge A verdict.
-Route deviation:
-- The Builder's push command was rejected by automatic approval review. The
-  Planner later pushed from the Planner task before receiving the later warning
-  against using another task/path for the same action. Human A0 chose to retain
-  the WIP ref and record this deviation. That disposition preserves the
-  current remote state; it is not retroactive preauthorization and does not
-  authorize another remote action.
-Boundary: This decision does not authorize source/test changes, another
-regression run, cleanup, Bridges B/C/D, the mutation engine, startup/live update,
-PR creation, merge, release, or amendment of the strict source-byte invariant.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA_PATH_REGISTRY
+  REMAINING_WORK_ORDER = CORRECTION_05
+  WORK_ORDER_COMMIT = 07f2bdaf81561cc21db4de6b6e3dec8758858f2e
+  WORK_ORDER_SHA256 = 97C5DA8203A61D3F2C12505D7037E53ED21E7D5E4318685837A21374FF43EE23
+  CORRECTION_04 = SUPERSEDED_FOR_REMAINING_WORK; HISTORICAL_COMMITS_AND_EVIDENCE_PRESERVED
+  ENTRY_TRANSITION = ONE_FORWARD_LOCAL_COMMIT; EXACT_CURRENT_AND_FEEDBACK_LEDGER
+  ENTRY_CAPTURE_BASE = 07f2bdaf81561cc21db4de6b6e3dec8758858f2e
+  POST_TRANSITION = RERUN_ROLE_ENTRY_GATE; CONTINUE_ONLY_ON_PASS
+  POST_ENTRY_SCOPE = EXACT_FOURTEEN_PATHS_IN_CORRECTION_05_SECTION_10_1
+  CONTENT_CORRECTION_COMMITS = ONE; LOCAL_ONLY
+  TERMINAL_CURRENT_SYNC = ONE_IF_REQUIRED; CURRENT_ONLY
+  TARGETED_RUNS = ONE; .tmp/al05/t/p
+  FULL_RUNS = ONE_ONLY_AFTER_TARGETED_PASS; .tmp/al05/f/p
+  RUFF_RUNS = ONE_TRACKED_PYTHON_ONLY
+  RETRIES = NONE
+  SCRATCH_ALIAS = .tmp/al05; TASK_ONLY; REGISTER_BEFORE_CREATE
+  FULL_RUN_LIMITS = 20000_FILES; 15000_DIRS; 1073741824_BYTES
+  CUMULATIVE_RETAINED_LIMITS = 32000_FILES; 26000_DIRS; 2147483648_BYTES
+  MIN_D_FREE_BYTES = 10737418240
+  B09 = PARKED_PRESERVED_LOCAL; BRIDGE_A_HOLD; NO_EXECUTION
+  REMOTE_ACTIONS = NO_PUSH; NO_PR; NO_MERGE; NO_RELEASE
+Boundary: No cleanup, product/runtime source, workflow CI, broad untracked staging,
+stash/reset/rebase/amend/worktree/clone or scope expansion. Preserve all Correction
+04 decisions, commits, red verification and Reviewer HOLD as immutable evidence.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_CORRECTION_05_EXECUTION
+Promoted to: docs/agent_handoff/CURRENT.md;
+docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md
 ```
 
-### FB-0046 — B09 supervised maintenance window scope
+### FB-0047 — Human A0 establishes four operational roles
 
 ```text
-State: ACCEPTED / ROUTED / IMPLEMENTATION_GATE_UNPROVED
+State: ACCEPTED / ACTIVE_GOVERNANCE_MODEL
 Author: Human A0
 Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Type: PRODUCT_SCOPE / DATA_SAFETY / AUTHORITY_PROVENANCE
-Authority: DIRECT_HUMAN_DECISION_IN_PLANNER_TASK_01A0D14B-4E41-7480-9179-D1B230295F77
+Authority: Human direction recorded in approved Correction 05 section 10.6.1;
+  execution lease approved by FB-0046
+Type: GOVERNANCE / ROLE_MODEL / AUTHORITY_BOUNDARY
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
 Decision:
-- B09's supported update path is supervised maintenance: Crawler and related
-  writers must be stopped; source stability must be proved and maintained
-  through copying; the isolated copy must be verified before proceeding.
-- A changing, active, ambiguous or unproven source must receive a bounded HOLD
-  with a reason. Do not retry indefinitely, checkpoint or mutate source
-  sidecars, or accept an unproven snapshot.
-- A `-wal` file's presence alone does not prove an active writer. Keep the
-  strict source DB/WAL/SHM byte and existence invariant.
-- This scope does not require a live-source snapshot and does not declare
-  Bridge A PASS or authorize a live update.
-Technical reconciliation:
-- The inspected `MaintenanceTransaction` holds `BEGIN IMMEDIATE` and a
-  cooperative `maintenance.lock`, but opens the source SQLite DB; the test
-  `legacy_write` client does not take that lock and no B09 startup/restart
-  gate was found.
-- The release preflight is a one-time process census; A3's process scope is a
-  bounded trial PID/Job scope and its SQLite probe releases its transaction before
-  copy. None proves a B09 capture lease across copy and isolated-copy
-  verification under the exact byte invariant.
-- Bridge A remains HOLD. A next implementation/test Work Order must prove a
-  supervised maintenance capture boundary or return finite HOLD. Required
-  challenge cases include committed uncheckpointed WAL, restart and
-  uncooperative writer interleavings, sidecar present/absent transitions,
-  byte/existence checks through barrier release, and isolated-copy integrity.
-Boundary: This decision does not authorize source/test edits, test runs,
-checkpoint/sidecar mutation, live update, Bridges B/C/D, the mutation engine,
-push, PR, merge or release.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_DELTA
+  OPERATIONAL_ROLES = PLANNER_ARCHITECT; BUILDER_SINGLE_WRITER;
+    TESTER_MACHINE_VERIFIER; REVIEWER_AUDITOR
+  TESTER_AUTHORITY = EVIDENCE_ONLY
+  FOUR_ROLES = DISTINCT_AUTHORITIES; NOT_EQUAL_AUTHORITIES
+  PRIOR_THREE_POLE_STRUCTURAL_EFFECT = SUPERSEDED_FOR_ACTIVE_AUTHORITIES
+  HISTORICAL_FEEDBACK = PRESERVE_UNCHANGED
+Boundary: Keep Human A0 material authority, Builder single-writer scope,
+independent review, and Planner reconciliation separate. No runtime, product,
+B09, workflow, remote, merge or release authority is created.
+Disposition: ACCEPTED / ROUTED_TO_ACTIVE_ROLE_AUTHORITIES
+Promoted to: AGENTS.md; docs/agent/MASTER_ROADMAP.md;
+docs/agent/OPERATING_MODEL.md; docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md;
+docs/agent/HUMAN_COLLABORATION.md; plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md;
+docs/agent_handoff/CURRENT.md
 ```
 
-### FB-0047 — B09 post-closeout HOLD and joint role review
+### FB-0048 — Human A0 Stage 0 re-entry under selected Work Order object
 
 ```text
-State: ACCEPTED / ROUTED / DEFERRED_POST_B09_TRANSITION
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Authority: USER_MESSAGE_01A0D64C-E309-7233-A7E8-01101C311878; reconfirmed in Planner WO B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01 (exec-b28fa689-a4af-4724-bc07-061c4f7c4e69)
-Decision: Continue B09 only under new bounded implementation authority;
-Bridge A remains technical HOLD until its barrier is proven. After B09
-closeout, enter HOLD for a joint Human/Planner Agent Loop and role review
-before selecting the next post-B09 WP. This is deferred; it does not cancel
-B09 after the audit.
-Report correction: Prior Builder report
-`B09-BRIDGE-A-MAINTENANCE-BARRIER-01-BUILDER-REPORT-01` is preserved. Its
-next-action wording is clarified by corrected report
-`B09-BRIDGE-A-MAINTENANCE-DOCS-CORRECTION-01-BUILDER-REPORT-01`.
-Boundary: This docs correction grants no B/C/D, mutation engine, or live-update authority; each B09 stage requires its own bounded WO and gates; after B09 closeout, no next post-B09 WP may begin before the joint Human/Planner role review.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+State: ACCEPTED / ACTIVE_STAGE_0_EXECUTION_BOUNDARY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct instruction in Builder task 01a0d2be-6de8-7690-a41c-2b522363181d, 2026-09-25
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  STAGE_0_COMMIT_PATHS = docs/agent_handoff/CURRENT.md;
+    docs/agent/FEEDBACK_LEDGER.md
+  STAGE_0_COMMIT_MESSAGE = docs(agent-loop): reconcile builder entry state
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf
+  SELECTED_WORK_ORDER_SHA256 = 8BDB4B0266FF411B2530E5B12845BC3704B6CFEAB8E99635AFA10AF40A2D12B6
+  POST_COMMIT = RERUN_ROLE_ENTRY_GATE
+  STAGE_1_AND_2 = CONDITIONAL_ON_ROLE_ENTRY_GATE_PASS
+  EXECUTION = LOCAL_ONLY
+  B09 = PARKED; NO_EXECUTION
+Boundary:
+Preserve earlier correction records and technical evidence unchanged. The
+selected historical Work Order's Stage 1 says three execution-control poles,
+while FB-0047 and active canonical governance specify four operational roles;
+the current checkout also contains later C04-C06 Work Order corrections.
+This conflict must be resolved by the post-commit entry gate and Planner
+reconciliation before any Stage 1 or Stage 2 write. No untracked staging,
+cleanup, push, PR, merge, release or B09 action is authorized.
+Disposition: ACCEPTED / STAGE_0_ONLY_PENDING_POST_COMMIT_GATE
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/FEEDBACK_LEDGER.md
 ```
 
-### FB-0048 — B09 HOLD-now and Agent Loop overlap priority
-
-```text
-State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Authority: HUMAN_MESSAGE_01A0D66C-DEA8-7BE1-BF26-25C5767B90D2 in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; Planner WO B09-HOLD-CHECKPOINT-20260925-01
-Decision: Hold B09 at its current step. Record and push the exact feature-branch WIP checkpoint, then notify Human and shift to a joint Human/Planner review of Agent Loop and role-document overlap.
-Supersedes: FB-0047 post-B09-closeout timing only; its technical evidence and strict source-byte invariant remain.
-Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A stays HOLD while the maintenance capture barrier is unproven.
-Boundary: B09 is not complete. B/C/D, the mutation engine, startup integration and live update remain unopened. The WIP push is not CI PASS or implementation acceptance; no PR, merge or release is authorized.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
-```
-
-### FB-0049 — PR #131 CI correction while B09 Bridge A remains HOLD
-
-```text
-State: ACCEPTED / ROUTED / BOUNDED_CI_CORRECTION_ACTIVE
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Work Order: B09-PR131-CI-REPAIR-01
-Authority: HUMAN_MESSAGE_01A0D684-A4AE-7F32-AFD0-0373A7A4820A in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
-Decision: Builder may correct and monitor existing PR #131 until every required check passes at one exact PR head, then notify Human. Human retains manual merge authority.
-Supersedes: FB-0048 stop/NO_CI sequencing only for this bounded PR correction; the Bridge A technical HOLD and strict source invariant remain.
-Observed CI: Run 36088490524 at be315d23cab138598330d8cf54c82b93522058cb. Ruff reports F841 for source_before_probe. Ubuntu 3.11, Ubuntu 3.12 and Windows 3.12 each fail the same three tests because the read-only SQLite snapshot path changes source -shm bytes. Required CI Gate fails; CodeQL checks pass.
-Invariant: Source DB/WAL/SHM bytes and existence must remain exactly equal. Do not use immutable on a changing source. CI green is not proof of Bridge A snapshot coherence.
-Boundary: Only src/qi_crawler/operational_update.py and tests/test_operational_update.py may be changed for code/test work; this and CURRENT/Delta are the only permitted PRE/POST Spine files. No CI gate weakening, B/C/D, mutation engine, startup integration, live update, merge, release or cleanup.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
-```
-
-### FB-0050 — Immediate B09 HOLD at Bridge A; WIP checkpoint only
-
-```text
-State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Authority: Latest direct Human A0 instruction in source task 01a0d2be-6de8-7690-a41c-2b522363181d; this instruction replaces the immediately preceding request to complete B09 and run CI.
-Decision: Hold B09 now at Bridge A. Only CURRENT.md, MASTER_ROADMAP_DELTA.md and FEEDBACK_LEDGER.md may be staged, diff-checked, committed locally and pushed to codex/b09-bridge-a-wal-coherence as a WIP checkpoint. Verify the remote SHA, report to the assigned Planner task, then stop B09 work.
-Supersedes: FB-0049's active CI-correction execution authorization; its recorded CI failure remains historical evidence.
-Invariant: Source DB/WAL/SHM bytes and existence remain exactly equal; Bridge A remains HOLD while the maintenance capture barrier is unproven.
-Boundary: No B09 completion, source/test edit, test or manual CI invocation, PR creation/API action, merge, release, cleanup, B/C/D, mutation engine, startup integration or live update. The authorized exact-branch WIP push may trigger existing hosted automation; do not treat that as CI evidence. Keep all untracked artifacts untouched and unstaged.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
-```
-
-### FB-0051 — Resume bounded PR #131 CI correction after Human conflict resolution
-
-```text
-State: ACCEPTED / ROUTED / BOUNDED_CI_CORRECTION_ACTIVE
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Work Order: B09-PR131-CI-REPAIR-02; continuation of B09-PR131-CI-REPAIR-01
-Authority: HUMAN_MESSAGE_01A0D69E-CBE9-7C01-BFCF-6AF2CB82C4F0, direct answer in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77
-Decision: Continue the bounded correction of existing PR #131 until all required CI checks pass on one exact head; notify Human for manual merge. Human retains merge authority.
-Supersedes: FB-0050 stop/no-CI terms only for this bounded PR correction. B09 is not declared complete and Bridge A remains HOLD.
-Observed CI: PR head 17264c0f5cea5a80adb2da72a61189f099ec1804, completed run 36090626876. Code Quality failed Ruff F841 for unused source_before_probe at tests/test_operational_update.py:624. Compatibility Ubuntu 3.11 and Tests Ubuntu 3.12/Windows 3.12 each failed the same three strict sidecar tests; Required CI Gate failed; CodeQL passed. Test logs show source -shm bytes changed during read-only snapshot, including generation coherence returning DATABASE_CHANGED_DURING_SNAPSHOT with source_bytes_unchanged=False.
-Invariant: Source DB/WAL/SHM bytes and existence must remain exactly equal. No immutable mode on a changing source.
-Boundary: Only the two approved source/test paths and CURRENT/Delta/Feedback PRE/POST docs; no CI gate/workflow changes, weakened tests, B/C/D, mutation engine, startup integration, live update, Builder merge or release, or cleanup. Preserve all untracked artifacts.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
-```
-
-### FB-0052 — Immediate B09 HOLD reasserted at Bridge A
+### FB-0049 — Correction to FB-0048 authority classification
 
 ~~~text
-State: ACCEPTED / ROUTED / ACTIVE_HOLD_CHECKPOINT
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Authority: Latest direct Human A0 instruction in Builder task 01a0d2be-6de8-7690-a41c-2b522363181d, received after FB-0051
-Decision: Hold B09 immediately at Bridge A. B09 is not complete; no further B09 implementation, tests, full regression or CI run is requested. Only the three named Context Spine files may be diff-checked, committed locally and pushed to codex/b09-bridge-a-wal-coherence as a WIP checkpoint. Verify the remote SHA, report to the assigned Planner, then stop B09.
-Supersedes: FB-0051's active PR #131 CI-correction execution direction. FB-0051's recorded CI results remain historical evidence.
-Invariant: Bridge A remains HOLD while the supervised maintenance capture barrier is unproven. Source DB/WAL/SHM bytes and existence must remain exactly equal; no SHM exemption is authorized.
-Boundary: Preserve preceding source/test working-tree modifications but exclude them from this checkpoint. Do not stage untracked artifacts or clean anything. No tests, manual CI invocation, PR creation/API action, merge, release, B/C/D, mutation engine, startup integration or live update. An existing automatic hosted workflow triggered by a branch push is not a manually requested CI run and must not be represented as Bridge A evidence.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_DELTA
+State: ACCEPTED / CORRECTIVE_AUTHORITY_DISPOSITION
+Author: Human A0, relayed through Planner
+Role: HUMAN_AUTHORITY
+Authority: Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 for C06-FORWARD-RECOVERY-01
+Type: GOVERNANCE / HANDOFF / EXECUTION_ORDER
+WP: WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01
+Decision:
+  FB-0048 = PRESERVE_UNCHANGED_AS_HISTORICAL_INCIDENT_EVIDENCE; NOT_VALID_CURRENT_AUTHORITY
+  SELECTED_WORK_ORDER_OBJECT = 4cd1e4aa5837d8f57e22ba510ca9d8b0942a4ccf; SUPERSEDED_FOR_REMAINING_WORK
+  CURRENT_C06_WORK_ORDER = 3ba789be00a61c056dd1532efa133b2acba72bde; SHA256=E5EEA505D2CDA461359C140598C8C423011914F0F759B0B8BD04E98B3CAE20DF
+  FORMER_BUILDER_LEASE = REVOKED_BEFORE_403D4F45
+  INCIDENT_COMMIT = 403d4f45a2c33b4ae8d9b955e7f358f4413b9084; RETAINED_ONLY_AS_INCIDENT_EVIDENCE; NO_VALID_STAGE_0_AUTHORITY
+  CORRECTION = FORWARD_ONLY; DO_NOT_REWRITE_FB-0048_OR_INCIDENT_COMMIT
+Boundary: The C06 recovery action is limited to restoring CURRENT.md and
+appending this correction entry. The C06 machine evidence and raw-log limitation
+are recorded in CURRENT.md. No B09, product/test, workflow, cleanup or remote
+action is authorized.
+Disposition: FB-0048 remains byte-for-byte historical evidence; its authority
+claim is superseded and cannot authorize the incident commit or any later work.
+Promoted to: docs/agent_handoff/CURRENT.md
 ~~~
 
-### FB-0053 — Human A0 approval of Agent Loop direction and local B09 preservation
+### FB-0054 — B09 maintenance re-entry and preserved-candidate provenance
 
 ~~~text
-State: ACCEPTED / ROUTED / BOUNDED_LOCAL_PRESERVATION
-Author: Human A0 | Role: HUMAN_AUTHORITY
-WP: WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01
-Type: PROCESS / HANDOFF
-Authority: Human A0 approval relayed by Planner in task 01a0d14b-4e41-7480-9179-d1b230295f77; explicit response: "cho phép những điều trên và chấp nhận cho Planner tiến hành quy trình Agent Loop"
-Decision: A0 approved the presented Agent Loop direction and authorized Planner to proceed. For the prerequisite B09 preservation, A0 authorized exactly two local commits in order: first CURRENT.md and FEEDBACK_LEDGER.md to reconcile this authority; then, only after ROLE_ENTRY_GATE passes and hashes are reverified, the exact existing operational_update.py and test_operational_update.py bytes.
-Supersedes: FB-0052's source/test exclusion only for these exact local preservation commits. B09 remains incomplete and Bridge A remains HOLD.
-Invariant: No source/test byte changes; the strict B09 source DB/WAL/SHM byte-and-existence invariant remains binding.
-Boundary: Both commits are local only. No tests, CI, push, PR, merge, release, cleanup, reset, stash, rebase, amend, force operation, B/C/D, mutation engine, startup integration or live update. Keep every untracked artifact, including the untracked governance WO, unstaged.
-Expected source SHA-256: operational_update.py=87DD4D680C716CDB0FC54AE03DF18FCDD3ED82EB6A0F98E4621F0D565C824ED9; test_operational_update.py=7A49CEA99CE9F994C81199C646E0B867FCE7FCD48B4148D76E0EF0C945AA1559.
-Disposition: ACCEPTED / ROUTED_TO_CURRENT; local preservation sequence pending.
+State: ACCEPTED / STAGE_0_REENTRY_AND_PROVENANCE_RECONCILIATION
+Author: Planner, based on Builder-verified Git evidence
+Role: PLANNER_ARCHITECT / BUILDER_SINGLE_WRITER
+Authority: Planner continuation receipt for WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01 in task 01a0d14b-4e41-7480-9179-d1b230295f77
+Type: B09 / HANDOFF / ARTIFACT_PROVENANCE
+WP: WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01
+Decision:
+  ENTRY_HEAD = 9bc64942f35c41d002ef80a74c7a02851422b0e8
+  FORWARD_MERGE_PARENT_MAIN = 360da6c88304e02f455b9880598e815b7613a525
+  AGENT_LOOP_GOVERNANCE = CURRENT_MAIN_AUTHORITY; PRESERVE_EXACT_MAIN_BASE
+  PRIOR_B09_FB-0053_SOURCE_SHA = 87DD4D680C716CDB0FC54AE03DF18FCDD3ED82EB6A0F98E4621F0D565C824ED9
+  ENTRY_HEAD_RAW_SOURCE_BLOB_SHA256 = 0B239DECF02070A9D697D380A24D40B237AE25409241720958AF996BC6AB3722
+  ENTRY_HEAD_RAW_TEST_BLOB_SHA256 = 7A49CEA99CE9F994C81199C646E0B867FCE7FCD48B4148D76E0EF0C945AA1559
+  HASH_DISPOSITION = SOURCE_LEDGER_VALUE_IS_A_PROVENANCE_DOCUMENTATION_DISCREPANCY; EXACT_GIT_OBJECT_REMAINS_AUTHORITY
+  HISTORY = PRESERVE; NO_REWRITE_OR_SOURCE_CHANGE_TO_MATCH_LEDGER
+  BRIDGE_A = HOLD_WHILE_COMPLETE_MAINTENANCE_CAPTURE_BARRIER_IS_UNPROVEN
+Boundary: This re-entry authorizes only the bounded local Work Order. Source
+DB/WAL/SHM bytes and existence must remain exactly equal. No push, PR mutation,
+merge to main, release, cleanup, live DB mutation, Bridge B/C/D, mutation
+engine, startup integration or live update is authorized. Keep all unknown
+untracked artifacts.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_PATH_REGISTRY
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/PATH_REGISTRY.yaml
 ~~~

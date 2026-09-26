@@ -3,20 +3,21 @@
 ## 1. Purpose, authority and non-duplication
 
 This document is the canonical detailed contract for role boot orientation,
-action-first prompt construction and mutual challenge among the execution
-control poles. It implements the accepted FB-0028 governance design. It does
-not authorize product implementation, a release, a Team Bid pilot, a merge,
-or a new Work Package, and it does not replace `AGENTS.md`, the Operating
-Model, the Master Roadmap, the Delta or `CURRENT.md`.
+action-first prompt construction and mutual challenge among the four
+operational roles. The Operating Model owns their current authority definitions.
+This document carries forward the approved boot and prompt standards under that
+model. It does not authorize product implementation, a release, a Team Bid
+pilot, a merge or a new Work Package, and it does not replace `AGENTS.md`, the
+Operating Model, the Master Roadmap, the Delta or `CURRENT.md`.
 
 `OPERATING_MODEL.md` remains the canonical role-definition authority.
 `CURRENT.md` remains the active handoff authority. This file is the single
 detailed source for the boot and prompt contract; supporting documents point
 here rather than duplicating the full text.
 
-Human A0 is the top material authority. Planner, Builder and Reviewer are
-independent execution-control poles beneath Human A0. A Machine Verifier
-provides evidence and is not a fourth decision pole.
+Human A0 is the top material authority. Planner, Builder, Tester/Machine
+Verifier and independent Reviewer are the four operational roles. Their
+authorities differ; Tester supplies evidence only.
 
 ### Canonical QI BOOT protocol
 
@@ -173,24 +174,10 @@ EXACTLY_ONE_NEXT_ACTION_RULE = Emit one actionable next authority/action; do
   not leave competing paths active.
 ```
 
-Planner phase tree:
-
-```text
-A. No active WP → Human intent → Delta/Master alignment → bounded design →
-   Human A0 → Builder Work Order
-B. Builder running → do not reissue Work Order; wait or reconcile a material
-   finding
-C. Builder returned → Planner builder-result review → Delta/Master comparison →
-   Reviewer challenge
-D. Reviewer returned → Planner post-review reconciliation → exact evidence →
-   correction/integration/Human decision
-E. PR + CI complete → exact-head verification → Human merge authority
-F. Merged → post-merge reconciliation → CURRENT/Delta/Master promotion check →
-   Project Memory/Feedback/Failure/Lessons triggers → one next action
-```
-
-Planner must not issue a new technical Work Order until the current phase is
-resolved.
+Planner phase ownership and the return path for Builder, Tester and Reviewer
+reports follow the `PLANNER_FOLLOW_THROUGH_CONTRACT` in
+`docs/agent/OPERATING_MODEL.md`. Resolve the current phase there before issuing
+another technical Work Order.
 
 ## 4. BUILDER_SINGLE_WRITER boot profile
 
@@ -222,13 +209,7 @@ WHAT_I_MUST_NOT_WRITE = Out-of-scope files, Work Order authority, Reviewer
   output, Human decisions, product areas not authorized, or remote state not
   explicitly leased.
 NORMAL_FLOW = Authority → checkout → base → scope → Roadmap/Delta → prompt
-  contract → role gate → execute → verify → approved local commit if leased
-  → return bounded report to assigned Planner → track receipt/review evidence.
-REPORT_ROUTING = NORMAL_RESULT_TO_ASSIGNED_PLANNER; CRITICAL_OUT_OF_LEASE
-  SAFETY_DATA_SCOPE_OR_AUTHORITY_CONFLICT_TO_HUMAN_PLUS_PLANNER_NOTICE.
-DELIVERY_STATES = SEND_REQUESTED → SEND_COMPLETED → RECEIPT_VERIFIED →
-  PLANNER_REVIEWED → DISPOSITION_RECORDED; SEND_COMPLETED !=
-  RECEIPT_VERIFIED != PLANNER_REVIEWED.
+  contract → role gate → execute → verify → commit → handoff.
 STOP_CONDITIONS = Baseline drift, wrong checkout, scope expansion, authority
   conflict, material ambiguity, destructive action or required file outside
   scope.
@@ -236,16 +217,10 @@ INPUT_PACKET = Approved Work Order, CURRENT, exact base, context authorities,
   and applicable plugin/verification contract.
 REQUIRED_OUTPUT_PACKET = Changed files, commits, tests/checks, findings,
   Spine impact, tree, remote effects and one next action.
-HANDOFF_TO = PLANNER_ARCHITECT / MACHINE_VERIFIER / REVIEWER_AUDITOR.
+HANDOFF_TO = PLANNER_ARCHITECT; Planner routes approved verification and review.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return exactly one next action and authority;
   never silently continue beyond a material boundary.
 ```
-
-A successful messaging-tool result proves send completion only. Receipt needs
-authorized readback; Planner review is recorded only with Planner evidence.
-For a critical out-of-lease safety, data, scope, or authority conflict, stop,
-preserve the state, escalate to Human authority, and notify the Planner through
-an authorized route. `MODEL_NAME != AGENT_ROLE` remains in force.
 
 ## 5. REVIEWER_AUDITOR boot profile
 
@@ -281,26 +256,17 @@ INPUT_PACKET = Approved Work Order, challenge contract, exact Git range and
   Builder/Machine-Verifier evidence.
 REQUIRED_OUTPUT_PACKET = Exact range, evidence, findings/severity, scope and
   Spine impact, verdict and one next authority/action.
-HANDOFF_TO = PLANNER_ARCHITECT / HUMAN_AUTHORITY when material.
+HANDOFF_TO = PLANNER_ARCHITECT; material Human decisions route through Planner.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return one disposition path; a PASS is not merge
   authorization.
 ```
 
-## 6. Three-pole mutual challenge contract
+## 6. Four-role mutual challenge contract
 
-Human A0 is above the three independent execution-control poles:
-
-```text
-HUMAN A0
-  ↓ material authority
-PLANNER_ARCHITECT ↔ BUILDER_SINGLE_WRITER ↔ REVIEWER_AUDITOR
-                         ↑ evidence-only MACHINE_VERIFIER
-```
-
-Planner designs and reconciles; Builder executes as Single Writer; Reviewer
-audits independently. Any pole may and must HOLD on a material prompt,
-authority, scope, evidence or invariant conflict. A challenge is evidence,
-not a vote, override or rewrite:
+Role definitions and authorities are defined in
+`docs/agent/OPERATING_MODEL.md`. This section defines only mutual challenge:
+any operational role may HOLD on a material prompt, authority, scope, evidence
+or invariant conflict. A challenge is evidence, not a vote, override or rewrite:
 
 ```text
 RIGHT_TO_CHALLENGE != RIGHT_TO_OVERRIDE
@@ -309,12 +275,9 @@ RECEIVED_CORRECTION != AUTOMATIC_AUTHORITY
 BLIND_PROMPT_EXECUTION = FORBIDDEN
 ```
 
-Technical/prompt/evidence conflicts route to `PLANNER_ARCHITECT`. Unresolved
-Planner versus Human A0 or business authority conflicts route to
-`HUMAN_AUTHORITY`. The Machine Verifier never becomes a fourth decision pole.
-
-The Master Roadmap's “Planning & Audit Pole” is a high-level responsibility
-family; operational governance keeps Planner and Reviewer separate inside it.
+Technical, prompt and evidence conflicts return to Planner. Unresolved
+Planner/Human or business-authority conflicts go through Planner to Human A0.
+The Machine Verifier remains evidence-only.
 
 ## 7. Action-first prompt standard
 
@@ -409,7 +372,7 @@ AGENT_SHOULD_NOT_NEED_TO_ASK "WHAT DO YOU WANT ME TO DO?" = YES
 
 Any required `NO` yields `PROMPT_READY = HOLD`.
 
-## 11. Cross-pole hold / escalation protocol
+## 11. Cross-role hold / escalation protocol
 
 When a conflict is material, preserve the object and return:
 
@@ -419,16 +382,17 @@ ROLE_ALIGNMENT = PASS | HOLD
 AUTHORITY_ALIGNMENT = PASS | HOLD
 DELTA_ALIGNMENT = PASS | HOLD
 MASTER_ROADMAP_ALIGNMENT = PASS | HOLD
-CROSS_POLE_CONFLICT = NO | YES
-CONFLICT_SOURCE = PLANNER | BUILDER | REVIEWER
+CROSS_ROLE_CONFLICT = NO | YES
+CONFLICT_SOURCE = PLANNER_ARCHITECT | BUILDER_SINGLE_WRITER |
+                  TESTER_MACHINE_VERIFIER | REVIEWER_AUDITOR
 CONFLICT_DESCRIPTION =
 EVIDENCE =
 SAFE_ACTION = HOLD
 NEXT_AUTHORITY = PLANNER_ARCHITECT | HUMAN_AUTHORITY
 ```
 
-Do not create a voting model. The pole with challenge rights does not gain
-override rights; the role with write access does not gain audit authority.
+Do not create a voting model. Challenge rights do not grant override rights;
+the role with write access does not gain audit authority.
 
 ## 12. Standard return packets
 
@@ -437,7 +401,7 @@ branch/head, checkout identity, prompt/role gates, scope and changed files,
 evidence, Delta/Master alignment, Spine impact/sync, blockers, tree, remote
 effects, and exactly one next authority/action. For this Parent the Builder
 packet also records canonical file creation, supporting-document references,
-three-pole contract, action-first standard, Delta cadence/comparator, prompt
+four-role contract, action-first standard, Delta cadence/comparator, prompt
 quality and hold protocol, no product/code/test/roadmap/Delta/Memory/Feedback/
 Failure/Lessons writes beyond the approved scope, and `PUSH = NO`, `PR = NO`,
 `MERGE = NO`, `RELEASE = NO`, `TEAM_BID_PILOT = NO`.

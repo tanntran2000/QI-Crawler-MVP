@@ -1,117 +1,93 @@
 ---
 name: qi-agent-loop
-description: Use when a bounded Builder, Tester, or Reviewer report must reach its assigned Planner, a report needs receipt/review tracking, or an in-scope correction or out-of-lease blocker must be routed; not for autonomous orchestration or granting scope or authority.
+description: Coordinate approved QI Work Orders across Planner, Builder, Tester, and Reviewer; use for role routing, evidence returns, review handoffs, and checkpoint/PR/CI status.
 ---
 
 # QI Agent Loop
 
-This skill coordinates one supervised task cycle. It supplies workflow
-knowledge; Codex task and messaging tools supply connectivity. Neither a skill
-nor a tool changes the approved Work Order, role, scope, or Human authority.
+Use this workflow for governed QI Work Orders. It explains routing; it never
+grants authority or changes the approved scope.
 
-## Use it for
+## Authority and owners
 
-- Sending a completed bounded Builder, Tester, or Reviewer result to the
-  assigned Planner named by the active Work Order.
-- Tracking a governed handoff through receipt, Planner review, and a recorded
-  disposition.
-- Stopping and escalating a material safety, data, scope, or authority blocker
-  discovered outside the active lease.
+- Resolve role from explicit Human assignment → approved Work Order → governed
+  `docs/agent_handoff/CURRENT.md`. Any material conflict is `ENTRY_HOLD`.
+- Human A0 is the material authority. The four operational roles are Planner,
+  Builder, Tester/Machine Verifier and independent Reviewer; their authorities
+  differ, and Tester is evidence-only.
+- `docs/agent/OPERATING_MODEL.md` owns roles, reports and Planner follow-through.
+  `docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md` owns boot and prompt contracts.
+  `docs/agent/LOCAL_STAGED_INTEGRATION.md` owns commits, audits, checkpoints,
+  Pull Requests, CI and merge gates. The Work Order owns the task's exact scope.
 
-Examples that should trigger this skill: "Send my finished Builder packet to
-the assigned Planner and track whether it was received." "A blocker appeared
-outside the lease; preserve the state and route it through the governed
-escalation path." Do not trigger it for "Explain what this function does."
+## Route reports
 
-## One supervised cycle
+```text
+Human intent → Planner Work Order → Builder result → Planner review
+→ Tester evidence when required → Planner evidence review
+→ independent Reviewer verdict → Planner reconciliation
+→ Human decision when required
+```
 
-1. Run [QI Context Boot](../qi-context-boot/SKILL.md) and derive the exact
-   ten-field `TASK_ENVELOPE` from the approved Work Order using
-   [QI Task Envelope](../qi-task-envelope/SKILL.md). A missing or conflicting
-   role, baseline, scope, or authority is `HOLD`.
-2. Use only the existing assigned Planner task or other explicitly authorized
-   destination. Do not create a task, recipient, connector, or background
-   runner unless the Work Order explicitly authorizes it.
-3. Send one bounded report to the assigned Planner with the exact result,
-   changed paths, verification, limitations, `SPINE_IMPACT` routing, and
-   exactly one next action. Keep these
-   states distinct:
+- Include all seven report fields. The six binding fields, separate `REPORT_ID`
+  check, initial `IN_REPLY_TO = NONE` and correction-ID rules are owned by
+  `docs/agent/OPERATING_MODEL.md`; consumed or duplicate reports cannot advance
+  or redispatch.
+- This is supervised admission tracking, not exactly-once transport or an
+  autonomous runner, broker, database or scheduler.
 
-   ```text
-   SEND_REQUESTED
-   SEND_COMPLETED
-   RECEIPT_VERIFIED
-   PLANNER_REVIEWED
-   DISPOSITION_RECORDED
-   HOLD
-   ```
+- Planner plans and reconciles; it does not write Builder output or replace
+  machine verification or independent review.
+- Builder is the sole writer for the approved lease and returns its result,
+  blockers and out-of-scope findings to the Planner.
+- Tester runs only approved checks. Return the exact command, environment,
+  Git object, exit code, result and limitations to the Planner. Tester cannot
+  edit, change acceptance, route work, close a WP, or decide merge/release.
+- Reviewer inspects the exact authorized Git range independently and returns
+  `PASS`, `HOLD` or `FAIL` to the Planner. Reviewer does not edit; any bounded
+  correction is routed by the Planner to Builder.
+- Critical authority, safety, scope or evidence matters go through Planner to
+  Human A0. Preserve distinct states:
 
-   `SEND_COMPLETED != RECEIPT_VERIFIED != PLANNER_REVIEWED`. A successful
-   tool response proves only that the send operation completed. Mark receipt
-   verified only after an authorized readback matches the intended report;
-   mark Planner review or disposition only when the Planner provides evidence
-   of it.
-4. If delivery is uncertain, inspect the authorized destination before any
-   retry. Never blindly resend or claim exactly-once delivery. If receipt
-   cannot be verified, report `SEND_COMPLETED` or `HOLD` as supported by the
-   evidence and stop at the current authority boundary.
-5. For a material out-of-lease safety, data, scope, or authority conflict,
-   preserve the state and stop. The detecting role escalates to Human
-   authority and notifies the Planner through an authorized route; it does not
-   silently continue, broaden scope, or decide the Planner's disposition.
+```text
+BUILDER_RESULT != MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
+PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION
+```
 
-## Report identity and routing
+## Git and handoff states
 
-Keep the ten-field `TASK_ENVELOPE` unchanged. Attach the separate seven-field
-`REPORT_METADATA` defined by `SUPERVISED_AGENT_LOOP_CONTRACT` in the
-[Operating Model](../../../../docs/agent/OPERATING_MODEL.md).
-Before acting on a report, require the active Work Order or Planner to have
-explicitly opened a pending-transition binding for `WO_ID`, source/destination
-task IDs, `OBJECT_ID`, `RUN_OR_ATTEMPT_ID`, and `IN_REPLY_TO`; missing, stale,
-truncated, or mismatched reports are `HOLD`. Reuse `REPORT_ID` for a transport
-retry, and never advance or redispatch a consumed transition even if a later
-report has a different `REPORT_ID`. A correction requires a newly opened
-Planner-authorized transition with a new expected attempt and a reference to
-the superseded report/finding. This is
-supervised task-message tracking, not exactly-once transport; follow the
-[expected-transition admission contract](../../../../docs/agent/OPERATING_MODEL.md#expected-transition-and-idempotent-admission).
-If the candidate changes after audit, ask the Planner to reconcile the delta
-and identify a new object.
+Use `docs/agent/LOCAL_STAGED_INTEGRATION.md` for the detailed lifecycle.
+Keep these states distinct:
 
-For a Work Order using the supervised loop, normal completed Builder,
-Tester/Machine Verifier, and Reviewer reports all go to the assigned Planner.
-Send another copy only when the Work Order names that route. The Planner may
-challenge a Reviewer finding but does not change the independent verdict.
+```text
+LOCAL_COMMIT != INDEPENDENT_AUDIT != REMOTE_CHECKPOINT != PULL_REQUEST != CI
+```
 
-## In-lease correction and stop
+A feature-branch push without an open PR is a remote checkpoint, not CI
+evidence. When a checkpoint has no PR, record its reason, integration target,
+PR-opening trigger, owner and exactly one next action. A green CI result does
+not clear an independent blocker or Human decision boundary.
 
-For an in-scope Tester finding, the Planner judges scope, the same sole Builder
-corrects within the lease, the Tester rechecks the affected acceptance, the
-independent Reviewer audits the new object, and the Planner reconciles. The
-Work Order sets finite attempt and runtime/cost limits. A correction within
-the lease does not require another Human approval. Stop for Planner triage
-when the budget is exhausted, authority or scope changes, or a symptom repeats
-without a new hypothesis or evidence.
+For task reports, name the task, WP, branch, exact base/head, scope, verification,
+findings, current Git/remote state, and one next authority/action. Distinguish
+`SEND_COMPLETED`, `RECEIPT_VERIFIED` and `PLANNER_REVIEWED`; tool success alone
+proves only the send attempt. Never claim exactly-once delivery from one handoff.
 
-At each Builder return and Reviewer challenge, apply the
-[Minimal complete fix](../../../../docs/agent/OPERATING_MODEL.md#minimal-complete-fix)
-checks: root cause, existing helper/module reuse,
-need for each new file/dependency/abstraction, and mapping of changes to
-acceptance. Line count alone does not decide completeness.
+## Stop and functional checks
 
-## Evidence boundary
+Hold and return to Planner on a wrong checkout/object, conflicting role or
+handoff, missing approval, scope expansion, unverifiable evidence, or an
+unapproved external/cleanup action. Route unresolved material decisions through
+Planner to Human A0.
 
-A passing lock suite supports locked-artifact integrity and the static
-lock/verifier contract; it does not mean that the tests ran role scenarios or
-proved a real correction cycle. See `FB-0043` in the
-[Feedback Ledger](../../../../docs/agent/FEEDBACK_LEDGER.md) for historical
-handoff evidence and its limits. It does not establish general exactly-once
-delivery, autonomous/background execution, CLI/model smoke coverage, or
-Human/merge/release authority.
-
-Use [QI Evidence Check](../qi-evidence-check/SKILL.md) for machine claims and
-[QI Review Handoff](../qi-review-handoff/SKILL.md) for independent review.
-Follow the canonical Operating Model, [Role Boot and Prompt Profiles](../../../../docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md),
-and active [CURRENT handoff](../../../../docs/agent_handoff/CURRENT.md). A
-send, receipt, Planner review, Reviewer verdict, and Human decision are
-separate states.
+- Conflicting Work Order and `CURRENT` → `ENTRY_HOLD`.
+- Tester failure → evidence to Planner; only Planner may authorize a bounded
+  correction to Builder.
+- Reviewer `HOLD` → preserve the verdict and return it to Planner unchanged.
+- Green CI plus an unresolved blocker → remain on `HOLD`.
+- CI red within scope → report it to Planner; do not expand into B09 or workflow repair.
+- Checkpoint without PR → record all five checkpoint handoff fields above.
+- Terminal sync → do not claim its own future commit; follow the narrow rule in
+  `docs/agent/LOCAL_STAGED_INTEGRATION.md`.
+- Skill text conflicting with `AGENTS.md`, Human authority or the Work Order →
+  follow the higher authority and raise the conflict; this skill cannot override it.

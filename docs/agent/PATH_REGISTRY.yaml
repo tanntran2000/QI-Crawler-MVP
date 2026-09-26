@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.15",
+  "revision": "1.0.16",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -1016,6 +1016,70 @@
         "docs/agent/KNOWN_FAILURE_MODES.md"
       ],
       "relation": "Locator for Bridge A WAL snapshot coherence and its governed evidence/Spine records. KNOWN_FAILURE_MODES.md remains conditional on a proven material root cause and Planner acceptance of routing. This binding is locator-only; current scope and transition authority remain in the approved Work Order and CURRENT."
+    },
+    {
+      "wp_id": "WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01",
+      "authority_ref": "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.PLUGINS",
+        "PATH.REPO.TESTS",
+        "PATH.REPO.ROOT_HELPERS",
+        "PATH.DEV.TEST_TEMP"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-CONSOLIDATION-01.md",
+        "docs/agent/OPERATING_MODEL.md",
+        "docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md",
+        "docs/agent/LOCAL_STAGED_INTEGRATION.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md",
+        "plugins/qi-agent-workbench/skills-lock.json",
+        "tests/agent_workbench/test_skills_lock.py",
+        "AGENTS.md",
+        "docs/agent/MASTER_ROADMAP.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
+        "docs/agent/HUMAN_COLLABORATION.md",
+        "docs/agent/QI_AGENT_WORKBENCH.md"
+      ],
+      "relation": "Locator only for the approved Agent Loop governance Work Order; current scope and transition authority remain in that Work Order and CURRENT.md."
+    },
+    {
+      "wp_id": "WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01",
+      "authority_ref": "Planner Work Order in task 01a0d14b-4e41-7480-9179-d1b230295f77; Human A0 resume instruction HUMAN_A0_RESUME_B09_20260926",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#lane-3--unified-tender-warehouse; RD-0013 in docs/agent/MASTER_ROADMAP_DELTA.md",
+      "path_ids": [
+        "PATH.REPO.SOURCE",
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.PLUGINS"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "AGENTS.md",
+        "docs/agent/OPERATING_MODEL.md",
+        "docs/agent/ROLE_BOOT_AND_PROMPT_PROFILES.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md",
+        "plugins/qi-agent-workbench/references/handoff-template.md",
+        "plugins/qi-agent-workbench/skills-lock.json",
+        "tests/agent_workbench/test_skills_lock.py",
+        "src/qi_crawler/operational_update.py",
+        "tests/test_operational_update.py"
+      ],
+      "relation": "Locator only for the bounded maintenance re-entry Work Order. Bridge A remains HOLD until the complete copy and verification maintenance barrier and exact source DB/WAL/SHM byte-and-existence invariant are proven; scope and transitions remain in the approved Work Order and CURRENT.md."
     }
   ],
   "legacy_locations": [
