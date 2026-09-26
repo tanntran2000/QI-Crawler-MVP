@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import hashlib
 import json
 import os
@@ -10,7 +11,7 @@ import stat
 import tempfile
 import time
 from collections.abc import Callable, Mapping
-from contextlib import closing
+from contextlib import ExitStack, closing, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -201,19 +202,82 @@ def _read_database_paths(
     return {str(row[0]): str(row[1]) for row in rows}, None
 
 
-def _database_sidecars_absent(path: Path) -> bool:
+def _database_capture_files(path: Path) -> tuple[Path, ...] | None:
+    sidecars: dict[str, Path] = {}
     for suffix in ("-wal", "-shm", "-journal"):
+        sidecar = Path(f"{path}{suffix}")
         try:
-            Path(f"{path}{suffix}").lstat()
+            metadata = sidecar.lstat()
         except FileNotFoundError:
             continue
         except OSError:
-            return False
-        return False
-    return True
+            return None
+        attributes = int(getattr(metadata, "st_file_attributes", 0))
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or stat.S_ISLNK(metadata.st_mode)
+            or attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT
+        ):
+            return None
+        sidecars[suffix] = sidecar
+    if "-journal" in sidecars or ("-wal" in sidecars) != ("-shm" in sidecars):
+        return None
+    if "-wal" in sidecars:
+        return path, sidecars["-wal"], sidecars["-shm"]
+    return (path,)
 
 
-def _database_file_state(path: Path, deadline: float) -> tuple[bytes, int, str] | None:
+def _open_exclusive_database_file(path: Path):
+    if os.name != "nt":
+        raise NotImplementedError
+    import msvcrt
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    create_file = kernel32.CreateFileW
+    create_file.argtypes = (
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
+    )
+    create_file.restype = wintypes.HANDLE
+    close_handle = kernel32.CloseHandle
+    close_handle.argtypes = (wintypes.HANDLE,)
+    close_handle.restype = wintypes.BOOL
+    handle = create_file(
+        str(path),
+        0x80000000,  # GENERIC_READ
+        0,  # No sharing: SQLite clients cannot open or replace the source file.
+        None,
+        3,  # OPEN_EXISTING
+        0x80,  # FILE_ATTRIBUTE_NORMAL
+        None,
+    )
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        descriptor = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except BaseException:
+        close_handle(handle)
+        raise
+    try:
+        return os.fdopen(descriptor, "rb")
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def _database_file_state(
+    path: Path,
+    deadline: float,
+    *,
+    stream=None,
+    header_size: int = 100,
+) -> tuple[bytes, int, str] | None:
     try:
         before = path.lstat()
         attributes = int(getattr(before, "st_file_attributes", 0))
@@ -226,12 +290,14 @@ def _database_file_state(path: Path, deadline: float) -> tuple[bytes, int, str] 
         digest = hashlib.sha256()
         header = bytearray()
         size = 0
-        with path.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
+        context = path.open("rb") if stream is None else nullcontext(stream)
+        with context as source:
+            source.seek(0)
+            while chunk := source.read(1024 * 1024):
                 if time.monotonic() >= deadline:
                     raise TimeoutError
-                if len(header) < 100:
-                    header.extend(chunk[: 100 - len(header)])
+                if len(header) < header_size:
+                    header.extend(chunk[: header_size - len(header)])
                 digest.update(chunk)
                 size += len(chunk)
         after = path.lstat()
@@ -240,7 +306,7 @@ def _database_file_state(path: Path, deadline: float) -> tuple[bytes, int, str] 
     except OSError:
         return None
     if (
-        len(header) < 100
+        len(header) < header_size
         or size != before.st_size
         or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
         != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
@@ -249,8 +315,10 @@ def _database_file_state(path: Path, deadline: float) -> tuple[bytes, int, str] 
     return bytes(header), size, digest.hexdigest().upper()
 
 
-def _copy_database(path: Path, destination: Path, deadline: float) -> None:
-    with path.open("rb") as source, destination.open("wb") as target:
+def _copy_database(path: Path, destination: Path, deadline: float, *, source_stream=None) -> None:
+    context = path.open("rb") if source_stream is None else nullcontext(source_stream)
+    with context as source, destination.open("wb") as target:
+        source.seek(0)
         while chunk := source.read(1024 * 1024):
             if time.monotonic() >= deadline:
                 raise TimeoutError
@@ -262,43 +330,113 @@ def _copy_database(path: Path, destination: Path, deadline: float) -> None:
 def _database_paths(path: Path, *, active_wal: bool) -> tuple[dict[str, str] | None, str | None]:
     if not active_wal:
         return _read_database_paths(path, immutable=True)
-    # Do not open a live SQLite source without a capture boundary: WAL reads can
-    # update -shm even in read-only mode.
+    if os.name != "nt":
+        return None, "DATABASE_CAPTURE_UNSUPPORTED"
     deadline = time.monotonic() + 5.0
+    source_paths = _database_capture_files(path)
+    if source_paths is None:
+        return None, "DATABASE_CAPTURE_UNPROVEN"
     try:
-        if not _database_sidecars_absent(path):
-            return None, "DATABASE_CAPTURE_UNPROVEN"
-        source_before = _database_file_state(path, deadline)
-        if source_before is None:
-            return None, "DATABASE_UNREADABLE"
-        if source_before[0][:16] != b"SQLite format 3\x00":
-            return None, "DATABASE_UNREADABLE"
-        if source_before[0][18:20] != b"\x01\x01":
-            return None, "DATABASE_CAPTURE_UNPROVEN"
-        with tempfile.TemporaryDirectory(prefix="qi-update-observation-") as directory:
-            snapshot = Path(directory) / path.name
-            _copy_database(path, snapshot, deadline)
-            source_after = _database_file_state(path, deadline)
-            snapshot_state = _database_file_state(snapshot, deadline)
-            if not _database_sidecars_absent(path):
+        with ExitStack() as stack:
+            source_streams = {}
+            for source_path in source_paths:
+                try:
+                    source_streams[source_path] = stack.enter_context(
+                        _open_exclusive_database_file(source_path)
+                    )
+                except OSError as exc:
+                    if getattr(exc, "winerror", None) in (32, 33):
+                        return None, "DATABASE_CAPTURE_BUSY"
+                    if getattr(exc, "winerror", None) == 2:
+                        return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+                    return None, "DATABASE_UNREADABLE"
+
+            if _database_capture_files(path) != source_paths:
                 return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
-            if source_after is None or snapshot_state is None:
+
+            def source_state(source_path: Path):
+                header_size = (
+                    100
+                    if source_path == path
+                    else 32
+                    if source_path.name.endswith("-wal")
+                    else 1
+                )
+                return _database_file_state(
+                    source_path,
+                    deadline,
+                    stream=source_streams[source_path],
+                    header_size=header_size,
+                )
+
+            source_before = tuple(source_state(source_path) for source_path in source_paths)
+            if source_before[0] is None:
                 return None, "DATABASE_UNREADABLE"
-            if (
-                source_after[0][:16] != b"SQLite format 3\x00"
-                or source_after[0][18:20] != b"\x01\x01"
-                or snapshot_state[0][:16] != b"SQLite format 3\x00"
-                or snapshot_state[0][18:20] != b"\x01\x01"
-            ):
+            if any(state is None for state in source_before[1:]):
                 return None, "DATABASE_CAPTURE_UNPROVEN"
-            if source_before != source_after or source_after != snapshot_state:
-                return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
-            return _read_database_paths(
-                snapshot,
-                immutable=False,
-                timeout=1.0,
-                deadline=deadline,
-            )
+            database_header = source_before[0][0]
+            if database_header[:16] != b"SQLite format 3\x00":
+                return None, "DATABASE_UNREADABLE"
+            has_wal = len(source_paths) == 3
+            if has_wal:
+                if database_header[18:20] != b"\x02\x02":
+                    return None, "DATABASE_CAPTURE_UNPROVEN"
+                wal_state, shm_state = source_before[1:]
+                if (
+                    wal_state[1] < 32
+                    or wal_state[0][:4] not in (b"\x37\x7f\x06\x82", b"\x37\x7f\x06\x83")
+                    or shm_state[1] < 1
+                ):
+                    return None, "DATABASE_CAPTURE_UNPROVEN"
+            elif database_header[18:20] != b"\x01\x01":
+                return None, "DATABASE_CAPTURE_UNPROVEN"
+
+            with tempfile.TemporaryDirectory(prefix="qi-update-observation-") as directory:
+                snapshot = Path(directory) / path.name
+                snapshot_paths = tuple(
+                    snapshot
+                    if source_path == path
+                    else Path(f"{snapshot}{source_path.name[len(path.name):]}")
+                    for source_path in source_paths
+                )
+                for source_path, snapshot_path in zip(source_paths, snapshot_paths):
+                    _copy_database(
+                        source_path,
+                        snapshot_path,
+                        deadline,
+                        source_stream=source_streams[source_path],
+                    )
+
+                if _database_capture_files(path) != source_paths:
+                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+                source_after_copy = tuple(source_state(source_path) for source_path in source_paths)
+                snapshot_states = tuple(
+                    _database_file_state(
+                        snapshot_path,
+                        deadline,
+                        header_size=100 if source_path == path else 32 if source_path.name.endswith("-wal") else 1,
+                    )
+                    for source_path, snapshot_path in zip(source_paths, snapshot_paths)
+                )
+                if any(state is None for state in (*source_after_copy, *snapshot_states)):
+                    return None, "DATABASE_UNREADABLE"
+                if source_after_copy != source_before or snapshot_states != source_before:
+                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+
+                rows, error = _read_database_paths(
+                    snapshot,
+                    immutable=False,
+                    timeout=1.0,
+                    deadline=deadline,
+                )
+                if _database_capture_files(path) != source_paths:
+                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+                source_after_verification = tuple(
+                    source_state(source_path) for source_path in source_paths
+                )
+                if source_after_verification != source_before:
+                    return None, "DATABASE_CHANGED_DURING_SNAPSHOT"
+                return rows, error
     except TimeoutError:
         return None, "DATABASE_SNAPSHOT_TIMEOUT"
     except OSError:

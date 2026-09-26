@@ -4,6 +4,8 @@ import hashlib
 import json
 import os
 import sqlite3
+import subprocess
+import sys
 import time
 from contextlib import closing
 from pathlib import Path
@@ -360,11 +362,15 @@ def test_observation_rejects_ambiguous_sidecars_without_opening_source(
     after = _tree_identity(paths.root)
 
     assert result.classification == "RECOVERY_REQUIRED_AMBIGUOUS"
-    assert "DATABASE_CAPTURE_UNPROVEN" in result.reasons
+    expected_reason = (
+        "DATABASE_CAPTURE_UNSUPPORTED" if os.name != "nt" else "DATABASE_CAPTURE_UNPROVEN"
+    )
+    assert expected_reason in result.reasons
     assert source_opens == []
     assert after == before
 
 
+@pytest.mark.skipif(os.name != "nt", reason="capture barrier requires Windows file-sharing semantics")
 def test_stable_rollback_source_reads_only_hash_matched_private_copy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -380,18 +386,16 @@ def test_stable_rollback_source_reads_only_hash_matched_private_copy(
     original_connect = sqlite3.connect
     source_opens: list[str] = []
     original_copy = operational_update._copy_database
-    copy_states: list[tuple[int, str, int, str]] = []
+    copy_states: list[tuple[int, str]] = []
 
     def track_source_open(database_name, *args, **kwargs):
         if str(database_name) == source_uri:
             source_opens.append(str(database_name))
         return original_connect(database_name, *args, **kwargs)
 
-    def record_private_copy(source: Path, destination: Path, deadline: float) -> None:
-        original_copy(source, destination, deadline)
-        copy_states.append(
-            (source.stat().st_size, _sha(source), destination.stat().st_size, _sha(destination))
-        )
+    def record_private_copy(source, destination, deadline, *args, **kwargs) -> None:
+        original_copy(source, destination, deadline, *args, **kwargs)
+        copy_states.append((destination.stat().st_size, _sha(destination)))
 
     monkeypatch.setattr(sqlite3, "connect", track_source_open)
     monkeypatch.setattr(operational_update, "_copy_database", record_private_copy)
@@ -401,13 +405,14 @@ def test_stable_rollback_source_reads_only_hash_matched_private_copy(
     assert rows == OLD_PATHS
     assert error is None
     assert source_opens == []
-    assert copy_states == [(before[0], before[1], before[0], before[1])]
+    assert copy_states == [(before[0], before[1])]
     assert after == before
     assert not Path(f"{database}-wal").exists()
     assert not Path(f"{database}-shm").exists()
     assert not Path(f"{database}-journal").exists()
 
 
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
 def test_valid_uncheckpointed_wal_without_capture_barrier_fails_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -449,11 +454,12 @@ def test_valid_uncheckpointed_wal_without_capture_barrier_fails_closed(
         )
 
         assert result.classification == "RECOVERY_REQUIRED_AMBIGUOUS"
-        assert "DATABASE_CAPTURE_UNPROVEN" in result.reasons
+        assert "DATABASE_CAPTURE_BUSY" in result.reasons
         assert source_opens == []
         assert after == before
 
 
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
 def test_wal_header_without_sidecars_is_not_eligible_for_capture(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -498,7 +504,8 @@ def test_wal_header_without_sidecars_is_not_eligible_for_capture(
     assert after == before
 
 
-def test_stable_rollback_copy_rejects_mixed_generation_during_concurrent_writer(
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_open_sqlite_writer_prevents_capture_before_copy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     paths, _ = _fixture(tmp_path)
@@ -571,13 +578,14 @@ def test_stable_rollback_copy_rejects_mixed_generation_during_concurrent_writer(
         rows, error = _database_paths(database, active_wal=True)
         source_after_capture = source_sqlite_files()
 
-    assert copied_generations == [(generation_one["1"], generation_two["3000"])]
-    assert source_before_capture != source_after_interleaving[0]
+    assert copied_generations == []
+    assert source_after_interleaving == []
+    assert source_before_capture == source_after_capture
     assert rows is None
-    assert error == "DATABASE_CHANGED_DURING_SNAPSHOT"
-    assert source_after_capture == source_after_interleaving[0]
+    assert error == "DATABASE_CAPTURE_BUSY"
 
 
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
 def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -609,6 +617,7 @@ def test_copied_database_exclusive_lock_returns_unreadable_within_finite_timeout
     assert elapsed < 10.0
 
 
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
 def test_active_wal_without_capture_barrier_is_rejected_before_source_open(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -662,6 +671,223 @@ def test_active_wal_without_capture_barrier_is_rejected_before_source_open(
     assert rows is None
     assert error == "DATABASE_CAPTURE_UNPROVEN"
     assert elapsed < 1.0
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_existing_sqlite_reader_prevents_capture_barrier(
+    tmp_path: Path,
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    sidecars = (Path(f"{database}-wal"), Path(f"{database}-shm"))
+
+    def source_files() -> tuple[tuple[str, bytes | None], ...]:
+        return tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix, path in (("", database), ("-wal", sidecars[0]), ("-shm", sidecars[1]))
+        )
+
+    before = source_files()
+    with closing(sqlite3.connect(database, timeout=0.1)) as reader:
+        assert reader.execute("SELECT stored_path FROM documents ORDER BY id").fetchall()
+        started = time.monotonic()
+        rows, error = _database_paths(database, active_wal=True)
+        elapsed = time.monotonic() - started
+
+    after = source_files()
+    assert after == before
+    assert elapsed < 1.0
+    assert rows is None
+    assert error == "DATABASE_CAPTURE_BUSY"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_stable_uncheckpointed_wal_is_captured_without_source_sqlite_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    wal_path = Path(f"{database}-wal")
+    shm_path = Path(f"{database}-shm")
+    crash_writer = """
+import os, sqlite3, sys
+connection = sqlite3.connect(sys.argv[1], timeout=0.1)
+connection.execute("PRAGMA journal_mode = WAL")
+connection.execute("PRAGMA wal_autocheckpoint = 0")
+connection.execute("UPDATE documents SET stored_path = ? WHERE id = 1", (sys.argv[2],))
+connection.commit()
+print("COMMITTED", flush=True)
+os._exit(0)
+"""
+    setup = subprocess.run(
+        [sys.executable, "-c", crash_writer, str(database), NEW_PATHS["1"]],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert setup.returncode == 0, setup.stderr
+    assert setup.stdout.strip() == "COMMITTED"
+    assert wal_path.is_file() and shm_path.is_file()
+
+    def source_files() -> tuple[tuple[str, bytes | None], ...]:
+        return tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix, path in (("", database), ("-wal", wal_path), ("-shm", shm_path))
+        )
+
+    before = source_files()
+    source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+    locked_source_attempts: list[tuple[int, str]] = []
+    probe_source_handles = """
+import sys
+for name in sys.argv[1:]:
+    try:
+        with open(name, "rb") as source:
+            source.read(1)
+    except OSError as error:
+        print("BLOCKED:" + str(error))
+    else:
+        print("OPENED")
+"""
+    original_copy = operational_update._copy_database
+
+    def track_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    def copy_with_lock_probe(source, destination, deadline, *args, **kwargs) -> None:
+        if source == database:
+            probe = subprocess.run(
+                [sys.executable, "-c", probe_source_handles, str(database), str(wal_path), str(shm_path)],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            locked_source_attempts.append((probe.returncode, probe.stdout.strip()))
+        original_copy(source, destination, deadline, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", track_source_open)
+    monkeypatch.setattr(operational_update, "_copy_database", copy_with_lock_probe)
+    rows, error = _database_paths(database, active_wal=True)
+    after = source_files()
+
+    assert after == before
+    assert source_opens == []
+    assert len(locked_source_attempts) == 1
+    assert locked_source_attempts[0][0] == 0
+    probe_lines = locked_source_attempts[0][1].splitlines()
+    assert len(probe_lines) == 3
+    assert all(line.startswith("BLOCKED:") for line in probe_lines)
+    assert rows == {**OLD_PATHS, "1": NEW_PATHS["1"]}
+    assert error is None
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_sqlite_writer_started_during_capture_is_blocked_and_source_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    original_copy = operational_update._copy_database
+    writer_attempts: list[tuple[int, str]] = []
+    writer = """
+import sqlite3, sys
+try:
+    connection = sqlite3.connect(sys.argv[1], timeout=0.2)
+    connection.execute("UPDATE documents SET stored_path = ? WHERE id = 1", (sys.argv[2],))
+    connection.commit()
+    connection.close()
+    print("WRITE_SUCCEEDED")
+except sqlite3.Error as error:
+    print("BLOCKED:" + str(error))
+"""
+
+    def source_files() -> tuple[tuple[str, bytes | None], ...]:
+        return tuple(
+            (suffix, path.read_bytes() if path.exists() else None)
+            for suffix in ("", "-wal", "-shm")
+            for path in (Path(f"{database}{suffix}"),)
+        )
+
+    def copy_with_writer_attempt(source, destination, deadline, *args, **kwargs) -> None:
+        attempt = subprocess.run(
+            [sys.executable, "-c", writer, str(database), NEW_PATHS["1"]],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        writer_attempts.append((attempt.returncode, attempt.stdout.strip()))
+        original_copy(source, destination, deadline, *args, **kwargs)
+
+    before = source_files()
+    monkeypatch.setattr(operational_update, "_copy_database", copy_with_writer_attempt)
+    rows, error = _database_paths(database, active_wal=True)
+    after = source_files()
+
+    assert after == before, f"source changed while writer attempt ran: {writer_attempts}"
+    assert writer_attempts and all(
+        returncode == 0 and output.startswith("BLOCKED:")
+        for returncode, output in writer_attempts
+    )
+    assert rows == OLD_PATHS
+    assert error is None
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows file-sharing semantics")
+def test_sidecar_added_during_copy_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    wal_path = Path(f"{database}-wal")
+    original_copy = operational_update._copy_database
+    injected_wal = b"persistent injected sidecar"
+    copy_calls: list[Path] = []
+
+    def copy_then_add_sidecar(source, destination, deadline, *args, **kwargs) -> None:
+        original_copy(source, destination, deadline, *args, **kwargs)
+        if source == database:
+            copy_calls.append(source)
+            wal_path.write_bytes(injected_wal)
+
+    monkeypatch.setattr(operational_update, "_copy_database", copy_then_add_sidecar)
+    rows, error = _database_paths(database, active_wal=True)
+
+    assert copy_calls == [database]
+    assert rows is None
+    assert error == "DATABASE_CHANGED_DURING_SNAPSHOT"
+    assert wal_path.read_bytes() == injected_wal
+
+
+@pytest.mark.skipif(os.name == "nt", reason="only verifies unsupported non-Windows behavior")
+def test_active_capture_fails_closed_off_windows_without_source_sqlite_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, _ = _fixture(tmp_path)
+    database = paths.database_path
+    source_uri = database.resolve(strict=False).as_uri() + "?mode=ro"
+    original_connect = sqlite3.connect
+    source_opens: list[str] = []
+
+    def track_source_open(database_name, *args, **kwargs):
+        if str(database_name) == source_uri:
+            source_opens.append(str(database_name))
+        return original_connect(database_name, *args, **kwargs)
+
+    before = database.read_bytes()
+    monkeypatch.setattr(sqlite3, "connect", track_source_open)
+    rows, error = _database_paths(database, active_wal=True)
+
+    assert rows is None
+    assert error == "DATABASE_CAPTURE_UNSUPPORTED"
+    assert source_opens == []
+    assert database.read_bytes() == before
 
 
 def test_changed_input_during_observation_is_reported_unstable(tmp_path: Path) -> None:
