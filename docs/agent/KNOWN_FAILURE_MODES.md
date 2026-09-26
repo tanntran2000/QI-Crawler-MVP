@@ -1025,6 +1025,28 @@ LIMIT = The initial suspended attempt remains HOLD_INCONCLUSIVE and does not
   prevented.
 ```
 
+## FM-051 — Long Windows pytest basetemp caused nested temporary-path failures
+
+ID = FM-051
+TITLE = Long Windows pytest basetemp caused nested temporary-path failures
+STATE = OPEN
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = PATH_LENGTH_CAUSE_REPRODUCED_BY_SHORT_VS_LONG_BASETEMP_A_B; SHORT_BASELINE_FULL_RUN_PASS
+DETECTED_BY = B09 Stage 3 short/long basetemp A/B controls
+AFFECTED_BASELINE = Windows 10.0.19045-SP0; code/document head ff01f6f587759408f6161c8bb47a616f2c24e559
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+SYMPTOM = The same Windows A3 lifecycle and standalone document-smoke nodes passed with a 67-character pytest basetemp and failed with a 100-character basetemp while creating nested lifecycle/document temporary files.
+ROOT_CAUSE = The long basetemp produced a 274-character A3 lifecycle temporary path and a 265-character Document Store atomic temporary path. On this host, PowerShell Open and Python tempfile/os.open returned missing-path errors for those paths. The same nodes passed on the short base, and the corrected short-base full suite passed.
+WHY_EXISTING_TESTS_MISSED_IT = The historical long-base full run retained only aggregate counts, not exact nodeids or tracebacks; the prior verification did not retain JUnit/session output or explicitly compare basetemp lengths.
+CI_IMPLICATION = Windows full-suite verification needs a task-owned short basetemp and retained JUnit/session output. This is local machine evidence; no hosted-CI behavior is established.
+FIX = Use a short task-owned basetemp for this Windows verification path; no product-code correction was made or authorized by this finding.
+FIX_HEAD = N/A; environment-only control at code candidate 3da443e033611b52d6f1ec8e3f3226e04f9e58b5
+REGRESSION_GUARD = A3 and smoke short/long A/B results plus the 1,668-case short-base full suite; 1,664 passed, 4 skipped, 0 failed.
+INDEPENDENT_AUDIT = PLANNER_ACCEPTED_REPRODUCED_CAUSAL_SCOPE; FINAL_REVIEWER_AUDIT_PENDING
+CURRENT_EVIDENCE = .tmp/b9/B09A02/s3-03-output.txt; .tmp/b9/B09A02/s3-03-junit.xml; .tmp/b9/B09A02/s3-04-output.txt; .tmp/b9/B09A02/s3-04-junit.xml; .tmp/b9/B09A02/s3-full-01-output.txt; .tmp/b9/B09A02/s3-full-01-junit.xml
+PERMANENT_PREVENTION = Before a Windows full suite, calculate the task basetemp and the deepest known nested temporary filename; choose a short task-owned base with headroom; retain exact command, object, environment, JUnit and session output; classify nested missing-path failures before product changes; obey finite runtime/scratch budgets and do not blindly retry.
+LIMIT = The mechanism is demonstrated for the reproduced A3 lifecycle and document-smoke signatures. Exact identities/tracebacks for the historical 24 failures were not retained, so do not claim each old node was independently mapped. No hosted CI, product fix, cleanup or remote action is implied.
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

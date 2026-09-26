@@ -8,7 +8,10 @@ operational roles: `PLANNER_ARCHITECT`, `BUILDER_SINGLE_WRITER`,
 distinct, not equal; Tester supplies evidence only. `DOMAIN_REVIEWER` and Team
 Bid may provide delegated domain review or operational input.
 
-Normal reports from Builder, Machine Verifier/Tester and Reviewer return to the
+`MACHINE_VERIFIER` is a compatibility alias for `TESTER_MACHINE_VERIFIER`;
+it is not a separate or canonical role ID.
+
+Normal reports from Builder, Tester and Reviewer return to the
 Planner in the coordinating task. The Planner routes bounded correction,
 independent review and material Human escalation; no role bypasses the Planner
 to create a different work route.
@@ -19,12 +22,12 @@ The canonical reporting flow is:
 HUMAN / APPROVED MATERIAL INTENT
 → PLANNER WORK ORDER
 → BUILDER RESULT → PLANNER BUILDER-RESULT REVIEW
-→ MACHINE VERIFIER EVIDENCE WHEN APPLICABLE → PLANNER EVIDENCE REVIEW
+→ TESTER_MACHINE_VERIFIER_EVIDENCE WHEN APPLICABLE → PLANNER EVIDENCE REVIEW
 → REVIEWER INDEPENDENT AUDIT → PLANNER POST-REVIEW RECONCILIATION
 → HUMAN MATERIAL / MERGE / RELEASE DECISION WHEN REQUIRED
 ```
 
-`BUILDER_RESULT != MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
+`BUILDER_RESULT != TESTER_MACHINE_VERIFIER_EVIDENCE != REVIEWER_VERDICT !=
 PLANNER_RECONCILIATION != HUMAN_AUTHORIZATION`.
 Roles describe authority, not a particular model or tool. The assignment
 source is the approved Work Order, `CURRENT.md` and Human authority, never a
@@ -280,21 +283,25 @@ SPINE_RESPONSIBILITY = Report SPINE_IMPACT and material findings; do not
   silently modify out-of-scope canonical authorities.
 ```
 
-### ROLE_CONTRACT — MACHINE_VERIFIER
+### ROLE_CONTRACT — TESTER_MACHINE_VERIFIER
 
 ```text
-ROLE_ID = MACHINE_VERIFIER
-MISSION = Produce exact execution evidence.
-AUTHORITY = Run approved tests, lint, builds and repository checks only; no
-  architecture, business, merge, scope or Reviewer authority.
+ROLE_ID = TESTER_MACHINE_VERIFIER
+COMPATIBILITY_ALIAS = MACHINE_VERIFIER; NOT_A_CANONICAL_ROLE_ID
+MISSION = Run approved checks and classify their exact evidence as PASS, FAIL
+  or INCONCLUSIVE.
+AUTHORITY = Run only the checks and exact object approved by the Work Order;
+  no architecture, business, acceptance, code, scope, merge or Reviewer
+  authority.
 MANDATORY_READ = Approved verification contract and command scope.
 INPUTS = Approved commands; repository state; execution environment.
 MANDATORY_DUTIES = Return exact command, exit code, result, relevant logs or
-  artifacts and environment when material to PLANNER_ARCHITECT.
-MUST_NOT = Turn green tests into approval; judge business acceptance; authorize
-  merge/release; substitute Reviewer reasoning; infer unexecuted CI PASS; edit
-  code or governance documents.
-REQUIRED_OUTPUT = MACHINE_VERIFICATION_EVIDENCE.
+  artifacts, environment and limitations to PLANNER_ARCHITECT; classify only
+  the approved check result from that evidence.
+MUST_NOT = Change acceptance criteria or scope; edit code or governance;
+  close a Work Package; decide merge/release; turn green checks into approval;
+  substitute Reviewer reasoning; infer unexecuted CI PASS.
+REQUIRED_OUTPUT = TESTER_MACHINE_VERIFIER_EVIDENCE.
 HANDOFF_TO = PLANNER_ARCHITECT; Planner routes evidence to other roles as needed.
 STOP_CONDITIONS = Execution unavailable, invalid environment, unavailable
   dependency or command cannot be executed faithfully.
@@ -324,8 +331,9 @@ MUST_NOT = Edit reviewed output; act as Planner; generate implementation scope;
   promote/remove Delta; rewrite Roadmap; make Human-only decisions; claim merge
   authorization.
 REQUIRED_OUTPUT = INDEPENDENT_REVIEW_PACKET with verdict and Planner findings.
-HANDOFF_TO = PLANNER_ARCHITECT; the Planner may issue a bounded correction to
-  Builder after reconciling the Reviewer packet.
+HANDOFF_TO = PLANNER_ARCHITECT; every verdict returns to Planner. Planner
+  reconciles Reviewer findings, checks the active lease and routes any
+  authorized bounded correction to Builder.
 STOP_CONDITIONS = Unavailable audit object; baseline drift; authority conflict;
   insufficient evidence; material Roadmap/Delta conflict.
 ESCALATION_PATH = PLANNER_ARCHITECT → HUMAN_AUTHORITY when material.
@@ -675,7 +683,7 @@ evidence/scope analysis. It checks the Work Order against the Builder result,
 exact base/head, expected versus observed scope, evidence completeness, Human
 intent, relevant Delta/Roadmap nodes, architecture boundaries, known failure
 risks and claims requiring independent challenge. It does not edit Builder
-output, replace Machine Verifier or perform the independent audit.
+output, replace `TESTER_MACHINE_VERIFIER` or perform the independent audit.
 
 The Planner then creates a bounded `REVIEWER_CHALLENGE_CONTRACT` containing:
 
@@ -828,8 +836,10 @@ EXACTLY_ONE_NEXT_ACTION
 NEXT_AUTHORITY
 ```
 
-`PASS` routes to `PLANNER_ARCHITECT`; a correction-required `HOLD` or `FAIL`
-routes to `BUILDER_SINGLE_WRITER`.
+Every `PASS`, `HOLD` or `FAIL` verdict routes to `PLANNER_ARCHITECT`. For a
+correction-required `HOLD` or `FAIL`, the Planner reconciles the finding and
+checks the active lease before routing an authorized bounded correction to
+`BUILDER_SINGLE_WRITER`; the Reviewer has no direct correction route.
 
 For a material product or architecture WP, the Reviewer is also the
 implementation ↔ Delta ↔ Roadmap bridge. The Reviewer independently compares
@@ -916,8 +926,8 @@ contract above; do not maintain a second integration sequence here.
 ## Temporary hosted-CI unavailability
 
 When hosted CI cannot start because of a verified infrastructure/account
-condition, the local machine may temporarily supply `MACHINE_VERIFIER`
-execution evidence. `REVIEWER_AUDITOR` remains an independent authority and
+condition, the local machine may temporarily supply
+`TESTER_MACHINE_VERIFIER` execution evidence. `REVIEWER_AUDITOR` remains an independent authority and
 must not be described as the runtime CI runner.
 
 A Human-approved merge under this waiver records:

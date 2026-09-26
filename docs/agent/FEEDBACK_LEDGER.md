@@ -1391,3 +1391,31 @@ Disposition: FB-0048 remains byte-for-byte historical evidence; its authority
 claim is superseded and cannot authorize the incident commit or any later work.
 Promoted to: docs/agent_handoff/CURRENT.md
 ~~~
+
+### FB-0054 — B09 maintenance re-entry and preserved-candidate provenance
+
+~~~text
+State: ACCEPTED / STAGE_0_REENTRY_AND_PROVENANCE_RECONCILIATION
+Author: Planner, based on Builder-verified Git evidence
+Role: PLANNER_ARCHITECT / BUILDER_SINGLE_WRITER
+Authority: Planner continuation receipt for WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01 in task 01a0d14b-4e41-7480-9179-d1b230295f77
+Type: B09 / HANDOFF / ARTIFACT_PROVENANCE
+WP: WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01
+Decision:
+  ENTRY_HEAD = 9bc64942f35c41d002ef80a74c7a02851422b0e8
+  FORWARD_MERGE_PARENT_MAIN = 360da6c88304e02f455b9880598e815b7613a525
+  AGENT_LOOP_GOVERNANCE = CURRENT_MAIN_AUTHORITY; PRESERVE_EXACT_MAIN_BASE
+  PRIOR_B09_FB-0053_SOURCE_SHA = 87DD4D680C716CDB0FC54AE03DF18FCDD3ED82EB6A0F98E4621F0D565C824ED9
+  ENTRY_HEAD_RAW_SOURCE_BLOB_SHA256 = 0B239DECF02070A9D697D380A24D40B237AE25409241720958AF996BC6AB3722
+  ENTRY_HEAD_RAW_TEST_BLOB_SHA256 = 7A49CEA99CE9F994C81199C646E0B867FCE7FCD48B4148D76E0EF0C945AA1559
+  HASH_DISPOSITION = SOURCE_LEDGER_VALUE_IS_A_PROVENANCE_DOCUMENTATION_DISCREPANCY; EXACT_GIT_OBJECT_REMAINS_AUTHORITY
+  HISTORY = PRESERVE; NO_REWRITE_OR_SOURCE_CHANGE_TO_MATCH_LEDGER
+  BRIDGE_A = HOLD_WHILE_COMPLETE_MAINTENANCE_CAPTURE_BARRIER_IS_UNPROVEN
+Boundary: This re-entry authorizes only the bounded local Work Order. Source
+DB/WAL/SHM bytes and existence must remain exactly equal. No push, PR mutation,
+merge to main, release, cleanup, live DB mutation, Bridge B/C/D, mutation
+engine, startup integration or live update is authorized. Keep all unknown
+untracked artifacts.
+Disposition: ACCEPTED / ROUTED_TO_CURRENT_AND_PATH_REGISTRY
+Promoted to: docs/agent_handoff/CURRENT.md; docs/agent/PATH_REGISTRY.yaml
+~~~

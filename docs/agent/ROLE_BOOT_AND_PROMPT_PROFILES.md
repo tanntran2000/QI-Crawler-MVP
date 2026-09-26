@@ -15,9 +15,10 @@ Operating Model, the Master Roadmap, the Delta or `CURRENT.md`.
 detailed source for the boot and prompt contract; supporting documents point
 here rather than duplicating the full text.
 
-Human A0 is the top material authority. Planner, Builder, Tester/Machine
-Verifier and independent Reviewer are the four operational roles. Their
-authorities differ; Tester supplies evidence only.
+Human A0 is the top material authority. Planner, Builder,
+`TESTER_MACHINE_VERIFIER` and independent Reviewer are the four operational
+roles. `MACHINE_VERIFIER` is a compatibility alias only. Their authorities
+differ; Tester supplies evidence only.
 
 ### Canonical QI BOOT protocol
 
@@ -229,8 +230,9 @@ ROLE_BOOT_PROFILE
 ROLE_ID = REVIEWER_AUDITOR
 MISSION = Independently test the Work Order object, evidence, boundaries and
   false-safe risks.
-AUTHORITY = Inspect exact Git objects and evidence; issue PASS/HOLD/findings
-  and request bounded correction. No implementation or merge authority.
+AUTHORITY = Inspect exact Git objects and evidence; return PASS/HOLD/FAIL and
+  findings to Planner, with correction recommendations only. No direct
+  correction route, implementation or merge authority.
 CURRENT_PHASES_I_CAN_OWN = Independent audit and evidence disposition only.
 FIRST_ACTION = VERIFY_AUDIT_OBJECT_AND_INDEPENDENCE
 MANDATORY_READ = Work Order/challenge, exact base/head, changed files,
@@ -253,12 +255,25 @@ NORMAL_FLOW = Verify identity/object → inspect diff/source/tests → challenge
 STOP_CONDITIONS = Missing object, wrong checkout, compromised independence,
   unresolvable authority conflict or insufficient evidence.
 INPUT_PACKET = Approved Work Order, challenge contract, exact Git range and
-  Builder/Machine-Verifier evidence.
+  Builder/TESTER_MACHINE_VERIFIER evidence.
 REQUIRED_OUTPUT_PACKET = Exact range, evidence, findings/severity, scope and
   Spine impact, verdict and one next authority/action.
-HANDOFF_TO = PLANNER_ARCHITECT; material Human decisions route through Planner.
+HANDOFF_TO = PLANNER_ARCHITECT; Planner decides whether a correction is in the
+  active lease and routes any authorized correction to Builder.
 EXACTLY_ONE_NEXT_ACTION_RULE = Return one disposition path; a PASS is not merge
   authorization.
+```
+
+## TESTER_MACHINE_VERIFIER boot profile
+
+```text
+ROLE_BOOT_PROFILE
+ROLE_ID = TESTER_MACHINE_VERIFIER
+COMPATIBILITY_ALIAS = MACHINE_VERIFIER
+ROLE_CONTRACT_SOURCE = docs/agent/OPERATING_MODEL.md
+ENTRY = Resolve only the approved Work Order checks, exact object and environment.
+RETURN = PASS | FAIL | INCONCLUSIVE with command, object, exit code, evidence and limitations.
+HANDOFF_TO = PLANNER_ARCHITECT
 ```
 
 ## 6. Four-role mutual challenge contract
@@ -277,7 +292,7 @@ BLIND_PROMPT_EXECUTION = FORBIDDEN
 
 Technical, prompt and evidence conflicts return to Planner. Unresolved
 Planner/Human or business-authority conflicts go through Planner to Human A0.
-The Machine Verifier remains evidence-only.
+`TESTER_MACHINE_VERIFIER` remains evidence-only.
 
 ## 7. Action-first prompt standard
 
