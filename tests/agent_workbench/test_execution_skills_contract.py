@@ -146,6 +146,53 @@ def test_review_mutant_cannot_authorize_reviewer_edits() -> None:
     assert not _review_contract_valid(mutant)
 
 
+def test_handoff_template_enforces_exact_report_metadata_contract() -> None:
+    template = _load(TEMPLATE)
+    expected_keys = (
+        "WO_ID",
+        "RUN_OR_ATTEMPT_ID",
+        "REPORT_ID",
+        "SOURCE_TASK_ID",
+        "DESTINATION_TASK_ID",
+        "OBJECT_ID",
+        "IN_REPLY_TO",
+    )
+    admission_line = (
+        "REPORT_ADMISSION_CONTRACT = "
+        "docs/agent/OPERATING_MODEL.md#supervised-report-identity-and-admission; "
+        "USE_CANONICAL_RULES_THERE"
+    )
+
+    def metadata_contract_valid(candidate: str) -> bool:
+        lines = candidate.splitlines()
+        headers = [i for i, line in enumerate(lines) if line == "REPORT_METADATA = REQUIRED"]
+        bindings = [i for i, line in enumerate(lines) if line.startswith("REPORT_ADMISSION_CONTRACT = ")]
+        if len(headers) != 1 or len(bindings) != 1 or bindings[0] <= headers[0]:
+            return False
+        keys = [
+            line.split("=", 1)[0].strip()
+            for line in lines[headers[0] + 1 : bindings[0]]
+            if "=" in line
+        ]
+        return keys == list(expected_keys) and lines[bindings[0]] == admission_line
+
+    mutants = {
+        "duplicate metadata key": template.replace("WO_ID =\n", "WO_ID =\nWO_ID =\n", 1),
+        "eighth metadata key": template.replace(
+            "IN_REPLY_TO =\n", "IN_REPLY_TO =\nEXTRA_METADATA =\n", 1
+        ),
+        "noncanonical admission target": template.replace(
+            "docs/agent/OPERATING_MODEL.md#supervised-report-identity-and-admission",
+            "docs/agent/OTHER.md#report-admission",
+            1,
+        ),
+    }
+    rejected = {name: not metadata_contract_valid(mutant) for name, mutant in mutants.items()}
+
+    assert metadata_contract_valid(template)
+    assert rejected == {name: True for name in mutants}
+
+
 def test_handoff_template_contains_exact_object_and_terminal_sentinel() -> None:
     fields = _template_fields(_load(TEMPLATE))
     required = {
