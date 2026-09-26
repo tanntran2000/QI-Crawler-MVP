@@ -140,6 +140,7 @@ def test_idle_absence_is_phase_valid_and_result_has_no_action_authority(tmp_path
     assert not ({"action", "delete", "restore", "overwrite", "continue"} & set(result.__dataclass_fields__))
 
 
+@pytest.mark.skipif(os.name != "nt", reason="positive active capture requires Windows exclusive file-sharing semantics")
 @pytest.mark.parametrize(
     ("phase", "db_state", "receipt", "expected"),
     [
