@@ -148,7 +148,7 @@ def test_review_mutant_cannot_authorize_reviewer_edits() -> None:
     assert not _review_contract_valid(mutant)
 
 
-def test_handoff_template_points_to_the_canonical_admission_contract() -> None:
+def test_handoff_template_enforces_exact_report_metadata_contract() -> None:
     template = _load(TEMPLATE)
     expected_keys = (
         "WO_ID",
@@ -159,13 +159,69 @@ def test_handoff_template_points_to_the_canonical_admission_contract() -> None:
         "OBJECT_ID",
         "IN_REPLY_TO",
     )
-    assert "REPORT_METADATA = REQUIRED" in template
-    assert all(f"{key} =" in template for key in expected_keys)
-    assert (
+    admission_line = (
         "REPORT_ADMISSION_CONTRACT = "
         "docs/agent/OPERATING_MODEL.md#supervised-report-identity-and-admission; "
         "USE_CANONICAL_RULES_THERE"
-    ) in template
+    )
+
+    def metadata_contract_valid(candidate: str) -> bool:
+        lines = candidate.splitlines()
+        headers = [
+            i for i, line in enumerate(lines) if line == "REPORT_METADATA = REQUIRED"
+        ]
+        bindings = [
+            i
+            for i, line in enumerate(lines)
+            if line.startswith("REPORT_ADMISSION_CONTRACT = ")
+        ]
+        if len(headers) != 1 or len(bindings) != 1 or bindings[0] <= headers[0]:
+            return False
+        keys = [
+            line.split("=", 1)[0].strip()
+            for line in lines[headers[0] + 1 : bindings[0]]
+            if "=" in line
+        ]
+        return keys == list(expected_keys) and lines[bindings[0]] == admission_line
+
+    lines = template.splitlines()
+    binding_index = next(
+        i for i, line in enumerate(lines) if line.startswith("REPORT_ADMISSION_CONTRACT = ")
+    )
+    binding_line = lines.pop(binding_index)
+    header_index = lines.index("REPORT_METADATA = REQUIRED")
+    lines.insert(header_index, binding_line)
+    binding_before_header = "\n".join(lines) + "\n"
+
+    mutants = {
+        "duplicate metadata key": template.replace("WO_ID =\n", "WO_ID =\nWO_ID =\n", 1),
+        "eighth metadata key": template.replace(
+            "IN_REPLY_TO =\n", "IN_REPLY_TO =\nEXTRA_METADATA =\n", 1
+        ),
+        "noncanonical admission target": template.replace(
+            "docs/agent/OPERATING_MODEL.md#supervised-report-identity-and-admission",
+            "docs/agent/OTHER.md#report-admission",
+            1,
+        ),
+        "duplicate metadata header": template.replace(
+            "REPORT_METADATA = REQUIRED\n",
+            "REPORT_METADATA = REQUIRED\nREPORT_METADATA = REQUIRED\n",
+            1,
+        ),
+        "duplicate admission binding": template.replace(
+            admission_line + "\n", admission_line + "\n" + admission_line + "\n", 1
+        ),
+        "wrong metadata order": template.replace(
+            "WO_ID =\nRUN_OR_ATTEMPT_ID =\n",
+            "RUN_OR_ATTEMPT_ID =\nWO_ID =\n",
+            1,
+        ),
+        "binding before metadata header": binding_before_header,
+    }
+    rejected = {name: not metadata_contract_valid(mutant) for name, mutant in mutants.items()}
+
+    assert metadata_contract_valid(template)
+    assert rejected == {name: True for name in mutants}
 
 
 def _operating_section(text: str, title: str) -> str:
@@ -190,9 +246,10 @@ def _helper_contract_valid(section: str) -> bool:
         "HELPER_DEPTH = 1; PROMPT_GOVERNED_UNLESS_TOOL_ENFORCEMENT_IS_SEPARATELY_VERIFIED",
         "HELPER_BRIEF = TASK_MESSAGE_FROM_AUTHORITY; TEN_TASK_ENVELOPE_CONCEPTS; NO_NEW_SCHEMA_OR_ROLE",
         "QUESTION, OBJECT, READ_ALLOWLIST, TOOLS, DATA, SENSITIVITY, EXCLUSIONS, BUDGET, STOP_RULE, RETURN_OWNER",
-        "SENSITIVE_UNTRACKED_OPERATIONAL_CONTENT_OR_EXTERNAL_TRANSMISSION = FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED",
+        "SENSITIVE_UNTRACKED_OR_OPERATIONAL_CONTENT=FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED",
         "HELPER_RESULT=SUPPORTING_EVIDENCE_ONLY",
         "HELPER_CANNOT = ADVANCE_STATE, CONSUME_TRANSITION, OPEN_CORRECTION, CREATE_VERDICT, GRANT_AUTHORITY",
+        "HELPER_RESULT_PROMOTION_TO_BUILDER_TESTER_REVIEWER_COMPLETION_OR_PASS=FORBIDDEN",
         "HELPER_OWNER_VERIFIES_EVIDENCE_BEFORE_CITATION = YES",
     )
     forbidden = (
@@ -350,6 +407,12 @@ def test_helper_result_is_bounded_supporting_evidence() -> None:
         1,
     )
     assert not _helper_contract_valid(mutant)
+    promoted = section.replace(
+        "HELPER_RESULT_PROMOTION_TO_BUILDER_TESTER_REVIEWER_COMPLETION_OR_PASS=FORBIDDEN",
+        "HELPER_RESULT_PROMOTION_TO_BUILDER_TESTER_REVIEWER_COMPLETION_OR_PASS=ALLOWED",
+        1,
+    )
+    assert not _helper_contract_valid(promoted)
 
 
 def test_helper_provenance_labels_and_enforcement_claims_stay_distinct() -> None:
@@ -410,3 +473,70 @@ def test_report_admission_remains_supervised_static_contract_text() -> None:
     assert _report_admission_documented(text)
     mutant = text.replace("wrong-object", "right-object", 1)
     assert not _report_admission_documented(mutant)
+
+
+def _source_provenance_contract_valid(text: str) -> bool:
+    required = (
+        "SOURCE_TASK_ID_PROVENANCE=INDEPENDENTLY_OBSERVED_FROM_SUPERVISED_DISPATCH_OR_RECEIPT",
+        "OBSERVED_DELIVERY_ID_MUST_MATCH=SOURCE_TASK_ID",
+        "PAYLOAD_ASSERTION_ROLE_MODEL_NAME_OR_MATCHING_TEXT_ALONE_ESTABLISHES_CANONICAL_SOURCE_OR_VERDICT=NO",
+        "UNKNOWN_OR_MISMATCHED_SOURCE=HOLD; CANNOT_ADVANCE=YES",
+        "SOURCE_IDENTITY_ASSURANCE=DOCUMENTED_SUPERVISED; NOT_CRYPTOGRAPHIC; NOT_AUTONOMOUS",
+    )
+    return all(item in text for item in required)
+
+
+def test_report_source_provenance_uses_supervised_dispatch_identity() -> None:
+    text = _load(OPERATING_MODEL)
+    assert _source_provenance_contract_valid(text)
+    mutant = text.replace(
+        "UNKNOWN_OR_MISMATCHED_SOURCE=HOLD; CANNOT_ADVANCE=YES",
+        "UNKNOWN_OR_MISMATCHED_SOURCE=ACCEPT; CANNOT_ADVANCE=NO",
+        1,
+    )
+    assert not _source_provenance_contract_valid(mutant)
+
+
+def _helper_dispatch_contract_valid(text: str) -> bool:
+    required = (
+        "HELPER_CONTEXT_CHANNEL=APPROVED_NATIVE_HELPER_DISPATCH_UNDER_ACTIVE_LEASE",
+        "HELPER_CONTEXT_CONTENT=EXACT_ALLOWLISTED_TRACKED_CONTENT_ONLY",
+        "APPROVED_DISPATCH_GRANTS_WIDER_ACCESS=NO",
+        "HELPER_INITIATED_NETWORK_CONNECTOR_EXTERNAL_TOOL_OR_OTHER_EXTERNAL_TRANSMISSION=FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED",
+        "SENSITIVE_UNTRACKED_OR_OPERATIONAL_CONTENT=FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED",
+    )
+    return all(item in text for item in required)
+
+
+def test_helper_dispatch_context_does_not_expand_access() -> None:
+    text = _load(OPERATING_MODEL)
+    assert _helper_dispatch_contract_valid(text)
+    mutant = text.replace(
+        "APPROVED_DISPATCH_GRANTS_WIDER_ACCESS=NO",
+        "APPROVED_DISPATCH_GRANTS_WIDER_ACCESS=YES",
+        1,
+    )
+    assert not _helper_dispatch_contract_valid(mutant)
+
+
+def _helper_entry_contract_valid(text: str) -> bool:
+    required = (
+        "HELPER_IS_ROLE_OR_AGENT_ENTRY=NO",
+        "HELPER_INPUTS=ACTIVE_LEASE_EXACT_BRIEF_AND_READ_ALLOWLIST_ONLY",
+        "HELPER_CANNOT_DECLARE=READY, PROMPT_READY, START_IMPLEMENTATION, START_AUDIT",
+        "CANONICAL_ROLE_OR_TAKEOVER_ASSIGNMENT_REQUIRES=NORMAL_FULL_OR_DELTA_ROLE_AND_ROADMAP_ENTRY_GATES",
+        "SUBAGENT_OR_TOOL_IDENTITY_ALONE_ASSIGNS_AUTHORITY=NO",
+        "CANONICAL_ROLE_ASSIGNMENT_REQUIRES=EXPLICIT_ASSIGNMENT_OR_TAKEOVER, EXACT_OBJECT_AND_SCOPE, APPLICABLE_ROLE_READ_IN_AND_INDEPENDENCE_GATES, PRIOR_OWNER_CESSATION_CONFIRMED_AND_NO_CONFLICT",
+    )
+    return all(item in text for item in required)
+
+
+def test_helper_read_in_does_not_grant_role_entry_or_readiness() -> None:
+    text = _load(OPERATING_MODEL)
+    assert _helper_entry_contract_valid(text)
+    mutant = text.replace(
+        "SUBAGENT_OR_TOOL_IDENTITY_ALONE_ASSIGNS_AUTHORITY=NO",
+        "SUBAGENT_OR_TOOL_IDENTITY_ALONE_ASSIGNS_AUTHORITY=YES",
+        1,
+    )
+    assert not _helper_entry_contract_valid(mutant)

@@ -53,6 +53,9 @@ This governance Work Order does not modify the product architecture, storage/dat
 
 - A helper is not a fifth role. Its only admissible result is `HELPER_RESULT=SUPPORTING_EVIDENCE_ONLY`.
 - Helper output cannot advance a WP, consume a transition, open a correction, create a verdict, or grant authority. The owning role verifies evidence before citing it and remains accountable for its report.
+- Approved native helper dispatch may deliver only the exact allowlisted tracked content as bounded context under the active lease; it grants no wider access. Helper-initiated network, connector, external-tool or other external transmission, plus sensitive, untracked or operational content, is forbidden unless explicitly authorized.
+- A bounded helper is not canonical role/agent entry; it receives only the exact brief/read allowlist and cannot declare `READY`, `PROMPT_READY`, `START_IMPLEMENTATION`, or `START_AUDIT`.
+- Sub-agent or tool identity alone grants no authority, and helper output cannot stand in for Builder, Tester or Reviewer completion or `PASS`. Canonical role/takeover assignment requires explicit assignment, exact object/scope, applicable role/read-in/independence gates (including normal FULL/DELTA Role/Roadmap entry gates), and confirmed cessation/non-conflict with the previous owner.
 - Label statements as `PROMPT_GOVERNED`, `OBSERVED`, or `TOOL_ENFORCED` accurately. Do not describe prompt constraints or observations as machine enforcement.
 
 ### Finite correction and stop accounting
@@ -60,7 +63,19 @@ This governance Work Order does not modify the product architecture, storage/dat
 - The post-review correction budget follows the same authority lease across revision, name, task, session, model, and takeover. A Planner-opened correction attempt is the accounting unit.
 - Development RED/GREEN iterations and one verified transient CI rerun are separate budgets. A dispatch timeout or unknown result counts as used; do not silently resend. Rename/revision does not reset any budget. Exhaustion means `HOLD_AND_REPORT`.
 - Stop states are `STOP_REQUESTED | STOP_CONFIRMED | STOP_STATUS_UNKNOWN`. Do not transfer the writer or start conflicting work unless stop is confirmed.
-- `DELEGATION_PILOT_BUDGET=1`; `POST_REVIEW_CORRECTION_BUDGET=1`; `TRANSIENT_CI_RERUN_BUDGET=1`. Allow one primary full verification and one affected full rerun only when an authorized correction changes the candidate and the active verification contract requires it.
+- `DELEGATION_PILOT_BUDGET=1`; `POST_REVIEW_CORRECTION_BUDGET=1` (base); `TRANSIENT_CI_RERUN_BUDGET=1`. Human A0 authorized one additional C02 correction extension after Planner consolidation. The finite ledger is:
+
+  ```text
+  BASE_POST_REVIEW_CORRECTION_BUDGET=1
+  HUMAN_A0_C02_EXTENSION_BUDGET=1
+  TOTAL_AUTHORIZED_CORRECTION_ATTEMPTS=2
+  C01=AGENT_LOOP_BOUNDED_C01_WO_SCRATCH_BUDGET; DISPOSITION=CONSUMED_FOR_SCRATCH_BUDGET_CORRECTION; COMMIT=d2d253de8bcf5218cd985101bc8ee35c0ffaadd5
+  C02=AGENT_LOOP_BOUNDED_C02_ADMISSION_PROVENANCE_BOUNDARIES; IN_REPLY_TO=PLANNER_STAGE1_REVIEW_ADMISSION_TEST_REGRESSION; DISPOSITION=CONSUMED_BY_THIS_DISPATCH
+  TOTAL_CONSUMED=2
+  REMAINING=0
+  ```
+
+- Allow one primary full verification and one affected full rerun only when an authorized correction changes the candidate and the active verification contract requires it.
 
 ### Reviewer finding and verification shape
 
@@ -91,7 +106,7 @@ B09 implementation; operational data; cleanup; Crawler runtime/source/tests exce
 
 0. **Reconcile and register:** execute only the four-file Stage 0 scope and local commit. Active now.
 1. **Minimal contract correction:** only the candidate minimum above, after Planner review/issuance; preserve the exact envelope and current owner boundaries.
-2. **Static/scenario verification and one helper pilot:** verify the text contract and finite accounting scenarios. Run one prompt-governed helper against one exact candidate and exact tracked-file allowlist. No helper writes, tests, imports, database or operational-data access, untracked-content access, network, external transmission, or child delegation. Required output headings: `OBSERVED`, `INFERENCE`, `OPTION`, `EVIDENCE_LOCATORS`, `LIMITATIONS`. The owner independently verifies every cited item. No autonomous enforcement claim.
+2. **Static/scenario verification and one helper pilot:** verify the text contract and finite accounting scenarios. Run one prompt-governed helper against one exact candidate and exact tracked-file allowlist. The approved native dispatch may deliver only that allowlisted tracked content as bounded context under the active lease and grants no wider access. The helper may not initiate network, connector, external-tool, or other external transmission. No helper writes, tests, imports, database or operational-data access, untracked-content access, or child delegation; sensitive, untracked, and operational content is excluded from this pilot. Required output headings: `OBSERVED`, `INFERENCE`, `OPTION`, `EVIDENCE_LOCATORS`, `LIMITATIONS`. The owner independently verifies every cited item. No autonomous enforcement claim.
 3. **Integration:** local verification, normal push of the approved feature branch, and create/update one PR only after the relevant local gates; exact-head CI and independent exact-head review; Planner reconciliation; Human manual merge; post-merge verification. Merge and release remain Human-only. Stage 0 grants none of these remote actions.
 
 ## CI fitness and plugin applicability

@@ -47,6 +47,21 @@ EXPECTED_PENDING_TRANSITION = WO_ID, SOURCE_TASK_ID, DESTINATION_TASK_ID,
                               OBJECT_ID, RUN_OR_ATTEMPT_ID, IN_REPLY_TO
 ```
 
+The sender/task identity used to validate `SOURCE_TASK_ID` must be independently
+observed from the supervised dispatch or receipt mechanism and match the
+expected `SOURCE_TASK_ID`. A payload's self-assertion, role/model name, or
+matching text alone cannot establish canonical source or a verdict. Unknown or
+mismatched identity is `HOLD` and cannot advance state. This is a documented,
+supervised boundary, not cryptographic attestation or autonomous enforcement.
+
+```text
+SOURCE_TASK_ID_PROVENANCE=INDEPENDENTLY_OBSERVED_FROM_SUPERVISED_DISPATCH_OR_RECEIPT
+OBSERVED_DELIVERY_ID_MUST_MATCH=SOURCE_TASK_ID
+PAYLOAD_ASSERTION_ROLE_MODEL_NAME_OR_MATCHING_TEXT_ALONE_ESTABLISHES_CANONICAL_SOURCE_OR_VERDICT=NO
+UNKNOWN_OR_MISMATCHED_SOURCE=HOLD; CANNOT_ADVANCE=YES
+SOURCE_IDENTITY_ASSURANCE=DOCUMENTED_SUPERVISED; NOT_CRYPTOGRAPHIC; NOT_AUTONOMOUS
+```
+
 The Planner establishes the expected pending transition. The six binding
 fields—`WO_ID`, `SOURCE_TASK_ID`, `DESTINATION_TASK_ID`, `OBJECT_ID`,
 `RUN_OR_ATTEMPT_ID` and `IN_REPLY_TO`—must match it. Separately,
@@ -71,14 +86,28 @@ explicit Human planning authority or a delegation clause in the active lease;
 helper availability alone grants no access or authority. Requested depth one
 is prompt-governed unless tool enforcement is separately verified.
 
+A bounded helper is not a canonical role assignment or agent-entry event. It
+receives only the active lease's exact brief and read allowlist; it cannot
+declare `READY`, `PROMPT_READY`, `START_IMPLEMENTATION`, or `START_AUDIT`. A
+sub-agent or tool identity alone assigns no authority, and `HELPER_RESULT`
+cannot be promoted to Builder, Tester, or Reviewer role completion or `PASS`.
+If a sub-agent is later assigned a canonical role or takeover, explicit
+assignment, exact object and scope, applicable role/read-in/independence gates,
+and confirmed cessation/non-conflict with the previous owner are required. The
+normal FULL/DELTA Role and Roadmap entry gates then apply.
+
 The brief is a task message derived from the owner's authority and the existing
 ten Task Envelope concepts. It does not change the Task Envelope schema or
 template and does not assign a canonical role to the helper. The lease must
 specify the exact question and object, read allowlist, tools, data and
-sensitivity, exclusions, finite budget, stop rule, and return owner. Sensitive,
-untracked, or operational content and external transmission remain forbidden
-unless explicitly authorized. A clean Git status does not prove the absence of
-helper writes, reads, or transmission.
+sensitivity, exclusions, finite budget, stop rule, and return owner. The
+approved native helper dispatch may deliver only exact allowlisted tracked
+content as bounded context under the active lease; it grants no wider access.
+Helper-initiated network, connector, external-tool, or other external
+transmission is separate and forbidden unless explicitly authorized. Sensitive,
+untracked, or operational content remains forbidden unless explicitly
+authorized. A clean Git status does not prove the absence of helper writes,
+reads, or transmission.
 
 ```text
 HELPER_IS = OWNER_ROLE_CAPABILITY; NOT_FIFTH_ROLE; NOT_TAKEOVER
@@ -87,13 +116,24 @@ HELPER_DEFAULT_DISPATCH_BUDGET = 0; EACH_WP_SETS_FINITE_BUDGET
 HELPER_DEPTH = 1; PROMPT_GOVERNED_UNLESS_TOOL_ENFORCEMENT_IS_SEPARATELY_VERIFIED
 HELPER_BRIEF = TASK_MESSAGE_FROM_AUTHORITY; TEN_TASK_ENVELOPE_CONCEPTS; NO_NEW_SCHEMA_OR_ROLE
 REQUIRED_HELPER_BRIEF_FIELDS = QUESTION, OBJECT, READ_ALLOWLIST, TOOLS, DATA, SENSITIVITY, EXCLUSIONS, BUDGET, STOP_RULE, RETURN_OWNER
+HELPER_IS_ROLE_OR_AGENT_ENTRY=NO
+HELPER_INPUTS=ACTIVE_LEASE_EXACT_BRIEF_AND_READ_ALLOWLIST_ONLY
+HELPER_CANNOT_DECLARE=READY, PROMPT_READY, START_IMPLEMENTATION, START_AUDIT
+SUBAGENT_OR_TOOL_IDENTITY_ALONE_ASSIGNS_AUTHORITY=NO
+CANONICAL_ROLE_OR_TAKEOVER_ASSIGNMENT_REQUIRES=NORMAL_FULL_OR_DELTA_ROLE_AND_ROADMAP_ENTRY_GATES
+CANONICAL_ROLE_ASSIGNMENT_REQUIRES=EXPLICIT_ASSIGNMENT_OR_TAKEOVER, EXACT_OBJECT_AND_SCOPE, APPLICABLE_ROLE_READ_IN_AND_INDEPENDENCE_GATES, PRIOR_OWNER_CESSATION_CONFIRMED_AND_NO_CONFLICT
 HELPER_RESULT=SUPPORTING_EVIDENCE_ONLY
 HELPER_CANNOT = ADVANCE_STATE, CONSUME_TRANSITION, OPEN_CORRECTION, CREATE_VERDICT, GRANT_AUTHORITY
+HELPER_RESULT_PROMOTION_TO_BUILDER_TESTER_REVIEWER_COMPLETION_OR_PASS=FORBIDDEN
 HELPER_OWNER_VERIFIES_EVIDENCE_BEFORE_CITATION = YES
 PROVENANCE_LABELS = PROMPT_GOVERNED, OBSERVED, TOOL_ENFORCED
 UNKNOWN = UNKNOWN
 CLEAN_GIT_STATUS_PROVES_ALL_HELPER_WRITES_READS_OR_TRANSMISSION = NO
-SENSITIVE_UNTRACKED_OPERATIONAL_CONTENT_OR_EXTERNAL_TRANSMISSION = FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED
+HELPER_CONTEXT_CHANNEL=APPROVED_NATIVE_HELPER_DISPATCH_UNDER_ACTIVE_LEASE
+HELPER_CONTEXT_CONTENT=EXACT_ALLOWLISTED_TRACKED_CONTENT_ONLY
+APPROVED_DISPATCH_GRANTS_WIDER_ACCESS=NO
+HELPER_INITIATED_NETWORK_CONNECTOR_EXTERNAL_TOOL_OR_OTHER_EXTERNAL_TRANSMISSION=FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED
+SENSITIVE_UNTRACKED_OR_OPERATIONAL_CONTENT=FORBIDDEN_UNLESS_EXPLICITLY_AUTHORIZED
 STOP_STATES = STOP_REQUESTED, STOP_CONFIRMED, STOP_STATUS_UNKNOWN
 NO_WRITER_TRANSFER_OR_CONFLICTING_RESOURCE_WORK_UNTIL_STOP_CONFIRMED = YES
 STOP_STATUS_UNKNOWN = HOLD_NO_TRANSFER
