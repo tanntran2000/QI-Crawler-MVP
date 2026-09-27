@@ -1839,28 +1839,3 @@ SCOPE = TWO_CODE_TEST_FILES_ALREADY_FROZEN; TERMINAL_DOC_SYNC_ONLY_NOW; NO_A3_ED
 BRIDGE_A = HOLD; TESTER_AND_INDEPENDENT_REVIEWER_PENDING; NO_PASS_OR_MATURITY_PROMOTION
 NEXT = PLANNER_ROUTES_EXACT_CANDIDATE_TO_TESTER; REVIEWER_AFTER_PLANNER_MACHINE_EVIDENCE_REVIEW
 ~~~
-
-
-## 9. Current operational artifact lifecycle entry
-
-### RD-0014 - Operational artifact storage consolidation
-
-~~~text
-ID = RD-0014
-TITLE = PRESERVE SINGLE OPERATIONAL INSTALLATION DURING CANDIDATE ARTIFACT RELIEF
-STATUS = PR135_OPEN; INITIAL_HEAD_REQUIRED_CI_GREEN; TERMINAL_SYNC_HEAD_CI_PENDING; HUMAN_MANUAL_MERGE_PENDING
-SOURCE = Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; 2026-09-27
-CRAWLER_VALUE = NONE
-PRODUCT_AREA = Cross-cutting Windows delivery and operational artifact lifecycle
-PRODUCT_HOUSE_LAYERS = INFRASTRUCTURE_OPERATIONAL_ARTIFACT_LIFECYCLE; WINDOWS_PACKAGING_RELEASE_LIFECYCLE; PERSISTENCE_OBSERVED_ONLY
-OBSERVATION = M0/M1 and conditional M2 completed locally. Exact targets 01-03 were deleted after all required gates; target04 fb8edac remains KEEP_PENDING_REVIEW because its Acceptance recovery-copy role is unresolved. Total logical bytes removed were 5,321,128,566. The approved operational root and protected data, Acceptance, Rollback, AppData, and candidate sibling state were retained.
-WHY_IT_MATTERS = Reclaim obsolete candidate application binaries while preserving the sole operational installation, operational data, acceptance and rollback evidence, candidate data, and repository content.
-ROADMAP_IMPACT = SPINE_ONLY
-RELEVANT_CURRENT_WP = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01
-TARGET_STATE = Local artifact disposition complete for targets 01-03; target04 remains KEEP_PENDING_REVIEW; no further deletion is authorized. PR #135 is open to main at head 6fbcd24814cf1974b74741b1bbbb4d728d5c19d5 on base cc9bd53be871059689be4f91f0584efbec04405e, and all required checks are SUCCESS on that head. One terminal docs sync push to the same PR and exact-head CI monitoring remain pending; merge is Human-only.
-PROMOTION_TARGET = NONE_FOR_PRODUCT_CAPABILITY_OR_MATURITY; GOVERNANCE_LESSON_TO_FM-053
-PROMOTION_CONDITION = Do not promote to the Master Roadmap. Reconcile or remove this Delta entry only at post-merge reconciliation after live main, CURRENT, PR, CI, and merge facts are verified.
-COMPLETION_EVIDENCE = Registered WP records three completed deletions and one retained target, 5,321,128,566 logical bytes removed, protected-path checks, Tester PASS, Reviewer PASS, and nonblocking finding STORAGE-M2-R01.
-REMOVE_FROM_DELTA_WHEN = Post-merge reconciliation only, after live main and CURRENT agree; preserve STORAGE-M2-R01 through FM-053 as a prospective lifecycle prevention lesson.
-PLANNER_NOTES = Local WP outcome PASS_WITH_LIMITATIONS. Tester and independent Reviewer passed the local candidate. STORAGE-M2-R01 requires future destructive operations to persist full per-target protected pre/post arrays; do not fabricate historical arrays. Unrelated Acceptance export-workspace metadata walk had Access Denied and remains a limitation. PR #135 is open and exact-head required checks passed on 6fbcd24814cf1974b74741b1bbbb4d728d5c19d5; terminal sync head CI and Human manual merge remain pending. No further deletion, release, Master Roadmap promotion, or B09 authority.
-~~~

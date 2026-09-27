@@ -3,22 +3,25 @@
 ## Status, authority, and baseline
 
 ~~~text
-STATUS = LOCAL_EXECUTION_COMPLETE_PASS_WITH_LIMITATIONS; M0_COMPLETE; M1_COMPLETE; M2_TARGETS_01_03_COMPLETE; TARGET04_FB8EDAC_KEEP_PENDING_REVIEW; TESTER_PASS; REVIEWER_PASS; PR135_OPEN; INITIAL_HEAD_6FBCD_REQUIRED_CI_GREEN; TERMINAL_SYNC_HEAD_CI_PENDING; HUMAN_MANUAL_MERGE_PENDING
-ROLE = BUILDER_SINGLE_WRITER_FOR_REMOTE_INTEGRATION_ONLY
+STATUS = CLOSED_WITH_LIMITATIONS; M0_COMPLETE; M1_COMPLETE; M2_TARGETS_01_03_COMPLETE; TARGET04_FB8EDAC_KEEP_PENDING_REVIEW; TESTER_PASS; REVIEWER_PASS; PR135_MERGED; TERMINAL_HEAD_CI_GREEN; POST_MERGE_RECONCILIATION_COMPLETE
+ROLE = BUILDER_SINGLE_WRITER; PHASE=POST_MERGE_CLOSEOUT
 AUTHORITY = Human A0 exact approval recorded in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 on 2026-09-27
-PLANNER_BUILDER_RESULT_REVIEW = PASS_WITH_ONE_TARGET_RETAINED; PARENT_NOT_CLOSED
+PLANNER_BUILDER_RESULT_REVIEW = PASS_WITH_ONE_TARGET_RETAINED; PARENT_CLOSED_AFTER_POST_MERGE_GATE
 TESTER_STATE = PASS_MACHINE_EVIDENCE_FOR_M2_CANDIDATE_ONLY
 TESTER_REPORT_ID = STORAGE_M2_TESTER_PASS_20260927_01; SOURCE_TASK=/root/agent_loop_contract_tester
 TESTER_OBJECT_ID = M2_a610ea07d434d6677e6f5749dc970a375e81d67c__DOC_2377888c35a86edd478b2e7a1011f32c9ab53eee
-PLANNER_TESTER_RECONCILIATION = ACCEPTED; PARENT_NOT_CLOSED
+PLANNER_TESTER_RECONCILIATION = ACCEPTED; TESTER_PASS_FOR_M2_CANDIDATE
 REVIEWER_STATE = PASS; REPORT_ID=STORAGE_M2_REVIEWER_PASS_20260927_01; TARGET_CODE=a610ea07d434d6677e6f5749dc970a375e81d67c; TARGET_DOC=2c0c62c2609018a784e704b3e02b1b1520a503fd
 REVIEWER_REPORT_ID = STORAGE_M2_REVIEWER_PASS_20260927_01; SOURCE_TASK_ID=/root/agent_loop_contract_reviewer
 REVIEWER_OBJECT_ID = M2_a610ea07d434d6677e6f5749dc970a375e81d67c__LIVE_DOC_2c0c62c2609018a784e704b3e02b1b1520a503fd
 REVIEWER_AUDIT_VERDICT = PASS; CI_FITNESS=FIT_FOR_LOCAL_STORAGE_AND_EVIDENCE_CAPABILITY; HOSTED_GATES_LATER_REMOTE_PR_TRANSITION
 REVIEWER_LIMITATIONS = UNRELATED_ACCEPTANCE_EXPORT_WORKSPACE_NAMES_ONLY_ACCESS_DENIED; DELETE_01_SUMMARY_POSTCHECK_PASS_EMPTY_MISMATCHES_CRITICAL_HASHES_MATCH_BUT_FULL_ARRAYS_OMITTED; SAFETY_GUARD_MANUAL_ONLY; FREE_SPACE_DELTAS_OBSERVATIONAL
-PLANNER_POST_REVIEW_RECONCILIATION = LOCAL_OUTCOME_PASS_WITH_LIMITATIONS; LOCAL_PARENT_TESTER_REVIEWER_COMPLETE; PR135_OPEN; INITIAL_HEAD_REQUIRED_CI_GREEN; TERMINAL_SYNC_HEAD_CI_PENDING
+PLANNER_POST_REVIEW_RECONCILIATION = PASS_WITH_LIMITATIONS; LOCAL_PARENT_TESTER_REVIEWER_COMPLETE; PR135_MERGED; POST_MERGE_GATE_COMPLETE; NO_FURTHER_DELETION_AUTHORITY
 REVIEWER_FINDING_STORAGE_M2_R01 = FINDING_ID=STORAGE-M2-R01; IMPORTANT; NONBLOCKING; NEW_AUTHORITY_REQUIRED; DELETE_01_FULL_PROTECTED_PRE_POST_ARRAYS_NOT_PERSISTED; NO_RETROSPECTIVE_FABRICATION; FUTURE_DESTRUCTIVE_LIFECYCLE_REQUIRES_COMPLETE_PER_TARGET_ARRAYS
-REMOTE_INTEGRATION_AUTHORITY = HUMAN_A0_AUTHORIZED_NORMAL_BRANCH_PUSH_AND_ONE_PR_TO_MAIN_AFTER_REVIEW_GATES; ONE_TERMINAL_DOCS_SYNC_COMMIT_AND_NORMAL_PUSH_TO_SAME_PR; MONITOR_EXACT_HEAD_REQUIRED_CI; NO_SECOND_PR; NO_MERGE
+REMOTE_INTEGRATION_AUTHORITY = HUMAN_A0_AUTHORIZED_ONE_BRANCH_PUSH_ONE_PR_AND_TERMINAL_DOCS_SYNC; COMPLETED; NO_FURTHER_REMOTE_INTEGRATION_REQUIRED_FOR_THIS_WP
+PR135_POST_MERGE = MERGED_AT=2026-09-27T12:34:25Z; URL=https://github.com/tanntran2000/QI-Crawler-MVP/pull/135; BASE=main@cc9bd53be871059689be4f91f0584efbec04405e; TERMINAL_HEAD=f70a87b94c6e2b1485102e1969e31d65c2d7ef3a; MERGE=51463a1ba01af9cd499e0b7c7cc961c19771bbf4
+PR135_TERMINAL_HEAD_CI = SUCCESS; Code Quality; Tests Ubuntu 3.12; Tests Windows 3.12; Compatibility Ubuntu 3.11; Required CI Gate; CodeQL Analyze actions; CodeQL Analyze python; CodeQL aggregate
+POST_MERGE_CHECKOUT = origin/main=51463a1ba01af9cd499e0b7c7cc961c19771bbf4; LOCAL_MAIN_FAST_FORWARD=YES; MERGED_FEATURE_BRANCH_DELETED_WITH_REACHABILITY_PROOF; POSTMERGE_BRANCH=codex/crawler-storage-consolidation-postmerge-01_FROM_51463a1ba01af9cd499e0b7c7cc961c19771bbf4
 LOCAL_M2_OUTCOME = PASS_WITH_LIMITATIONS; TARGETS_01_03_DELETED; TARGET04_FB8EDAC_KEEP_PENDING_REVIEW; LOGICAL_BYTES_REMOVED=5321128566; NO_FURTHER_DELETION_AUTHORITY
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
@@ -47,16 +50,17 @@ M0 verified the canonical checkout and origin, fast-forwarded local main to
 the verified origin/main, proved the merged local branch tip reachable and
 deleted only that local branch, then created this local branch at the exact
 live main. M0 made no remote write. After local Tester and Reviewer gates, the
-authorized branch push and single PR were completed. PR #135 is open at exact
-head `6fbcd24814cf1974b74741b1bbbb4d728d5c19d5`, base main
-`cc9bd53be871059689be4f91f0584efbec04405e`; all exact-head checks are SUCCESS:
-Code Quality (11:49:37Z), Tests Ubuntu 3.12 (11:53:46Z), Tests Windows 3.12
-(11:58:08Z), Compatibility Ubuntu 3.11 (11:57:42Z), Required CI Gate
-(11:58:16Z), CodeQL Analyze actions (11:49:46Z), CodeQL Analyze python
-(11:50:02Z), and CodeQL aggregate (11:49:38Z), all on 2026-09-27. One
-terminal docs-only commit and normal push to this same PR are authorized;
-required checks must be monitored on its exact new head. Merge remains
-Human-only.
+authorized branch push and single PR were completed. PR #135 initially opened
+at head `6fbcd24814cf1974b74741b1bbbb4d728d5c19d5`; all checks passed on that
+head. The terminal docs sync `f70a87b94c6e2b1485102e1969e31d65c2d7ef3a` was
+then pushed to the same PR. Authenticated GitHub confirms PR #135 merged at
+2026-09-27T12:34:25Z, base main
+`cc9bd53be871059689be4f91f0584efbec04405e`, merge/live origin/main
+`51463a1ba01af9cd499e0b7c7cc961c19771bbf4`. All eight exact-terminal-head
+checks succeeded. Local main was fast-forwarded to the merge commit, the
+merged feature branch was safely deleted after reachability proof, and the
+post-merge branch was created from that exact main. Human performed the merge;
+no release occurred.
 
 ## Objective and boundaries
 
@@ -222,8 +226,9 @@ Run governance/path-registry validation, exact scope accounting,
 git diff --check and git diff --name-status. Run only narrow Agent Workbench
 or governance tests applicable to changed docs/registry. No full product
 pytest or Ruff is required because source/test edits are prohibited; any
-source/test change is STOP_SCOPE_VIOLATION. Hosted CI is not part of this
-local-only assignment.
+source/test change is STOP_SCOPE_VIOLATION. The original M0/M1/M2 execution
+was local-only. The separately authorized remote continuation ran exact-head
+hosted CI on PR #135; see the post-merge closeout below.
 
 ## Plugin applicability and evidence
 
@@ -246,19 +251,32 @@ path escape, any reparse component/descendant, unresolved process evidence,
 protected artifact drift, access denied on a target census, or any partial
 delete. Unknown remains KEEP.
 
-M0, M1, eligible M2 evidence, and governed post-review metadata may receive
-semantic local commits under this lease. The normal branch push and single PR
-were completed; one terminal docs-only commit and normal push to the same PR
-are authorized, followed by exact-head required-CI monitoring. MERGE=HUMAN_ONLY;
-RELEASE=NO; further deletion and unrelated CLEANUP=NO.
-Return exact identity/branch/commits, entry gates, per-target dispositions,
-process/reparse/receipt evidence, bytes/free-space, protected post-check,
-changed paths, validations, plugins, limitations, and Spine state.
+M0, M1, eligible M2 evidence, and governed post-review metadata received
+semantic local commits. The authorized normal branch push, single PR, terminal
+docs sync push, required exact-head CI, and Human merge are complete. No further
+deletion, release, unrelated cleanup, or remote integration is authorized for
+this WP. Return exact identity/branch/commits, entry gates, per-target
+dispositions, process/reparse/receipt evidence, bytes/free-space, protected
+post-check, changed paths, validations, plugins, limitations, and Spine state.
+
+## Post-merge closeout
+
+```text
+FINAL_OUTCOME = PASS_WITH_LIMITATIONS; PARENT_WP_CLOSED
+PR135 = MERGED_AT=2026-09-27T12:34:25Z; HEAD=f70a87b94c6e2b1485102e1969e31d65c2d7ef3a; BASE=cc9bd53be871059689be4f91f0584efbec04405e; MERGE_AND_LIVE_MAIN=51463a1ba01af9cd499e0b7c7cc961c19771bbf4
+TERMINAL_HEAD_CI = SUCCESS_FOR_ALL_EIGHT_CHECKS; Code Quality; Tests Ubuntu 3.12; Tests Windows 3.12; Compatibility Ubuntu 3.11; Required CI Gate; CodeQL Analyze actions; CodeQL Analyze python; CodeQL aggregate
+GIT_CLOSEOUT = LOCAL_MAIN_FAST_FORWARDED_TO_51463A1; MERGED_FEATURE_BRANCH_SAFELY_DELETED_AFTER_REACHABILITY_PROOF; POSTMERGE_BRANCH=codex/crawler-storage-consolidation-postmerge-01_FROM_51463A1
+TARGET_OUTCOME = TARGETS_01_03_DELETED; LOGICAL_BYTES_REMOVED=5321128566; TARGET04_FB8EDAC=KEEP_PENDING_REVIEW; NO_FURTHER_DELETION
+LIMITATIONS = STORAGE-M2-R01_NONBLOCKING; FM-053_OPEN_PROSPECTIVE_PREVENTION; ACCEPTANCE_METADATA_ACCESS_DENIED; SAFETY_GUARD_MANUAL_ONLY; FREE_SPACE_DELTAS_OBSERVATIONAL
+SPINE_TRIGGER_DISPOSITIONS = PROJECT_MEMORY_NO_PRODUCT_PROMOTION; FM-053_INSPECTED_NO_CHANGE_RETAINED_OPEN; LESSONS_NO_DUPLICATE; FB-0056_HISTORICAL_INITIAL_DECISION_PRESERVED; RD-0014_REMOVED_AFTER_RESOLUTION
+POST_MERGE_PLUGIN_EVIDENCE = PLUGIN=ecc:living-docs-governance; PURPOSE=POST_MERGE_SPINE_RECONCILIATION; INVOCATION=READ_SKILL_AND_CANONICAL_DELTA_LIFECYCLE_AND_MEMORY_TRIGGERS_BEFORE_EDIT; RESULT=USED_AND_SUCCEEDED; FALLBACK=NONE; IMPACT_RADIUS=CURRENT_WORK_ORDER_RD0014_AND_TRIGGER_DISPOSITIONS; EDIT_RADIUS=EXACT_THREE_AUTHORIZED_DOCS; TEST_RADIUS=DIFF_SCOPE_DUPLICATE_KEYS_ACTIVE_HANDOFF_CHECKS; LIMITATION=NO_SOURCE_OR_PRODUCT_TESTS
+RELEASE_IMPACT = NONE; B09 = INCOMPLETE_AND_OUT_OF_SCOPE
+```
 
 ~~~text
 SPINE_IMPACT = CURRENT | ROADMAP_DELTA | WORK_ORDER
 SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md
-SPINE_SYNC_STATE = PASS_FOR_TERMINAL_REMOTE_CHECKPOINT_SYNC
-EXACTLY_ONE_NEXT_ACTION = BUILDER_COMMITS_AND_PUSHES_ONE_TERMINAL_DOCS_SYNC_TO_PR135_THEN_MONITORS_REQUIRED_CI_ON_EXACT_NEW_HEAD; AFTER_GREEN_HAND_TO_HUMAN_A0_FOR_MANUAL_MERGE
-NEXT_AUTHORITY = BUILDER_SINGLE_WRITER_FOR_REMOTE_INTEGRATION_ONLY_UNTIL_TERMINAL_HEAD_REQUIRED_CI_GREEN; THEN_HUMAN_A0
+SPINE_SYNC_STATE = PASS_POST_MERGE_CLOSEOUT
+EXACTLY_ONE_NEXT_ACTION = HOLD_FOR_HUMAN_NEXT_WP_DECISION
+NEXT_AUTHORITY = HUMAN_A0
 ~~~
