@@ -1,0 +1,545 @@
+{
+  "WP": "WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01",
+  "RunId": "20260927T085011Z",
+  "CandidateId": "v0.10.0-55c0bddf-20260921T093954Z",
+  "TargetPath": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\app",
+  "Disposition": "DELETED",
+  "DeleteStartedUtc": "2026-09-27T10:10:39.3075347Z",
+  "DeleteError": null,
+  "TargetComplete": true,
+  "PreDelete": {
+    "Files": 2445,
+    "Directories": 204,
+    "DirectoriesIncludingTargetRoot": 205,
+    "LogicalBytes": 1810610828,
+    "EntryCount": 2650,
+    "ReparseCount": 0,
+    "MetadataSha256": "0F730B9A43E94D03229220BEB7550E14CEEE53DD42F967FF035A6DE46E86EBAC",
+    "ReceiptSha256": "5A02093CEE553D3DD583B358448AF1A03C1328B6D61701105AE6CFBEB69EF558",
+    "BuildInfoSha256": "4B041DDB5D3E1F4D09B515FC1CCB6E010F5ABB76FFE636DD7706291022682134",
+    "ExeSha256": "8F0C430F47FBB5316B7FD7F1F0F9C7D4E904B9185A0C973E620BDCA88568589C",
+    "ReleaseManifestSha256": "A1CE85A7C50AAA4C183693D1F309B14872F28479A2B26D1249C75427A02BFF0A",
+    "SourceGitSha": "55c0bddfebf7ef13e2e06e93e7460544a757b3de"
+  },
+  "PostDelete": {
+    "TargetExists": false,
+    "RemainingFiles": 0,
+    "RemainingDirectories": 0,
+    "RemainingLogicalBytes": 0,
+    "EnumerationComplete": true,
+    "EnumerationError": null,
+    "LogicalBytesRemoved": 1810610828
+  },
+  "ProcessCensus": {
+    "CapturedUtc": "2026-09-27T10:10:39.0676441Z",
+    "WindowsUser": "ADMIN-PC\\Admin",
+    "AdminRole": false,
+    "CIMAvailable": true,
+    "CIMCount": 0,
+    "CIMRows": [],
+    "TasklistPath": "C:\\Windows\\System32\\tasklist.exe",
+    "TasklistExitCode": 0,
+    "TasklistOutput": "INFO: No tasks are running which match the specified criteria.",
+    "TasklistNoTasks": true,
+    "GetProcessCount": 0,
+    "ProcessRows": []
+  },
+  "ProtectedPostCheck": "PASS",
+  "ProtectedMismatches": [],
+  "ProtectedBaselinePre": [
+    {
+      "Path": "D:\\QI-Crawler",
+      "Files": 2496,
+      "Directories": 226,
+      "LogicalBytes": 1840971963,
+      "ReparseCount": 0,
+      "EntryCount": 2722,
+      "MetadataSha256": "55A628678FD3D262B5C35122D503CA7376A019FAD8787948450DDC38775ED4DF"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Acceptance",
+      "Files": 53,
+      "Directories": 78,
+      "LogicalBytes": 16083671,
+      "ReparseCount": 0,
+      "EntryCount": 131,
+      "MetadataSha256": "6CD4C528AADD9AECA2ED40E689167709B2B286BF52F4A8DF4912625B7B947A86"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Rollback",
+      "Files": 2453,
+      "Directories": 167,
+      "LogicalBytes": 1827422540,
+      "ReparseCount": 0,
+      "EntryCount": 2620,
+      "MetadataSha256": "818378E605B1A575323BC406E3A4AD707A360FE0562EEF38ED3310CF3169C5EA"
+    },
+    {
+      "Path": "C:\\Users\\Admin\\AppData\\Local\\QI-Crawler",
+      "Files": 48,
+      "Directories": 19,
+      "LogicalBytes": 28288223,
+      "ReparseCount": 0,
+      "EntryCount": 67,
+      "MetadataSha256": "36B123EBC0A5E07D30FB5AFB4B49E6B168B2120176CE37FAE035BB967312F0E0"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\control",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 720,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "BE2D9B95B0B748D455EF2D0FD5C4D9995390C19B0A0422ECC5E6132FD8E16566"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\data-root",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "56ECBDFD706FD77B40A30437293614C006A1F1B74C1DFE3A1E081A9F43648F0B"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\evidence",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 1464,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "69E2D1DB5D7A2DED82346631CB7CD7A2AF62F352EFE37C1FDC25F0BCECB1890D"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "41ABB6C20ABD7F71FF3FC49B74C643BDE5C662B300012071DC20E07CFEA5EDC7"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\control",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 720,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "DF570184AF9D8351FFC0BE0C374A74253CF1244F64DC78FAEBE7B7510359461E"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\data-root",
+      "Files": 6,
+      "Directories": 16,
+      "LogicalBytes": 4139827,
+      "ReparseCount": 0,
+      "EntryCount": 22,
+      "MetadataSha256": "B2BD462B69CB09B27A24D13B6C4B0D6904145697D69725CAEF85A1F60C8F397C"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\evidence",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 1736,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "3470E8F80326239772E7B1CA7A6EE0B0D5389CC4539340DD9100D7ACEFCD3A72"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "A9971D9CC8F7DAAEBD995679B8343FB39B2C6B668A2610E4B2ED499D5016A4F1"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\control",
+      "Files": 2,
+      "Directories": 1,
+      "LogicalBytes": 2546,
+      "ReparseCount": 0,
+      "EntryCount": 3,
+      "MetadataSha256": "F808D40DAAA9E55139A8FC545D94FC98DE850CFDECAE9D9C742C2F3C11030090"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\data-root",
+      "Files": 11,
+      "Directories": 20,
+      "LogicalBytes": 7602982,
+      "ReparseCount": 0,
+      "EntryCount": 31,
+      "MetadataSha256": "4E31259FB2188B40AB466EE90A5515C12D0E6FEB71A8D036F8BDF53361017080"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\evidence",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "7C2E056A52632451CE511B1DCBF1CEA830E14057D345B40410A2EBCB58BE2BCC"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "9FAABA4435B6D72DE106F899B0F4DAB66E3709F7294719CF21042D289EB6A235"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\control",
+      "Files": 2,
+      "Directories": 1,
+      "LogicalBytes": 2501,
+      "ReparseCount": 0,
+      "EntryCount": 3,
+      "MetadataSha256": "72A583C5BB2C9B1A80B3B9B29FABD4FEB731EC950C3EA1669F505C6A31731081"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\data-root",
+      "Files": 12,
+      "Directories": 21,
+      "LogicalBytes": 8207593,
+      "ReparseCount": 0,
+      "EntryCount": 33,
+      "MetadataSha256": "FF05008DC48852FDFC12E2DF3F974B2A9CDC34CFE57946A8F14ECAC9760F649B"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\evidence",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "5A2FF05B86129CC273F8C077F098EE857A70B6861C6D77757B3D02E4C43CD5CE"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "F5BE2B5154F7616849001C37012D8FB549722D863961B71BC747CD73C661B933"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\app",
+      "Files": 2445,
+      "Directories": 205,
+      "LogicalBytes": 1810607486,
+      "ReparseCount": 0,
+      "EntryCount": 2650,
+      "MetadataSha256": "3BC5B9F7A8A1F8D65992495C56D010E3DA346275B0767E71F938589B2C79427C"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f6782d7e-20260919T013001Z",
+      "Files": 1791,
+      "Directories": 161,
+      "LogicalBytes": 1763337673,
+      "ReparseCount": 0,
+      "EntryCount": 1952,
+      "MetadataSha256": "6751264E8577B8ECC676F7088BC876B65342A0F57C87F8E5C3D2458B86813ADE"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-b4f016d7-20260922T012330Z",
+      "Files": 2459,
+      "Directories": 226,
+      "LogicalBytes": 1816814822,
+      "ReparseCount": 0,
+      "EntryCount": 2685,
+      "MetadataSha256": "6FF3C8C9089B6A2BDFBA434BF8B65C41FF11A690D57F5608CF88B7AF84746344"
+    }
+  ],
+  "ProtectedBaselinePost": [
+    {
+      "Path": "D:\\QI-Crawler",
+      "Files": 2496,
+      "Directories": 226,
+      "LogicalBytes": 1840971963,
+      "ReparseCount": 0,
+      "EntryCount": 2722,
+      "MetadataSha256": "55A628678FD3D262B5C35122D503CA7376A019FAD8787948450DDC38775ED4DF"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Acceptance",
+      "Files": 53,
+      "Directories": 78,
+      "LogicalBytes": 16083671,
+      "ReparseCount": 0,
+      "EntryCount": 131,
+      "MetadataSha256": "6CD4C528AADD9AECA2ED40E689167709B2B286BF52F4A8DF4912625B7B947A86"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Rollback",
+      "Files": 2453,
+      "Directories": 167,
+      "LogicalBytes": 1827422540,
+      "ReparseCount": 0,
+      "EntryCount": 2620,
+      "MetadataSha256": "818378E605B1A575323BC406E3A4AD707A360FE0562EEF38ED3310CF3169C5EA"
+    },
+    {
+      "Path": "C:\\Users\\Admin\\AppData\\Local\\QI-Crawler",
+      "Files": 48,
+      "Directories": 19,
+      "LogicalBytes": 28288223,
+      "ReparseCount": 0,
+      "EntryCount": 67,
+      "MetadataSha256": "36B123EBC0A5E07D30FB5AFB4B49E6B168B2120176CE37FAE035BB967312F0E0"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\control",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 720,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "BE2D9B95B0B748D455EF2D0FD5C4D9995390C19B0A0422ECC5E6132FD8E16566"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\data-root",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "56ECBDFD706FD77B40A30437293614C006A1F1B74C1DFE3A1E081A9F43648F0B"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\evidence",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 1464,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "69E2D1DB5D7A2DED82346631CB7CD7A2AF62F352EFE37C1FDC25F0BCECB1890D"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "41ABB6C20ABD7F71FF3FC49B74C643BDE5C662B300012071DC20E07CFEA5EDC7"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\control",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 720,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "DF570184AF9D8351FFC0BE0C374A74253CF1244F64DC78FAEBE7B7510359461E"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\data-root",
+      "Files": 6,
+      "Directories": 16,
+      "LogicalBytes": 4139827,
+      "ReparseCount": 0,
+      "EntryCount": 22,
+      "MetadataSha256": "B2BD462B69CB09B27A24D13B6C4B0D6904145697D69725CAEF85A1F60C8F397C"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\evidence",
+      "Files": 1,
+      "Directories": 1,
+      "LogicalBytes": 1736,
+      "ReparseCount": 0,
+      "EntryCount": 2,
+      "MetadataSha256": "3470E8F80326239772E7B1CA7A6EE0B0D5389CC4539340DD9100D7ACEFCD3A72"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "A9971D9CC8F7DAAEBD995679B8343FB39B2C6B668A2610E4B2ED499D5016A4F1"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\control",
+      "Files": 2,
+      "Directories": 1,
+      "LogicalBytes": 2546,
+      "ReparseCount": 0,
+      "EntryCount": 3,
+      "MetadataSha256": "F808D40DAAA9E55139A8FC545D94FC98DE850CFDECAE9D9C742C2F3C11030090"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\data-root",
+      "Files": 11,
+      "Directories": 20,
+      "LogicalBytes": 7602982,
+      "ReparseCount": 0,
+      "EntryCount": 31,
+      "MetadataSha256": "4E31259FB2188B40AB466EE90A5515C12D0E6FEB71A8D036F8BDF53361017080"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\evidence",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "7C2E056A52632451CE511B1DCBF1CEA830E14057D345B40410A2EBCB58BE2BCC"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "9FAABA4435B6D72DE106F899B0F4DAB66E3709F7294719CF21042D289EB6A235"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\control",
+      "Files": 2,
+      "Directories": 1,
+      "LogicalBytes": 2501,
+      "ReparseCount": 0,
+      "EntryCount": 3,
+      "MetadataSha256": "72A583C5BB2C9B1A80B3B9B29FABD4FEB731EC950C3EA1669F505C6A31731081"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\data-root",
+      "Files": 12,
+      "Directories": 21,
+      "LogicalBytes": 8207593,
+      "ReparseCount": 0,
+      "EntryCount": 33,
+      "MetadataSha256": "FF05008DC48852FDFC12E2DF3F974B2A9CDC34CFE57946A8F14ECAC9760F649B"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\evidence",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "5A2FF05B86129CC273F8C077F098EE857A70B6861C6D77757B3D02E4C43CD5CE"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\output",
+      "Files": 0,
+      "Directories": 1,
+      "LogicalBytes": 0,
+      "ReparseCount": 0,
+      "EntryCount": 1,
+      "MetadataSha256": "F5BE2B5154F7616849001C37012D8FB549722D863961B71BC747CD73C661B933"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\app",
+      "Files": 2445,
+      "Directories": 205,
+      "LogicalBytes": 1810607486,
+      "ReparseCount": 0,
+      "EntryCount": 2650,
+      "MetadataSha256": "3BC5B9F7A8A1F8D65992495C56D010E3DA346275B0767E71F938589B2C79427C"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-f6782d7e-20260919T013001Z",
+      "Files": 1791,
+      "Directories": 161,
+      "LogicalBytes": 1763337673,
+      "ReparseCount": 0,
+      "EntryCount": 1952,
+      "MetadataSha256": "6751264E8577B8ECC676F7088BC876B65342A0F57C87F8E5C3D2458B86813ADE"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-b4f016d7-20260922T012330Z",
+      "Files": 2459,
+      "Directories": 226,
+      "LogicalBytes": 1816814822,
+      "ReparseCount": 0,
+      "EntryCount": 2685,
+      "MetadataSha256": "6FF3C8C9089B6A2BDFBA434BF8B65C41FF11A690D57F5608CF88B7AF84746344"
+    }
+  ],
+  "DatabasePost": {
+    "Path": "D:\\QI-Crawler\\Data\\data\\database\\egp.db",
+    "Length": 2043904,
+    "LastWriteTicks": 639257494877226976,
+    "LastWriteTimeUtc": "2026-09-23T08:38:07.7226976Z",
+    "SHA256": "33A3A5ADACA15514A18714DBD9281C224C174B8471341EEB8C333C11748818EE"
+  },
+  "CurrentCriticalFilesPost": [
+    {
+      "Path": "D:\\QI-Crawler\\Current\\QI-Crawler\\QI-Crawler.exe",
+      "Length": 19873214,
+      "LastWriteTicks": 639257221088803075,
+      "LastWriteTimeUtc": "2026-09-23T01:01:48.8803075Z",
+      "SHA256": "05230277BBBB2E2D0858E88CDA04651DFCD75EB8EC39F83F18AA7E5FB7C691B9"
+    },
+    {
+      "Path": "D:\\QI-Crawler\\Current\\QI-Crawler\\BUILD_INFO.txt",
+      "Length": 376,
+      "LastWriteTicks": 639257221599061578,
+      "LastWriteTimeUtc": "2026-09-23T01:02:39.9061578Z",
+      "SHA256": "2653C38863C6BED83B1D1EB96760F31E18BD63FE3CE5B34831DC465E488BDC74"
+    },
+    {
+      "Path": "D:\\QI-Crawler\\Current\\QI-Crawler\\release_manifest.json",
+      "Length": 453,
+      "LastWriteTicks": 639257221599061578,
+      "LastWriteTimeUtc": "2026-09-23T01:02:39.9061578Z",
+      "SHA256": "3A60E59808AA21A1C74C7C060715F11CD3FF7E2B13BDF697C6AC883B8F9549B4"
+    },
+    {
+      "Path": "D:\\QI-Crawler\\control\\operational_acceptance.json",
+      "Length": 1469,
+      "LastWriteTicks": 639257246691875670,
+      "LastWriteTimeUtc": "2026-09-23T01:44:29.1875670Z",
+      "SHA256": "32075EBB225EC19B78719978D92843C71B2689E5AE83B18249A138DC82C12C6A"
+    },
+    {
+      "Path": "D:\\QI-Crawler\\control\\operational_migration_receipt.json",
+      "Length": 513,
+      "LastWriteTicks": 639257246654309423,
+      "LastWriteTimeUtc": "2026-09-23T01:44:25.4309423Z",
+      "SHA256": "C9E77EDCEC123AC53E91D8A4140144418847100DFA063B1D414AB880A470EC59"
+    }
+  ],
+  "CandidateProtectedReceiptsPost": [
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\control\\portable_artifact_receipt.json",
+      "Length": 722,
+      "LastWriteTicks": 639255809417201723,
+      "LastWriteTimeUtc": "2026-09-21T09:49:01.7201723Z",
+      "SHA256": "5A02093CEE553D3DD583B358448AF1A03C1328B6D61701105AE6CFBEB69EF558"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\control\\pre_start_acceptance.json",
+      "Length": 1824,
+      "LastWriteTicks": 639255809799739457,
+      "LastWriteTimeUtc": "2026-09-21T09:49:39.9739457Z",
+      "SHA256": "964EF4ED1DA095FBD97CA49166ACD37B2FC348CC444B5C51966040030B4B01DE"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\data-root\\candidate_data_receipt.json",
+      "Length": 3313,
+      "LastWriteTicks": 639255804840741716,
+      "LastWriteTimeUtc": "2026-09-21T09:41:24.0741716Z",
+      "SHA256": "EA77F5B3666BDEECD0888AC64684A0BABE29CD56F09845F91BE08E3A98884C3A"
+    },
+    {
+      "Path": "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\data-root\\candidate_migration_receipt.json",
+      "Length": 5324,
+      "LastWriteTicks": 639255809625900496,
+      "LastWriteTimeUtc": "2026-09-21T09:49:22.5900496Z",
+      "SHA256": "C5E523455F20C989EF2904A6C245B9F43AC7C58BFFDE932EAD42744FA8D6371C"
+    }
+  ],
+  "DFreeBefore": 18956652544,
+  "DFreeAfter": 20770123776,
+  "ObservedVolumeFreeSpaceDelta": 1813471232,
+  "FreeSpaceDeltaCaveat": "Observed volume free-space delta may include unrelated activity, allocation-unit effects, compression, sparse/hardlink behavior or other volume changes; not exact cleanup contribution."
+}

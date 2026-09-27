@@ -1067,6 +1067,27 @@ CURRENT_EVIDENCE = release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGAT
 PERMANENT_PREVENTION = Resolve the registered task-owned short path; reject reparse escape; ensure basetemp is absent; create and writability-check its parent; use a separate retained probe; precreate the evidence directory; check process conflict, free space, and path headroom; then launch exactly once. Do not prune or retry on unknown setup state.
 LIMIT = Local Windows evidence only; hosted CI was not run. `ruff check .` separately failed in this environment on preserved unknown `$RECYCLE.BIN`; a clean-checkout hosted CI result remains required. No product fix, hosted-CI proof, cleanup, or remote action is implied.
 
+## FM-053 — Destructive cleanup receipt omitted full protected-path baseline arrays
+
+ID = FM-053
+TITLE = Destructive cleanup receipt omitted full protected-path baseline arrays
+STATE = OPEN
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = REVIEWER_NONBLOCKING_FINDING; PROSPECTIVE_PREVENTION_REQUIRED; NO_RETROSPECTIVE_FABRICATION
+DETECTED_BY = Independent Reviewer STORAGE_M2_REVIEWER_PASS_20260927_01; finding STORAGE-M2-R01
+AFFECTED_BASELINE = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01; M2 candidate a610ea07d434d6677e6f5749dc970a375e81d67c; reviewer doc 2c0c62c2609018a784e704b3e02b1b1520a503fd
+PRODUCT_HOUSE_LAYER = INFRASTRUCTURE / OPERATIONAL ARTIFACT LIFECYCLE
+SYMPTOM = DELETE_01 records ProtectedPostCheck=PASS, empty mismatches, and matching DB/current critical hashes, but omits the full protected pre/post baseline arrays present in DELETE_02 and DELETE_03 receipts.
+ROOT_CAUSE = The DELETE_01 receipt did not serialize complete per-target protected baseline arrays. Later receipts contain arrays, but they do not reconstruct the missing historical DELETE_01 arrays.
+WHY_EXISTING_CHECKS_MISSED_IT = Point-of-use gates and a passing summarized post-check did not ensure that the full protected baseline was persisted in every target's retained receipt; independent review identified the omission.
+FIX = No retrospective reconstruction or product/tool change in this WP. Apply the prevention prospectively to future destructive artifact lifecycle operations.
+FIX_HEAD = N/A; governance prevention only; audited candidate a610ea07d434d6677e6f5749dc970a375e81d67c
+REGRESSION_GUARD = Before each future destructive target operation, require that its own retained receipt contains complete protected pre- and post-operation baseline arrays; block deletion when either baseline is absent or incomplete.
+INDEPENDENT_AUDIT = PLANNER_ACCEPTED_REVIEWER_FINDING_STORAGE-M2-R01; NONBLOCKING; NEW_AUTHORITY_REQUIRED_FOR_ANY_FUTURE_CHANGE
+CURRENT_EVIDENCE = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01 M2 disposition and DELETE_01/02/03 receipts; Reviewer report STORAGE_M2_REVIEWER_PASS_20260927_01
+PERMANENT_PREVENTION = For every future destructive artifact lifecycle operation, persist complete per-target protected pre/post arrays in that target's receipt and verify completeness before deletion. This is prospective only; do not fabricate the missing historical arrays or claim new machine enforcement.
+LIMIT = Reviewer finding is IMPORTANT and NONBLOCKING for this accepted local outcome. DELETE_01's summary PASS, empty mismatches, and critical hashes remain evidence, but the omitted full historical arrays cannot be claimed or reconstructed.
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

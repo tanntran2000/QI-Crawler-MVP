@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.16",
+  "revision": "1.0.17",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -1108,6 +1108,35 @@
         "tests/test_operational_update.py"
       ],
       "relation": "Locator only for the bounded maintenance re-entry Work Order. Bridge A remains HOLD until the complete copy and verification maintenance barrier and exact source DB/WAL/SHM byte-and-existence invariant are proven; scope and transitions remain in the approved Work Order and CURRENT.md."
+    },
+    {
+      "wp_id": "WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01",
+      "authority_ref": "Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 / docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery; docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins; docs/agent/MASTER_ROADMAP_DELTA.md#rd-0014",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.EVIDENCE.WP_RUN"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md",
+        "docs/agent_handoff/CURRENT.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "release_staging/evidence/WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01-{run_id}/",
+        "D:\\QI-Crawler\\",
+        "D:\\QI-Crawler-Candidates\\v0.10.0-376efdad-20260918T092709Z\\app",
+        "D:\\QI-Crawler-Candidates\\v0.10.0-f3856385-20260918T152214Z\\app",
+        "D:\\QI-Crawler-Candidates\\v0.10.0-55c0bddf-20260921T093954Z\\app",
+        "D:\\QI-Crawler-Candidates\\v0.10.0-fb8edac-20260921T010751Z\\app",
+        "D:\\QI-Crawler-Acceptance\\",
+        "D:\\QI-Crawler-Rollback\\",
+        "C:\\Users\\Admin\\AppData\\Local\\QI-Crawler\\"
+      ],
+      "relation": "Locator only for the Human-approved storage-consolidation Work Order and its evidence/inspection roots. The four exact app paths are conditional deletion targets; the binding grants no write or deletion authority. Current scope and transition authority remain in the Work Order and CURRENT.md."
     }
   ],
   "legacy_locations": [
