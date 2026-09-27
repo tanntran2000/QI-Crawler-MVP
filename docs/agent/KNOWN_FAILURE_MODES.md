@@ -1088,6 +1088,35 @@ CURRENT_EVIDENCE = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01 M2 disposition and
 PERMANENT_PREVENTION = For every future destructive artifact lifecycle operation, persist complete per-target protected pre/post arrays in that target's receipt and verify completeness before deletion. This is prospective only; do not fabricate the missing historical arrays or claim new machine enforcement.
 LIMIT = Reviewer finding is IMPORTANT and NONBLOCKING for this accepted local outcome. DELETE_01's summary PASS, empty mismatches, and critical hashes remain evidence, but the omitted full historical arrays cannot be claimed or reconstructed.
 
+## FM-054 — Local pytest scratch file budget breach detected after runs
+
+ID = FM-054
+TITLE = Local pytest scratch file budget breach detected after runs
+STATE = OPEN
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = SCRATCH_FILE_CAP_EXCEEDED; WHOLE_WP_HOLD; PREVENTION_PROPOSED_PENDING
+DETECTED_BY = Builder final hidden-inclusive post-run scratch audit; admitted Tester report WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-TESTER-20260927T1600Z independently confirmed counts and bytes
+SCOPE = WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01; local Windows full sequential verification only
+CODE_CANDIDATE_HEAD = db2d298705e21a7c0fb2af192d11a20b245d059c
+TESTER_BRANCH_HEAD = a95b66bdcddcc4eb381bbf7d76b4b0eac3f06d99
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+APPROVED_FILE_LIMIT = 10000 FILES PER RUN; NO RETROSPECTIVE INCREASE
+SYMPTOM = First full-run scratch contained 13910 files and 621941751 bytes; the one authorized infrastructure rerun contained 14033 files and 614887749 bytes. Both exceeded the approved file cap and each remained below the 2-GiB byte cap. The breach was detected only by the final hidden-inclusive post-run audit.
+ROOT_CAUSE = NOT_FULLY_CLASSIFIED; available evidence establishes late post-run detection but does not establish the full cause of the file-count growth or whether a bounded in-run checkpoint would have stopped either run sooner.
+TEST_FAILURE_ROOT_CAUSES = NOT_FULLY_CLASSIFIED
+RELATED_EXISTING_FAILURE_MODES = FM-051; FM-052
+WINDOWS_PATH_RISK = NOT_ELIMINATED; the authorized rerun still reported a 276-character A3 path after shortening from 286 characters
+PRODUCT_DEFECT_CAUSATION = NOT_ESTABLISHED
+CANDIDATE_CAUSATION = NOT_ESTABLISHED
+WHY_EXISTING_CHECKS_MISSED_IT = File counts were checked only in the final hidden-inclusive post-run audit; the approved 10000-file cap was exceeded in both completed full-run scratch trees before detection.
+FIX = NONE; no test, product, runtime, or enforcement change was authorized or made by this docs-only correction.
+FIX_HEAD = N/A; documentation record only; prevention is not implemented
+REGRESSION_GUARD = PROPOSED_PENDING; future governed full local runs need an evidence-based file budget and an observable bounded enforcement/checkpoint strategy before execution; use a genuinely short task-owned basetemp with verified deepest-path headroom per FM-051/FM-052; stop or HOLD on budget breach; retain exact logs and counts.
+INDEPENDENT_AUDIT = TESTER_REPORT_ADMITTED_BY_PLANNER; INDEPENDENT REVIEWER AUDIT PENDING; WHOLE_WP HOLD
+CURRENT_EVIDENCE = .tmp/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01/20260927T145300Z; .tmp/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01/20260927T151000Z; Tester report WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-TESTER-20260927T1600Z
+PERMANENT_PREVENTION = PROPOSED_PENDING_NOT_IMPLEMENTED; before future governed full local runs, set a justified file cap from evidence and define a bounded observable count/checkpoint strategy before execution; verify the shortest task-owned basetemp and deepest-path headroom using FM-051/FM-052 controls; stop/HOLD on breach; retain exact invocation, logs, and counts.
+LIMIT = Do not retroactively raise the approved limit, rewrite historical run evidence, claim prevention is implemented, or attribute all 65 failing nodes to environment or product. The 276-character A3 path leaves the known Windows path-risk unresolved. Product or candidate defect causation is not established.
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
