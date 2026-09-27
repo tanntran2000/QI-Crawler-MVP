@@ -1465,3 +1465,23 @@ Boundary: Preserve operational data, AppData, Acceptance, Rollback, candidate da
 Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_FEEDBACK_AND_PATH_REGISTRY
 Promoted to: docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md; docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml
 ~~~
+
+### FB-0057 — Human A0 Codebase Memory routing and impact-readiness work
+
+~~~text
+State: ACCEPTED / REV3_BOUNDED_WORK_ORDER_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Explicit Human A0 approval recorded in Planner task `/root` and relayed to the Builder, 2026-09-27
+Type: ENGINEERING_TOOLING / CODEBASE_MEMORY_ROUTING / EXECUTION_ORDER
+WP: WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01 rev3
+Decision:
+  CODEBASE_MEMORY_READINESS_AND_COVERAGE_ROUTING = ADD_TO_CANONICAL_QI_IMPACT_SKILL
+  NEW_ROLE_OR_SKILL = NO
+  GRAPH_OUTPUT_GRANTS_SCOPE_OR_AUTHORITY = NO
+  B09_ENGINE_OR_LIVE_UPDATE_AUTHORITY = NO
+  PR131_MERGE_RECONCILIATION = REQUIRED; PRESERVE_HISTORICAL_WIP_AND_HOLD
+Boundary: This decision authorizes only the exact implementation/governance allowlists and local stages in the approved rev3 Work Order. Indexing requires a qualifying new diagnostic/input under its bounded readiness rules. No B09 source/test, engine, startup, live update, push, PR, merge, release, hook/user-config edit, MCP implementation change, cleanup, or Codex restart is authorized in this Builder phase.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_AND_PATH_REGISTRY
+Promoted to: docs/superpowers/plans/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01.md; docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml
+~~~
