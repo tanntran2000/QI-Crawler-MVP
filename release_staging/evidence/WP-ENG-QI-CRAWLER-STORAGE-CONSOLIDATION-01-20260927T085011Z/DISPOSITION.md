@@ -86,3 +86,57 @@ unresolved exact-binary need.
 this M1 return.
 **Next authority:** `PLANNER_ARCHITECT` to review the M1 evidence and decide the
 next authorized action.
+
+## M2 conditional sequential deletion result
+
+This section records the later M2 checkpoint; the M1 disposition above is a
+historical snapshot and remains accurate for that earlier state. The Planner's
+bounded review cleared targets 1–3 for fresh point-of-use gates. Target 4
+remains held because the matching Acceptance recovery-copy references are not
+proven independent of its exact app binary.
+
+| Candidate app subtree | Result | Pre-delete inventory | Logical bytes removed | Receipt SHA-256 |
+|---|---|---:|---:|---|
+| `D:\QI-Crawler-Candidates\v0.10.0-376efdad-20260918T092709Z\app` | DELETED; target complete | 1,775 files / 137 descendant dirs; zero reparse | 1,755,258,576 | `BCD17AC7F6479A7AA27A875FF98976B0CD4E227860CBDCDF968EA5D2E3F89AB3` |
+| `D:\QI-Crawler-Candidates\v0.10.0-f3856385-20260918T152214Z\app` | DELETED; target complete | 1,775 files / 137 descendant dirs; zero reparse | 1,755,259,162 | `325B1145EAC67EC6C5D0121AE700568E6572CCDE1CF168A06C85D22DC691195C` |
+| `D:\QI-Crawler-Candidates\v0.10.0-55c0bddf-20260921T093954Z\app` | DELETED; target complete | 2,445 files / 204 descendant dirs; zero reparse | 1,810,610,828 | `300F28BA477F72D889D263C96743B31A87FD653CAC068B9F0620ADF21BCF57A0` |
+| `D:\QI-Crawler-Candidates\v0.10.0-fb8edac-20260921T010751Z\app` | KEEP_PENDING_REVIEW; no census or deletion | Matching Acceptance recovery-copy-01/02 remains; independence from exact binary is unproven | 0 | Not applicable |
+
+Each deletion had a fresh, immediate same-user process census with
+`ADMIN_ROLE=False`: CIM found zero `QI-Crawler.exe` processes, trusted
+`C:\Windows\System32\tasklist.exe` exited 0 and reported no matching tasks,
+and supplemental `Get-Process` found zero. The exact allowlisted direct app
+path, containment, ancestor components, recursive reparse census, portable
+receipt, `QI-Crawler.exe` / `BUILD_INFO.txt` / release-manifest hashes and
+source Git object were revalidated before each deletion. No Windows elevation,
+ACL change or process control was used.
+
+All per-target protected post-checks passed (25, 24 and 23 protected roots,
+respectively, after excluding the exact app being deleted). The live database
+remained 2,043,904 bytes with SHA-256
+`33A3A5ADACA15514A18714DBD9281C224C174B8471341EEB8C333C11748818EE`; the
+current install's executable/build/manifest/receipts, operational root,
+AppData, Acceptance, Rollback, protected candidate app siblings, and all
+candidate `control`, `data-root`, `evidence` and `output` siblings were
+unchanged. Target 3's `control\pre_start_acceptance.json` and all other
+named sibling receipts were retained and hash-checked.
+
+Total logical bytes removed were **5,321,128,566**. Immediate observed free
+space deltas were 1,757,388,800 bytes, 1,757,388,800 bytes and 1,813,471,232
+bytes. The net observation from the first pre-delete reading through the third
+post-delete reading was 5,324,681,216 bytes. These are volume observations,
+not exact cleanup attribution; unrelated activity and allocation, compression,
+sparse-file or hardlink behavior may affect them. Per-target counts, before /
+remaining bytes, census results and protected comparisons are in the three
+`DELETE_0N_RECEIPT.json` files.
+
+No application data, database, current installation, candidate root, sibling,
+Acceptance, Rollback, AppData, repository source or test was changed. No
+remote operation, cleanup or unrelated deletion occurred. The raw inventory
+manifest remains local-only and must not be staged or published. The sanitized
+receipts and final summary are retained within the registered evidence budget.
+
+**M2 status:** conditional sequential deletion complete for the three targets
+whose gates passed; `fb8edac` remains KEEP_PENDING_REVIEW. The Work Order has
+not been Planner-closed. `CURRENT.md` records the handoff state; next authority
+is `PLANNER_ARCHITECT` for M2 result review and closeout/continuation decision.
