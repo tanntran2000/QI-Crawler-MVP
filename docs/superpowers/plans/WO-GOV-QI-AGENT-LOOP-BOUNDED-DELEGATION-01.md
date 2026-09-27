@@ -1,7 +1,7 @@
 # WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01
 
 **Type:** SUCCESSOR_GOVERNANCE_WORK_PACKAGE
-**Status:** Stage 0 complete; Stage 1 candidate/C02 returned and Planner-reviewed; Stage 2 Tester static/scenario verification pending
+**Status:** Stage 0 complete; Stage 1 candidate/C02 Planner-reviewed; Stage 2 Tester and one prompt-governed helper pilot complete with limitations; Stage 3 independent Reviewer pending
 **Date:** 2026-09-26
 **Release impact:** NONE
 
@@ -75,6 +75,8 @@ This governance Work Order does not modify the product architecture, storage/dat
   REMAINING=0
   ```
 
+- `VERIFICATION_ONLY_EXTENSION_BUDGET=1; CONSUMED=1; REMAINING=0`, for the bounded runner-setup verification replay only. It is not a correction attempt. `DELEGATION_PILOT_BUDGET=1; CONSUMED=1; REMAINING=0`.
+
 - Allow one primary full verification and one affected full rerun only when an authorized correction changes the candidate and the active verification contract requires it.
 
 ### Reviewer finding and verification shape
@@ -106,8 +108,12 @@ B09 implementation; operational data; cleanup; Crawler runtime/source/tests exce
 
 0. **Reconcile and register:** complete. Stage 0 was committed at `e47e531a458d7f69b35c12b9af21307ce967871b`.
 1. **Minimal contract correction:** candidate returned at `f6519cfeb544a642f5506e305a852e7190bc1201`; Planner builder-result review is `PASS` for transition. This is not a Tester or Reviewer result.
-2. **Static/scenario verification and one helper pilot:** Tester static/scenario verification of the exact candidate is pending. The helper pilot budget is one and the pilot has not started. The approved native dispatch may deliver only the exact tracked-file allowlist as bounded context under the active lease and grants no wider access. The helper may not initiate network, connector, external-tool, or other external transmission. No helper writes, tests, imports, database or operational-data access, untracked-content access, or child delegation; sensitive, untracked, and operational content is excluded from this pilot. Required output headings: `OBSERVED`, `INFERENCE`, `OPTION`, `EVIDENCE_LOCATORS`, `LIMITATIONS`. The owner independently verifies every cited item. No autonomous enforcement claim.
-3. **Integration:** local verification, normal push of the approved feature branch, and create/update one PR only after the relevant local gates; exact-head CI and independent exact-head review; Planner reconciliation; Human manual merge; post-merge verification. Merge and release remain Human-only. Stage 0 grants none of these remote actions.
+2. **Static/scenario verification and one helper pilot:** complete with limitations. Tester report `AGL_STAGE2_TESTER_REPORT_20260927_03` verified code `f6519cfeb544a642f5506e305a852e7190bc1201` and docs `cfcb643ee28da3dca7edd1ef37230bd18a0d9c3d`: full local suite 1,674 passed, 4 skipped, 0 failed, 0 errors, 1,678 exact node set in 965 seconds; static targeted 37 PASS; Agent Workbench 64 PASS; lock 10 PASS; tracked-Python Ruff 255 PASS; diff and collection PASS. `ruff check .` failed locally on preserved unknown `$RECYCLE.BIN`; clean-checkout hosted CI remains required, and hosted CI was not run. Earlier invalid runs are runner-setup evidence, not candidate defects: a long basetemp was a plausible FM-051 confound and not a full PASS; the next run had 1,677 setup errors, 1 skip, and 0 assertions because its basetemp parent was absent. Corrected verification used `.tmp/a2/t` (absolute length 56) and projected FM-051 nested paths of 230/221 characters, then passed on the exact candidate. Locators: `release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T011319Z/` and `release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T021019Z/`.
+
+   The one prompt-governed pilot is consumed (`1/1; remaining 0`) and recorded at `release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-HELPER-PILOT-01/pilot-report.md`. Its observed task identity was `/root/agent_loop_helper_pilot_01`; approved native dispatch delivered only the bounded context from this exact tracked-file allowlist: `docs/agent/OPERATING_MODEL.md`, `docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01.md`, and `tests/agent_workbench/test_execution_skills_contract.py`. No wider access was authorized. At pilot time, before this transition metadata sync, the owner verified unchanged Git blob identities before/after: `OPERATING_MODEL.md` `3b644cbc3b6b4e04997edbe1ac09fa3a4ad5ec71`; this Work Order `b9d25f1866447dd22af0be7ca3724c8cda1b1d61`; contract test `e4ba8b8e69e6e6095cbdcf1f120d81ad93767411`. Required output headings were present; the helper self-reported no writes, tests, imports, operational/untracked reads, network/external transmission, cleanup, or child delegation, and no child appeared in the observed agent tree. These are prompt-governed observations/self-report, not machine enforcement. `DELEGATION_PILOT_VERIFIED=ONE_PROMPT_GOVERNED_RUN_WITH_LIMITATION`; `AUTONOMOUS_ENFORCEMENT_NOT_PROVEN=YES`.
+
+   `REVIEWER_CHALLENGE_REQUIRED=YES`: report admission requires independently observed `SOURCE_TASK_ID`, but the helper section does not explicitly require independently observed helper dispatch/receipt identity before owner citation. Preserve this as unresolved challenge input; this transition does not decide or fix it. At this sync, the two Tester run roots and pilot report contain 17 retained files totaling 6,450,568 bytes, within the 26-file / 35,651,584-byte cap; execution scratch is excluded and remains KEEP.
+3. **Independent review and integration:** independent exact-range Reviewer audit of the code candidate and Tester/pilot evidence is pending. After Reviewer return and Planner reconciliation, perform only the authorized local verification and remote checkpoint/PR/CI steps; Planner reconciliation and Human merge/release authority remain separate. No PR, hosted CI, merge, or release has occurred for this branch.
 
 ## CI fitness and plugin applicability
 
@@ -149,9 +155,9 @@ Return evidence with exact checkout identity, remote/PR facts, base and candidat
 ## Spine and next authority
 
 ```text
-SPINE_IMPACT = CURRENT | GOVERNANCE
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; this successor Work Order
-SPINE_SYNC_STATE = PASS for the pre-Tester transition captured at f6519cfeb544a642f5506e305a852e7190bc1201
-EXACTLY_ONE_NEXT_ACTION = TESTER_MACHINE_VERIFIER_VERIFIES_EXACT_CANDIDATE_BEFORE_PILOT
-NEXT_AUTHORITY = TESTER_MACHINE_VERIFIER
+SPINE_IMPACT = CURRENT | FAILURE_MEMORY
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; this successor Work Order; docs/agent/KNOWN_FAILURE_MODES.md
+SPINE_SYNC_STATE = PASS for the pre-Reviewer transition captured at cfcb643ee28da3dca7edd1ef37230bd18a0d9c3d
+EXACTLY_ONE_NEXT_ACTION = REVIEWER_AUDITOR_INDEPENDENTLY_AUDITS_EXACT_RANGE_AND_TESTER_PILOT_EVIDENCE
+NEXT_AUTHORITY = REVIEWER_AUDITOR
 ```
