@@ -1839,3 +1839,28 @@ SCOPE = TWO_CODE_TEST_FILES_ALREADY_FROZEN; TERMINAL_DOC_SYNC_ONLY_NOW; NO_A3_ED
 BRIDGE_A = HOLD; TESTER_AND_INDEPENDENT_REVIEWER_PENDING; NO_PASS_OR_MATURITY_PROMOTION
 NEXT = PLANNER_ROUTES_EXACT_CANDIDATE_TO_TESTER; REVIEWER_AFTER_PLANNER_MACHINE_EVIDENCE_REVIEW
 ~~~
+
+
+## 9. Current operational artifact lifecycle entry
+
+### RD-0014 - Operational artifact storage consolidation
+
+~~~text
+ID = RD-0014
+TITLE = PRESERVE SINGLE OPERATIONAL INSTALLATION DURING CANDIDATE ARTIFACT RELIEF
+STATUS = APPROVED_ACTIVE
+SOURCE = Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; 2026-09-27
+CRAWLER_VALUE = NONE
+PRODUCT_AREA = Cross-cutting Windows delivery and operational artifact lifecycle
+PRODUCT_HOUSE_LAYERS = INFRASTRUCTURE_OPERATIONAL_ARTIFACT_LIFECYCLE; WINDOWS_PACKAGING_RELEASE_LIFECYCLE; PERSISTENCE_OBSERVED_ONLY
+OBSERVATION = The approved Work Order sets D:\QI-Crawler as the intended sole operational root and lists four exact candidate app targets. Their current existence and operational, rollback, or reproduction roles remain to be verified by M1. Candidate data, control, evidence, output, and unknown paths remain KEEP.
+WHY_IT_MATTERS = Reclaim obsolete candidate application binaries while preserving the sole operational installation, operational data, acceptance and rollback evidence, candidate data, and repository content.
+ROADMAP_IMPACT = SPINE_ONLY
+RELEVANT_CURRENT_WP = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01
+TARGET_STATE = Complete bounded read-only inventory and evidence-based disposition; conditionally delete only exact allowlisted app targets when every required gate passes; make no product or runtime behavior change.
+PROMOTION_TARGET = GOVERNANCE
+PROMOTION_CONDITION = Close the approved Work Order only after actual dispositions, protected post-checks, evidence retention, and remaining storage limitations are reconciled.
+COMPLETION_EVIDENCE = Registered WP evidence and CURRENT record show each target disposition, byte accounting, process/reparse/receipt evidence, and protected-path results.
+REMOVE_FROM_DELTA_WHEN = Work Order is closed and its outcome is reconciled in CURRENT; route any durable lifecycle lesson to its canonical governance authority.
+PLANNER_NOTES = No Master Roadmap capability or maturity promotion. This is operational artifact lifecycle work. B09 and A3 remain outside this Work Order.
+~~~

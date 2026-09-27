@@ -1443,3 +1443,25 @@ Disposition: ACCEPTED / ROUTED_TO_SUCCESSOR_WORK_ORDER_CURRENT_AND_PATH_REGISTRY
 Promoted to: docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01.md;
 docs/agent_handoff/CURRENT.md; docs/agent/PATH_REGISTRY.yaml
 ~~~
+
+
+### FB-0056 - Human A0 bounded Crawler storage consolidation
+
+~~~text
+State: ACCEPTED / BOUNDED_PARENT_WORK_ORDER_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Exact Human A0 approval recorded in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 on 2026-09-27
+Type: OPERATIONAL_ARTIFACT_LIFECYCLE / EXECUTION_ORDER / DATA_PRESERVATION
+WP: WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01
+Decision:
+  HUMAN_INTENDED_SINGLE_OPERATIONAL_INSTALLATION = D:\QI-Crawler
+  PHASES = M0_ENTRY_AND_BRANCH_RECONCILIATION; M1_READ_ONLY_INVENTORY; M2_CONDITIONAL_SEQUENTIAL_DELETE
+  EXACT_DELETE_ALLOWLIST = FOUR_EXACT_CANDIDATE_APP_SUBTREES_IN_THE_WORK_ORDER_ONLY
+  EXACT_BINARY_LOSS = ACCEPTED_ONLY_FOR_ALLOWLISTED_APP_SUBTREES_WHEN_EVERY_GATE_PASSES
+  UNKNOWN_OR_UNPROVEN = KEEP
+  REMOTE_ACTION = NONE; NO_PUSH_OR_PR_OR_MERGE_OR_RELEASE
+Boundary: Preserve operational data, AppData, Acceptance, Rollback, candidate data/control/evidence/output, repository source and tests, and all unknown or unclassified paths. No B09/A3 execution, database or live-app mutation, source/test edits, ACL changes, shortcut changes, or unrelated cleanup. M2 is conditional and sequential; any unresolved gate holds the exact target, and a partial delete stops the full batch.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_FEEDBACK_AND_PATH_REGISTRY
+Promoted to: docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md; docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml
+~~~
