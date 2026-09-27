@@ -1,7 +1,7 @@
 # WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01
 
 **Type:** SUCCESSOR_GOVERNANCE_WORK_PACKAGE
-**Status:** Stage 0 complete; Stage 1 candidate/C02 Planner-reviewed; Stage 2 Tester and one prompt-governed helper pilot complete with limitations; Stage 3 independent Reviewer pending
+**Status:** Stage 0 complete; Stage 1 candidate/C02 Planner-reviewed; Stage 2 Tester and one prompt-governed helper pilot complete with limitations; Stage 3 Reviewer PASS and Planner-reconciled; pre-remote integration ready
 **Date:** 2026-09-26
 **Release impact:** NONE
 
@@ -113,7 +113,9 @@ B09 implementation; operational data; cleanup; Crawler runtime/source/tests exce
    The one prompt-governed pilot is consumed (`1/1; remaining 0`) and recorded at `release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-HELPER-PILOT-01/pilot-report.md`. Its observed task identity was `/root/agent_loop_helper_pilot_01`; approved native dispatch delivered only the bounded context from this exact tracked-file allowlist: `docs/agent/OPERATING_MODEL.md`, `docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01.md`, and `tests/agent_workbench/test_execution_skills_contract.py`. No wider access was authorized. At pilot time, before this transition metadata sync, the owner verified unchanged Git blob identities before/after: `OPERATING_MODEL.md` `3b644cbc3b6b4e04997edbe1ac09fa3a4ad5ec71`; this Work Order `b9d25f1866447dd22af0be7ca3724c8cda1b1d61`; contract test `e4ba8b8e69e6e6095cbdcf1f120d81ad93767411`. Required output headings were present; the helper self-reported no writes, tests, imports, operational/untracked reads, network/external transmission, cleanup, or child delegation, and no child appeared in the observed agent tree. These are prompt-governed observations/self-report, not machine enforcement. `DELEGATION_PILOT_VERIFIED=ONE_PROMPT_GOVERNED_RUN_WITH_LIMITATION`; `AUTONOMOUS_ENFORCEMENT_NOT_PROVEN=YES`.
 
    `REVIEWER_CHALLENGE_REQUIRED=YES`: report admission requires independently observed `SOURCE_TASK_ID`, but the helper section does not explicitly require independently observed helper dispatch/receipt identity before owner citation. Preserve this as unresolved challenge input; this transition does not decide or fix it. At this sync, the two Tester run roots and pilot report contain 17 retained files totaling 6,450,568 bytes, within the 26-file / 35,651,584-byte cap; execution scratch is excluded and remains KEEP.
-3. **Independent review and integration:** independent exact-range Reviewer audit of the code candidate and Tester/pilot evidence is pending. After Reviewer return and Planner reconciliation, perform only the authorized local verification and remote checkpoint/PR/CI steps; Planner reconciliation and Human merge/release authority remain separate. No PR, hosted CI, merge, or release has occurred for this branch.
+3. **Independent review and integration:** Reviewer report `AGL_STAGE3_REVIEW_20260927_01` returned `PASS` for code `f6519cfeb544a642f5506e305a852e7190bc1201` and docs `8aacd5ffbe315e7e5223e10460c9724014ee35fd`; CI fitness is `FIT_WITH_REQUIRED_HOSTED_CONFIRMATION`. Planner accepted the local candidate and audit and reconciled the review, authorizing the normal push of this exact branch and one PR to `main` after remote identity gates. Hosted CI remains required and was not run before push. PR was not open before push. Merge and release remain Human-only and are not authorized by this transition.
+
+   `AGL-R03-F01 = IMPORTANT | NONBLOCKING | NEW_AUTHORITY_REQUIRED`. Impact: helper citation provenance is not explicitly required before owner citation, although helper identity was observed during the bounded pilot. A future bounded governance correction requires new authority. Do not reopen the exhausted correction budget or fix this finding in the current integration lease.
 
 ## CI fitness and plugin applicability
 
@@ -155,9 +157,9 @@ Return evidence with exact checkout identity, remote/PR facts, base and candidat
 ## Spine and next authority
 
 ```text
-SPINE_IMPACT = CURRENT | FAILURE_MEMORY
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; this successor Work Order; docs/agent/KNOWN_FAILURE_MODES.md
-SPINE_SYNC_STATE = PASS for the pre-Reviewer transition captured at cfcb643ee28da3dca7edd1ef37230bd18a0d9c3d
-EXACTLY_ONE_NEXT_ACTION = REVIEWER_AUDITOR_INDEPENDENTLY_AUDITS_EXACT_RANGE_AND_TESTER_PILOT_EVIDENCE
-NEXT_AUTHORITY = REVIEWER_AUDITOR
+SPINE_IMPACT = CURRENT
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; this successor Work Order
+SPINE_SYNC_STATE = PASS for pre-remote reconciliation captured at 8aacd5ffbe315e7e5223e10460c9724014ee35fd
+EXACTLY_ONE_NEXT_ACTION = PUSH_EXACT_BRANCH_AND_CREATE_ONE_PR_TO_MAIN
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER
 ```
