@@ -3,15 +3,23 @@
 ## Status, authority, and baseline
 
 ~~~text
-STATUS = ACTIVE; M0_COMPLETE; M1_COMPLETE; M2_COMPLETE_FOR_TARGETS_01_03; TARGET_04_FB8EDAC_KEEP_PENDING_REVIEW; PLANNER_BUILDER_RESULT_REVIEW_PASS_WITH_ONE_TARGET_RETAINED; TESTER_PASS_MACHINE_EVIDENCE_ACCEPTED; INDEPENDENT_REVIEWER_AUDIT_PENDING
-ROLE = BUILDER_SINGLE_WRITER
+STATUS = LOCAL_EXECUTION_COMPLETE_PASS_WITH_LIMITATIONS; M0_COMPLETE; M1_COMPLETE; M2_TARGETS_01_03_COMPLETE; TARGET04_FB8EDAC_KEEP_PENDING_REVIEW; TESTER_PASS; REVIEWER_PASS; REMOTE_INTEGRATION_PENDING
+ROLE = BUILDER_SINGLE_WRITER_FOR_REMOTE_INTEGRATION_ONLY
 AUTHORITY = Human A0 exact approval recorded in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77 on 2026-09-27
 PLANNER_BUILDER_RESULT_REVIEW = PASS_WITH_ONE_TARGET_RETAINED; PARENT_NOT_CLOSED
 TESTER_STATE = PASS_MACHINE_EVIDENCE_FOR_M2_CANDIDATE_ONLY
 TESTER_REPORT_ID = STORAGE_M2_TESTER_PASS_20260927_01; SOURCE_TASK=/root/agent_loop_contract_tester
 TESTER_OBJECT_ID = M2_a610ea07d434d6677e6f5749dc970a375e81d67c__DOC_2377888c35a86edd478b2e7a1011f32c9ab53eee
 PLANNER_TESTER_RECONCILIATION = ACCEPTED; PARENT_NOT_CLOSED
-REVIEWER_STATE = INDEPENDENT_AUDIT_PENDING; TARGET_CODE=a610ea07d434d6677e6f5749dc970a375e81d67c; TARGET_DOC=2377888c35a86edd478b2e7a1011f32c9ab53eee
+REVIEWER_STATE = PASS; REPORT_ID=STORAGE_M2_REVIEWER_PASS_20260927_01; TARGET_CODE=a610ea07d434d6677e6f5749dc970a375e81d67c; TARGET_DOC=2c0c62c2609018a784e704b3e02b1b1520a503fd
+REVIEWER_REPORT_ID = STORAGE_M2_REVIEWER_PASS_20260927_01; SOURCE_TASK_ID=/root/agent_loop_contract_reviewer
+REVIEWER_OBJECT_ID = M2_a610ea07d434d6677e6f5749dc970a375e81d67c__LIVE_DOC_2c0c62c2609018a784e704b3e02b1b1520a503fd
+REVIEWER_AUDIT_VERDICT = PASS; CI_FITNESS=FIT_FOR_LOCAL_STORAGE_AND_EVIDENCE_CAPABILITY; HOSTED_GATES_LATER_REMOTE_PR_TRANSITION
+REVIEWER_LIMITATIONS = UNRELATED_ACCEPTANCE_EXPORT_WORKSPACE_NAMES_ONLY_ACCESS_DENIED; DELETE_01_SUMMARY_POSTCHECK_PASS_EMPTY_MISMATCHES_CRITICAL_HASHES_MATCH_BUT_FULL_ARRAYS_OMITTED; SAFETY_GUARD_MANUAL_ONLY; FREE_SPACE_DELTAS_OBSERVATIONAL
+PLANNER_POST_REVIEW_RECONCILIATION = LOCAL_OUTCOME_PASS_WITH_LIMITATIONS; LOCAL_PARENT_TESTER_REVIEWER_COMPLETE; REMOTE_INTEGRATION_PENDING
+REVIEWER_FINDING_STORAGE_M2_R01 = FINDING_ID=STORAGE-M2-R01; IMPORTANT; NONBLOCKING; NEW_AUTHORITY_REQUIRED; DELETE_01_FULL_PROTECTED_PRE_POST_ARRAYS_NOT_PERSISTED; NO_RETROSPECTIVE_FABRICATION; FUTURE_DESTRUCTIVE_LIFECYCLE_REQUIRES_COMPLETE_PER_TARGET_ARRAYS
+REMOTE_INTEGRATION_AUTHORITY = HUMAN_A0_AUTHORIZED_ONE_NORMAL_BRANCH_PUSH_AND_ONE_PR_TO_MAIN_AFTER_REVIEW_GATES; MONITOR_REQUIRED_CI; NO_MERGE
+LOCAL_M2_OUTCOME = PASS_WITH_LIMITATIONS; TARGETS_01_03_DELETED; TARGET04_FB8EDAC_KEEP_PENDING_REVIEW; LOGICAL_BYTES_REMOVED=5321128566; NO_FURTHER_DELETION_AUTHORITY
 CANONICAL_CHECKOUT_EXPECTED = D:\QI Technology\QI Crawler\egp-crawler-python
 EXPECTED_ORIGIN_REPOSITORY = https://github.com/tanntran2000/QI-Crawler-MVP.git
 M0_BASE = cc9bd53be871059689be4f91f0584efbec04405e
@@ -38,8 +46,9 @@ CodeQL Analyze (python), and CodeQL.
 M0 verified the canonical checkout and origin, fast-forwarded local main to
 the verified origin/main, proved the merged local branch tip reachable and
 deleted only that local branch, then created this local branch at the exact
-live main. M0 uses one semantic local commit. No remote write is authorized
-in this Work Order.
+live main. M0 made no remote write. After local Tester and Reviewer gates, the
+Human-authorized continuation permits one normal push of this branch, one PR
+to main, and required-CI monitoring; merge remains Human-only.
 
 ## Objective and boundaries
 
@@ -55,7 +64,7 @@ database mutation authority.
 
 ~~~text
 MUST_NOT_CHANGE = repository source/tests/migrations/packaging/scripts/templates; workflow CI; AGENTS.md; Master Roadmap; operational configuration; shortcuts; database; AppData; Acceptance; Rollback; protected candidate content
-MUST_NOT_DO = start or stop the application; migrate, mutate, copy, or open an operational DB; change ACLs or take ownership; elevate to improve observation; clean unknown artifacts; use wildcard deletion; push; create PR; merge; release
+MUST_NOT_DO = start or stop the application; migrate, mutate, copy, or open an operational DB; change ACLs or take ownership; elevate to improve observation; clean unknown artifacts; use wildcard deletion; perform further deletion; force push; rebase; amend; rewrite history; create more than one PR; merge; release
 UNKNOWN_OR_ACCESS_DENIED = KEEP
 ~~~text
 
@@ -229,16 +238,18 @@ path escape, any reparse component/descendant, unresolved process evidence,
 protected artifact drift, access denied on a target census, or any partial
 delete. Unknown remains KEEP.
 
-M0, M1, and any eligible M2 evidence may receive semantic local commits under
-this lease. PUSH=NO; PR=NO; MERGE=NO; RELEASE=NO; unrelated CLEANUP=NO.
+M0, M1, eligible M2 evidence, and governed post-review metadata may receive
+semantic local commits under this lease. One normal branch push and one PR to
+main are Human-authorized after local gates; monitor required checks. MERGE=HUMAN_ONLY;
+RELEASE=NO; further deletion and unrelated CLEANUP=NO.
 Return exact identity/branch/commits, entry gates, per-target dispositions,
 process/reparse/receipt evidence, bytes/free-space, protected post-check,
 changed paths, validations, plugins, limitations, and Spine state.
 
 ~~~text
-SPINE_IMPACT = CURRENT | ROADMAP_DELTA | FEEDBACK | PATH_REGISTRY
-SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/FEEDBACK_LEDGER.md; docs/agent/PATH_REGISTRY.yaml
-SPINE_SYNC_STATE = PASS only when exact facts reconcile
-EXACTLY_ONE_NEXT_ACTION = REVIEWER_AUDITOR_INDEPENDENTLY_AUDITS_M2_CANDIDATE_a610ea07d434d6677e6f5749dc970a375e81d67c_AND_DOC_HEAD_2377888c35a86edd478b2e7a1011f32c9ab53eee
-NEXT_AUTHORITY = REVIEWER_AUDITOR
+SPINE_IMPACT = CURRENT | ROADMAP_DELTA | FAILURE_MEMORY | WORK_ORDER
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/superpowers/plans/WO-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01.md
+SPINE_SYNC_STATE = PASS_FOR_REMOTE_INTEGRATION_ENTRY
+EXACTLY_ONE_NEXT_ACTION = BUILDER_PERFORMS_ONE_NORMAL_BRANCH_PUSH_AND_CREATES_ONE_PR_TO_MAIN_THEN_MONITORS_REQUIRED_CHECKS_NO_MERGE
+NEXT_AUTHORITY = BUILDER_SINGLE_WRITER_FOR_REMOTE_INTEGRATION_ONLY
 ~~~

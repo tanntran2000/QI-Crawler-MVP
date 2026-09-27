@@ -1848,19 +1848,19 @@ NEXT = PLANNER_ROUTES_EXACT_CANDIDATE_TO_TESTER; REVIEWER_AFTER_PLANNER_MACHINE_
 ~~~text
 ID = RD-0014
 TITLE = PRESERVE SINGLE OPERATIONAL INSTALLATION DURING CANDIDATE ARTIFACT RELIEF
-STATUS = APPROVED_ACTIVE
+STATUS = LOCAL_REVIEW_COMPLETE_PENDING_REMOTE_INTEGRATION
 SOURCE = Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; 2026-09-27
 CRAWLER_VALUE = NONE
 PRODUCT_AREA = Cross-cutting Windows delivery and operational artifact lifecycle
 PRODUCT_HOUSE_LAYERS = INFRASTRUCTURE_OPERATIONAL_ARTIFACT_LIFECYCLE; WINDOWS_PACKAGING_RELEASE_LIFECYCLE; PERSISTENCE_OBSERVED_ONLY
-OBSERVATION = The approved Work Order sets D:\QI-Crawler as the intended sole operational root and lists four exact candidate app targets. Their current existence and operational, rollback, or reproduction roles remain to be verified by M1. Candidate data, control, evidence, output, and unknown paths remain KEEP.
+OBSERVATION = M0/M1 and conditional M2 completed locally. Exact targets 01-03 were deleted after all required gates; target04 fb8edac remains KEEP_PENDING_REVIEW because its Acceptance recovery-copy role is unresolved. Total logical bytes removed were 5,321,128,566. The approved operational root and protected data, Acceptance, Rollback, AppData, and candidate sibling state were retained.
 WHY_IT_MATTERS = Reclaim obsolete candidate application binaries while preserving the sole operational installation, operational data, acceptance and rollback evidence, candidate data, and repository content.
 ROADMAP_IMPACT = SPINE_ONLY
 RELEVANT_CURRENT_WP = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01
-TARGET_STATE = Complete bounded read-only inventory and evidence-based disposition; conditionally delete only exact allowlisted app targets when every required gate passes; make no product or runtime behavior change.
-PROMOTION_TARGET = GOVERNANCE
-PROMOTION_CONDITION = Close the approved Work Order only after actual dispositions, protected post-checks, evidence retention, and remaining storage limitations are reconciled.
-COMPLETION_EVIDENCE = Registered WP evidence and CURRENT record show each target disposition, byte accounting, process/reparse/receipt evidence, and protected-path results.
-REMOVE_FROM_DELTA_WHEN = Work Order is closed and its outcome is reconciled in CURRENT; route any durable lifecycle lesson to its canonical governance authority.
-PLANNER_NOTES = No Master Roadmap capability or maturity promotion. This is operational artifact lifecycle work. B09 and A3 remain outside this Work Order.
+TARGET_STATE = Local artifact disposition complete for targets 01-03; target04 remains KEEP_PENDING_REVIEW; no further deletion is authorized. One branch checkpoint, one PR to main, and required-CI monitoring remain pending; merge is Human-only.
+PROMOTION_TARGET = NONE_FOR_PRODUCT_CAPABILITY_OR_MATURITY; GOVERNANCE_LESSON_TO_FM-053
+PROMOTION_CONDITION = Do not promote to the Master Roadmap. Reconcile or remove this Delta entry only at post-merge reconciliation after live main, CURRENT, PR, CI, and merge facts are verified.
+COMPLETION_EVIDENCE = Registered WP records three completed deletions and one retained target, 5,321,128,566 logical bytes removed, protected-path checks, Tester PASS, Reviewer PASS, and nonblocking finding STORAGE-M2-R01.
+REMOVE_FROM_DELTA_WHEN = Post-merge reconciliation only, after live main and CURRENT agree; preserve STORAGE-M2-R01 through FM-053 as a prospective lifecycle prevention lesson.
+PLANNER_NOTES = Local WP outcome PASS_WITH_LIMITATIONS. Tester and independent Reviewer passed the local candidate. STORAGE-M2-R01 requires future destructive operations to persist full per-target protected pre/post arrays; do not fabricate historical arrays. Unrelated Acceptance export-workspace metadata walk had Access Denied and remains a limitation. No further deletion, release, Master Roadmap promotion, or B09 authority. Remote integration is pending.
 ~~~
