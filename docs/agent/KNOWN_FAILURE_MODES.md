@@ -1047,6 +1047,26 @@ CURRENT_EVIDENCE = .tmp/b9/B09A02/s3-03-output.txt; .tmp/b9/B09A02/s3-03-junit.x
 PERMANENT_PREVENTION = Before a Windows full suite, calculate the task basetemp and the deepest known nested temporary filename; choose a short task-owned base with headroom; retain exact command, object, environment, JUnit and session output; classify nested missing-path failures before product changes; obey finite runtime/scratch budgets and do not blindly retry.
 LIMIT = The mechanism is demonstrated for the reproduced A3 lifecycle and document-smoke signatures. Exact identities/tracebacks for the historical 24 failures were not retained, so do not claim each old node was independently mapped. No hosted CI, product fix, cleanup or remote action is implied.
 
+## FM-052 — Windows pytest basetemp parent omission blocked test setup
+
+ID = FM-052
+TITLE = Windows pytest basetemp parent omission blocked test setup
+STATE = OPEN
+DISPOSITION = RUNNER_SETUP_FAILURE_CONFIRMED; CORRECTED_EXACT_CANDIDATE_FULL_SUITE_PASS; NO_CANDIDATE_DEFECT
+DETECTED_BY = Bounded Agent Loop Stage 2 Tester full-suite verification
+AFFECTED_BASELINE = Windows local runner; code candidate f6519cfeb544a642f5506e305a852e7190bc1201; docs cfcb643ee28da3dca7edd1ef37230bd18a0d9c3d
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+SYMPTOM = The first long-basetemp attempt was a plausible FM-051 path-length confound and was not a full PASS. A second attempt produced 1,677 setup errors, 1 skipped test, and 0 assertions; test bodies were blocked.
+ROOT_CAUSE = Runner preparation supplied a pytest basetemp whose parent directory did not exist. The runner omitted parent provisioning; this was not a candidate-code failure.
+WHY_EXISTING_TESTS_MISSED_IT = The pytest run failed during setup before assertions could execute. Test failures were not established by that attempt.
+FIX = No product code fix. Verification used `.tmp/a2/t`, absolute path length 56, with projected FM-051 nested paths of 230 and 221 characters.
+FIX_HEAD = N/A; runner setup correction only; candidate remains f6519cfeb544a642f5506e305a852e7190bc1201
+REGRESSION_GUARD = Exact-candidate local full suite: 1,678 exact node set; 1,674 passed; 4 skipped; 0 failed; 0 errors; 965 seconds. Static targeted 37 PASS; Agent Workbench 64 PASS; lock 10 PASS; tracked-Python Ruff 255 PASS; diff and collection PASS.
+INDEPENDENT_AUDIT = PLANNER_ADMITTED_TESTER_REPORT; REVIEWER_AUDIT_PENDING
+CURRENT_EVIDENCE = release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T011319Z/; release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T021019Z/
+PERMANENT_PREVENTION = Resolve the registered task-owned short path; reject reparse escape; ensure basetemp is absent; create and writability-check its parent; use a separate retained probe; precreate the evidence directory; check process conflict, free space, and path headroom; then launch exactly once. Do not prune or retry on unknown setup state.
+LIMIT = Local Windows evidence only; hosted CI was not run. `ruff check .` separately failed in this environment on preserved unknown `$RECYCLE.BIN`; a clean-checkout hosted CI result remains required. No product fix, hosted-CI proof, cleanup, or remote action is implied.
+
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

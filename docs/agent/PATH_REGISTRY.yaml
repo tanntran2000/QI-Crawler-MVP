@@ -1051,6 +1051,34 @@
       "relation": "Locator only for the approved Agent Loop governance Work Order; current scope and transition authority remain in that Work Order and CURRENT.md."
     },
     {
+      "wp_id": "WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01",
+      "authority_ref": "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.REPO.PLUGINS",
+        "PATH.REPO.TESTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.EVIDENCE.WP_RUN"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent/OPERATING_MODEL.md",
+        "docs/agent_handoff/CURRENT.md",
+        "plugins/qi-agent-workbench/skills/qi-agent-loop/SKILL.md",
+        "plugins/qi-agent-workbench/skills-lock.json",
+        "tests/agent_workbench/test_execution_skills_contract.py",
+        ".tmp/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01/{run_id}/",
+        "release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-{run_id}/"
+      ],
+      "relation": "Locator only for the bounded successor Work Order and candidate evidence paths; it grants no write scope or transition authority. Current scope and authority remain in the Work Order and CURRENT.md."
+    },
+    {
       "wp_id": "WP-REL-V010-B09-BRIDGE-A-MAINTENANCE-REENTRY-01",
       "authority_ref": "Planner Work Order in task 01a0d14b-4e41-7480-9179-d1b230295f77; Human A0 resume instruction HUMAN_A0_RESUME_B09_20260926",
       "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#lane-3--unified-tender-warehouse; RD-0013 in docs/agent/MASTER_ROADMAP_DELTA.md",
