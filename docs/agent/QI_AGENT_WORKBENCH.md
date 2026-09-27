@@ -63,6 +63,10 @@ intelligence only. If unavailable, the skill reports
 `TOOL_UNAVAILABLE → governed manual fallback`; it never grants scope.
 `CODEGRAPH_IMPACT != EDIT_SCOPE`.
 
+Structural impact analysis checks Codebase Memory readiness; `qi-impact-map`
+owns the detailed routing contract. Graph output is evidence only and grants
+no scope or authority.
+
 ## 7. Evidence verification
 
 Evidence Check distinguishes baseline/negative proof, targeted local, full
