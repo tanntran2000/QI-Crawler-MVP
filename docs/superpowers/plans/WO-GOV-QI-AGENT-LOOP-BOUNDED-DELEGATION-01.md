@@ -1,7 +1,7 @@
 # WO-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01
 
 **Type:** SUCCESSOR_GOVERNANCE_WORK_PACKAGE
-**Status:** Stage 0 active; Stages 1–3 conditional on Planner review and issuance
+**Status:** Stage 0 complete; Stage 1 candidate/C02 returned and Planner-reviewed; Stage 2 Tester static/scenario verification pending
 **Date:** 2026-09-26
 **Release impact:** NONE
 
@@ -104,9 +104,9 @@ B09 implementation; operational data; cleanup; Crawler runtime/source/tests exce
 
 ## Stages and acceptance
 
-0. **Reconcile and register:** execute only the four-file Stage 0 scope and local commit. Active now.
-1. **Minimal contract correction:** only the candidate minimum above, after Planner review/issuance; preserve the exact envelope and current owner boundaries.
-2. **Static/scenario verification and one helper pilot:** verify the text contract and finite accounting scenarios. Run one prompt-governed helper against one exact candidate and exact tracked-file allowlist. The approved native dispatch may deliver only that allowlisted tracked content as bounded context under the active lease and grants no wider access. The helper may not initiate network, connector, external-tool, or other external transmission. No helper writes, tests, imports, database or operational-data access, untracked-content access, or child delegation; sensitive, untracked, and operational content is excluded from this pilot. Required output headings: `OBSERVED`, `INFERENCE`, `OPTION`, `EVIDENCE_LOCATORS`, `LIMITATIONS`. The owner independently verifies every cited item. No autonomous enforcement claim.
+0. **Reconcile and register:** complete. Stage 0 was committed at `e47e531a458d7f69b35c12b9af21307ce967871b`.
+1. **Minimal contract correction:** candidate returned at `f6519cfeb544a642f5506e305a852e7190bc1201`; Planner builder-result review is `PASS` for transition. This is not a Tester or Reviewer result.
+2. **Static/scenario verification and one helper pilot:** Tester static/scenario verification of the exact candidate is pending. The helper pilot budget is one and the pilot has not started. The approved native dispatch may deliver only the exact tracked-file allowlist as bounded context under the active lease and grants no wider access. The helper may not initiate network, connector, external-tool, or other external transmission. No helper writes, tests, imports, database or operational-data access, untracked-content access, or child delegation; sensitive, untracked, and operational content is excluded from this pilot. Required output headings: `OBSERVED`, `INFERENCE`, `OPTION`, `EVIDENCE_LOCATORS`, `LIMITATIONS`. The owner independently verifies every cited item. No autonomous enforcement claim.
 3. **Integration:** local verification, normal push of the approved feature branch, and create/update one PR only after the relevant local gates; exact-head CI and independent exact-head review; Planner reconciliation; Human manual merge; post-merge verification. Merge and release remain Human-only. Stage 0 grants none of these remote actions.
 
 ## CI fitness and plugin applicability
@@ -149,9 +149,9 @@ Return evidence with exact checkout identity, remote/PR facts, base and candidat
 ## Spine and next authority
 
 ```text
-SPINE_IMPACT = CURRENT | FEEDBACK | GOVERNANCE_LOCATOR
-SPINE_TARGET_FILES = the four exact Stage 0 paths above
-SPINE_SYNC_STATE = PASS only when live facts and all four files reconcile
-STAGE_0_NEXT_ACTION = Planner reviews the Stage 0 commit, then issues Stage 1 to the same Builder
-NEXT_AUTHORITY = PLANNER_ARCHITECT
+SPINE_IMPACT = CURRENT | GOVERNANCE
+SPINE_TARGET_FILES = docs/agent_handoff/CURRENT.md; this successor Work Order
+SPINE_SYNC_STATE = PASS for the pre-Tester transition captured at f6519cfeb544a642f5506e305a852e7190bc1201
+EXACTLY_ONE_NEXT_ACTION = TESTER_MACHINE_VERIFIER_VERIFIES_EXACT_CANDIDATE_BEFORE_PILOT
+NEXT_AUTHORITY = TESTER_MACHINE_VERIFIER
 ```
