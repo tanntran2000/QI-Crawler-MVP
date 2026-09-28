@@ -786,7 +786,7 @@ QI-Crawler theo-doi --mot-lan
 Moi luot quet cap nhat ban ghi trung theo ma thong bao va phien ban. Opportunity Priority Score chi de xep
 hang, khong thay the buoc tai ho so, kiem tra tieu chi bat buoc, phe duyet noi bo hoac quyet dinh tham du.
 
-## Ghi chu noi bo chua phat hanh - 0.10.1
+## Co gi moi trong 0.10.1 - Noi bo, chua phat hanh
 
 - Ma nguon dang chuan bi danh tinh noi bo 0.10.1; chua co EXE/installer moi,
   chua publish, chua cai dat va chua cap nhat runtime.

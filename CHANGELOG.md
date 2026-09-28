@@ -2,7 +2,7 @@
 
 Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ban.
 
-## Unreleased
+## 0.10.1 - Internal, unreleased
 
 - Correct the operational promotion contract so persisted storage paths bind to
   the final root and legitimate database writes do not block a later restart.
