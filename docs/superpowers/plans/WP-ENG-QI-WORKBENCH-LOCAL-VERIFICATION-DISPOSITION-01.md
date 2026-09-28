@@ -229,6 +229,8 @@ The bounded pass proposes two one-node questions. Planner may activate zero, one
 
 If both are activated, cumulative limits are ≤6,000 files and ≤1 GiB, below the shared maxima of 7,500 files and 1.5 GiB; preserve ≥10 GiB D: free, allow zero retries, and do no cleanup. The exact incremental expectation is UNKNOWN until measured; these are hard upper bounds, not a promise that the nodes fit. File-budget observation is post-run only, not hard in-run enforcement. Use the existing finite timeout mechanism; on timeout, verify invocation-owned child processes have stopped before another slot. If that cannot be established, stop. No wrapper may hide a pytest invocation. A pre-run path/headroom failure is HOLD before execution.
 
+Before creating any diagnostic scratch, the activated Tester must register the chosen six-hex batch token in the approved batch-to-WP mapping for this Micro-WP. No mapping means HOLD before scratch creation. After each invocation, compare exact file and byte deltas against the per-slot and cumulative ceilings; any breach means HOLD the batch immediately, preserve the exact logs and counts, and do not start another slot. On timeout, verify only invocation-owned child processes have stopped; never terminate processes by generic process name. If process ownership or shutdown cannot be verified, stop the batch and return the evidence to Planner.
+
 No third node is proposed in this initial pass because the mixed 42-node group has not been split into matching traceback/fixture/input classes. A further node requires Planner activation grounded in evidence from the first one or two slots. No diagnostic is automatically authorized by this Work Order alone.
 
 ## Codebase Memory and tool evidence
