@@ -198,6 +198,19 @@ PROJECT_MEMORY.md is not writable for unmerged G1 facts. tools/release/**, all o
 
 Complete the maps above, path registrations, Work Order and governed entry handoff before behavior edits. Reuse capability-owned modules. Do not create another updater engine. Run pytest collection-only before the first test change and record the baseline with zero collection errors.
 
+Initial collection baseline, before any test edit:
+
+```text
+COMMAND = .venv/Scripts/python.exe -m pytest --collect-only -q --basetemp .tmp/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01/20260928T151949Z/p
+EXIT = 0
+RESULT = 1,679 TESTS COLLECTED IN 7.71s; ZERO COLLECTION ERRORS; NO TESTS EXECUTED
+RUN_ROOT = .tmp/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01/20260928T151949Z
+RETAINED_LOG = collection-baseline.log; 165,024 BYTES
+RUN_ROOT_INVENTORY = 1 FILE; 165,024 BYTES; 0 SUBDIRECTORIES
+D_FREE_BYTES = 19,382,415,360 BEFORE; 19,382,247,424 AFTER; ABOVE 10 GiB RESERVE
+RUNTIME = REPOSITORY .venv; NO INSTALL OR RUNTIME CHANGE
+```
+
 ### G1.1 — application update, acceptance and recovery
 
 TDD RED then GREEN for acceptance v2, append-only state, same-volume app-only staging/rotation, Windows old-binary resource/process protection, DB/config/sidecar byte and existence preservation, exact recovery classification, startup guard and failure injection. Preserve the read-only Bridge A classifier. Use synthetic/private roots only. Never execute the installed EXE or any live update.
