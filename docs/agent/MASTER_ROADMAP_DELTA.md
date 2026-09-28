@@ -2048,3 +2048,24 @@ SPINE_SYNC_STATE = PASS AFTER GOVERNANCE VALIDATION
 PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
 NEXT = PLANNER REVIEWS THIS AUTHORITY SYNC AND ASSIGNS TESTER THE ONE REPLACEMENT FULL SEQUENTIAL RUN ON EXACT HEAD RESOLVED AT PREFLIGHT
 ~~~
+
+## Single-installation G1-C02 — version-document synchronization failure
+
+Tester ran the one Human-authorized replacement sequential suite at exact candidate HEAD `90806b72df381334632ae7b760cba53216409d6c`: 1,781 collected, 1,775 passed, 5 skipped, 1 failed and 2 warnings in 879.33 seconds. The failed node is `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`; CodeGraph showed it asserts both the changelog and Vietnamese guide headings. Planner classifies this as a documentation synchronization `WP_CODE_DEFECT`, not a runtime or release defect. The wrapper reused reserved PowerShell `$PID`, so the native process exit code is not independently proven despite the retained failure summary. This is not a GitHub Actions failure claim. The failed full run remains consumed RED history.
+
+The bounded correction aligns only those two headings with internal, unreleased 0.10.1 source metadata. No source, test, version constant, runtime, capability or release state changes. A single targeted test may verify the correction after the governance sync; no full-suite rerun, Ruff run or retry is authorized here. Preserve scratch `.tmp/w3/f2a913` (15,791 files / 621,117,062 bytes); no cleanup.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C02-VERSION-DOCUMENT-SYNC-20260929
+AUTHORITY = PLANNER-ADMITTED TESTER RESULT AND PLANNER-OPENED BOUNDED DOCS CORRECTION UNDER EXISTING HUMAN-APPROVED G1 LEASE
+CANDIDATE_HEAD = 90806b72df381334632ae7b760cba53216409d6c
+TEST_RESULT = 1,781 COLLECTED; 1,775 PASSED; 5 SKIPPED; 1 FAILED; 2 WARNINGS; 879.33s; RETAINED FULL-RUN RED
+FAILED_NODE = `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`; TEST REQUIRES `## 0.10.1` AND `Co gi moi trong 0.10.1`
+ROOT_CAUSE = DOCUMENT HEADINGS DO NOT SATISFY SYNCHRONIZATION CONTRACT; MINIMUM FIX IS TWO DOC HEADINGS; NO RUNTIME/RELEASE DEFECT
+PROCESS_EXIT = NOT_INDEPENDENTLY_PROVEN; POWERSHELL WRAPPER REUSED RESERVED `$PID`; NO GITHUB ACTIONS FAILURE CLAIM
+SCRATCH = `.tmp/w3/f2a913`; 15,791 FILES / 621,117,062 BYTES; RETAINED; NO CLEANUP
+PREVENTION = USE NON-RESERVED PROCESS-ID VARIABLE AND CAPTURE NATIVE PROCESS OBJECT `.ExitCode` DIRECTLY BEFORE ANY OTHER COMMAND
+AUTHORIZED_CHECK = ONE TARGETED GREEN AFTER GOVERNANCE SYNC; NO RED RERUN/FULL SUITE/RUFF/RETRY
+RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/CAPABILITY CHANGE
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+~~~

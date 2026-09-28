@@ -526,3 +526,25 @@ REMOTE_AND_LIVE_AUTHORITY = NONE
 NEXT = PLANNER REVIEWS THIS AUTHORITY SYNC AND ASSIGNS TESTER THE ONE AUTHORIZED REPLACEMENT FULL RUN ON THE EXACT HEAD RESOLVED AT PREFLIGHT
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
+
+### G1-C02 version-document synchronization — Tester RED and bounded correction
+
+At candidate HEAD `90806b72df381334632ae7b760cba53216409d6c`, the Human-authorized replacement sequential run collected 1,781 tests and reported 1,775 passed, 5 skipped, 1 failed, and 2 warnings in 879.33 seconds. The admitted failure is `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents` at line 163. The test requires the exact version headings in both the changelog and Vietnamese user guide: `## 0.10.1` and `Co gi moi trong 0.10.1`. The first current heading is only `## Unreleased`; the second is `## Ghi chu noi bo chua phat hanh - 0.10.1`.
+
+Planner classified this as a documentation synchronization `WP_CODE_DEFECT`, not a runtime or release defect. The native pytest process exit code is not independently established: the Tester wrapper reused reserved PowerShell `$PID` after launch. The retained stdout contains the full failure result, but no claim is made that the wrapper preserved the process exit code. This is not evidence of a GitHub Actions failure. The run remains consumed RED history; do not rerun RED or the full suite.
+
+The approved minimal correction changes only those two headings, retaining explicit internal/unreleased/not-released wording and all existing explanatory text. No test, source, version constant, build, tag, release, installation, or capability changes are authorized. After this governance sync is committed, Builder may run exactly one targeted GREEN for the failing node, with a fresh registered compact run parent created and verified before launch, absent child `t` for pytest to own, complete logs outside `t`, and the native process object's `ExitCode` captured directly. Do not use reserved `$PID`. Stop after that one targeted run; there is no full-suite, Ruff, or retry authority in this correction.
+
+```text
+G1_C02_CANDIDATE_HEAD = 90806b72df381334632ae7b760cba53216409d6c
+G1_C02_TESTER_FULL_RUN = 1,781 COLLECTED; 1,775 PASSED; 5 SKIPPED; 1 FAILED; 2 WARNINGS; 879.33s; RETAINED RED
+G1_C02_FAILURE = tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents; BOTH DOCUMENT HEADINGS MUST MATCH INTERNAL 0.10.1 SOURCE METADATA
+G1_C02_CLASSIFICATION = PLANNER WP_CODE_DEFECT; DOCUMENT SYNCHRONIZATION; NO RUNTIME/RELEASE DEFECT
+G1_C02_NATIVE_EXIT = NOT_PROVEN; POWERSHELL WRAPPER REUSED RESERVED `$PID`; RETAINED TESTER STDOUT CONTAINS FAILURE SUMMARY; NO GITHUB ACTIONS CLAIM
+G1_C02_SCRATCH = `.tmp/w3/f2a913`; 15,791 FILES / 621,117,062 BYTES; RETAINED; NO CLEANUP
+G1_C02_PREVENTION = USE NON-RESERVED `$pytestProcessId`; CAPTURE PROCESS OBJECT `.ExitCode` DIRECTLY BEFORE ANY OTHER COMMAND
+G1_C02_EDIT_SCOPE = CHANGELOG.md AND HUONG_DAN_SU_DUNG.md HEADINGS ONLY; NO TEST/SOURCE/VERSION-CONSTANT CHANGE
+G1_C02_VERIFICATION = ONE TARGETED GREEN ONLY AFTER GOVERNANCE SYNC; NO RED RERUN, FULL SUITE, RUFF OR RETRY
+G1_C02_RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT, BUILD, TAG, RELEASE, INSTALLATION OR CAPABILITY CHANGE
+G1_C02_NEXT = BUILDER COMMITS GOVERNANCE SYNC, APPLIES THE TWO AUTHORIZED HEADING EDITS, RUNS ONE TARGETED GREEN AND RETURNS EVIDENCE TO PLANNER
+```
