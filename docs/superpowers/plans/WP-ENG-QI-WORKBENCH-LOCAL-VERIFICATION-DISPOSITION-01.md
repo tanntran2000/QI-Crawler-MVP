@@ -107,7 +107,7 @@ Hosted evidence is `HOSTED_CI=PASS_PRESERVED_FOR_e28800e_ONLY`: pull_request run
 |---|---|---|---|
 | First local full run | 136 failed, 1,531 passed, 4 skipped, 8 errors; 950.61s; 144 unique failed/error nodes | `LOCAL_HISTORY=RED_PRESERVED` | Whole Parent remains held. |
 | Authorized local rerun | 65 failed, 1,610 passed, 4 skipped, 0 errors; 929.33s; 65 unique failed nodes | `LOCAL_HISTORY=RED_PRESERVED`; no new failed node | Whole Parent remains held; no further full run authorized. |
-| Exact failure-set comparison | 65-node intersection; 0 rerun-only failures; 79 first-run failed/error nodes absent from rerun failed/error listing | 79 IDs below are `UNKNOWN_NODES` for individual rerun pass-versus-skip disposition; no node-level report is retained | The unresolved 65 rerun failures already keep local verification RED; absence of 79 from the failure list adds no distinct known failing node but is not recorded as per-node PASS. |
+| Exact failure-set comparison | 65-node intersection; 0 rerun-only failures; 79 first-run failed/error nodes absent from rerun failed/error listing | The 79 `RERUN_ABSENT_FAILURE_IDS` lack individual pass-versus-skip disposition in retained evidence | The unresolved 65 rerun failures keep local verification RED; the 79 absent IDs are not known retry failures and are not recorded as per-node PASS. |
 | A3/F5 guard signature | 23 rerun nodes across 15 report sections; all 15 sections show `STATE_WRITE_FAILURE` / missing-path state-file writes; these nodes also recur in the first run | Path/local-state influence is consistent with the evidence; sole-cause attribution is not established. A retained 276-character A3 path shows Windows path risk was not eliminated. | 23 repeated failures remain in the local RED set. No A3 code/test change is in this WP. |
 | Other repeated failures | 42 nodes in document bundle/taxonomy, manual workspace, native extraction, document smoke/completeness, recovery, workspace intake/ops, and web intake | Mixed document-storage, missing-path and assertion signatures; not fully classified by matching traceback/fixture/input conditions across all 42 nodes | 42 repeated failures remain in the local RED set. No causal attribution to product or candidate. |
 | Candidate path overlap | No rerun failure ID is in the changed routing-contract test file; Tester separately reported zero failing nodes in that test | `CANDIDATE_CAUSATION=NOT_ESTABLISHED` | No direct candidate/test-file overlap was found; whole-WP HOLD remains. |
@@ -116,7 +116,7 @@ Hosted evidence is `HOSTED_CI=PASS_PRESERVED_FOR_e28800e_ONLY`: pull_request run
 | Codebase Memory | Skill read was denied in this execution context; callable read-only `list_projects` returned 0 projects; no indexing attempted | `CODEBASE_MEMORY_READINESS=HOLD_WITH_DIAGNOSIS`; exact managed cache/runtime path and bytes UNKNOWN; no coverage claim | No index evidence and no readiness promotion. |
 | Hosted CI | Five required jobs passed on run `36373119614` for exact source e288 / merge preview f629 / base 51463a1 | `HOSTED_CI=PASS_PRESERVED_FOR_e28800e_ONLY`; job-level, not per-node | Complementary hosted evidence; it does not remove local RED, scratch FAIL, or the Parent HOLD. |
 
-### Failure-set accounting and exact unknown node set
+### Failure-set accounting and exact rerun-absent failure IDs
 
 The first log contains 144 unique `FAILED`/`ERROR` identifiers (136 failed and 8 errors). The rerun contains 65 unique `FAILED` identifiers and no `ERROR` summary. Ordinal node-ID comparison found 65 in both, 0 new in the rerun, and 79 first-run IDs not in the rerun failed/error list. The aggregate counts are 1,679 outcomes in each run, but the retained logs do not bind the four skips to exact IDs or provide per-node rerun pass/skip rows. Therefore the 79 are listed as individually unclassified here rather than promoted to per-node PASS. The exact list is the set difference `FAILED/ERROR(full-pytest.log) minus FAILED(full-pytest-infra-retry.log)`:
 
@@ -202,14 +202,15 @@ The first log contains 144 unique `FAILED`/`ERROR` identifiers (136 failed and 8
 - tests/test_web_document_intake.py::test_rerun_is_duplicate_and_changed_file_is_new_version
 ```
 
-$unknownMarkdown
-
 ```text
-CANDIDATE_MERGE_BLOCKERS = LOCAL_FULL_SUITE_RED_UNRESOLVED; SCRATCH_FILE_CAP_FAIL; REPOSITORY_RUFF_RED_REPORTED_NOT_INDEPENDENTLY_LOG_VERIFIED; CODEBASE_MEMORY_HOLD; FINAL MERGE DECISION NOT MADE BY BUILDER
+CANDIDATE_MERGE_BLOCKERS = NOT_ESTABLISHED; NO DIRECT FAILED-NODE OVERLAP WITH CHANGED ROUTING-CONTRACT TEST; FINAL DISPOSITION PENDING TESTER/REVIEWER/PLANNER/HUMAN
+WHOLE_LOCAL_VERIFICATION_BLOCKERS = 65 RETRY FAILURES WITH CAUSES NOT FULLY CLASSIFIED; HISTORICAL SCRATCH CAP FAIL; LOCAL RUFF LIMITATION
+TOOL_READINESS_LIMITATION = CODEBASE_MEMORY HOLD_WITH_DIAGNOSIS; SEPARATE FROM STATIC ROUTING CANDIDATE MERGE CAUSATION
 LOCAL_PATH_LIMITATIONS = 23 repeated A3/F5 state-write failures; missing-path symptom; 276-character A3 path; retry shortened basetemp root but did not eliminate reported path risk; 42 other failures are mixed and not individually cause-mapped
-LOCAL_STATE_OR_ISOLATION_LIMITATIONS = two local executions differ in temporary root (`pytest-tmp` versus `p`); local state/path/environment influence is plausible, not sole-cause proof; 79 set-difference nodes lack individual pass/skip records
+LOCAL_STATE_OR_ISOLATION_LIMITATIONS = two local executions differ in temporary root (`pytest-tmp` versus `p`); local state/path/environment influence is plausible, not sole-cause proof
 VERIFICATION_INFRASTRUCTURE_LIMITATIONS = scratch cap exceeded twice and detected only post-run; four skip IDs unavailable; first-run eight setup errors absent as retry failed/error nodes but no per-node retry status table; original full command lines/JUnit are not present in the retained logs; Ruff result not independently log-verified
-UNKNOWN_NODES = 79 exact set above; 0 new rerun failures; no direct changed routing-test overlap; no per-node pass/skip proof; existing 65 failures continue to block a whole-local-verification PASS
+REMAINING_FAILURE_CAUSATION_UNKNOWN = 65 retry failure nodes (23 A3/F5 + 42 mixed); causes not fully classified
+RERUN_ABSENT_FAILURE_IDS = 79 exact first-run failed/error IDs above absent from retry failure/error summary; individual PASS-versus-SKIP is not bound by retained evidence; these are not known retry failures
 SCRATCH_INCIDENT_DISPOSITION = PROPOSED/PENDING; FM-054 unchanged; no prevention implementation or accepted prevention decision
 CODEBASE_MEMORY_FOLLOW_UP = Planner owns any future readiness reassessment; trigger only on a separately authorized, materially new diagnostic/input; this WP performs no index; cache/runtime path and storage bytes remain UNKNOWN
 LOCAL_HISTORY = RED_PRESERVED
@@ -299,7 +300,7 @@ Stop and return `STOP_FOR_REVIEW` on wrong checkout/origin/branch/head; tracked/
 
 ## Builder return packet
 
-Return exact local commit SHA(s), changed paths, entry/base/head/branch, diff and tree checks, registry parse/unique binding results, all retained evidence counts, exact unknown node list, local path/state/infra limitations, candidate overlap, hosted CI evidence and provenance, FM-054 conditional decision, CodeGraph/CBM/plugin invocation-result-fallback-radii-limitation records, diagnostics proposed but not run, scratch/free-space facts and unknowns, and:
+Return exact local commit SHA(s), changed paths, entry/base/head/branch, diff and tree checks, registry parse/unique binding results, all retained evidence counts, exact rerun-absent failure-ID list, local path/state/infra limitations, candidate overlap, hosted CI evidence and provenance, FM-054 conditional decision, CodeGraph/CBM/plugin invocation-result-fallback-radii-limitation records, diagnostics proposed but not run, scratch/free-space facts and unknowns, and:
 
 ```text
 SPINE_IMPACT = CURRENT
