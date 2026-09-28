@@ -29,6 +29,7 @@ from .migrations import upgrade_database
 
 OPERATIONAL_RELEASE_CHANNEL = "INTERNAL_PILOT"
 OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION = "qi-crawler-operational-acceptance-v1"
+OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION_V2 = "qi-crawler-operational-acceptance-v2"
 OPERATIONAL_MIGRATION_RECEIPT_SCHEMA_VERSION = "qi-crawler-operational-migration-v1"
 OPERATIONAL_ACCEPTANCE_NAME = "operational_acceptance.json"
 OPERATIONAL_MIGRATION_RECEIPT_NAME = "operational_migration_receipt.json"
@@ -271,8 +272,14 @@ def validate_operational_acceptance(
     }
     if set(receipt) != required:
         raise OperationalReleaseError("OPERATIONAL_ACCEPTANCE_FIELDS_INVALID")
+    acceptance_schema = receipt["acceptance_schema_version"]
     if (
-        receipt["acceptance_schema_version"] != OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION
+        not isinstance(acceptance_schema, str)
+        or acceptance_schema
+        not in {
+            OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION,
+            OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION_V2,
+        }
         or receipt["status"] != "ACCEPTED"
     ):
         raise OperationalReleaseError("OPERATIONAL_ACCEPTANCE_INVALID")
@@ -328,7 +335,13 @@ def validate_operational_acceptance(
         raise OperationalReleaseError("OPERATIONAL_MIGRATION_MISMATCH")
     if receipt["migration_from_revision"] != SOURCE_SCHEMA_REVISION:
         raise OperationalReleaseError("OPERATIONAL_MIGRATION_MISMATCH")
-    if str(receipt["migration_source_sha"]).lower() != str(receipt["source_git_sha"]).lower():
+    migration_source_sha = str(receipt["migration_source_sha"])
+    if len(migration_source_sha) != 40 or set(migration_source_sha) - _SHA40:
+        raise OperationalReleaseError("OPERATIONAL_MIGRATION_PROVENANCE_MISMATCH")
+    if (
+        acceptance_schema == OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION
+        and migration_source_sha.lower() != str(receipt["source_git_sha"]).lower()
+    ):
         raise OperationalReleaseError("OPERATIONAL_MIGRATION_PROVENANCE_MISMATCH")
     if _sha256(paths.release_manifest_path).lower() != str(receipt["release_manifest_sha256"]).lower():
         raise OperationalReleaseError("OPERATIONAL_MANIFEST_SHA_MISMATCH")
@@ -523,7 +536,7 @@ def _operational_acceptance_payload(
     migration_receipt: dict[str, Any],
 ) -> dict[str, Any]:
     return {
-        "acceptance_schema_version": OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION,
+        "acceptance_schema_version": OPERATIONAL_ACCEPTANCE_SCHEMA_VERSION_V2,
         "status": "ACCEPTED",
         "operational_root": str(paths.root),
         "application_root": str(paths.application_root),

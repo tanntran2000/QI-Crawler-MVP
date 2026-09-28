@@ -160,6 +160,69 @@ def _write_operational_fixture(
     return paths.executable, paths.database_path
 
 
+def test_operational_acceptance_v2_separates_application_and_migration_sources(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "operational"
+    executable, _ = _write_operational_fixture(root)
+    paths = operational_paths(root)
+    migration_bytes = paths.migration_receipt_path.read_bytes()
+
+    manifest = json.loads(paths.release_manifest_path.read_text(encoding="utf-8"))
+    manifest["source_git_sha"] = VERIFIED_MAIN_SHA
+    paths.release_manifest_path.write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    paths.build_info_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
+        encoding="utf-8",
+    )
+
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["acceptance_schema_version"] = "qi-crawler-operational-acceptance-v2"
+    acceptance["source_git_sha"] = VERIFIED_MAIN_SHA
+    acceptance["release_manifest_sha256"] = _sha256(paths.release_manifest_path).lower()
+    acceptance["build_info_sha256"] = _sha256(paths.build_info_path).lower()
+    assert acceptance["migration_source_sha"] == SOURCE_SHA
+    paths.acceptance_path.write_text(
+        json.dumps(acceptance, indent=2) + "\n", encoding="utf-8"
+    )
+
+    validated = validate_operational_acceptance(executable)
+
+    assert validated["source_git_sha"] == VERIFIED_MAIN_SHA
+    assert validated["migration_source_sha"] == SOURCE_SHA
+    assert paths.migration_receipt_path.read_bytes() == migration_bytes
+
+
+def test_operational_acceptance_v1_keeps_source_identity_equality(tmp_path: Path) -> None:
+    root = tmp_path / "operational"
+    executable, _ = _write_operational_fixture(root)
+    paths = operational_paths(root)
+
+    manifest = json.loads(paths.release_manifest_path.read_text(encoding="utf-8"))
+    manifest["source_git_sha"] = VERIFIED_MAIN_SHA
+    paths.release_manifest_path.write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    paths.build_info_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
+        encoding="utf-8",
+    )
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["source_git_sha"] = VERIFIED_MAIN_SHA
+    acceptance["release_manifest_sha256"] = _sha256(paths.release_manifest_path)
+    acceptance["build_info_sha256"] = _sha256(paths.build_info_path)
+    paths.acceptance_path.write_text(
+        json.dumps(acceptance, indent=2) + "\n", encoding="utf-8"
+    )
+
+    with pytest.raises(
+        OperationalReleaseError, match="OPERATIONAL_MIGRATION_PROVENANCE_MISMATCH"
+    ):
+        validate_operational_acceptance(executable)
+
+
 def test_internal_pilot_requires_operational_acceptance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     executable, _ = _write_operational_fixture(tmp_path / "operational", acceptance=False)
     monkeypatch.setattr(operational_release, "OPERATIONAL_ROOT", (tmp_path / "operational"))
@@ -314,6 +377,7 @@ def test_successful_synthetic_promotion_is_internally_coherent(tmp_path: Path) -
     assert paths.database_path.is_file()
     acceptance = validate_operational_acceptance(paths.executable)
     assert acceptance["operational_root"] == str(destination.resolve())
+    assert acceptance["acceptance_schema_version"] == "qi-crawler-operational-acceptance-v2"
     migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
     assert acceptance["database_sha256"] == migration["output_db_sha256"]
     storage = yaml.safe_load(paths.config_path.read_text(encoding="utf-8"))["storage"]
