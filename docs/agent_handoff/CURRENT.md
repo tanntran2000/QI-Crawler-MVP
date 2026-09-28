@@ -69,7 +69,8 @@ DB_MUTATION = NONE; CONFIG_MUTATION = NONE; APPDATA_LEGACY_DB_MUTATION = NONE; S
 PLANNER_ADMITTED_FIRST_FAIL = OPERATIONAL_DATABASE_SHA_MISMATCH; old authorize_frozen_runtime/validate_operational_acceptance runs before file logging and requires the mutable current DB SHA to equal the receipt promotion-time SHA
 EXPECTED_RECEIPT_DB_SHA256 = c35e1f3618871d453ee2950f37cbcce1466435948e5692360b9d0512461a8f2a
 CURRENT_LEGITIMATE_OPERATIONAL_DB_SHA256 = 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee
-INSTALLED_EXE_SOURCE_SHA256 = 79b62ec93547f210aad162dcbf926c0bd2c81ab1; PREDATES PR #130 SOURCE CORRECTION
+INSTALLED_RUNTIME_SOURCE_GIT_SHA = 79b62ec93547f210aad162dcbf926c0bd2c81ab1; PREDATES PR #130 SOURCE CORRECTION
+INSTALLED_EXE_BYTE_SHA256 = 05230277bbbb2e2d0858e88cda04651dfcd75eb8ec39f83f18aa7e5fb7c691b9
 ORIGINAL_REPORTED_FAILURE = UNRESOLVED; first failing condition identified, later startup behavior unobserved
 SHORTCUT_EDIT_ELIGIBLE = NO; current WP cannot reach shortcut stage
 NEW_RUNTIME_BINARY_REQUIRED = YES; one-file config repair insufficient; original promotion rerun not required; separately approved update/replacement contract required
