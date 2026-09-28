@@ -9,7 +9,7 @@ RELATED_MICRO_WP = WP-ENG-QI-WORKBENCH-HOSTED-VERIFICATION-01
 ROLE = BUILDER_SINGLE_WRITER
 HUMAN_AUTHORITY = Human explicitly approved this bounded Work Order in the latest Planner task on 2026-09-28.
 CURRENT_LEASE = POST_MERGE_RECONCILIATION + STAGE_0 + STAGE_1_COLD_RECOVERY_BACKUP
-CURRENT_STAGE = STAGE_0_COMPLETE; STAGE_1_PREFLIGHT_AND_BACKUP_PENDING
+CURRENT_STAGE = STAGE_0_AND_STAGE_1_COMPLETE; BUILDER_RETURNED_TO_PLANNER
 NEXT_ROLE_BOUNDARY = RETURN_TO_PLANNER; Planner may dispatch TESTER_MACHINE_VERIFIER for at most one direct installed-EXE launch.
 ```
 
@@ -334,7 +334,8 @@ PR_136_RECONCILIATION = MERGED at caf983691da60d4eaf990d09e9e1788692aabaac; post
 NEW_BRANCH = codex/installed-startup-recovery-01 from origin/main caf9836
 SIX_GOVERNANCE_COMMITS = FORWARD_CHERRY_PICKED; original old branch preserved
 STALE_SHORTCUT_TARGET = CONFIRMED; read-only target mismatch
-STAGE_1_PREFLIGHT_AND_BACKUP = PENDING
+STAGE_1_PREFLIGHT_AND_BACKUP = PASS; run 20260928T075727Z; exact backup inventory and hashes verified
+DIRECT_LAUNCH_READY = YES; Planner may consider one later Tester direct launch
 DIRECT_EXE_STARTUP = INCONCLUSIVE
 ORIGINAL_REPORTED_FAILURE = UNRESOLVED
 ```
@@ -347,4 +348,49 @@ no new durable failure cause, capability or B09 fact was established.
 SPINE_IMPACT = MULTIPLE
 SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01.md; docs/agent/PATH_REGISTRY.yaml; docs/agent_handoff/CURRENT.md
 SPINE_SYNC_STATE = PASS when the recorded stage matches observed facts; HOLD on any unresolved identity/data/backup mismatch
+```
+
+## Stage 1 result — one cold backup; Builder did not launch
+
+```text
+RUN_ID = 20260928T075727Z
+BACKUP_RESULT = PASS
+BACKUP_PATH = D:\QI-Crawler\Data\data\backups\startup-diagnosis-20260928T075727Z\
+BACKUP_INVENTORY = egp.db 2043904 bytes; config.yaml 1835 bytes; recovery-manifest.json 3055 bytes; exactly 3 files
+BACKUP_TOTAL_BYTES = 2048794; MAXIMUM=5242880
+RECOVERY_MANIFEST_SHA256 = 020e7bc29875e63a267d3c4ab36f503c4dca9cc18e0ee9fac56bd0270d96be46
+OPERATIONAL_DB_SOURCE_SHA256 = 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee
+OPERATIONAL_DB_COPY_SHA256 = 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee
+OPERATIONAL_CONFIG_SOURCE_SHA256 = bf650834422f2b59a6ce0cd61d4cc786c1f4cf89f281831cf17788d4b0ea0ebf
+OPERATIONAL_CONFIG_COPY_SHA256 = bf650834422f2b59a6ce0cd61d4cc786c1f4cf89f281831cf17788d4b0ea0ebf
+SOURCE_METADATA = UNCHANGED; sizes, UTC mtimes and SHA-256 match preflight after copy
+PROCESS_CENSUS = CIM PATH-AWARE; ZERO D:\QI-Crawler MATCHES BEFORE/COPY/AFTER; ZERO UNRESOLVED QI-Crawler.exe PATHS
+OPERATIONAL_WAL = ABSENT BEFORE AND AFTER
+OPERATIONAL_SHM = ABSENT BEFORE AND AFTER
+PATH_CONTAINMENT_REPARSE = PASS for authorized source/destination ancestors and new target
+D_FREE_BYTES = 19367219200 BEFORE; 19324203008 AFTER; ABOVE 10 GiB RESERVE
+INSTALLED_EXE_METADATA = D:\QI-Crawler\Current\QI-Crawler\QI-Crawler.exe; 19873214 bytes; 2026-09-23T01:01:48.8803075Z; SHA256 05230277bbbb2e2d0858e88cda04651dfcd75eb8ec39f83f18aa7e5fb7c691b9
+LEGACY_APPDATA_DB_METADATA = C:\Users\Admin\AppData\Local\QI-Crawler\data\database\egp.db; 1945600 bytes; 2026-09-03T02:11:58.7475465Z; SHA256 70e7ae0cf7d64ef916ac56fec41be84bea533abaa229f835954edad917230477
+EVIDENCE_ROOT = NOT_CREATED; sanitized recovery-manifest.json remains in the authorized operational backup
+STALE_SHORTCUT_TARGET = CONFIRMED; observed target D:\QI-Crawler\QI-Crawler.exe differs from contract path D:\QI-Crawler\Current\QI-Crawler\QI-Crawler.exe
+DIRECT_EXE_STARTUP = INCONCLUSIVE; NO EXE/GUI LAUNCH BY BUILDER
+ORIGINAL_REPORTED_FAILURE = UNRESOLVED; Tester evidence pending
+```
+
+The first directory-creation command was rejected because `New-Item` does not
+accept `-LiteralPath`; it failed before target creation. A subsequent copy
+operation copied the two authorized files exactly once, then its post-check
+script stopped before manifest creation because a constructed sidecar array
+had no second element. The same target/run ID was rechecked read-only; only the
+two expected copies existed, source metadata and copy hashes matched, the
+process and sidecar gates remained clear, and D: retained its reserve. The
+manifest was then written once and the exact three-file inventory/hash/budget
+was verified. No second copy, alternate run, cleanup or application launch
+occurred.
+
+```text
+BUILDER_RESULT = STAGE_0_AND_STAGE_1_COMPLETE
+HANDOFF_READY = YES_FOR_PLANNER_REVIEW_AND_TESTER_DISPATCH
+EXACTLY_ONE_NEXT_ACTION = PLANNER REVIEWS THE EXACT BUILDER CANDIDATE AND BACKUP EVIDENCE; IF ACCEPTED, DISPATCH TESTER FOR AT MOST ONE DIRECT INSTALLED-EXE LAUNCH
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
