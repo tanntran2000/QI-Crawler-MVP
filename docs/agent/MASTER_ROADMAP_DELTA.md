@@ -1840,27 +1840,38 @@ BRIDGE_A = HOLD; TESTER_AND_INDEPENDENT_REVIEWER_PENDING; NO_PASS_OR_MATURITY_PR
 NEXT = PLANNER_ROUTES_EXACT_CANDIDATE_TO_TESTER; REVIEWER_AFTER_PLANNER_MACHINE_EVIDENCE_REVIEW
 ~~~
 
+## B09 PR #131 merge reconciliation — 2026-09-27
 
-## 9. Current operational artifact lifecycle entry
+PR #131 is merged into `main`. The GitHub PR page records the merge on
+2026-09-26; its Python CI run `36224319084` reports Success and its Required
+CI Gate job succeeded. The merged Bridge A scope is the read-only update-state
+and recovery classifier plus Windows DB/WAL/SHM capture, with local and hosted
+verification. This reconciliation preserves the prior Stage 2 WIP/HOLD entry
+above: later unmerged work does not replace or retroactively complete it.
 
-### RD-0014 - Operational artifact storage consolidation
+The exact merge, PR-head, and code/test-head commits are present locally and
+each is an ancestor of the observed `origin/main` ref
+`51463a1ba01af9cd499e0b7c7cc961c19771bbf4`. GitHub CLI access was unavailable,
+so the PR and workflow pages supplied remote read evidence; no remote mutation
+occurred. Broader B09 remains incomplete and unproven, including Bridges
+B/C/D, the mutation engine, startup integration, and live update. No B09
+writer or technical authority is active. RD-0013 remains open; no product
+capability or maturity promotion is implied.
 
 ~~~text
-ID = RD-0014
-TITLE = PRESERVE SINGLE OPERATIONAL INSTALLATION DURING CANDIDATE ARTIFACT RELIEF
-STATUS = PR135_OPEN; INITIAL_HEAD_REQUIRED_CI_GREEN; TERMINAL_SYNC_HEAD_CI_PENDING; HUMAN_MANUAL_MERGE_PENDING
-SOURCE = Human A0 approval in Planner task 01a0d14b-4e41-7480-9179-d1b230295f77; 2026-09-27
-CRAWLER_VALUE = NONE
-PRODUCT_AREA = Cross-cutting Windows delivery and operational artifact lifecycle
-PRODUCT_HOUSE_LAYERS = INFRASTRUCTURE_OPERATIONAL_ARTIFACT_LIFECYCLE; WINDOWS_PACKAGING_RELEASE_LIFECYCLE; PERSISTENCE_OBSERVED_ONLY
-OBSERVATION = M0/M1 and conditional M2 completed locally. Exact targets 01-03 were deleted after all required gates; target04 fb8edac remains KEEP_PENDING_REVIEW because its Acceptance recovery-copy role is unresolved. Total logical bytes removed were 5,321,128,566. The approved operational root and protected data, Acceptance, Rollback, AppData, and candidate sibling state were retained.
-WHY_IT_MATTERS = Reclaim obsolete candidate application binaries while preserving the sole operational installation, operational data, acceptance and rollback evidence, candidate data, and repository content.
-ROADMAP_IMPACT = SPINE_ONLY
-RELEVANT_CURRENT_WP = WP-ENG-QI-CRAWLER-STORAGE-CONSOLIDATION-01
-TARGET_STATE = Local artifact disposition complete for targets 01-03; target04 remains KEEP_PENDING_REVIEW; no further deletion is authorized. PR #135 is open to main at head 6fbcd24814cf1974b74741b1bbbb4d728d5c19d5 on base cc9bd53be871059689be4f91f0584efbec04405e, and all required checks are SUCCESS on that head. One terminal docs sync push to the same PR and exact-head CI monitoring remain pending; merge is Human-only.
-PROMOTION_TARGET = NONE_FOR_PRODUCT_CAPABILITY_OR_MATURITY; GOVERNANCE_LESSON_TO_FM-053
-PROMOTION_CONDITION = Do not promote to the Master Roadmap. Reconcile or remove this Delta entry only at post-merge reconciliation after live main, CURRENT, PR, CI, and merge facts are verified.
-COMPLETION_EVIDENCE = Registered WP records three completed deletions and one retained target, 5,321,128,566 logical bytes removed, protected-path checks, Tester PASS, Reviewer PASS, and nonblocking finding STORAGE-M2-R01.
-REMOVE_FROM_DELTA_WHEN = Post-merge reconciliation only, after live main and CURRENT agree; preserve STORAGE-M2-R01 through FM-053 as a prospective lifecycle prevention lesson.
-PLANNER_NOTES = Local WP outcome PASS_WITH_LIMITATIONS. Tester and independent Reviewer passed the local candidate. STORAGE-M2-R01 requires future destructive operations to persist full per-target protected pre/post arrays; do not fabricate historical arrays. Unrelated Acceptance export-workspace metadata walk had Access Denied and remains a limitation. PR #135 is open and exact-head required checks passed on 6fbcd24814cf1974b74741b1bbbb4d728d5c19d5; terminal sync head CI and Human manual merge remain pending. No further deletion, release, Master Roadmap promotion, or B09 authority.
+DELTA_ID = RD-0013-B09-PR131-MERGE-RECONCILIATION-20260927-01
+ROADMAP_NODE = Engineering Toolbox / Plugins; RD-0013 B09 Bridge A history
+AUTHORITY = HUMAN_A0_APPROVED_WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01 rev3; BOUNDED_BUILDER_RECONCILIATION
+PR = #131; MERGED_TO_MAIN; GITHUB_PR_URL=https://github.com/tanntran2000/QI-Crawler-MVP/pull/131
+GITHUB_CI = RUN_36224319084_STATUS_SUCCESS; REQUIRED_CI_GATE_SUCCEEDED; EXACT_PR_HEAD=ea5d84a07a34794b91fa4b42f433f3b88555264e
+MERGE_SHA = 3ba8403f707de9710aff6b08d9df82c0d0a424c4
+CODE_TEST_HEAD = 94209cb83e8b10fcdf3445ba2ba2cd0026a787b3
+LOCAL_ANCESTRY = ALL_THREE_REQUIRED_COMMITS_ANCESTORS_OF_OBSERVED_origin/main_51463a1ba01af9cd499e0b7c7cc961c19771bbf4
+BRIDGE_A_MERGED_SCOPE = READ_ONLY_UPDATE_STATE_AND_RECOVERY_CLASSIFIER; WINDOWS_DB_WAL_SHM_CAPTURE; LOCAL_AND_HOSTED_VERIFICATION
+B09 = BROADER_SCOPE_INCOMPLETE_AND_UNPROVEN
+NOT_COMPLETE = BRIDGES_B_C_D; MUTATION_ENGINE; STARTUP_INTEGRATION; LIVE_UPDATE
+ACTIVE_B09_WRITER = NONE; ACTIVE_B09_TECHNICAL_AUTHORITY = NONE
+HISTORY = PRIOR_WIP_AND_HOLD_ENTRIES_PRESERVED; NO_REWRITE
+ROADMAP_IMPACT = NO_PRODUCT_CAPABILITY_OR_MATURITY_CHANGE; RD-0013_REMAINS_OPEN
+REMOTE_MUTATION = NONE
 ~~~

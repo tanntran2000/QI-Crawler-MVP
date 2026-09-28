@@ -238,6 +238,87 @@ def _operating_section(text: str, title: str) -> str:
     return "\n".join(lines[start:end])
 
 
+def _impact_readiness_contract_valid(skill_text: str, overview_section: str) -> bool:
+    skill_required = (
+        "STRUCTURAL_EXPLORATION = CHECK_CODEBASE_MEMORY_READINESS",
+        "WHEN .codegraph/ EXISTS, INVOKE CODEGRAPH FIRST",
+        "WHEN CBM_INDEX_READY, USE RELEVANT GRAPH TOOLS WITHOUT DUPLICATING EVERY QUERY",
+        "BATCH check_index_coverage FOR ALL RELIED-ON EVIDENCE FILES",
+        "PARTIAL/STALE/UNKNOWN COVERAGE = DIRECT SOURCE FALLBACK",
+        "GRAPH ABSENCE = NO PROOF OF NO CALLER, DEAD CODE, OR DELETION AUTHORITY",
+        "FALLBACK SUFFICIENT = CONTINUE; MATERIAL CLAIM INSUFFICIENT = HOLD",
+        "GRAPH OUTPUT GRANTS SCOPE = NO",
+        "STATIC_ROUTING_CONTRACT_VERIFIED = STATIC MARKDOWN ONLY; RUNTIME ENFORCEMENT NOT PROVEN",
+    )
+    skill_forbidden = (
+        "GRAPH OUTPUT GRANTS SCOPE = YES",
+        "STATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
+        "FULL_REPOSITORY_COVERAGE = PROVEN",
+    )
+    overview_required = (
+        "Codebase Memory readiness",
+        "`qi-impact-map` owns the detailed routing contract",
+        "graph output is evidence only and grants no scope or authority",
+    )
+    overview_forbidden = (
+        "check_index_coverage",
+        "WHEN .codegraph/ EXISTS",
+        "PARTIAL/STALE/UNKNOWN COVERAGE",
+    )
+    normalized_overview = " ".join(overview_section.split()).casefold()
+    return (
+        all(item in skill_text for item in skill_required)
+        and not any(item in skill_text for item in skill_forbidden)
+        and all(item.casefold() in normalized_overview for item in overview_required)
+        and not any(item.casefold() in normalized_overview for item in overview_forbidden)
+    )
+
+
+def test_impact_readiness_routes_graph_coverage_and_bounded_fallback() -> None:
+    skill = _load(SKILLS / "qi-impact-map" / "SKILL.md")
+    overview = _operating_section(
+        _load(ROOT / "docs" / "agent" / "QI_AGENT_WORKBENCH.md"),
+        "6. Impact, edit, and test radii",
+    )
+
+    assert _impact_readiness_contract_valid(skill, overview)
+
+    mutants = (
+        skill.replace(
+            "WHEN .codegraph/ EXISTS, INVOKE CODEGRAPH FIRST",
+            "WHEN .codegraph/ EXISTS, INVOKE CODEGRAPH AFTER OTHER TOOLS",
+            1,
+        ),
+        skill.replace(
+            "GRAPH ABSENCE = NO PROOF OF NO CALLER, DEAD CODE, OR DELETION AUTHORITY",
+            "GRAPH ABSENCE = PROOF OF NO CALLER, DEAD CODE, OR DELETION AUTHORITY",
+            1,
+        ),
+        skill.replace(
+            "FALLBACK SUFFICIENT = CONTINUE; MATERIAL CLAIM INSUFFICIENT = HOLD",
+            "FALLBACK SUFFICIENT = CONTINUE; MATERIAL CLAIM INSUFFICIENT = CONTINUE",
+            1,
+        ),
+        skill.replace(
+            "GRAPH OUTPUT GRANTS SCOPE = NO",
+            "GRAPH OUTPUT GRANTS SCOPE = YES",
+            1,
+        ),
+        skill.replace(
+            "STATIC_ROUTING_CONTRACT_VERIFIED = STATIC MARKDOWN ONLY; RUNTIME ENFORCEMENT NOT PROVEN",
+            "STATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
+            1,
+        ),
+        skill + "\nGRAPH OUTPUT GRANTS SCOPE = YES",
+        skill + "\nSTATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
+        skill + "\nFULL_REPOSITORY_COVERAGE = PROVEN",
+    )
+    assert all(not _impact_readiness_contract_valid(mutant, overview) for mutant in mutants)
+
+    duplicated_algorithm = overview + "\ncheck_index_coverage\n"
+    assert not _impact_readiness_contract_valid(skill, duplicated_algorithm)
+
+
 def _helper_contract_valid(section: str) -> bool:
     required = (
         "HELPER_IS = OWNER_ROLE_CAPABILITY; NOT_FIFTH_ROLE; NOT_TAKEOVER",
