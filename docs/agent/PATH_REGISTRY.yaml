@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.20",
+  "revision": "1.0.21",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -1206,6 +1206,35 @@
         "C:\\Users\\Admin\\AppData\\Local\\QI-Crawler\\"
       ],
       "relation": "Locator only for the Human-approved storage-consolidation Work Order and its evidence/inspection roots. The four exact app paths are conditional deletion targets; the binding grants no write or deletion authority. Current scope and transition authority remain in the Work Order and CURRENT.md."
+    },
+    {
+      "wp_id": "WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01",
+      "authority_ref": "Human-approved Work Order in Planner task /root / docs/superpowers/plans/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery; docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.HANDOFF",
+        "PATH.EVIDENCE.WP_RUN",
+        "PATH.RUNTIME.BACKUPS",
+        "PATH.RUNTIME.DB",
+        "PATH.RUNTIME.CONFIG"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "D:\\QI-Crawler\\Current\\QI-Crawler\\QI-Crawler.exe",
+        "D:\\QI-Crawler\\Data\\config.yaml",
+        "D:\\QI-Crawler\\Data\\data\\database\\egp.db",
+        "D:\\QI-Crawler\\Data\\data\\database\\egp.db-wal",
+        "D:\\QI-Crawler\\Data\\data\\database\\egp.db-shm",
+        "D:\\QI-Crawler\\Data\\data\\backups\\startup-diagnosis-{UTC_RUN_ID}\\",
+        "C:\\Users\\Admin\\AppData\\Local\\QI-Crawler\\data\\database\\egp.db",
+        "C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\QI-Crawler.lnk",
+        "release_staging/evidence/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-{UTC_RUN_ID}/"
+      ],
+      "relation": "Locator only for the Human-approved Stage 0/1 Work Order, its exact cold recovery backup family and optional sanitized evidence root. It grants no product, launch, shortcut-edit, migration, cleanup, merge or release authority; current scope and transition authority remain in the Work Order and CURRENT.md."
     }
   ],
   "legacy_locations": [
