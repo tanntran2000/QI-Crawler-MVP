@@ -16,9 +16,9 @@ EXPECTED_BRANCH = codex/workbench-impact-readiness-01
 EXPECTED_ENTRY_HEAD = e28800e946c813c8bf24b1f623fd60629fc5bb18
 ```
 
-Human authorized this exact evidence-disposition Micro-WP in the instruction relayed through Planner task `/root` on 2026-09-28. The authorization covers one bounded retained-log analysis pass (maximum 30 minutes), this Work Order and locator/handoff updates, semantic local commit(s), and a proposal for zero to three future one-node diagnostics. It does not authorize diagnostic execution by Builder. A separate approved Planner activation is required before Tester can execute any proposed slot. This record does not invent a separate Human product, merge, or failure-root-cause decision.
+Human authorized this exact evidence-disposition Micro-WP in the instruction relayed through Planner task `/root` on 2026-09-28. The authorization covers one bounded retained-log analysis pass (maximum 30 minutes), this Work Order and locator/handoff updates, semantic local commit(s), and proposing zero to three one-node diagnostics. It does not authorize diagnostic execution by Builder. Planner later activated slots 1 and 2 for Tester; this forward update records that admitted Tester evidence. This record does not invent a separate Human product, merge, or failure-root-cause decision.
 
-The Parent candidate remains held. This Micro-WP classifies retained local evidence and proposes diagnostic questions; it does not repair product code, change tests, change the CI workflow, or promote product maturity. Local RED and scratch-budget failures remain historical facts. Hosted CI PASS is preserved only for exact source head `e28800e946c813c8bf24b1f623fd60629fc5bb18`.
+The Parent candidate remains held. This Micro-WP classifies retained local evidence, proposes diagnostic questions, and records two Planner-activated Tester outcomes; it does not repair product code, change tests, change the CI workflow, or promote product maturity. Local RED and scratch-budget failures remain historical facts. Hosted CI PASS is preserved only for exact source head `e28800e946c813c8bf24b1f623fd60629fc5bb18`.
 
 ## Roadmap and architecture layer contract
 
@@ -87,7 +87,7 @@ No other tracked path may change. The exact retained evidence inputs are:
 - `.tmp/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01/20260927T151000Z/full-pytest-infra-retry.log`
 - Admitted hosted run `36373119614` and the terminal Tester/Reviewer evidence recorded in Parent/hosted governance.
 
-The evidence files are retained inputs, not Builder-owned scratch. This WP did not scan, inspect or clean any unknown artifact or scratch tree. Do not edit the Parent skill, implementation, test, lock, product source, CI workflow, dependencies, B09 source/tests, runtime or live data. Do not run pytest, Ruff, CI, Codebase Memory indexing, or diagnostics. Do not push, mutate the PR, merge or release.
+The evidence files are retained inputs, not Builder-owned scratch. Builder did not scan, inspect or clean any unknown artifact or scratch tree. Do not edit the Parent skill, implementation, test, lock, product source, CI workflow, dependencies, B09 source/tests, runtime or live data. Builder must not run pytest, Ruff, CI, Codebase Memory indexing, or diagnostics. The two diagnostic invocations recorded below were executed only by Tester after Planner activation. Do not push, mutate the PR, merge or release.
 
 ## Inputs and evidence provenance
 
@@ -203,7 +203,7 @@ The first log contains 144 unique `FAILED`/`ERROR` identifiers (136 failed and 8
 ```
 
 ```text
-CANDIDATE_MERGE_BLOCKERS = NOT_ESTABLISHED; NO DIRECT FAILED-NODE OVERLAP WITH CHANGED ROUTING-CONTRACT TEST; FINAL DISPOSITION PENDING TESTER/REVIEWER/PLANNER/HUMAN
+CANDIDATE_MERGE_BLOCKERS = NOT_ESTABLISHED; NO DIRECT FAILED-NODE OVERLAP WITH CHANGED ROUTING-CONTRACT TEST; FINAL DISPOSITION PENDING INDEPENDENT REVIEWER/PLANNER/HUMAN
 WHOLE_LOCAL_VERIFICATION_BLOCKERS = 65 RETRY FAILURES WITH CAUSES NOT FULLY CLASSIFIED; HISTORICAL SCRATCH CAP FAIL; LOCAL RUFF LIMITATION
 TOOL_READINESS_LIMITATION = CODEBASE_MEMORY HOLD_WITH_DIAGNOSIS; SEPARATE FROM STATIC ROUTING CANDIDATE MERGE CAUSATION
 LOCAL_PATH_LIMITATIONS = 23 repeated A3/F5 state-write failures; missing-path symptom; 276-character A3 path; retry shortened basetemp root but did not eliminate reported path risk; 42 other failures are mixed and not individually cause-mapped
@@ -219,20 +219,33 @@ MERGE_RECOMMENDATION = PROPOSED_NO; Builder does not originate the final recomme
 PARENT_STATE = EVIDENCE_ONLY; WIR-R03/whole Parent HOLD; Planner/Reviewer/Human reconciliation remains separate
 ```
 
-### Proposed Tester diagnostics (not activated or run)
+### Tester diagnostics — original proposal and executed disposition
 
-The bounded pass proposes two one-node questions. Planner may activate zero, one, or both under the shared three-invocation total; Tester is the only executor. Builder ran none.
+The bounded pass proposed two one-node questions. Planner activated slots 1 and 2 under the shared three-invocation total; Tester report `WP-ENG-QI-WORKBENCH-LOCAL-VERIFICATION-DISPOSITION-01-TESTER-20260928-SLOTS-01` records the results. Builder ran none. The original questions and authorization ceilings are retained below.
 
-| Slot | Exact node | Question this node can discriminate | Maximum authorized conditions if activated |
+| Slot | Exact node | Question this node can discriminate | Maximum authorized conditions |
 |---|---|---|---|
 | 1 | `tests/test_a3_f5_guard.py::test_stale_running_state_blocks_reuse` | Record the exact lifecycle-state temporary path length and parent existence, captured OS error, and whether a genuinely short task-owned basetemp changes the same node’s outcome; do not infer the result from sibling tests. | One exact node, ≤10 minutes, ≤3,000 incremental files and ≤512 MiB; use `.tmp/w3/<six-hex-batch>/i1/t`; verify projected deepest path ≤240 with ≥20 characters headroom against 260 before start. |
 | 2 | `tests/test_tender_workspace_intake.py::test_original_filename_is_preserved` | Record the exact temporary/destination path lengths, parent state and `os.link`/storage exception under the same prechecked short-basetemp family; distinguish missing-parent/path behavior from other local storage conditions. | One exact node, ≤10 minutes, ≤3,000 incremental files and ≤512 MiB; use `.tmp/w3/<six-hex-batch>/i2/t`; verify projected deepest path ≤240 with ≥20 characters headroom against 260 before start. |
 
-If both are activated, cumulative limits are ≤6,000 files and ≤1 GiB, below the shared maxima of 7,500 files and 1.5 GiB; preserve ≥10 GiB D: free, allow zero retries, and do no cleanup. The exact incremental expectation is UNKNOWN until measured; these are hard upper bounds, not a promise that the nodes fit. File-budget observation is post-run only, not hard in-run enforcement. Use the existing finite timeout mechanism; on timeout, verify invocation-owned child processes have stopped before another slot. If that cannot be established, stop. No wrapper may hide a pytest invocation. A pre-run path/headroom failure is HOLD before execution.
+The two-slot cumulative authorization was ≤6,000 files and ≤1 GiB, below the shared maxima of 7,500 files and 1.5 GiB; preserve ≥10 GiB D: free, allow zero retries, and do no cleanup. The exact incremental expectation was UNKNOWN before execution. File-budget observation is post-run only, not hard in-run enforcement. Use the existing finite timeout mechanism; on timeout, verify invocation-owned child processes have stopped before another slot. If that cannot be established, stop. No wrapper may hide a pytest invocation. A pre-run path/headroom failure is HOLD before execution.
 
 Before creating any diagnostic scratch, the activated Tester must register the chosen six-hex batch token in the approved batch-to-WP mapping for this Micro-WP. No mapping means HOLD before scratch creation. After each invocation, compare exact file and byte deltas against the per-slot and cumulative ceilings; any breach means HOLD the batch immediately, preserve the exact logs and counts, and do not start another slot. On timeout, verify only invocation-owned child processes have stopped; never terminate processes by generic process name. If process ownership or shutdown cannot be verified, stop the batch and return the evidence to Planner.
 
-No third node is proposed in this initial pass because the mixed 42-node group has not been split into matching traceback/fixture/input classes. A further node requires Planner activation grounded in evidence from the first one or two slots. No diagnostic is automatically authorized by this Work Order alone.
+No third node was proposed because the mixed 42-node group had not been split into matching traceback/fixture/input classes. Slot 3 was not activated and this Tester lease is closed. Any future diagnostic requires a separate Planner activation grounded in new evidence; this Work Order does not activate one.
+
+#### Tester evidence and Planner disposition
+
+`BATCH_ID=44c30c`; `TESTER_REPORT_ID=WP-ENG-QI-WORKBENCH-LOCAL-VERIFICATION-DISPOSITION-01-TESTER-20260928-SLOTS-01`. Both activated exact-node invocations passed:
+
+| Slot | Result and observed evidence |
+|---|---|
+| 1 — `tests/test_a3_f5_guard.py::test_stale_running_state_blocks_reuse` | Exit 0; 1 passed, 1 warning; pytest 4.39s. Historical failing path 286 characters; projected short-root path 233; actual persisted lifecycle path 190; parent existed. The observed state hash differs from the historical parent state, which was not independently observed. Scratch `i1`: 9 files / 916,899 bytes. |
+| 2 — `tests/test_tender_workspace_intake.py::test_original_filename_is_preserved` | Exit 0; 1 passed, 1 warning; pytest 3.35s. Historical `os.link` paths 259/264 characters; projected paths 215/220; actual destination 220; parent existed at 194. Scratch `i2`: 6 files / 1,828,025 bytes. |
+
+Cumulative scratch was 15 files / 2,744,924 bytes. There was no timeout, process termination, retry, or cleanup. Both invocations emitted a non-failing `PytestCacheWarning` with `WinError 5` on repository `.pytest_cache`; retain this as a limitation. The two passes support path-length sensitivity for these exact nodes only. They do not prove a sole cause, sibling behavior, cause for all 65 remaining failures, or full-suite success.
+
+`SLOT_3=NOT_ACTIVATED`; shared budget used 2/3 and the Tester lease is closed. Planner did not activate a third node because the first two results do not yield a new evidence-grounded question that could classify the mixed remaining nodes without overgeneralization. `FAILURE_MEMORY_IMPACT=NONE_NEW`: FM-051 already records the reproduced short-versus-long Windows basetemp path mechanism and prevention; FM-054 remains `NOT_FULLY_CLASSIFIED` with scratch prevention pending. These two node passes do not change FM-054, and `KNOWN_FAILURE_MODES.md` was not edited.
 
 ## Codebase Memory and tool evidence
 
@@ -240,12 +253,12 @@ No third node is proposed in this initial pass because the mixed 42-node group h
 
 | Plugin/tool | Purpose / invocation / result | Fallback | Impact radius | Edit radius | Test radius | Limitation |
 |---|---|---|---|---|---|---|
-| `qi-context-boot` | Read `plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md`; canonical checkout, role/read mode and authority were reconciled; `USED_AND_SUCCEEDED`. | None needed. | Governance, handoff, retained-log evidence. | Three authorized docs only; conditional FM-054 trigger not met. | Static integrity checks only; no test execution. | Read-only boot does not grant extra scope. |
-| CodeGraph | `codegraph explore` on `test_stale_running_state_blocks_reuse`, `test_original_filename_is_preserved`, and the document-store writer; `USED_AND_SUCCEEDED`; returned 79 symbols across 4 files and a `DocumentIntakeService` caller blast-radius summary. | Exact retained-log parsing and the admitted Parent/Tester evidence. | The graph reports shared document-store callers across source and test modules; it is impact intelligence only. | No source edit; governance records only. | No test execution; two diagnostic nodes proposed for possible future Tester activation. | Static graph evidence does not establish failure cause, candidate causation, or authority. The graph’s source excerpts were bounded and did not individually classify all 65 failures. |
+| `qi-context-boot` | Read `plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md`; canonical checkout, role/read mode and authority were reconciled; `USED_AND_SUCCEEDED`. | None needed. | Governance, handoff, retained-log evidence. | Three authorized docs only; conditional FM-054 trigger not met. | Static integrity checks by Builder; no Builder test execution; the two Tester slots are separately recorded. | Read-only boot does not grant extra scope. |
+| CodeGraph | `codegraph explore` on `test_stale_running_state_blocks_reuse`, `test_original_filename_is_preserved`, and the document-store writer; `USED_AND_SUCCEEDED`; returned 79 symbols across 4 files and a `DocumentIntakeService` caller blast-radius summary. | Exact retained-log parsing and the admitted Parent/Tester evidence. | The graph reports shared document-store callers across source and test modules; it is impact intelligence only. | No source edit; governance records only. | No test execution by Builder; Tester later ran only the two Planner-activated exact nodes below. | Static graph evidence does not establish failure cause, candidate causation, or authority. The graph’s source excerpts were bounded and did not individually classify all 65 failures. |
 | `codebase-memory` skill | Attempted exact SKILL read; `TOOL_SKILL_READ_UNAVAILABLE` due `UnauthorizedAccessException`; skill not invoked. | CodeGraph, retained logs, and bounded source-evidence fallback. | No indexed graph scope. | None. | None. | MCP `list_projects` returned zero; no indexing, cache scan, or coverage claim. |
 | Codebase Memory MCP | Read-only `list_projects` returned zero projects; `USED_AND_SUCCEEDED` for the inventory query only. No `index_repository` call. | No index. | Zero projects reported. | None. | None. | A listing does not establish tool-managed path or cache size and is not operational readiness. |
-| `verification-before-completion` | Read the installed skill before final claims/commit; perform exact scope, parse, key uniqueness, diff-check and tree checks before commit; `USED_AND_SUCCEEDED` only if those listed checks pass. | Not applicable. | Work Order, registry and active handoff. | Exactly the three unconditional docs. | No pytest/Ruff; they are forbidden in this lease. | Static/document verification cannot overturn Parent RED. |
-| skill-creator / TDD / systematic-debugging | `NOT_APPLICABLE`: no skill or behavior edit; no new index failure to debug; no diagnostic run or fix. | None. | None. | None. | None. | Do not fabricate invocation evidence. |
+| `verification-before-completion` | Read the installed skill before final claims/commit; perform exact scope, parse, key uniqueness, diff-check and tree checks before commit; `USED_AND_SUCCEEDED` only if those listed checks pass. | Not applicable. | Work Order, registry and active handoff. | Exactly the three unconditional docs. | No pytest/Ruff by Builder; Tester executed only the two Planner-activated nodes below; no full suite. | Static/document verification cannot overturn Parent RED. |
+| skill-creator / TDD / systematic-debugging | `NOT_APPLICABLE`: no skill or behavior edit; no index failure/fix by Builder. Tester’s two activated node runs were evidence-only and produced no fix. | None. | None. | None. | None by Builder; exact Tester invocations are separately recorded below. | Do not fabricate invocation evidence or imply the diagnostic lease remains open. |
 
 ## Failure Memory trigger disposition
 
@@ -261,7 +274,7 @@ WP_ID_AND_AUTHORITY = this exact Work Order; Human authorization relayed through
 PATH_IDS_USED = PATH.GOV.PLAN; PATH.GOV.DOCUMENT; PATH.GOV.HANDOFF; PATH.DEV.TEST_TEMP; PATH.EVIDENCE.WP_RUN
 ARTIFACTS = Work Order, locator registry binding, active CURRENT; retained input logs remain read-only; proposed diagnostic scratch only after Planner activation
 WRITE_SCOPE = exact three files above; FM-054 conditional trigger not met
-STORAGE_BUDGET = no Builder scratch; retained inputs are pre-existing; if Planner later activates two diagnostics, aggregate hard upper bound 6,000 files / 1 GiB and ≥10 GiB D: free
+STORAGE_BUDGET = no Builder scratch; Tester batch 44c30c used 15 files / 2,744,924 bytes across two invocations; no cleanup; original ceilings and post-run-only detection remain documented
 UNREGISTERED_WRITE_PATHS = NONE
 PATH_REGISTRY_GATE = PASS after parse/unique-ID/path-ID verification
 ```
@@ -276,7 +289,7 @@ CAPABILITY UNDER CHANGE: None; retained outcomes only
 CRITICAL RISKS: Misclassifying missing nodes; turning hosted CI into local PASS; overclaiming environmental or candidate causation; losing scratch-limit history
 BASELINE GATES TO KEEP: Preserve the existing exact local RED, scratch FAIL, hosted e288 PASS, and repo-Ruff limitation as separate evidence
 WP-SPECIFIC GATES REQUIRED: Exact retained-log node-set comparison; mandatory Markdown/YAML-compatible registry parse; unique WP binding/path-ID checks; mandatory CURRENT key uniqueness; exact scope/status and git diff --check
-GATES NOT REQUIRED YET: No pytest, Ruff, CI, Codebase Memory index, or product test; future diagnostics require Planner activation and Tester execution
+GATES NOT REQUIRED YET: No Builder pytest/Ruff, full suite, CI, Codebase Memory index, or product test; Tester executed only slots 1-2 after Planner activation; slot 3 was not activated
 MAX JOB RUNTIME: Evidence analysis ≤30 minutes; no test job in this Builder lease
 CI CHANGE REQUIRED BEFORE IMPLEMENTATION: NO; this WP contains no implementation and changes no CI contract
 RATIONALE: Disposition is bounded to retained evidence and governance. Hosted five-job PASS is exact-head complementary evidence; it cannot erase the prior local RED or scratch breach.
@@ -290,17 +303,17 @@ B. Evidence: read only the two named full-suite logs plus admitted hosted/tester
 
 C. Governance: materialize this Work Order, one locator-only registry binding, and CURRENT update for this active Micro-WP. Do not modify FM-054 unless its stated conditional trigger becomes true.
 
-D. Verification and return: JSON-compatible YAML parse; validate one new unique WP ID and existing PATH_ID references; check required Work Order sections and mandatory handoff keys/uniqueness; exact allowed name-status; `git diff --check`; tracked/index status; semantic local commit(s); return to Planner. No pytest, Ruff, full suite, diagnostics, index, or remote action.
+D. Verification and return: JSON-compatible YAML parse; validate one new unique WP ID and existing PATH_ID references; check required Work Order sections and mandatory handoff keys/uniqueness; exact allowed name-status; `git diff --check`; tracked/index status; semantic local commit(s); return to Planner. Builder ran no pytest/Ruff/full suite/diagnostic/index/remote action; Tester’s two activated exact-node invocations are recorded above.
 
-Acceptance is a faithful bounded disposition with preserved Parent limitations, exact unknown-node reference/list, zero fabricated root-cause claims, zero unauthorized test execution, complete path/handoff metadata, allowed-scope docs checks and exact local commit evidence. It is not a whole-Parent pass, merge recommendation, or product maturity change.
+Acceptance is a faithful bounded disposition with preserved Parent limitations, exact rerun-absent failure-ID reference/list, zero fabricated root-cause claims, only the two Planner-activated Tester invocations, complete path/handoff metadata, allowed-scope docs checks and exact local commit evidence. It is not a whole-Parent pass, merge recommendation, or product maturity change.
 
 ## Stop conditions
 
-Stop and return `STOP_FOR_REVIEW` on wrong checkout/origin/branch/head; tracked/index drift; writer conflict; any need to inspect unknown untracked or scratch contents; any need to exceed 30-minute evidence analysis; any need to execute diagnostics, tests, Ruff, CI or an index; any out-of-scope edit; any source/product defect requiring implementation; any inability to preserve historical local RED/scratch evidence; any unbounded or contradictory causal claim; or any remote/destructive need.
+Stop and return `STOP_FOR_REVIEW` on wrong checkout/origin/branch/head; tracked/index drift; writer conflict; any need to inspect unknown untracked or scratch contents; any need to exceed 30-minute evidence analysis; any need for Builder to execute diagnostics, tests, Ruff, CI or an index; any out-of-scope edit; any source/product defect requiring implementation; any inability to preserve historical local RED/scratch evidence; any unbounded or contradictory causal claim; or any remote/destructive need.
 
 ## Builder return packet
 
-Return exact local commit SHA(s), changed paths, entry/base/head/branch, diff and tree checks, registry parse/unique binding results, all retained evidence counts, exact rerun-absent failure-ID list, local path/state/infra limitations, candidate overlap, hosted CI evidence and provenance, FM-054 conditional decision, CodeGraph/CBM/plugin invocation-result-fallback-radii-limitation records, diagnostics proposed but not run, scratch/free-space facts and unknowns, and:
+Return exact local commit SHA(s), changed paths, entry/base/head/branch, diff and tree checks, registry parse/unique binding results, all retained evidence counts, exact rerun-absent failure-ID list, local path/state/infra limitations, candidate overlap, hosted CI evidence and provenance, FM-054 conditional decision, CodeGraph/CBM/plugin invocation-result-fallback-radii-limitation records, original diagnostic proposal and exact Tester results, scratch/free-space facts and unknowns, and:
 
 ```text
 SPINE_IMPACT = CURRENT
@@ -312,6 +325,6 @@ LOCAL_HISTORY = RED_PRESERVED
 HOSTED_CI = PASS_PRESERVED_FOR_e28800e_ONLY
 SCRATCH_INCIDENT_DISPOSITION = PROPOSED/PENDING
 MERGE_RECOMMENDATION = PROPOSED_NO; final recommendation not originated by Builder
-EXACTLY_ONE_NEXT_ACTION = Planner reviews the exact Builder evidence and decides whether to activate zero to three Tester diagnostic slots
+EXACTLY_ONE_NEXT_ACTION = Planner dispatches independent Reviewer to audit the exact Work Order, CURRENT and admitted Tester evidence
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
