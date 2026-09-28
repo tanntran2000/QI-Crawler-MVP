@@ -2,7 +2,7 @@
 
 ## Correction 02 — Builder result for Planner review
 
-The held Workbench Impact Readiness candidate received independent Reviewer report `WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-REVIEWER-20260928-01` with verdict HOLD. Human approved this bounded forward correction, relayed by Planner `/root`, on 2026-09-28. The correction changes only the static contract test and this handoff. It does not authorize a skill/manifest edit, full test or repository-Ruff rerun, indexing, cleanup, remote action, B09 work, merge, or release.
+The held Workbench Impact Readiness candidate received independent Reviewer report `WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-REVIEWER-20260928-01` with verdict HOLD. Human approved the rev3 Work Package/Approval Lease and its original implementation/governance allowlists. Following the Reviewer HOLD, Planner opened Correction 02 within that unchanged approved scope. This was not a separate Human approval of Correction 02. The correction changes only the static contract test and this handoff. It does not authorize a skill/manifest edit, full test or repository-Ruff rerun, indexing, cleanup, remote action, B09 work, merge, or release.
 
 Correction 02 adds exact additive-contradiction mutants and minimal forbidden-string checks. The existing routing skill remains unchanged. The work package remains HOLD: prior whole-repository pytest is RED, the scratch file cap was exceeded in both full runs, repository Ruff was Builder-reported RED, and Codebase Memory readiness remains HOLD. This handoff is for Planner's builder-result review, then Tester verification; it is not a Reviewer-ready or merge-ready declaration.
 
@@ -25,7 +25,7 @@ PRODUCT_FRONTIER = UNIFIED TENDER WAREHOUSE; PARTIAL
 ROADMAP_NODE = ENGINEERING TOOLBOX / PLUGINS; SUPPORTS CROSS-CUTTING WINDOWS / TEAM BID; NO PRODUCT MATURITY PROMOTION
 ACTIVE_PARENT_WP = WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01 REV3
 ACTIVE_MICRO_WP = CORRECTION 02 WITHIN SAME APPROVED WP; NO SEPARATE MICRO-WP
-CORRECTION_02_AUTHORITY = HUMAN APPROVED BOUNDED FORWARD CORRECTION; PACKET RELAYED BY PLANNER /root; 2026-09-28
+CORRECTION_02_AUTHORITY = HUMAN APPROVED REV3 WP/APPROVAL LEASE AND ORIGINAL IMPLEMENTATION/GOVERNANCE ALLOWLISTS; AFTER REVIEWER HOLD, PLANNER OPENED CORRECTION 02 WITHIN THAT UNCHANGED SCOPE; NO SEPARATE HUMAN CORRECTION APPROVAL
 CORRECTION_02_WRITE_SCOPE = tests/agent_workbench/test_execution_skills_contract.py; docs/agent_handoff/CURRENT.md
 REVIEWER_REPORT_ID = WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-REVIEWER-20260928-01; ADMITTED CHAT-ORIGIN EVIDENCE RELAYED BY PLANNER
 REVIEWER_VERDICT = HOLD
@@ -38,9 +38,9 @@ AUDIT_TARGET_CODE_HEAD = db58d5abbaf35c24ff6fe44d13290bfbce813ada; CORRECTION 02
 AUDIT_TARGET_DOC_HEAD = edfb2917622a0f367fd38ae5b285bcd65e8ffd93; PRIOR REVIEWED DOCUMENT CANDIDATE; CURRENT TERMINAL SYNC IS NOT YET AUDITED
 LAST_AUDITED_CODE_HEAD = db2d298705e21a7c0fb2af192d11a20b245d059c; REVIEWER HOLD WIR-R01
 LAST_AUDITED_DOC_HEAD = edfb2917622a0f367fd38ae5b285bcd65e8ffd93; REVIEWER HOLD WIR-R02/WIR-R03
-HANDOFF_CAPTURE_BASE = db58d5abbaf35c24ff6fe44d13290bfbce813ada; LOCAL HEAD VERIFIED IMMEDIATELY BEFORE THIS CURRENT TERMINAL SYNC
-LOCAL_PRE_SYNC_HEAD = db58d5abbaf35c24ff6fe44d13290bfbce813ada
-LIVE_GIT_HEAD = db58d5abbaf35c24ff6fe44d13290bfbce813ada; LOCAL PRE-SYNC HEAD ONLY; REMOTE NOT FETCHED
+HANDOFF_CAPTURE_BASE = 6c72da1de489f903644bb824adf36b2ceeb15700; LOCAL HEAD VERIFIED IMMEDIATELY BEFORE THIS CURRENT TERMINAL SYNC
+LOCAL_PRE_SYNC_HEAD = 6c72da1de489f903644bb824adf36b2ceeb15700
+LIVE_GIT_HEAD = 6c72da1de489f903644bb824adf36b2ceeb15700; LOCAL PRE-SYNC HEAD ONLY; REMOTE NOT FETCHED
 WP_RANGE = 51d2e9efc7d96334b629dc0ea97c6feb97966355..db58d5abbaf35c24ff6fe44d13290bfbce813ada; 10 PATHS; NO OUT-OF-SCOPE WP PATH
 CORRECTION_02_RANGE_AT_PRE_SYNC = edfb2917622a0f367fd38ae5b285bcd65e8ffd93..db58d5abbaf35c24ff6fe44d13290bfbce813ada; 1 PATH; TEST CONTRACT ONLY
 REMOTE_INTEGRATION_BASE = 51463a1ba01af9cd499e0b7c7cc961c19771bbf4; PREVIOUSLY OBSERVED origin/main; NOT REFRESHED IN CORRECTION 02
