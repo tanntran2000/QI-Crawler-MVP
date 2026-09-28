@@ -457,28 +457,72 @@ The Builder's single-node diagnostic passed because `.tmp/w3/fce7de` had
 already been created to retain `diagnostic.log`, allowing pytest to create
 child `t`. That pass does not turn the Tester run into a pass or establish
 product correctness. The Tester attempt remains a real failed verification
-attempt with 1,780 setup errors, one skip, two warnings, exit 1. It is
-classified as a local verification command-contract / runner setup defect,
-not a proven G1 product defect.
+attempt with 1,780 setup errors, one skip, two warnings, exit 1. The absent
+parent is a verified local runner/verification-command defect sufficient to
+cause widespread setup failure. Because the old Tester tracebacks were not
+retained, it is not independently proven to be the sole cause of all 1,780
+setup errors. No G1 product defect is established. `CI_INFRASTRUCTURE_DEFECT`
+here describes local verification infrastructure only and does not claim a
+GitHub Actions failure.
 
 Prevention for any future authorized nested compact basetemp is to create and
 verify the bounded registered run parent first, retain stdout/stderr at that
 parent outside the child, then invoke pytest with the absent child `t`.
 Validate freshness, containment and budgets before invocation. Never precreate
 `t`, because pytest owns and removes that child. This is a command-contract
-correction only; no source or test file changed. The one full-suite budget is
-consumed. A replacement full sequential run remains unauthorized until Human
-grants a new bounded authority; Tester remains HOLD until then.
+correction only; no source or test file changed. The original full-suite
+budget is consumed. At this initial Planner reconciliation, a replacement
+full run remained unauthorized and Tester remained HOLD. The following Human
+A0 authority addendum supersedes that pending-authority state.
 
 ```text
-ROOT_CAUSE_CLASSIFICATION = CI_INFRASTRUCTURE_DEFECT / LOCAL_VERIFICATION_COMMAND_CONTRACT_DEFECT
+ROOT_CAUSE_CLASSIFICATION = LOCAL_VERIFICATION_COMMAND_CONTRACT_DEFECT; CI_INFRASTRUCTURE_DEFECT IS AN UMBRELLA FOR LOCAL VERIFICATION INFRASTRUCTURE ONLY, NOT GITHUB ACTIONS
 PYTEST_RUNTIME = REPOSITORY .venv PYTEST 8.4.2; EXPLICIT BASETEMP CREATION USES mkdir(mode=0o700) WITHOUT parents=True
 TESTER_PARENT_CHILD = FRESH PARENT .tmp/w3/d9e71b ABSENT; CHILD .tmp/w3/d9e71b/t PASSED AS --basetemp
-COMMON_SETUP = tests/conftest.py AUTOSETUP FIXTURE REQUIRES tmp_path; 1,780 EXECUTING TESTS FAILED DURING SETUP; 1 SKIP DID NOT ENTER SETUP
+COMMON_SETUP = tests/conftest.py AUTOSETUP FIXTURE REQUIRES tmp_path; MECHANISM IS SUFFICIENT TO CAUSE WIDESPREAD SETUP FAILURE; LOST TRACEBACKS DO NOT PROVE IT WAS THE SOLE CAUSE OF ALL 1,780; 1 SKIP DID NOT ENTER SETUP
 BUILDER_DIAGNOSTIC_PARENT = .tmp/w3/fce7de ALREADY EXISTED FOR diagnostic.log; PYTEST CREATED CHILD t; NODE PASSED; DOES NOT PROVE WHOLE-SUITE CORRECTNESS
 PREVENTION = CREATE/VERIFY BOUNDED RUN PARENT FIRST; RETAIN LOG OUTSIDE ABSENT CHILD t; VERIFY FRESHNESS/CONTAINMENT/BUDGET; NEVER PRECREATE t
-PRODUCT_CAUSATION = NOT_ESTABLISHED; NO SOURCE/TEST CHANGE
-FULL_RUN = CONSUMED AND RED; REPLACEMENT FULL SEQUENTIAL RUN NOT AUTHORIZED; HUMAN AUTHORITY REQUIRED
-TESTER_STATE = HOLD UNTIL A HUMAN-AUTHORIZED CORRECTED RUN IS VERIFIED
-NEXT = PLANNER PRESENTS THE PROVED COMMAND-CONTRACT DEFECT AND REQUESTS HUMAN AUTHORITY FOR ONE REPLACEMENT FULL SEQUENTIAL TESTER RUN
+PRODUCT_CAUSATION = NO G1 PRODUCT DEFECT ESTABLISHED; NO SOURCE/TEST CHANGE
+OLD_RUN = CONSUMED AND RED; PRESERVE AS FAILED VERIFICATION, NOT PASS OR ABSENT
+INITIAL_REPLACEMENT_RUN_AUTHORITY = NOT AUTHORIZED AT THIS INITIAL PLANNER RECONCILIATION; SUPERSEDED BY FOLLOWING HUMAN A0 ADDENDUM
+INITIAL_TESTER_STATE = HOLD PENDING HUMAN AUTHORITY AT THAT RECONCILIATION; CURRENT AUTHORITY IS RECORDED IN FOLLOWING ADDENDUM
+REMOTE_OR_OPERATIONAL_AUTHORITY = NONE; NO PUSH/PR/MERGE/RELEASE/LIVE OPERATION/CLEANUP
+INITIAL_NEXT = PLANNER REQUESTS HUMAN AUTHORITY FOR ONE REPLACEMENT RUN; SUPERSEDED BY FOLLOWING HUMAN A0 DECISION
+```
+
+### G1-C01 replacement full-run authority — Human A0, 2026-09-29
+
+Human A0 has now authorized exactly one replacement full sequential pytest
+run, on the exact Git HEAD recorded at Tester preflight and with no code or
+test change. This is a new verification authority; the original failed run
+remains consumed RED history. Tester must resolve and record the exact HEAD at
+entry, use a fresh absent registered `.tmp/w3/<new-six-hex>` run parent, verify
+containment, reparse status, freshness and ownership, create that parent and
+retain a writability proof there, and verify child `t` remains absent before
+launch. Pytest alone owns creation/removal of child `t`.
+
+Tester must retain complete stdout/stderr, traceback, true pytest exit code,
+start/end times, summary, exact invocation and working directory outside
+`t`, preserving the pytest exit code through any pipeline. Limits are 30
+minutes, 20,000 files, 1 GiB scratch and at least 10 GiB free on D:, one run,
+no retry and no cleanup. Only if pytest passes may Tester run exactly one
+full `python -m ruff check .` plus the Work Order's prescribed read-only static
+gates. Any required gate failure returns to Planner with evidence; this lease
+does not authorize a fix or scope expansion. No push, PR, merge, release, live
+operation or cleanup is authorized.
+
+```text
+HUMAN_AUTHORITY_SOURCE = DIRECT HUMAN A0 APPROVAL RELAYED IN PLANNER TASK `/root`, 2026-09-29; NO NEW DECISION ID INVENTED
+REPLACEMENT_FULL_SEQUENTIAL_PYTEST = AUTHORIZED EXACTLY ONCE; RUN SEQUENTIALLY (`-n 0`); TESTER RESOLVES EXACT HEAD AT PREFLIGHT; NO CODE/TEST CHANGE
+RUN_PARENT = FRESH ABSENT REGISTERED `.tmp/w3/<new-six-hex>/`; VERIFY CONTAINMENT/REPARSE/FRESHNESS/OWNERSHIP; CREATE/PRESERVE WRITABILITY PROOF
+PYTEST_CHILD = `t` MUST BE ABSENT BEFORE LAUNCH; PYTEST ALONE CREATES/REMOVES IT
+RETAINED_EVIDENCE = COMPLETE STDOUT/STDERR/TRACEBACK; TRUE EXIT CODE; START/END; SUMMARY; EXACT COMMAND AND WORKING DIRECTORY; ALL OUTSIDE `t`; PIPELINE MUST PRESERVE PYTEST EXIT
+BUDGET = 30 MINUTES; 20,000 FILES; 1 GiB; >=10 GiB D: FREE; ONE RUN; NO RETRY; NO CLEANUP
+FOLLOW_ON = IF FULL PYTEST PASS ONLY, ONE FULL `python -m ruff check .` AND PRESCRIBED READ-ONLY STATICS; ANY REQUIRED FAILURE => RETAIN EVIDENCE AND RETURN PLANNER; NO FIX/SCOPE EXPANSION
+OLD_TESTER_RUN = EXIT 1; 1,780 SETUP ERRORS / 1 SKIP / 2 WARNINGS; CONSUMED RED HISTORY; NOT REWRITTEN
+CAUSE_CONCLUSION = VERIFIED LOCAL COMMAND DEFECT SUFFICIENT TO CAUSE WIDESPREAD SETUP FAILURE; LOST TRACEBACKS MEAN NOT PROVEN SOLE CAUSE OF ALL 1,780
+CI_INFRASTRUCTURE_LABEL = LOCAL VERIFICATION INFRASTRUCTURE ONLY; NO GITHUB ACTIONS FAILURE CLAIM
+REMOTE_AND_LIVE_AUTHORITY = NONE
+NEXT = PLANNER REVIEWS THIS AUTHORITY SYNC AND ASSIGNS TESTER THE ONE AUTHORIZED REPLACEMENT FULL RUN ON THE EXACT HEAD RESOLVED AT PREFLIGHT
+NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```

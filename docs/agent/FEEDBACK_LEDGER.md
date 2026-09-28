@@ -1505,3 +1505,25 @@ Boundary: No second operational root; no live update/launch, shortcut edit, migr
 Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_HANDOFF_AND_PATH_REGISTRY
 Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml; docs/agent_handoff/CURRENT.md
 ~~~
+
+### FB-0059 — Human A0 single replacement verification run
+
+~~~text
+State: ACCEPTED / ONE_REPLACEMENT_TESTER_RUN_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct approval relayed in Planner task `/root`, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C01 replacement verification
+Decision:
+  REPLACEMENT_FULL_SEQUENTIAL_PYTEST = EXACTLY_ONE; SEQUENTIAL (`-n 0`); NO CODE/TEST CHANGE; TESTER RECORDS EXACT HEAD AT PREFLIGHT
+  RUN_PARENT = FRESH ABSENT REGISTERED `.tmp/w3/<new-six-hex>/`; VERIFY CONTAINMENT/REPARSE/FRESHNESS/OWNERSHIP; CREATE PARENT AND RETAIN WRITABILITY PROOF
+  PYTEST_CHILD = `t` ABSENT BEFORE INVOCATION; PYTEST ALONE CREATES/REMOVES IT
+  RETAINED_EVIDENCE = COMPLETE STDOUT/STDERR/TRACEBACK/TRUE EXIT/START/END/SUMMARY/COMMAND/WORKING DIRECTORY OUTSIDE `t`; PRESERVE EXIT THROUGH PIPELINE
+  BUDGET = 30 MINUTES; 20,000 FILES; 1 GiB; >=10 GiB D: FREE; NO RETRY; NO CLEANUP
+  FOLLOW_ON = ONLY AFTER PYTEST PASS, ONE FULL `python -m ruff check .` AND PRESCRIBED READ-ONLY STATICS; FAILURE RETURNS TO PLANNER; NO TESTER FIX/SCOPE EXPANSION
+  OLD_RED_RUN = PRESERVE AS CONSUMED FAILED VERIFICATION; NEVER REWRITE AS PASS OR ERASE
+Boundary: No push/PR/merge/release, live operation, cleanup, code/test change, retry, or other scope expansion is authorized. The command-contract defect is local verification infrastructure and does not assert GitHub Actions failure or prove it was the sole cause of all 1,780 prior setup errors. No G1 product defect is established by that failed run. Tester execution follows Planner review and exact-head preflight.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~
