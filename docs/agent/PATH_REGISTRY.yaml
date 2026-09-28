@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.22",
+  "revision": "1.0.23",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -790,6 +790,46 @@
       "status": "RESERVED",
       "producer": "Separately authorized operational updater",
       "naming": "Exact update_id; immutable files and hashes; database restore is never authorized"
+    },
+    {
+      "id": "PATH.DEV.RELEASE_CANDIDATE",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/candidate/{relative_path}",
+      "purpose": "Repository-owned technical candidate material; never an operational installation or data clone",
+      "profile": "EVIDENCE",
+      "status": "RESERVED",
+      "producer": "Separately authorized candidate build Work Order",
+      "naming": "Exact version/source/build identity; G1.2 does not build or instantiate a candidate"
+    },
+    {
+      "id": "PATH.DEV.RELEASE_PUBLISHED",
+      "root_id": "ROOT.REPO",
+      "relative_template": "release_staging/published/{identity}/{relative_path}",
+      "purpose": "Immutable repository artifact archive; never an operational installation or release",
+      "profile": "EVIDENCE",
+      "status": "RESERVED",
+      "producer": "Explicitly authorized repository artifact publisher",
+      "naming": "Collision-rejected identity directory; no Current/Previous rotation or overwrite"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_LEGACY_ARCHIVE",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "Data/data/backups/legacy-roots/{archive_id}/{relative_path}",
+      "purpose": "Reserved locator for a future separately authorized G3 legacy-root archive; G1.2 is synthetic/contract-only",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Future separately Human-authorized legacy retirement Work Order",
+      "naming": "Collision-rejected archive_id; unknown artifacts remain KEEP; no real G3 archive is authorized here"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_LEGACY_RETIREMENT_RECEIPT",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/legacy-root-retirement/{archive_id}.json",
+      "purpose": "Reserved locator/receipt for a future separately authorized G3 archive; G1.2 is synthetic/contract-only",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Future separately Human-authorized legacy retirement Work Order",
+      "naming": "One collision-rejected receipt per archive_id; locator is not startup authority"
     }
   ],
   "roadmap_bindings": [
@@ -1375,7 +1415,11 @@
         "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_OLD",
         "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_FAILED",
         "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_MANIFEST",
-        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_SNAPSHOT"
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_SNAPSHOT",
+        "PATH.DEV.RELEASE_CANDIDATE",
+        "PATH.DEV.RELEASE_PUBLISHED",
+        "PATH.RUNTIME.OPERATIONAL_LEGACY_ARCHIVE",
+        "PATH.RUNTIME.OPERATIONAL_LEGACY_RETIREMENT_RECEIPT"
       ],
       "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
       "scope_paths": [
@@ -1408,9 +1452,13 @@
         "docs/agent/FEEDBACK_LEDGER.md",
         "docs/agent/KNOWN_FAILURE_MODES.md",
         "D:\\QI-Crawler\\",
+        "release_staging/candidate/{relative_path}",
+        "release_staging/published/{identity}/{relative_path}",
+        "D:\\QI-Crawler\\Data\\data\\backups\\legacy-roots\\{archive_id}\\{relative_path}",
+        "D:\\QI-Crawler\\control\\legacy-root-retirement\\{archive_id}.json",
         "release_staging/evidence/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-{UTC_RUN_ID}/"
       ],
-      "relation": "Locator only for the exact Human-approved G1 Work Order and its synthetic test/evidence families. This binding selects only the new root-local ROOT.OPERATIONAL IDs. Prior B09 ROOT.OPERATIONAL.UPDATE_VOLUME IDs remain RESERVED and unmaterialized under their prior authority; they are not selected by this Parent. All new runtime paths remain RESERVED. This binding grants no operational launch/update, cleanup, migration, restore, build, shortcut, B09, merge or release authority. Current transition scope is in the Work Order and CURRENT.md."
+      "relation": "Locator only for the exact Human-approved G1 Work Order and its synthetic test/evidence families. This binding selects the new single-installation ROOT.OPERATIONAL families plus the two exact ROOT.REPO artifact families release_staging/candidate and release_staging/published. Prior B09 ROOT.OPERATIONAL.UPDATE_VOLUME IDs remain RESERVED and unmaterialized under their prior authority; they are not selected by this Parent. The legacy archive/receipt locators are reserved for a future separately authorized G3 and G1.2 is synthetic/contract-only. This binding grants no operational launch/update, cleanup, migration, restore, build, shortcut, B09, merge or release authority. Current transition scope is in the Work Order and CURRENT.md."
     }
   ],
   "legacy_locations": [

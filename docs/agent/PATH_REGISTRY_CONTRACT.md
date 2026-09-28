@@ -252,3 +252,22 @@ retention hold does not demand deletion to achieve a green gate.
 Existing active/frozen WPs keep their exact approved paths. Reconcile this
 policy at their next governed transition; do not retroactively alter their
 audit objects. Rollout and remaining coverage are in PATH_REGISTRY_ROLLOUT.md.
+
+## 8. QI-Crawler single-installation artifact lanes
+
+The fixed operational root and entry are `D:\QI-Crawler` and
+`D:\QI-Crawler\Current\QI-Crawler\QI-Crawler.exe`. Repository
+`PATH.DEV.RELEASE_CANDIDATE` and `PATH.DEV.RELEASE_PUBLISHED` entries locate
+technical build input and immutable archive output under `release_staging`;
+neither is an installation, operational root, or data-clone destination.
+The historical `D:\QI-Crawler-Candidates` family is not reusable for new work.
+
+The G1 root-local update families use `ROOT.OPERATIONAL`. The older
+`ROOT.OPERATIONAL.UPDATE_VOLUME` entries remain historical/reserved under
+their prior B09 authority and are not selected or materialized by the
+single-installation Parent. `PATH.RUNTIME.OPERATIONAL_LEGACY_ARCHIVE` and
+`PATH.RUNTIME.OPERATIONAL_LEGACY_RETIREMENT_RECEIPT` are reserved locators for
+a future, separately authorized G3 contract only. Registration does not create
+an archive or locator, and neither permits real archive, cleanup, or deletion.
+Unknown remains KEEP; cleanup requires terminal disposition and separate
+authority.

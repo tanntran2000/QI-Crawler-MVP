@@ -1,12 +1,40 @@
 # QI-Crawler candidate release contract
 
-This contract governs the future v0.10.0 portable candidate assembly and its
-first access to copied business data. It does not authorize a build, data copy,
-migration, launch, installation, publication, promotion, tag, release, or merge.
+This contract preserves the historical v0.10.0 portable-candidate lane and
+defines the successor app-only technical-artifact lane. It does not authorize a
+build, data copy, migration, launch, installation, publication, promotion, tag,
+release, or merge.
 
-## Canonical candidate layout
+## Historical v0.10.0 candidate layout — frozen
 
-The future Build Work Order must resolve one fresh boundary with this pattern:
+The previously specified `D:\QI-Crawler-Candidates\v0.10.0-*` layout is
+historical evidence only. Do not create, select, or extend that second-root
+candidate lane. Its prior isolated-data and clone-receipt requirements remain
+historical statements and do not authorize a new data clone.
+
+## Successor app-only candidate lane
+
+For a separately authorized future candidate, technical build material belongs
+under repository-owned `release_staging\candidate`; an explicit publisher may
+create only an immutable identity-bound archive under
+`release_staging\published\<identity>`. These paths are repository artifacts,
+not installations, and contain no candidate Data clone. A later G2B Work Order
+alone may stage the application payload under
+`D:\QI-Crawler\.update\<update_id>\stage` for the single operational root.
+The canonical entry remains
+`D:\QI-Crawler\Current\QI-Crawler\QI-Crawler.exe`, with mutable Data under
+`D:\QI-Crawler\Data`. G1.2 adds only synthetic and locator contracts; no
+candidate build, publication, data copy, or G2B operation is performed.
+
+## Historical candidate validation contract
+
+At the time this historical v0.10.0 lane was specified, its Build Work Order
+was required to resolve one fresh boundary with this pattern:
+
+Any remaining future-tense requirements in this preserved historical section
+are evidence of the original v0.10.0 contract only; they are not current
+execution authority. The successor app-only lane above governs future
+technical candidate work under a separately approved Work Order.
 
 ```text
 D:\QI-Crawler-Candidates\

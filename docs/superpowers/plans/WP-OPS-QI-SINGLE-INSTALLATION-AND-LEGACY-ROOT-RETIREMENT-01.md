@@ -219,7 +219,7 @@ The CLI in scripts/update_operational_release.py remains thin and defaults to no
 
 ### G1.2 — lifecycle, governance and cumulative verification
 
-Extend LAW 16 concisely with the single operational root/entry point and finite technical-root lifecycle; update operational/candidate acceptance contracts; make publisher outputs incapable of creating the sibling Crawler tool installation; make clean-dev preserve durable evidence; add only synthetic archive/locator contracts, no real legacy archive; prepare consistent internal 0.10.1 source metadata and changelog without build/release. Synchronize Delta/Feedback/CURRENT at governed transitions. Audit every task-created artifact for retained bytes; cleanup is not part of this WP.
+Extend LAW 16 concisely with the single operational root/entry point and finite technical-root lifecycle. The root-local `.update/<update_id>` stage/old/failed family is finite transient state: after terminal success and durable journal/evidence, it requires a mandatory cleanup disposition and next action; deletion occurs only in a separately authorized cleanup step. Failure or `RECOVERY_REQUIRED` content remains retained until recovery/disposition. `control/updates` journals and LKG remain durable. Update operational/candidate acceptance contracts; make publisher outputs incapable of creating the sibling Crawler tool installation; make clean-dev preserve durable evidence; add only synthetic archive/locator contracts, no real legacy archive; prepare consistent internal 0.10.1 source metadata and changelog without build/release. Synchronize Delta/Feedback/CURRENT at governed transitions. Audit every task-created artifact for retained bytes; cleanup is not part of this WP.
 
 ## Verification contract and budgets
 
@@ -283,18 +283,25 @@ PLUGIN = codebase-memory
 PURPOSE = Read-only index readiness check; no index attempt authorized
 INVOCATION = mcp__codebase_memory_mcp__list_projects(detail="identity", limit=25, offset=0)
 RESULT = USED_WITH_FALLBACK
-FALLBACK = Zero projects returned; no indexing; CodeGraph and bounded source/docs remain the permitted exploration path
+FALLBACK = Zero projects returned in the Builder readiness call; Builder made no index call; CodeGraph and bounded source/docs remain the permitted exploration path
 IMPACT_RADIUS = Structural-discovery readiness only
 EDIT_RADIUS = NONE
 TEST_RADIUS = NONE
-LIMITATION = MCP succeeded but no project was indexed; the prior skill-path access denial is context-specific and was not retried
+LIMITATION = This receipt records Builder's call only; Planner-side index deviation is documented below; the prior skill-path access denial is context-specific and was not retried
 ```
+
+Codebase Memory was readiness-only for this Work Order; Builder did not call
+`index_repository`. During G1.2, Planner accidentally issued three
+`index_repository` calls. Each returned `aborted_previous_preserved`; a later
+project list still returned zero projects, and no project, index, or repository
+artifact was published. This is a Planner-side procedural deviation, not
+successful Codebase Memory use. No retry is authorized.
 
 ## Artifact and path budget
 
 PATH_REGISTRY_BASELINE = revision 1.0.21; SHA256 object 100a2e6fac99667614d67aae7c1f57c579a36e82
 PATH_REGISTRY_IMPACT = ADD_ENTRY
-PATH_REGISTRY_RESULT = revision 1.0.22 candidate; one ROOT.OPERATIONAL and root-local RESERVED families; old external UPDATE_VOLUME identifiers retained unchanged
+PATH_REGISTRY_RESULT = revision 1.0.23 candidate; 65 unique PATH_IDs and 21 unique WP bindings; new root-local ROOT.OPERATIONAL families plus exact ROOT.REPO candidate/published artifact families; reserved future G3 locators; prior B09 UPDATE_VOLUME identifiers retained unchanged
 ROADMAP_REF = Master Roadmap Cross-cutting Windows / Team Bid delivery; Engineering Toolbox / Plugins
 WP_ID_AND_AUTHORITY = this Human-approved Work Order
 PATH_IDS_USED = PATH.GOV.PLAN; PATH.GOV.HANDOFF; PATH.GOV.DOCUMENT; PATH.GOV.DOCS; PATH.REPO.SOURCE; PATH.REPO.TESTS; PATH.REPO.SCRIPTS; PATH.DEV.TEST_TEMP; PATH.EVIDENCE.WP_RUN; root-local operational single-installation families
@@ -302,6 +309,7 @@ UNREGISTERED_WRITE_PATHS = NONE
 MAX_LOCAL_TEST_SCRATCH = 20,000 files / 1 GiB / one full run / 10 GiB untouched D: reserve
 MAX_SYNTHETIC_RUNTIME_TEST = 10,000 files / 512 MiB / one fresh run / 10 GiB untouched D: reserve
 LIVE_OPERATIONAL_MUTATION = ZERO
+COMPACT_SCRATCH_TOKEN = `w3` maps `.tmp/w3/<six-hex-run-id>/t` to this Parent under PATH.DEV.TEST_TEMP; exact G1.2 runs `d29f6c` and `e36fc2` are Builder-owned verification roots.
 
 New root-local paths must be containment/reparse checked, collision-rejected, same-volume and path-length checked before writes. Reject projected Windows paths over 240 characters; require at least 20 characters headroom below the 260-character legacy limit for each accepted staged/old/failed file path. If any file in a candidate generation cannot meet the limit, fail closed before mutation.
 
@@ -312,3 +320,74 @@ Stop and return to Planner on identity/lineage drift, tracked/index dirt, branch
 ## Required Builder return
 
 Report exact base/head/branch and carried history; semantic commits; changed files; G1.0 maps and stage outcomes; pytest collection baseline/final; RED/GREEN/affected/full/Ruff/diff evidence; path and artifact inventories/budgets; plugin invocation receipts; remote checkpoint/no-PR status; root and untracked preservation; achieved/not-achieved claims; open blockers; SPINE_IMPACT, SPINE_TARGET_FILES, SPINE_SYNC_STATE; exactly one next action; NEXT_AUTHORITY=PLANNER_ARCHITECT. Stop after Builder return. Planner assigns Tester and Reviewer; no direct role messaging.
+
+## G1.2 Builder execution evidence — 2026-09-29
+
+```text
+G1.2_SCOPE = REPOSITORY ARTIFACT PUBLISHER; CLEAN-DEV ROOT GUARD; ACCEPTANCE/METADATA CONTRACTS; LAW 16; PATH REGISTRY; SYNTHETIC G3 LOCATORS ONLY
+OPERATIONAL_ROOT = D:\QI-Crawler; NO SECOND ROOT; NO DATA CLONE; NO LIVE UPDATE, BUILD, PUBLISH, LAUNCH, ARCHIVE OR CLEANUP
+INTERNAL_SOURCE_VERSION = 0.10.1; NOT BUILT, PACKAGED, TAGGED, RELEASED, INSTALLED OR DEPLOYED
+HISTORICAL_LIVE_VERSION = 0.10.0; LIVE PROMOTION GATE UNCHANGED; SOURCE FIX DOES NOT UPDATE THE INSTALLED BINARY
+CODEBASE_MEMORY = READINESS_ONLY; BUILDER_INDEX_CALLS=0; PLANNER_SIDE_DEVIATION=3 index_repository calls, all aborted_previous_preserved; zero projects and no project/index/repository artifact published; no retry
+BASELINE_COLLECTION = 1,775; ZERO COLLECTION ERRORS; BEFORE G1.2 TEST EDITS
+TDD_INITIAL_RED = 7 FAILED / 2 PASSED OF 9 TARGET NODES; WINDOWS PUBLISHER, CLEAN-DEV, VERSION AND LOCATOR CONTRACTS
+PUBLISHER_TARGETED = 3 PASSED / 1 SKIPPED; PATH/IMMUTABILITY/SOURCE IDENTITY COVERAGE; REPARSE TEST SKIPPED BECAUSE SYMLINK CREATION WAS UNAVAILABLE
+INVALID_AFFECTED_RUN = 159 COLLECTED; 147 PASSED / 3 SKIPPED / 9 FAILED; 146.27s; INVALID_FOR_ACCEPTANCE because long basetemp caused Windows path-limit failures (SQLite backup open, projected publisher path, nested test fixture). No assertion or 240-char gate was weakened.
+VALID_SHORT_AFFECTED_RUN = 159 COLLECTED; 155 PASSED / 3 SKIPPED / 1 FAILED; 153.63s; sole failure was the legacy 0.10.0 test calling the new default 0.10.1 validator.
+EXACT_NODE_CORRECTION = test_live_promotion_success_is_coherent_and_preserves_source; explicit LIVE_VERSION expectation; 1 PASSED / 1 WARNING; 3.03s. The legacy fixture explicitly asserts LIVE_VERSION remains 0.10.0. No production gate was relaxed. The entire affected family was not rerun after this test-only expectation correction.
+PYTEST_WARNING = PytestCacheWarning WinError 5 writing repository .pytest_cache; non-failing, retained as environment limitation
+FULL_SEQUENTIAL_PYTEST = NOT RUN BY BUILDER; RESERVED FOR INDEPENDENT TESTER
+RUFF = SCOPED PYTHON FILES PASS, exit 0; initial command incorrectly included clean_dev.ps1 and Ruff reported PowerShell parse errors; corrected Python-only invocation passed. REPO-WIDE RUFF NOT RUN.
+COLLECTION_FINAL = 1,781; ZERO COLLECTION ERRORS; 2.84s; `.tmp/w3/fb4a10/t`; +6 from the 1,775 baseline; no unexplained decrease
+COMPACT_SCRATCH_MAPPING = PATH.DEV.TEST_TEMP token `w3` maps `.tmp/w3/<six-hex-run-id>/t` to this Parent. Runs: `d29f6c` affected family, `e36fc2` exact-node correction.
+SCRATCH_INVALID_RUN = `.tmp/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01/20260929T1Z/affected`; 1,721 files / 29,135,568 bytes; retained; test output was returned in the execution transcript, not separately redirected.
+SCRATCH_VALID_RUN = `.tmp/w3/d29f6c/t` plus its captured affected.log; 1,757 files / 31,850,472 bytes; retained.
+SCRATCH_EXACT_NODE = `.tmp/w3/e36fc2/t` plus failing-node.log; 16 files / 3,659,972 bytes; retained.
+D_FREE_AFTER_TESTS = 18,849,906,688 bytes; minimum 10 GiB reserve preserved
+G3_ARCHIVE_AND_RECEIPT = RESERVED LOCATORS ONLY; NO REAL ARCHIVE; UNKNOWN REMAINS KEEP
+CLEANUP = NOT AUTHORIZED OR EXECUTED; NO ARTIFACT DELETED
+FEEDBACK = EXISTING HUMAN A0 FB-0058 REMAINS AUTHORITATIVE; NO NEW HUMAN DECISION IS ORIGINATED BY THIS BUILDER RESULT
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = AGENTS.md; docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/CANDIDATE_RELEASE_CONTRACT.md; docs/agent/OPERATIONAL_RELEASE_CONTRACT.md; docs/agent/PATH_REGISTRY_CONTRACT.md; docs/agent/PATH_REGISTRY.yaml; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; CHANGELOG.md; HUONG_DAN_SU_DUNG.md
+SPINE_SYNC_STATE = PASS AFTER FINAL CURRENT/DIFF VALIDATION
+EXACTLY_ONE_NEXT_ACTION = PLANNER REVIEWS THIS BUILDER RESULT AND ASSIGNS TESTER/REVIEWER UNDER THE EXISTING LEASE
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+```
+
+The valid short-root affected run plus the exact-node correction is the complete
+Builder evidence for the touched test families; it does not replace the one
+full sequential suite reserved for Tester. No Product release or maturity
+promotion is claimed. The three Planner-side index calls are recorded as an
+administrative deviation only and do not establish Codebase Memory readiness.
+
+```text
+PLUGIN = test-driven-development
+PURPOSE = G1.2 publisher, clean-dev, version and locator behavior contracts
+INVOCATION = Wrote the discriminating Windows/release-governance tests before implementation; initial targeted RED was 7 failed / 2 passed of 9 nodes, followed by focused and affected-family GREEN evidence above
+RESULT = USED_AND_SUCCEEDED
+FALLBACK = None
+IMPACT_RADIUS = Candidate artifact publication, repo cleanup boundary and metadata/locator checks
+EDIT_RADIUS = G1.2 implementation and test allowlist only
+TEST_RADIUS = Windows installer/repo hygiene/release governance/operational release tests
+LIMITATION = Reparse-link test skipped because host symlink creation was unavailable; test-only exact legacy version expectation was corrected after the short affected run
+
+PLUGIN = systematic-debugging
+PURPOSE = Diagnose the first archive visibility/path observation before assertion changes
+INVOCATION = Inspected the exact archive identity/path, parent enumeration and recursive listing, then direct stat/open after publisher exit; confirmed the entry was the final archive, not `.stage-*`, and retained archive contents were readable on a short registered root
+RESULT = USED_AND_SUCCEEDED
+FALLBACK = None
+IMPACT_RADIUS = Synthetic repository archive observation only
+EDIT_RADIUS = Publisher test assertion and bounded task scratch
+TEST_RADIUS = Focused Windows publisher test
+LIMITATION = Synthetic temporary-root evidence only; no archive was published into the repository or operational root
+
+PLUGIN = verification-before-completion
+PURPOSE = Final evidence gate before Builder return/commit
+INVOCATION = Read the installed skill and ran exact collection, scoped Python Ruff, registry/static, scope, diff-check and Git status checks before the final claim
+RESULT = USED_AND_SUCCEEDED
+FALLBACK = None
+IMPACT_RADIUS = G1.2 Builder result
+EDIT_RADIUS = Authorized G1 paths only
+TEST_RADIUS = Affected test families plus collection and scoped lint
+LIMITATION = No full sequential pytest, full-repository Ruff, build, hosted CI or operational execution by Builder
+```

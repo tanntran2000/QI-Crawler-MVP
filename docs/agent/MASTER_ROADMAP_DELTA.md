@@ -1925,3 +1925,32 @@ OUT_OF_SCOPE = G2 BUILD; LIVE INSTALL/UPDATE/LAUNCH; SHORTCUT; MIGRATION/RESTORE
 PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
 NEXT = BUILDER COMPLETES GOVERNED G1 STAGES UNDER THE WORK ORDER; STOP ON ITS LISTED GATES
 ~~~
+
+## Single-installation G1.2 — Builder candidate evidence, 2026-09-29
+
+This forward status records G1.2 repository artifact and lifecycle work under
+the existing Human-approved G1 Work Order. The sole operational root remains
+`D:\QI-Crawler`; the product frontier and capability maturity do not change.
+Repository candidate/archive paths are technical artifacts only, and the
+legacy-root archive/receipt remain reserved locators for a separately
+authorized G3. No build, release, publication, live update, archive, or cleanup
+was performed.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-LEGACY-ROOT-RETIREMENT-G1-20260928-01-RESULT
+AUTHORITY = G1.2 BUILDER EVIDENCE UNDER HUMAN-APPROVED WP; NO NEW HUMAN DECISION
+PARENT_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac; carried governance lineage preserved
+CURRENT_STAGE = G1.0/G1.1/G1.2 BUILDER CANDIDATE; PLANNER REVIEW PENDING
+OPERATIONAL_ROOT = D:\QI-Crawler; `.update/<update_id>` FINITE TRANSIENT; CLEANUP DISPOSITION REQUIRED AFTER SUCCESS; DELETION REQUIRES SEPARATE AUTHORITY; FAILURE/RECOVERY_REQUIRED RETAINED
+ARTIFACT_LANE = INTERNAL SOURCE METADATA 0.10.1; repository-owned `release_staging/candidate` and immutable `release_staging/published`; no Data clone; no build/publish/install/release
+PUBLISHER = EXACT REPO-LOCAL ROOT; CLEAN MAIN/SOURCE SHA; IDENTITY-BOUND COLLISION-REJECTED ARCHIVE; PROJECTED PATH/REPARSE GATES; NO SIBLING INSTALL LAYOUT
+CLEAN_DEV = EXACT GIT TOP-LEVEL ONLY; RELEASE_STAGING AND DURABLE EVIDENCE PRESERVED
+FUTURE_G3 = SYNTHETIC/LOCATOR CONTRACT ONLY; real archive/cleanup separately authorized
+TEST_EVIDENCE = INVALID LONG-BASE TEMP RUN 147 PASS/3 SKIP/9 FAIL; VALID SHORT ROOT 155 PASS/3 SKIP/1 LEGACY VERSION EXPECTATION FAIL; exact corrected legacy node 1 PASS; no full sequential suite by Builder
+SCRATCH = `w3` token mapped to this Parent; valid affected run 1,757 files/31,850,472 bytes; exact-node run 16 files/3,659,972 bytes; all retained; invalid run retained
+LIMITATIONS = `.pytest_cache` WinError 5 warning; symlink/reparse behavior untested where link creation unavailable; full sequential pytest reserved for Tester; repo-wide Ruff not run by Builder
+CODEBASE_MEMORY = HOLD_WITH_DIAGNOSIS; no Builder index; Planner made three accidental index calls, all `aborted_previous_preserved`; zero projects/artifacts; no retry
+REMOTE = NONE; NO PUSH/PR/MERGE/RELEASE
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = PLANNER_REVIEWS_BUILDER_RESULT_AND_ASSIGNS_TESTER
+~~~

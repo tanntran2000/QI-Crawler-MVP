@@ -134,3 +134,25 @@ staged root becomes live; rollback is attempted only against those exact
 roots. A preflight or an omitted execute flag performs no mutation. This
 phase never executes the live entrypoint, and the B02 Inno Setup installer
 remains deferred and is not required for B09.
+
+## Successor v2 acceptance and app-only update contract
+
+The G1 source contract preserves v1 receipt validation for existing v1 bundles.
+Version 2 separates the current application `source_git_sha` from immutable
+`migration_source_sha` provenance. The migration receipt's bytes, hash, original
+0020-to-0022 revision transition and promotion-time database baseline retain
+their historical meaning; they are never rewritten to match a new application
+commit. Runtime acceptance may validate schema and exact Data/config bindings,
+but does not compare normal mutable DB bytes with the old migration-time hash.
+
+The successor update path rotates only the app generation under the sole
+`D:\QI-Crawler` root. It journals exact filesystem intent and confirmation,
+blocks when an old process/resource holder or ambiguous recovery state exists,
+and verifies that operational DB/config/WAL/SHM presence and bytes stay
+unchanged across the app-only operation. Its last-known-good record binds an
+exact app generation to immutable DB/config snapshot identities; the snapshot
+is recovery evidence and does not authorize database restore. Repository
+candidate/archive artifacts are not operational installations. This source
+contract, its synthetic tests and a passing build do not themselves authorize a
+live update, launch, shortcut change, migration, restore, release or deployment;
+those require separate governed authority.

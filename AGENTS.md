@@ -157,6 +157,28 @@ Historical tags and releases must never be silently moved.
     KEEP. Existing protected/tracked/evidence/data deletion rules still apply.
     A name, age, ignored status or registered address is not deletion authority.
 
+    QI-Crawler has one operational installation and entry point at
+    `D:\QI-Crawler\Current\QI-Crawler\QI-Crawler.exe`, with mutable Data
+    under `D:\QI-Crawler\Data`. The registered repository paths
+    `release_staging\candidate` and `release_staging\published` are technical
+    candidate/archive material only; they are never installations and never
+    carry a cloned operational Data root. The historical
+    `D:\QI-Crawler-Candidates` layout is frozen evidence and must not be reused.
+    A future legacy-root archive and its locator belong only under the
+    registered `D:\QI-Crawler\Data\data\backups\legacy-roots` and
+    `D:\QI-Crawler\control\legacy-root-retirement` families. No real archive
+    or cleanup is implied; deletion requires terminal disposition and separate
+    Human authority.
+
+    The registered `D:\QI-Crawler\.update\<update_id>` family is finite
+    transient technical state. After a terminal successful update and durable
+    journal/evidence, task-owned `stage`, `old` and `failed` content must receive
+    a mandatory cleanup disposition and next action; actual removal occurs only
+    in a separately authorized cleanup step. On failure or `RECOVERY_REQUIRED`,
+    retain it until recovery and disposition are complete. Durable
+    `control\updates` journals and LKG artifacts remain under their registered
+    durable lifecycle.
+
     This rule applies prospectively to new work in this checkout. Existing
     frozen WPs reconcile at their next governed transition without rewriting
     evidence. Root/retention/data migrations require Human material authority.
