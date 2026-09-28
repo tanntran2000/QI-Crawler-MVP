@@ -691,3 +691,24 @@ unless a later Work Package is merged and verified.
   R2B, release, Ground Truth promotion, deep HSMT extraction, AI/learning,
   automatic Team Bid decisions or a claim that the full RD-0008 objective is
   promoted. Human A0 direction is required after closeout.
+
+## MEM-031 — Operational acceptance retains migration-baseline DB identity
+
+- **State:** ACTIVE
+- **Since main commit:** `179c0712a14161ea25096e66a127f6022bf696fd` (PR #130;
+  correction source `0d9a3c41e71d368aa4c21aefdd970dc41343e6af`).
+- **Contract:** The immutable `acceptance.database_sha256` is historical
+  promotion-baseline evidence equal to `migration_receipt.output_db_sha256`;
+  it is not a live hash that must remain equal after legitimate operational
+  SQLite writes. Exact DB path, schema/readability, release identity and
+  migration receipt checks remain in force. The merged correction also adds
+  config-binding guards and tests.
+- **Evidence:** PR #130's exact source correction is included in main at
+  `179c0712a14161ea25096e66a127f6022bf696fd` and later main
+  `caf983691da60d4eaf990d09e9e1788692aabaac`. Admitted review/CI evidence
+  records Reviewer PASS, eight checks passed, targeted 186 passed/2 skipped,
+  and full 1621 passed/2 skipped.
+- **Boundary:** This records the merged source contract only. It does not
+  establish that an older installed runtime contains the correction or
+  authorize receipt edits, promotion/migration reruns, a new binary, live
+  operational replacement, release, or product maturity promotion.

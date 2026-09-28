@@ -993,13 +993,17 @@ LIMIT = Source/test correction only. Existing live config was not changed, the a
 
 ```text
 ID = FM-049
-STATE = LOCAL_CORRECTION_PENDING_INDEPENDENT_AUDIT
+STATE = SOURCE_CORRECTION_MERGED; OLDER_INSTALLED_BINARY_FAILURE_REPRODUCED; RUNTIME_REMEDIATION_PENDING
 PRODUCT_HOUSE_LAYER = APPLICATION / OPERATIONAL DATABASE STARTUP
 SYMPTOM = A fixture-backed real authorization path rejected startup after one committed legitimate SQLite write with OPERATIONAL_DATABASE_SHA_MISMATCH.
 ROOT_CAUSE = Startup compared the current mutable DB file SHA to the immutable cutover acceptance SHA.
 CORRECTION = Treat acceptance.database_sha256 as historical promotion-baseline evidence equal to migration_receipt.output_db_sha256; retain exact path, schema/readability, release identity and migration receipt checks.
 PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong schema, unusable DB and tampered receipt controls remain fail-closed. A new application build cannot truthfully reuse the v1 receipt's coupled source/migration SHA without a separate update contract.
-LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
+MERGED_SOURCE_CORRECTION = PR #130; source 0d9a3c41e71d368aa4c21aefdd970dc41343e6af; merge 179c0712a14161ea25096e66a127f6022bf696fd; present in origin/main caf983691da60d4eaf990d09e9e1788692aabaac; Reviewer PASS per admitted Planner evidence.
+LIVE_OLD_BINARY_EVIDENCE = Tester report WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-TESTER-20260928T083433Z; one direct launch of installed EXE source SHA 79b62ec93547f210aad162dcbf926c0bd2c81ab1; self-exit code 1 after 4.73 seconds; no GUI/log/event; operational DB/config/AppData DB/schema/shortcut unchanged.
+PLANNER_ADMITTED_FIRST_FAILING_CONDITION = OPERATIONAL_DATABASE_SHA_MISMATCH before file logging; receipt expected DB SHA c35e1f3618871d453ee2950f37cbcce1466435948e5692360b9d0512461a8f2a; current legitimate operational DB SHA 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee. Other directly checked gates passed; runtime root/database behavior after that gate remains inconclusive.
+RUNTIME_STATUS = NEW_RUNTIME_BINARY_REQUIRED=YES; installed binary predates the merged correction; separate approved build/update/replacement is pending. No additional FM-049 source correction is presently identified.
+LIMIT = No live remediation, receipt rewrite, original 0020-to-0022 promotion/migration rerun, app build/replacement or shortcut edit. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host. ORIGINAL_REPORTED_FAILURE remains UNRESOLVED beyond the first proven failing gate.
 ```
 
 ## FM-050 — Host suspension invalidated a local full-sequential verification run

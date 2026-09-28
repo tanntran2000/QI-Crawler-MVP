@@ -8,9 +8,9 @@ PARENT = WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01 rev3
 RELATED_MICRO_WP = WP-ENG-QI-WORKBENCH-HOSTED-VERIFICATION-01
 ROLE = BUILDER_SINGLE_WRITER
 HUMAN_AUTHORITY = Human explicitly approved this bounded Work Order in the latest Planner task on 2026-09-28.
-CURRENT_LEASE = POST_MERGE_RECONCILIATION + STAGE_0 + STAGE_1_COLD_RECOVERY_BACKUP
-CURRENT_STAGE = STAGE_0_AND_STAGE_1_COMPLETE; BUILDER_RETURNED_TO_PLANNER
-NEXT_ROLE_BOUNDARY = RETURN_TO_PLANNER; Planner may dispatch TESTER_MACHINE_VERIFIER for at most one direct installed-EXE launch.
+CURRENT_LEASE = POST_MERGE_RECONCILIATION + STAGE_0 + STAGE_1_COLD_RECOVERY_BACKUP + STAGE_2_GOVERNANCE_RECONCILIATION
+CURRENT_STAGE = STAGE_2_GOVERNANCE_RECONCILIATION; BUILDER_RETURNED_TO_PLANNER
+NEXT_ROLE_BOUNDARY = RETURN_TO_PLANNER_FOR_INDEPENDENT_REVIEWER_DISPATCH; no operational remediation or shortcut stage is authorized here.
 ```
 
 The Human approval authorizes this exact local governance work, one finite cold
@@ -89,6 +89,13 @@ and post-merge push checks for caf9836 are distinct evidence objects.
 1. `docs/superpowers/plans/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01.md`
 2. `docs/agent/PATH_REGISTRY.yaml` — one locator-only binding using existing PATH_IDs.
 3. `docs/agent_handoff/CURRENT.md` — governed active/terminal handoff syncs.
+
+The Stage 0/1 write scope above is historical. For the Planner-opened Stage 2
+governance reconciliation only, the authorized tracked write scope is this
+Work Order, `docs/agent_handoff/CURRENT.md`, the existing FM-049 entry in
+`docs/agent/KNOWN_FAILURE_MODES.md`, one compact current entry in
+`docs/agent/MASTER_ROADMAP_DELTA.md`, and `docs/agent/PROJECT_MEMORY.md` only
+for the already-merged PR #130 source-contract fact. No other path is in scope.
 
 ### Exact external write scope
 
@@ -340,9 +347,10 @@ DIRECT_EXE_STARTUP = INCONCLUSIVE
 ORIGINAL_REPORTED_FAILURE = UNRESOLVED
 ```
 
-SPINE is synchronized at the stage handoff across the Work Order, PATH_REGISTRY
-and CURRENT. No Delta, Failure Memory or Product Memory write is made because
-no new durable failure cause, capability or B09 fact was established.
+Stage 0/1 synchronized the Work Order, PATH_REGISTRY and CURRENT. After the
+Tester launch and Planner-admitted root-cause reconciliation, Stage 2 updates
+FM-049, a compact current Delta entry and the merged-fact-only Project Memory
+entry below; it does not update product capability maturity or authorize B09.
 
 ```text
 SPINE_IMPACT = MULTIPLE
@@ -392,5 +400,43 @@ occurred.
 BUILDER_RESULT = STAGE_0_AND_STAGE_1_COMPLETE
 HANDOFF_READY = YES_FOR_PLANNER_REVIEW_AND_TESTER_DISPATCH
 EXACTLY_ONE_NEXT_ACTION = PLANNER REVIEWS THE EXACT BUILDER CANDIDATE AND BACKUP EVIDENCE; IF ACCEPTED, DISPATCH TESTER FOR AT MOST ONE DIRECT INSTALLED-EXE LAUNCH
+NEXT_AUTHORITY = PLANNER_ARCHITECT
+```
+
+## Stage 2 result — Tester failure and Planner-admitted reconciliation
+
+The record below separates Tester observations from the Planner-admitted
+causal reconciliation. Builder did not launch the application and did not
+re-originate the root-cause decision.
+
+```text
+STAGE_2_AUTHORITY = PLANNER-OPENED GOVERNANCE RECONCILIATION UNDER THE EXISTING HUMAN-APPROVED WORK PACKAGE; NO NEW RUNTIME/SHORTCUT/OPERATIONAL-UPDATE AUTHORITY
+TESTER_REPORT_ID = WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-TESTER-20260928T083433Z
+DIRECT_LAUNCH = 2026-09-28T08:34:28Z; PID 10112; exact installed EXE and working directory; exited itself after 4.73 seconds; exit code 1
+GUI_APPEARED = NO
+LOG_APPEND = NONE; APPLICATION_EVENT = NONE; FORCED_TERMINATION = NO
+TESTER_CLASSIFICATIONS = DIRECT_EXE_STARTUP=FAIL; GUI_APPEARED=NO; RUNTIME_DATA_ROOT=INCONCLUSIVE; RUNTIME_DATABASE=INCONCLUSIVE; NORMAL_CLOSE=INCONCLUSIVE
+MUTATION_CLASSIFICATIONS = DB_MUTATION=NONE; CONFIG_MUTATION=NONE; APPDATA_LEGACY_DB_MUTATION=NONE; SCHEMA_MIGRATION=NONE
+REMAINING_TESTER_RESULTS = ORIGINAL_REPORTED_FAILURE=UNRESOLVED; SHORTCUT_EDIT_ELIGIBLE=NO
+OPERATIONAL_INVARIANTS = OPERATIONAL_DB/CONFIG/LEGACY_APPDATA_DB/SHORTCUT/INVENTORIES/WAL/SHM UNCHANGED
+PLANNER_ADMITTED_ROOT_CAUSE = The installed binary source SHA 79b62ec93547f210aad162dcbf926c0bd2c81ab1 calls authorize_frozen_runtime before file logging. Its old validate_operational_acceptance requires current operational DB SHA to equal receipt promotion-time database_sha256. The exact first proven failing old-source condition is OPERATIONAL_DATABASE_SHA_MISMATCH.
+EXPECTED_RECEIPT_DB_SHA256 = c35e1f3618871d453ee2950f37cbcce1466435948e5692360b9d0512461a8f2a
+CURRENT_LEGITIMATE_OPERATIONAL_DB_SHA256 = 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee
+OTHER_PREVIOUS_GATES = OPERATIONAL_LAYOUT/RUNTIME_DIRS; EXE/MANIFEST/BUILD_INFO/MIGRATION_RECEIPT HASHES AND IDENTITIES; CONFIG PRESENCE; SCHEMA 0022_add_tender_recovery_events; SQLITE quick_check=ok — DIRECTLY CHECKED PASS
+SOURCE_CORRECTION = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af; PR #130 merged via 179c0712a14161ea25096e66a127f6022bf696fd; included in origin/main caf983691da60d4eaf990d09e9e1788692aabaac; Reviewer PASS per admitted evidence
+SOURCE_CORRECTION_EVIDENCE = PR #130 reported 8 checks passed; targeted 186 passed/2 skipped; full 1621 passed/2 skipped. This applies to that merged source correction, not the older installed binary or this docs-only candidate.
+MERGED_SOURCE_CHANGE = acceptance.database_sha256 is immutable migration-baseline evidence; config-binding guards/tests added. No further FM-049 source correction is identified.
+RUNTIME_REMEDIATION = NEW_RUNTIME_BINARY_REQUIRED=YES; ONE_FILE_CONFIG_REPAIR_SUFFICIENT=NO; RERUN_ORIGINAL_PROMOTION_REQUIRED=NO; installed binary predates the merged correction.
+PROHIBITED = NO RECEIPT HASH REWRITE; NO RERUN OF ORIGINAL 0020-to-0022 PROMOTION/MIGRATION; NO LIVE REMEDIATION; NO APP BUILD/REPLACEMENT OR SHORTCUT EDIT IN THIS WP
+SHORTCUT_STAGE = INELIGIBLE after direct startup FAIL and under current scope
+BACKUP_DISPOSITION = KEEP_RECOVERY; cleanup NOT_AUTHORIZED/NOT_EXECUTED; unknown artifacts remain KEEP
+NEXT_PROPOSED_OBJECTIVE = Separately propose a bounded new runtime build from main containing 0d9a3c4, verify exact build/release identity, then use a separately Human-approved operational update/replacement contract that preserves Data and rollback. PROPOSED ONLY; NOT AUTHORIZED.
+PARENT_STATE = WHOLE LOCAL PARENT HOLD AND HISTORICAL LIMITATIONS PRESERVED; no relationship to the 65 pytest failures established
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PROJECT_MEMORY.md
+SPINE_SYNC_STATE = PASS
+BUILDER_RESULT = STAGE_2_GOVERNANCE_RECONCILIATION_COMPLETE; NO OPERATIONAL FIX OR SHORTCUT STAGE
+HANDOFF_READY = YES_FOR_PLANNER_INDEPENDENT_REVIEWER_DISPATCH
+EXACTLY_ONE_NEXT_ACTION = PLANNER REVIEWS THIS EXACT GOVERNANCE CANDIDATE AND DISPATCHES AN INDEPENDENT REVIEWER; THE FUTURE RUNTIME-REPLACEMENT OBJECTIVE REMAINS PROPOSED ONLY
 NEXT_AUTHORITY = PLANNER_ARCHITECT
 ```
