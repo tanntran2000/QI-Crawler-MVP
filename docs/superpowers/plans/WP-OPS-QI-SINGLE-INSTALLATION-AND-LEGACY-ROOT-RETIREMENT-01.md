@@ -414,3 +414,27 @@ SCOPE_EXPANSION_REQUIRED = NOT YET DETERMINED; DO NOT EDIT OUTSIDE EXISTING G1 A
 ```
 
 Plugin evidence for this diagnosis: `systematic-debugging` was read and applied before diagnosis. CodeGraph was queried for pytest fixture/setup relationships but returned broad unrelated symbols and did not isolate the common setup path; bounded direct source/test reading is the fallback. No Codebase Memory index is authorized or used. `test-driven-development` is required only if evidence establishes an in-scope behavior correction; a harness diagnosis alone does not justify a code edit.
+
+### G1-C01 diagnostic outcome — one node did not reproduce
+
+The single authorized diagnostic used the simple collected node `tests/test_parser.py::test_parse_money_vnd`. It passed: one passed, one non-failing `PytestCacheWarning`, 1.31 seconds, exit 0. The node exercised `tests/conftest.py`'s session `_alembic_template` setup and autouse `_prepare_database_for_tests` setup; the session template database was created successfully. This does not reproduce or explain the Tester run's 1,780 setup errors, and it does not establish an environment-only or product cause. The root cause remains `UNKNOWN` because the Tester traceback was lost and this diagnostic did not recover it.
+
+The exact command was `.venv\Scripts\python.exe -m pytest -n 0 -x -vv --tb=long --basetemp=.tmp/w3/fce7de/t tests/test_parser.py::test_parse_money_vnd`. Full stdout/stderr was retained at `.tmp/w3/fce7de/diagnostic.log` (1,190 bytes; SHA-256 `374738A04811028D068CB02710CB14DBA6FAAE158822F4D5317779F8A21D9A49`). The fresh run root contained two files totaling 914,598 bytes: the log and the pytest-created `t/alembic-template0/template.db`. D: free space afterward was 18,848,382,976 bytes. The run stayed within the one-node, five-minute, 5,000-file, 256-MiB and >10-GiB-reserve limits. No cleanup occurred.
+
+The one-node diagnostic budget is consumed (1/1); no retry or second node is authorized by G1-C01. No code/test correction was made, and no TDD behavior change was activated. Scope expansion is not established because no root cause or fix was found. The full sequential run remains consumed and RED; a replacement full-suite run is not authorized by this assignment. Return the unresolved setup cause to Planner for disposition.
+
+```text
+DIAGNOSTIC_NODE = tests/test_parser.py::test_parse_money_vnd
+DIAGNOSTIC_COMMAND = `.venv\Scripts\python.exe -m pytest -n 0 -x -vv --tb=long --basetemp=.tmp/w3/fce7de/t tests/test_parser.py::test_parse_money_vnd`
+DIAGNOSTIC_RESULT = EXIT 0; 1 PASSED; 1 NON-FAILING PytestCacheWarning; 1.31s
+COMMON_SETUP_PATH = SESSION _alembic_template AND AUTOSETUP _prepare_database_for_tests RAN SUCCESSFULLY FOR THIS NODE; ROOT ERROR NOT REPRODUCED
+ROOT_CAUSE = UNKNOWN; NO PRODUCT/ENVIRONMENT CLASSIFICATION
+DIAGNOSTIC_LOG = `.tmp/w3/fce7de/diagnostic.log`; 1,190 BYTES; SHA256 374738A04811028D068CB02710CB14DBA6FAAE158822F4D5317779F8A21D9A49
+SCRATCH_INVENTORY = 2 FILES / 914,598 BYTES; `t/alembic-template0/template.db` AND `diagnostic.log`; RETAINED; NO CLEANUP
+D_FREE_AFTER_DIAGNOSTIC = 18,848,382,976 BYTES; >10 GiB RESERVE
+DIAGNOSTIC_BUDGET = 1 OF 1 CONSUMED; NO RETRY OR SECOND NODE AUTHORIZED
+REPLACEMENT_FULL_SUITE = NOT AUTHORIZED
+CODE_OR_TEST_EDIT = NONE; TDD BEHAVIOR CHANGE NOT ACTIVATED
+SCOPE_EXPANSION_REQUIRED = NOT ESTABLISHED; NO ROOT CAUSE OR FIX FOUND
+NEXT = PLANNER DISPOSES THE NON-REPRODUCING DIAGNOSTIC HOLD AND DECIDES WHETHER NEW AUTHORITY IS WARRANTED
+```

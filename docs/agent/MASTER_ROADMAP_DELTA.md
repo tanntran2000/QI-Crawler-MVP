@@ -1979,3 +1979,31 @@ SCOPE = ROOT CAUSE MUST BE PROVED BEFORE FIX; EXISTING G1 ALLOWLIST ONLY; OUT-OF
 PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
 NEXT = BUILDER RECOVERS AND TRACES THE SHARED SETUP TRACEBACK USING THE SINGLE AUTHORIZED NODE
 ~~~
+
+## Single-installation G1-C01 — diagnostic did not reproduce setup failure
+
+The one Planner-authorized test-node diagnostic passed, including the
+session-scoped Alembic template fixture and autouse database-preparation
+fixture. It did not reproduce the Tester run's 1,780 setup errors and did not
+recover the lost traceback. Therefore the root cause remains unknown; the
+result supports neither product-defect nor environment-only classification.
+The diagnostic budget is consumed, no code correction was made, and no
+replacement full-suite run is authorized. This is a bounded verification
+blocker under the existing delivery architecture, not a product capability or
+maturity change.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-SETUP-DIAGNOSIS-20260929-RESULT
+AUTHORITY = PLANNER-ASSIGNED SINGLE-NODE DIAGNOSTIC; BUILDER EVIDENCE; NO NEW REVIEWER/HUMAN DECISION
+NODE = `tests/test_parser.py::test_parse_money_vnd`
+COMMAND = `.venv\Scripts\python.exe -m pytest -n 0 -x -vv --tb=long --basetemp=.tmp/w3/fce7de/t tests/test_parser.py::test_parse_money_vnd`
+RESULT = EXIT 0; 1 PASSED; 1 NON-FAILING PytestCacheWarning; 1.31s
+TRACEBACK = NOT RECOVERED; TESTER TRACEBACK LOST; NODE DID NOT REPRODUCE COMMON SETUP ERRORS
+ROOT_CAUSE = UNKNOWN; NO PRODUCT/ENVIRONMENT CAUSATION CLAIM
+LOG = `.tmp/w3/fce7de/diagnostic.log`; 1,190 BYTES; SHA256 374738A04811028D068CB02710CB14DBA6FAAE158822F4D5317779F8A21D9A49
+SCRATCH = 2 FILES / 914,598 BYTES; TEMPLATE DB + LOG; RETAINED; NO CLEANUP; D: FREE 18,848,382,976 BYTES
+DIAGNOSTIC_BUDGET = 1/1 CONSUMED; NO RETRY OR SECOND NODE AUTHORIZED
+FULL_SUITE = TESTER'S ONE RUN CONSUMED AND RED; REPLACEMENT RUN NOT AUTHORIZED
+EDITS = NONE; TDD NOT ACTIVATED; SCOPE EXPANSION NOT ESTABLISHED
+NEXT = PLANNER DISPOSES THE NON-REPRODUCING DIAGNOSTIC HOLD AND DECIDES WHETHER NEW AUTHORITY IS WARRANTED
+~~~
