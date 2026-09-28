@@ -1954,3 +1954,28 @@ REMOTE = NONE; NO PUSH/PR/MERGE/RELEASE
 PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
 NEXT = PLANNER_REVIEWS_BUILDER_RESULT_AND_ASSIGNS_TESTER
 ~~~
+
+## Single-installation G1-C01 — full-suite setup diagnosis
+
+The independent Tester consumed the single authorized full sequential run, but
+the captured output lost the shared setup traceback. Planner assigned one
+bounded single-node diagnostic before any code correction. The setup root cause
+is unknown until that traceback is recovered; the aggregate setup-error count
+does not identify the failing component. This is engineering verification
+evidence under the existing Windows/Team Bid delivery architecture, with no
+product capability or maturity promotion.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-SETUP-DIAGNOSIS-20260929-01
+AUTHORITY = PLANNER-ASSIGNED DIAGNOSTIC UNDER HUMAN-APPROVED G1 PARENT; NO NEW HUMAN DECISION
+TESTER_REPORT_ID = NOT_SUPPLIED_IN_PLANNER_PACKET; SOURCE=PLANNER-ADMITTED TESTER SUMMARY
+TESTER_RUN = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; EXIT 1; 1,781 COLLECTED; 1,780 SETUP ERRORS; 1 SKIP; 2 WARNINGS; 52.63s
+TRACEBACK = SHARED SETUP TRACEBACK LOST; ROOT CAUSE UNKNOWN
+SCRATCH = `.tmp/w3/d9e71b` ABSENT AFTER RUN; 0 FILES / 0 BYTES; D: FREE 18,849,390,592 BYTES
+DIAGNOSTIC_AUTHORITY = AT MOST ONE SIMPLE COLLECTED NODE WITH `-x -vv --tb=long`; FRESH COMPACT REGISTERED `w3` ROOT; 5 MINUTES / 5,000 FILES / 256 MiB / >10 GiB FREE; NO RETRY
+FULL_SUITE = CONSUMED AND RED; REPLACEMENT FULL RUN NOT AUTHORIZED
+REMOTE_MAIN = LIVE UNVERIFIED; `git ls-remote` COULD NOT CONNECT; LOCAL `origin/main` REMAINS caf983691da60d4eaf990d09e9e1788692aabaac
+SCOPE = ROOT CAUSE MUST BE PROVED BEFORE FIX; EXISTING G1 ALLOWLIST ONLY; OUT-OF-SCOPE FIX REQUIRES PLANNER HOLD/RECONCILIATION
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = BUILDER RECOVERS AND TRACES THE SHARED SETUP TRACEBACK USING THE SINGLE AUTHORIZED NODE
+~~~

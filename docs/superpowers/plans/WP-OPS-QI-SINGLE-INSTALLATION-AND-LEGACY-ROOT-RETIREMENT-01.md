@@ -391,3 +391,26 @@ EDIT_RADIUS = Authorized G1 paths only
 TEST_RADIUS = Affected test families plus collection and scoped lint
 LIMITATION = No full sequential pytest, full-repository Ruff, build, hosted CI or operational execution by Builder
 ```
+
+## G1-C01 — full-suite setup failure diagnosis
+
+Planner assigned this bounded diagnostic after the independent Tester consumed the Work Order's single full sequential run. The exact Tester command was `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; it exited 1 with 1,780 setup errors, one skip, two warnings, and 52.63 seconds. Collection was 1,781 with zero collection errors. The captured output lost the shared setup traceback, so the root cause is `UNKNOWN`; do not infer a cause from the error count.
+
+The run directory `.tmp/w3/d9e71b` was absent after the run, with zero files/bytes, and D: free space was 18,849,390,592 bytes. Tester performed no retry, Ruff, further statics, edits or cleanup. The live remote `origin/main` could not be verified because `git ls-remote` could not connect; the local `origin/main` remains the expected `caf983691da60d4eaf990d09e9e1788692aabaac`.
+
+This correction authorizes at most one simple collected test node that necessarily traverses common setup, using `-x -vv --tb=long`, one fresh compact registered `.tmp/w3/<six-hex>/t` basetemp, and a retained full stdout/stderr log outside the `t` child but inside the same run directory. Maximum runtime is five minutes, 5,000 files, and 256 MiB; preserve more than 10 GiB free. No retry, full-suite rerun, cleanup, or other test command is authorized by this correction. Trace the recovered setup exception through its bounded caller/fixture chain before deciding whether any fix is warranted. A code change requires evidence that the cause lies inside the existing exact G1 allowlist; anything outside it is a Planner scope-expansion hold.
+
+```text
+MICRO_CORRECTION = G1-C01-FULL-SUITE-SETUP-DIAGNOSIS
+AUTHORITY = PLANNER-ASSIGNED UNDER EXISTING HUMAN-APPROVED PARENT LEASE; NO NEW HUMAN OR REVIEWER DECISION
+TESTER_REPORT_ID = NOT_SUPPLIED_IN_PLANNER_PACKET; SOURCE=PLANNER-ADMITTED TESTER SUMMARY
+TESTER_RESULT = 1,781 COLLECTED; 1,780 SETUP ERRORS; 1 SKIP; 2 WARNINGS; EXIT 1; 52.63s
+TESTER_TRACEBACK = LOST FROM CAPTURED OUTPUT; ROOT CAUSE UNKNOWN
+TESTER_SCRATCH = .tmp/w3/d9e71b ABSENT AFTER RUN; 0 FILES / 0 BYTES; D: FREE 18,849,390,592 BYTES
+DIAGNOSTIC_BUDGET = AT MOST ONE TEST NODE; 5 MINUTES; 5,000 FILES; 256 MiB; ONE FRESH RUN; ZERO RETRIES; >10 GiB FREE
+FULL_SUITE_REPLACEMENT = NOT AUTHORIZED
+REMOTE_MAIN = UNVERIFIED LIVE; git ls-remote COULD NOT CONNECT; LOCAL origin/main = caf983691da60d4eaf990d09e9e1788692aabaac
+SCOPE_EXPANSION_REQUIRED = NOT YET DETERMINED; DO NOT EDIT OUTSIDE EXISTING G1 ALLOWLIST
+```
+
+Plugin evidence for this diagnosis: `systematic-debugging` was read and applied before diagnosis. CodeGraph was queried for pytest fixture/setup relationships but returned broad unrelated symbols and did not isolate the common setup path; bounded direct source/test reading is the fallback. No Codebase Memory index is authorized or used. `test-driven-development` is required only if evidence establishes an in-scope behavior correction; a harness diagnosis alone does not justify a code edit.
