@@ -1902,3 +1902,26 @@ DATA_AND_ARTIFACTS = DB/CONFIG/APPDATA/SHORTCUT/SCHEMA UNCHANGED; COLD BACKUP KE
 NEXT_PROPOSED_OBJECTIVE = Build from main containing 0d9a3c4; verify exact build/release identity; then a separately Human-approved operational update/replacement preserving Data and rollback. NOT AUTHORIZED BY THIS DELTA.
 ROADMAP_IMPACT = NO PRODUCT CAPABILITY OR MATURITY PROMOTION; NO B09 ENGINE OR LIVE UPDATE AUTHORITY
 ~~~
+
+## Single-installation G1 authorized under the existing delivery architecture — 2026-09-28
+
+The proposed runtime follow-up from the preceding installed-startup entry is now
+the subject of a separate Human-approved G1 Work Order. It is source and
+synthetic-test work for one root-local app-only update/recovery contract; no
+runtime binary is built and no operational update is performed. The prior
+installed-startup facts and B09 history remain unchanged. This entry supports
+Windows/Team Bid delivery and does not promote product capability maturity.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-LEGACY-ROOT-RETIREMENT-G1-20260928-01
+ROADMAP_NODE = Cross-cutting Windows / Team Bid delivery; Engineering Toolbox / Plugins
+AUTHORITY = Human-approved WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; Planner baseline reconciliation
+SUPERSEDES = PREVIOUS ENTRY NEXT_PROPOSED_OBJECTIVE STATUS ONLY; PRESERVE THE PRIOR STARTUP/PR130 EVIDENCE
+CANONICAL_ROOT = D:\QI-Crawler; NO SECOND OPERATIONAL ROOT
+WORK_ORDER = G1.0/G1.1/G1.2; ACCEPTANCE V1 COMPATIBILITY; V2 APP/MIGRATION IDENTITY SEPARATION; JOURNALED SYNTHETIC RECOVERY; PRESERVE DATA/DB/CONFIG/WAL/SHM
+ENTRY_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac; ACTIVE BRANCH START 211c0ddbfdcfc7fb249cebd2b449f65d6ea91186; TEN CARRIED GOVERNANCE COMMITS PRESERVED IN ORDER
+CURRENT_STAGE = G1.0 DESIGN/PATH RECONCILIATION; BEHAVIOR IMPLEMENTATION NOT YET STARTED
+OUT_OF_SCOPE = G2 BUILD; LIVE INSTALL/UPDATE/LAUNCH; SHORTCUT; MIGRATION/RESTORE; CRAWL/IMPORT; B09; G3 REAL ARCHIVE; CLEANUP; MERGE/RELEASE/PUBLISH
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = BUILDER COMPLETES GOVERNED G1 STAGES UNDER THE WORK ORDER; STOP ON ITS LISTED GATES
+~~~

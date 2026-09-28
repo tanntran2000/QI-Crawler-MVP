@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.21",
+  "revision": "1.0.22",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -32,6 +32,11 @@
       "id": "ROOT.OPERATIONAL.UPDATE_VOLUME",
       "resolver": "Fixed D:\\ operational-update volume selected by WP-REL-V010-B09-OPTION-C-OPERATIONAL-UPDATE-01; registration does not create or mutate a real root",
       "allowed_overrides": "None; a different volume or root requires new Human and Planner authority"
+    },
+    {
+      "id": "ROOT.OPERATIONAL",
+      "resolver": "Fixed Human-approved single operational installation at D:\\QI-Crawler; do not create or infer another operational root",
+      "allowed_overrides": "None; relocating the installation requires new Human and Planner authority"
     }
   ],
   "profiles": {
@@ -675,6 +680,116 @@
       "status": "RESERVED",
       "producer": "Operational updater",
       "naming": "Stable metadata file; never treated as lock authority"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_APP",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "Current/QI-Crawler/{relative_path}",
+      "purpose": "Current operational application generation; G1 uses synthetic equivalents only",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "One exact application generation under the fixed Current entry"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_MARKER",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/update_marker.json",
+      "purpose": "Durable pointer to the single active update attempt; not journal authority",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "One canonical marker for the fixed operational root"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_JOURNAL",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/updates/{update_id}/state.json",
+      "purpose": "Sequenced durable source of truth for one update and recovery attempt",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "Collision-rejected immutable update_id directory"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LOCK",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/update.lock",
+      "purpose": "Root-local OS-backed updater singleton lock",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "One canonical lock; journal remains operation authority"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_ACCEPTANCE",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/operational_acceptance.json",
+      "purpose": "Versioned acceptance receipt for the current app/data binding",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized release/update operation",
+      "naming": "Preserve v1 semantics; v2 source and migration identities remain distinct"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_MIGRATION_RECEIPT",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/operational_migration_receipt.json",
+      "purpose": "Immutable migration provenance consumed by acceptance validation",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized migration/release operation",
+      "naming": "G1 reads and preserves; never rewrites the original migration baseline"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_STAGE",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": ".update/{update_id}/stage",
+      "purpose": "Collision-rejected same-volume staged app generation",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "Exact update_id; same volume as Current; source WP uses synthetic roots"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_OLD",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": ".update/{update_id}/old",
+      "purpose": "Exact pre-update application generation moved out of Current during cutover",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "Preserve identity and bytes; no overwrite or database restore"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_FAILED",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": ".update/{update_id}/failed",
+      "purpose": "Preserved failed new generation during explicit recovery",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational recovery",
+      "naming": "Exact update_id; never overwrite an existing generation"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_MANIFEST",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "control/updates/{update_id}/last_known_good.json",
+      "purpose": "Manifest binding app generation, immutable DB/config snapshot hashes and verification evidence",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "One immutable record per update_id; manifest is not a live DB backup"
+    },
+    {
+      "id": "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_SNAPSHOT",
+      "root_id": "ROOT.OPERATIONAL",
+      "relative_template": "Data/data/backups/{update_id}/{relative_path}",
+      "purpose": "Immutable pre-update DB/config recovery snapshot linked by the LKG manifest",
+      "profile": "OPERATIONAL_UPDATE",
+      "status": "RESERVED",
+      "producer": "Separately authorized operational updater",
+      "naming": "Exact update_id; immutable files and hashes; database restore is never authorized"
     }
   ],
   "roadmap_bindings": [
@@ -1235,6 +1350,67 @@
         "release_staging/evidence/WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-{UTC_RUN_ID}/"
       ],
       "relation": "Locator only for the Human-approved Stage 0/1 Work Order, its exact cold recovery backup family and optional sanitized evidence root. It grants no product, launch, shortcut-edit, migration, cleanup, merge or release authority; current scope and transition authority remain in the Work Order and CURRENT.md."
+    },
+    {
+      "wp_id": "WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01",
+      "authority_ref": "Human-approved Work Order WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1 under the existing operational Parent; Planner baseline reconciliation",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#cross-cutting--windows--team-bid-delivery; docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins; docs/agent/MASTER_ROADMAP_DELTA.md#single-installation-g1-authorized-under-the-existing-delivery-architecture--2026-09-28",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.HANDOFF",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.DOCS",
+        "PATH.REPO.SOURCE",
+        "PATH.REPO.TESTS",
+        "PATH.REPO.SCRIPTS",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.EVIDENCE.WP_RUN",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_APP",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_MARKER",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_JOURNAL",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LOCK",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_ACCEPTANCE",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_MIGRATION_RECEIPT",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_STAGE",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_OLD",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_FAILED",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_MANIFEST",
+        "PATH.RUNTIME.OPERATIONAL_SINGLE_INSTALLATION_LKG_SNAPSHOT"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "docs/agent_handoff/history/CURRENT_parent_installed_startup_recovery_stage2_20260928.md",
+        "src/qi_crawler/__init__.py",
+        "src/qi_crawler/operational_release.py",
+        "src/qi_crawler/operational_update.py",
+        "src/qi_crawler/standalone.py",
+        "src/qi_crawler/update_transaction.py",
+        "scripts/update_operational_release.py",
+        "scripts/generate_release_metadata.py",
+        "scripts/publish_windows_release.ps1",
+        "scripts/clean_dev.ps1",
+        "tests/test_operational_release.py",
+        "tests/test_operational_update.py",
+        "tests/test_standalone.py",
+        "tests/test_update_transaction.py",
+        "tests/test_release_governance.py",
+        "tests/test_windows_installer.py",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "HUONG_DAN_SU_DUNG.md",
+        "docs/agent/OPERATIONAL_RELEASE_CONTRACT.md",
+        "docs/agent/CANDIDATE_RELEASE_CONTRACT.md",
+        "docs/agent/PATH_REGISTRY_CONTRACT.md",
+        "docs/agent/MASTER_ROADMAP_DELTA.md",
+        "docs/agent/FEEDBACK_LEDGER.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md",
+        "D:\\QI-Crawler\\",
+        "release_staging/evidence/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-{UTC_RUN_ID}/"
+      ],
+      "relation": "Locator only for the exact Human-approved G1 Work Order and its synthetic test/evidence families. This binding selects only the new root-local ROOT.OPERATIONAL IDs. Prior B09 ROOT.OPERATIONAL.UPDATE_VOLUME IDs remain RESERVED and unmaterialized under their prior authority; they are not selected by this Parent. All new runtime paths remain RESERVED. This binding grants no operational launch/update, cleanup, migration, restore, build, shortcut, B09, merge or release authority. Current transition scope is in the Work Order and CURRENT.md."
     }
   ],
   "legacy_locations": [

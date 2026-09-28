@@ -1485,3 +1485,23 @@ Boundary: This decision authorizes only the exact implementation/governance allo
 Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_AND_PATH_REGISTRY
 Promoted to: docs/superpowers/plans/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01.md; docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml
 ~~~
+
+### FB-0058 — Human A0 single-installation G1 update and recovery work
+
+~~~text
+State: ACCEPTED / G1_BOUNDED_WORK_PACKAGE_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human approval in the Builder assignment for WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1, 2026-09-28; Planner baseline reconciliation
+Type: OPERATIONAL_ARCHITECTURE / DATA_PRESERVATION / EXECUTION_ORDER
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1
+Decision:
+  CANONICAL_OPERATIONAL_ROOT = D:\QI-Crawler
+  G1 = SYNTHETIC-TESTABLE APP-ONLY UPDATE/RECOVERY; PRESERVE DATA AND MIGRATION PROVENANCE
+  CARRIED_GOVERNANCE_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac..211c0ddbfdcfc7fb249cebd2b449f65d6ea91186; 10 COMMITS; PRESERVE IN ORDER
+  INTERNAL_PATCH_CANDIDATE = 0.10.1; NOT A RELEASE, BUILD, INSTALL, OR DEPLOYMENT
+  REMOTE = ONE EXACT FEATURE-BRANCH CHECKPOINT AFTER COHERENT LOCAL CANDIDATE OR MATERIAL HOLD; ONE LATER PR ONLY AFTER PLANNER/TESTER/REVIEWER TRANSITIONS
+Boundary: No second operational root; no live update/launch, shortcut edit, migration/restore, crawl/import, B09, build, release/tag/publish, cleanup, ACL action, G2/G3, merge, or operational mutation. Human retains merge, release, and official publish authority.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_HANDOFF_AND_PATH_REGISTRY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml; docs/agent_handoff/CURRENT.md
+~~~
