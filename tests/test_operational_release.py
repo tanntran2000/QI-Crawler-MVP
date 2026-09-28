@@ -67,6 +67,7 @@ def _write_metadata(
     channel: str = "INTERNAL_PILOT",
     source_sha: str = SOURCE_SHA,
     source_branch: str = "release/v0.10-b09-operational-rebind-01",
+    version: str = operational_release.__version__,
 ) -> dict[str, str]:
     executable = bundle / "QI-Crawler.exe"
     executable.write_bytes(b"synthetic-operational-executable")
@@ -74,7 +75,7 @@ def _write_metadata(
     manifest = {
         "metadata_schema_version": "qi-crawler-installed-release-v1",
         "product": "QI-Crawler",
-        "version": "0.10.0",
+        "version": version,
         "source_git_sha": source_sha,
         "source_branch": source_branch,
         "build_timestamp_utc": "2026-09-22T00:00:00Z",
@@ -448,7 +449,11 @@ def test_pre_cutover_config_is_rebound_only_after_stage_acceptance(
     stage_validated = False
     prebound = False
 
-    def validate(executable: Path, *, expected_version: str = "0.10.0") -> dict[str, object]:
+    def validate(
+        executable: Path,
+        *,
+        expected_version: str = operational_release.__version__,
+    ) -> dict[str, object]:
         nonlocal stage_validated
         if ".stage-" in str(executable):
             stage_paths = operational_paths(executable.parent.parent.parent)
@@ -607,7 +612,12 @@ def _live_promotion_inputs(
 ) -> tuple[Path, Path, Path, str]:
     source_bundle = tmp_path / "candidate" / "app" / "QI-Crawler"
     source_bundle.mkdir(parents=True)
-    _write_metadata(source_bundle, source_sha=source_sha, source_branch="main")
+    _write_metadata(
+        source_bundle,
+        source_sha=source_sha,
+        source_branch="main",
+        version=operational_release.LIVE_VERSION,
+    )
     source_data = tmp_path / "appdata" / "QI-Crawler"
     _create_database_at_0020(source_data / "data" / "database" / "egp.db", source_data)
     (source_data / "config.yaml").write_text("storage: {}\n", encoding="utf-8")
@@ -640,6 +650,16 @@ def _live_promotion_inputs(
         lambda root: source_sha,
     )
     return source_bundle, source_data, destination, source_sha
+
+
+def test_live_promotion_fixture_preserves_legacy_0100_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    manifest = json.loads((bundle / "release_manifest.json").read_text(encoding="utf-8"))
+
+    assert operational_release.LIVE_VERSION == "0.10.0"
+    assert manifest["version"] == operational_release.LIVE_VERSION
 
 
 def test_live_promotion_rejects_premerge_sha_against_verified_main_head(
@@ -1148,7 +1168,10 @@ def test_live_promotion_success_is_coherent_and_preserves_source(
         execute=True,
     )
     assert result["status"] == "PROMOTED_LIVE"
-    assert validate_operational_acceptance(operational_paths(destination).executable)["operational_root"] == str(destination.resolve())
+    assert validate_operational_acceptance(
+        operational_paths(destination).executable,
+        expected_version=operational_release.LIVE_VERSION,
+    )["operational_root"] == str(destination.resolve())
     assert Path(result["rollback_root"]).is_dir()
     assert operational_release._tree_snapshot(bundle) == before_bundle
     assert operational_release._tree_snapshot(source_data) == before_data

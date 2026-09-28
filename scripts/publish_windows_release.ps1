@@ -132,6 +132,15 @@ function Read-BuildInfo([string]$PathValue) {
 }
 
 function Assert-RepositoryReady([string]$Root) {
+    $topLevel = (& git -C $Root rev-parse --show-toplevel).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($topLevel)) {
+        throw "Khong the xac dinh Git top-level"
+    }
+    $resolvedTopLevel = [IO.Path]::GetFullPath($topLevel).TrimEnd('\')
+    $resolvedRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    if (-not [string]::Equals($resolvedTopLevel, $resolvedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "RepoRoot phai la dung Git top-level"
+    }
     $branch = (& git -C $Root branch --show-current).Trim()
     if ($LASTEXITCODE -ne 0 -or $branch -ne "main") {
         throw "Publish chi duoc phep tren nhanh main (hien tai: $branch)"
@@ -143,6 +152,58 @@ function Assert-RepositoryReady([string]$Root) {
     if ($status) {
         throw "Publish yeu cau working tree sach"
     }
+}
+
+function Assert-NoReparsePathComponents([string]$Root, [string]$PathValue) {
+    $fullRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    $fullPath = [IO.Path]::GetFullPath($PathValue).TrimEnd('\')
+    $prefix = "$fullRoot\"
+    if (-not [string]::Equals($fullPath, $fullRoot, [StringComparison]::OrdinalIgnoreCase) -and
+        -not $fullPath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Duong dan publication vuot ngoai repository"
+    }
+    $cursor = $fullPath
+    while ($true) {
+        if (Test-Path -LiteralPath $cursor) {
+            $item = Get-Item -LiteralPath $cursor -Force
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Publication path khong duoc di qua reparse point: $cursor"
+            }
+        }
+        if ([string]::Equals($cursor, $fullRoot, [StringComparison]::OrdinalIgnoreCase)) {
+            break
+        }
+        $cursor = Split-Path -Parent $cursor
+        if ([string]::IsNullOrWhiteSpace($cursor)) {
+            throw "Khong the xac minh containment publication path"
+        }
+    }
+}
+
+function Get-CandidateTreeEntries([string]$Root) {
+    $fullRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    $pending = New-Object System.Collections.Stack
+    $entries = New-Object 'System.Collections.Generic.List[object]'
+    $pending.Push($fullRoot)
+    while ($pending.Count -gt 0) {
+        $directory = [string]$pending.Pop()
+        foreach ($item in Get-ChildItem -LiteralPath $directory -Force -ErrorAction Stop) {
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Candidate tree khong duoc chua reparse point: $($item.FullName)"
+            }
+            $fullItem = [IO.Path]::GetFullPath($item.FullName)
+            $prefix = "$fullRoot\"
+            if (-not $fullItem.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Candidate tree entry vuot ngoai candidate root: $fullItem"
+            }
+            $relative = $fullItem.Substring($prefix.Length)
+            $entries.Add([pscustomobject]@{ Source = $fullItem; Relative = $relative })
+            if ($item.PSIsContainer) {
+                $pending.Push($fullItem)
+            }
+        }
+    }
+    return $entries.ToArray()
 }
 
 function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$ExpectedHead) {
@@ -226,11 +287,12 @@ function Assert-Candidate([string]$Root, [string]$ReleaseVersion, [string]$Expec
         BuildInfo = $buildInfo
         Manifest = $manifestPath
         Receipt = $receiptPath
+        ManifestFields = $manifestFields
     }
 }
 
 if (-not $Publish) {
-    Write-Host "Khong publish: chi build/kiem tra candidate, khong cham vao Crawler tool." -ForegroundColor Yellow
+    Write-Host "Khong publish: chi build/kiem tra candidate; repository artifacts are unchanged." -ForegroundColor Yellow
     exit 0
 }
 
@@ -240,81 +302,119 @@ if ([string]::IsNullOrWhiteSpace($ExpectedAlembicHead)) {
 
 $repo = Resolve-ExistingPath $RepoRoot "Repository"
 Assert-RepositoryReady $repo
-
-if (-not $PublishRoot) {
-    $PublishRoot = Join-Path (Split-Path -Parent $repo) "Crawler tool"
+$repoHead = (& git -C $repo rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $repoHead -notmatch '^[0-9A-Fa-f]{40}$') {
+    throw "Khong the xac minh exact main source SHA"
 }
-$publishParent = Split-Path -Parent $PublishRoot
-New-Item -ItemType Directory -Path $publishParent -Force | Out-Null
-$publishRootResolved = [IO.Path]::GetFullPath($PublishRoot)
+
+$expectedPublishRoot = [IO.Path]::GetFullPath((Join-Path $repo "release_staging\published"))
+if ($PublishRoot) {
+    $requestedPublishRoot = [IO.Path]::GetFullPath($PublishRoot)
+    if (-not [string]::Equals(
+        $requestedPublishRoot.TrimEnd('\'),
+        $expectedPublishRoot.TrimEnd('\'),
+        [StringComparison]::OrdinalIgnoreCase
+    )) {
+        throw "PublishRoot chi duoc la repo-local release_staging\published"
+    }
+}
+$publishRootResolved = $expectedPublishRoot
+Assert-NoReparsePathComponents $repo $publishRootResolved
 
 if (-not $CandidateRoot) {
     throw "Can -CandidateRoot den mot thu muc candidate da duoc build va smoke-test"
 }
+$expectedCandidateRoot = [IO.Path]::GetFullPath((Join-Path $repo "release_staging\candidate"))
+$requestedCandidateRoot = [IO.Path]::GetFullPath($CandidateRoot)
+if (-not [string]::Equals(
+    $requestedCandidateRoot.TrimEnd('\'),
+    $expectedCandidateRoot.TrimEnd('\'),
+    [StringComparison]::OrdinalIgnoreCase
+)) {
+    throw "CandidateRoot chi duoc la repo-local release_staging\candidate"
+}
+Assert-NoReparsePathComponents $repo $requestedCandidateRoot
+$candidateTreeEntries = @(Get-CandidateTreeEntries $requestedCandidateRoot)
 $candidate = Resolve-ExistingPath $CandidateRoot "Candidate"
 $candidateParts = Assert-Candidate $candidate $Version $ExpectedAlembicHead
 
-$publishStage = Join-Path $publishParent ("Crawler tool.publish-" + [guid]::NewGuid().ToString("N"))
-$rotationStage = Join-Path $publishParent ("Crawler tool.rotate-" + [guid]::NewGuid().ToString("N"))
-$oldPreviousBackup = Join-Path $rotationStage "Previous-backup"
-$oldCurrentMoved = $false
-$oldPreviousMoved = $false
-$newCurrentMoved = $false
+$manifestFields = $candidateParts.ManifestFields
+if (-not [string]::Equals(
+    [string]$manifestFields.source_git_sha,
+    $repoHead,
+    [StringComparison]::OrdinalIgnoreCase
+) -or [string]$manifestFields.source_branch -cne "main") {
+    throw "Candidate source identity must match exact clean main HEAD"
+}
+$identityTimestamp = ([string]$manifestFields.build_timestamp_utc) -replace '[-:.]', ''
+$shortSourceIdentity = ([string]$manifestFields.source_git_sha).Substring(0, 12).ToLowerInvariant()
+$archiveIdentity = "v$($manifestFields.version)-$shortSourceIdentity-$identityTimestamp"
+$archivePath = Join-Path $publishRootResolved $archiveIdentity
+if (Test-Path -LiteralPath $archivePath) {
+    throw "Candidate archive identity already exists; immutable publication refuses overwrite: $archivePath"
+}
 
+$stageToken = [guid]::NewGuid().ToString("N").Substring(0, 12)
+$publishStage = Join-Path $publishRootResolved (".stage-" + $stageToken)
+if (Test-Path -LiteralPath $publishStage) {
+    throw "Unique publication staging path already exists"
+}
+$installerName = Split-Path -Leaf $candidateParts.Installer
+$projectedPaths = @($requestedCandidateRoot, $archivePath, $publishStage)
+foreach ($treeEntry in $candidateTreeEntries) {
+    $projectedPaths += [string]$treeEntry.Source
+    $projectedPaths += Join-Path $archivePath ([string]$treeEntry.Relative)
+    $projectedPaths += Join-Path $publishStage ([string]$treeEntry.Relative)
+}
+foreach ($projectedPath in $projectedPaths) {
+    if ([IO.Path]::GetFullPath($projectedPath).Length -gt 240) {
+        throw "Candidate publication path exceeds 240 characters: $projectedPath"
+    }
+}
+
+Assert-NoReparsePathComponents $repo $publishRootResolved
+New-Item -ItemType Directory -Path $publishRootResolved -Force | Out-Null
+Assert-NoReparsePathComponents $repo $publishRootResolved
+$stageCreated = $false
 try {
-    New-Item -ItemType Directory -Path $publishStage -Force | Out-Null
-    $stagedCurrent = Join-Path $publishStage "Current"
-    $stagedBundle = Join-Path $stagedCurrent "QI-Crawler"
-    New-Item -ItemType Directory -Path $stagedBundle -Force | Out-Null
-    Get-ChildItem -LiteralPath $candidateParts.Bundle -Force | Copy-Item -Destination $stagedBundle -Recurse -Force
-    Copy-Item -LiteralPath $candidateParts.Installer -Destination (Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)) -Force
-    Copy-Item -LiteralPath $candidateParts.Receipt -Destination (Join-Path $stagedCurrent "release_artifact_receipt.json") -Force
+    New-Item -ItemType Directory -Path $publishStage | Out-Null
+    $stageCreated = $true
+    $stagedBundle = Join-Path $publishStage "QI-Crawler"
+    New-Item -ItemType Directory -Path $stagedBundle | Out-Null
+    Get-ChildItem -LiteralPath $candidateParts.Bundle -Force | Copy-Item -Destination $stagedBundle -Recurse
+    $stagedInstaller = Join-Path $publishStage $installerName
+    Copy-Item -LiteralPath $candidateParts.Installer -Destination $stagedInstaller
+    $stagedReceipt = Join-Path $publishStage "release_artifact_receipt.json"
+    Copy-Item -LiteralPath $candidateParts.Receipt -Destination $stagedReceipt
 
-    $stagedExe = Join-Path $stagedCurrent "QI-Crawler\QI-Crawler.exe"
-    $stagedInstaller = Join-Path $stagedCurrent (Split-Path -Leaf $candidateParts.Installer)
-
+    $stagedExe = Join-Path $stagedBundle "QI-Crawler.exe"
+    $stagedManifest = Join-Path $stagedBundle "release_manifest.json"
     if (-not (Test-Path -LiteralPath $stagedExe) -or -not (Test-Path -LiteralPath $stagedInstaller) -or
         -not (Test-Path -LiteralPath (Join-Path $stagedBundle "BUILD_INFO.txt")) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedBundle "release_manifest.json")) -or
-        -not (Test-Path -LiteralPath (Join-Path $stagedCurrent "release_artifact_receipt.json"))) {
+        -not (Test-Path -LiteralPath $stagedManifest) -or
+        -not (Test-Path -LiteralPath $stagedReceipt)) {
         throw "Candidate staging khong day du"
     }
-
-    New-Item -ItemType Directory -Path $rotationStage -Force | Out-Null
-    $current = Join-Path $publishRootResolved "Current"
-    $previous = Join-Path $publishRootResolved "Previous"
-    if (Test-Path -LiteralPath $previous) {
-        Move-Item -LiteralPath $previous -Destination $oldPreviousBackup
-        $oldPreviousMoved = $true
+    $stagedReceiptFields = Get-Content -LiteralPath $stagedReceipt -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ((Get-Sha256 $stagedExe) -ne [string]$manifestFields.portable_exe_sha256.ToUpperInvariant() -or
+        (Get-Sha256 $stagedInstaller) -ne ([string]$stagedReceiptFields.installer_sha256).ToUpperInvariant()) {
+        throw "Published staging hash mismatch"
     }
-    if (Test-Path -LiteralPath $current) {
-        Move-Item -LiteralPath $current -Destination $previous
-        $oldCurrentMoved = $true
+    if (Test-Path -LiteralPath $archivePath) {
+        throw "Candidate archive identity appeared during publication; refusing overwrite: $archivePath"
     }
-    New-Item -ItemType Directory -Path $publishRootResolved -Force | Out-Null
-    Move-Item -LiteralPath $stagedCurrent -Destination $current
-    $newCurrentMoved = $true
-    if ($oldPreviousMoved) {
-        Remove-Item -LiteralPath $oldPreviousBackup -Recurse -Force
-        $oldPreviousMoved = $false
-    }
-    Write-Host "Publish thanh cong: $current" -ForegroundColor Green
+    [IO.Directory]::Move($publishStage, $archivePath)
+    $stageCreated = $false
+    Write-Host "Immutable candidate archive published: $archivePath" -ForegroundColor Green
 } catch {
-    if ($newCurrentMoved) {
-        Remove-Item -LiteralPath (Join-Path $publishRootResolved "Current") -Recurse -Force -ErrorAction SilentlyContinue
+    $publicationFailure = $_
+    if ($stageCreated -and (Test-Path -LiteralPath $publishStage)) {
+        try {
+            Assert-NoReparsePathComponents $repo $publishStage
+            Remove-Item -LiteralPath $publishStage -Recurse -Force -ErrorAction Stop
+        } catch {
+            throw "Publication failed; invocation-owned staging remains at $publishStage because exact cleanup failed: $($_.Exception.Message)"
+        }
     }
-    if ($oldCurrentMoved -and (Test-Path -LiteralPath (Join-Path $publishRootResolved "Previous"))) {
-        Move-Item -LiteralPath (Join-Path $publishRootResolved "Previous") -Destination (Join-Path $publishRootResolved "Current") -Force
-    }
-    if ($oldPreviousMoved -and (Test-Path -LiteralPath $oldPreviousBackup)) {
-        Move-Item -LiteralPath $oldPreviousBackup -Destination (Join-Path $publishRootResolved "Previous") -Force
-    }
-    throw
-} finally {
-    if (Test-Path -LiteralPath $publishStage) {
-        Remove-Item -LiteralPath $publishStage -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    if (Test-Path -LiteralPath $rotationStage) {
-        Remove-Item -LiteralPath $rotationStage -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    throw $publicationFailure
 }
