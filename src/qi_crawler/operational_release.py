@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import MutableMapping
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -146,12 +147,14 @@ def _parse_build_info(path: Path) -> dict[str, str]:
     return fields
 
 
-def _schema_revision(database: Path) -> str:
+def _schema_revision(database: Path, *, immutable: bool = False) -> str:
     if not database.is_file():
         raise OperationalReleaseError("OPERATIONAL_DATABASE_REQUIRED")
     try:
         uri = database.as_uri() + "?mode=ro"
-        with sqlite3.connect(uri, uri=True) as connection:
+        if immutable:
+            uri += "&immutable=1"
+        with closing(sqlite3.connect(uri, uri=True)) as connection:
             connection.execute("PRAGMA query_only = ON")
             row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
     except sqlite3.Error as exc:
@@ -220,6 +223,7 @@ def validate_operational_acceptance(
     executable: Path | str,
     *,
     expected_version: str = __version__,
+    immutable_database: bool = False,
 ) -> dict[str, Any]:
     """Validate the separate operational receipt before config or DB creation."""
     try:
@@ -361,7 +365,7 @@ def validate_operational_acceptance(
     if not paths.config_path.is_file():
         raise OperationalReleaseError("OPERATIONAL_CONFIG_REQUIRED")
     _validate_operational_config_binding(paths.config_path, paths)
-    if _schema_revision(paths.database_path) != CURRENT_SCHEMA_REVISION:
+    if _schema_revision(paths.database_path, immutable=immutable_database) != CURRENT_SCHEMA_REVISION:
         raise OperationalReleaseError("OPERATIONAL_SCHEMA_MISMATCH")
     # The DB is mutable after promotion; this hash binds the accepted migration baseline.
     baseline_sha = str(receipt["database_sha256"]).lower()
@@ -558,7 +562,7 @@ def _operational_acceptance_payload(
         "migration_source_sha": migration_receipt["source_git_sha"],
         "migration_from_revision": migration_receipt["from_revision"],
         "migration_to_revision": migration_receipt["to_revision"],
-        "database_sha256": _sha256(paths.database_path).lower(),
+        "database_sha256": str(migration_receipt["output_db_sha256"]).lower(),
         "created_at": datetime.now(UTC).isoformat(),
     }
 

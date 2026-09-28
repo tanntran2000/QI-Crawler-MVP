@@ -195,6 +195,25 @@ def test_operational_acceptance_v2_separates_application_and_migration_sources(
     assert paths.migration_receipt_path.read_bytes() == migration_bytes
 
 
+def test_acceptance_payload_keeps_migration_database_hash_immutable(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "operational"
+    _, database = _write_operational_fixture(root)
+    paths = operational_paths(root)
+    migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
+    baseline_sha = migration["output_db_sha256"]
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE runtime_only(value TEXT NOT NULL)")
+        connection.commit()
+    assert _sha256(database).lower() != baseline_sha.lower()
+
+    bundle = operational_release._bundle_identity(paths.application_root)
+    payload = operational_release._operational_acceptance_payload(paths, bundle, migration)
+
+    assert payload["database_sha256"] == baseline_sha.lower()
+
+
 def test_operational_acceptance_v1_keeps_source_identity_equality(tmp_path: Path) -> None:
     root = tmp_path / "operational"
     executable, _ = _write_operational_fixture(root)
