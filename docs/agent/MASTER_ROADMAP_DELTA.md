@@ -2007,3 +2007,35 @@ FULL_SUITE = TESTER'S ONE RUN CONSUMED AND RED; REPLACEMENT RUN NOT AUTHORIZED
 EDITS = NONE; TDD NOT ACTIVATED; SCOPE EXPANSION NOT ESTABLISHED
 NEXT = PLANNER DISPOSES THE NON-REPRODUCING DIAGNOSTIC HOLD AND DECIDES WHETHER NEW AUTHORITY IS WARRANTED
 ~~~
+
+## Single-installation G1-C01 — Planner root-cause reconciliation
+
+Planner reconciled the admitted Tester command against repository pytest 8.4.2
+`TempPathFactory.getbasetemp` behavior and the shared `tmp_path` setup fixture.
+For an explicit basetemp pytest removes the target if present, then creates
+only that directory with `mkdir(mode=0o700)`; it does not create missing
+parents. Tester required `.tmp/w3/d9e71b` to be fresh/absent while passing
+`.tmp/w3/d9e71b/t`, so pytest could not create the child. The autouse fixture
+requires `tmp_path`, accounting for setup failure in every executing node;
+the skipped node did not enter setup. Builder's node passed because
+`.tmp/w3/fce7de` already existed to hold the diagnostic log. This establishes
+a local verification command-contract/runner setup defect, not a G1 product
+defect. The original Tester run remains failed verification, not PASS, and
+its lost traceback remains a limitation of that run.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-ROOT-CAUSE-RECONCILIATION-20260929
+AUTHORITY = PLANNER-ADMITTED ROOT-CAUSE RECONCILIATION UNDER EXISTING HUMAN-APPROVED G1 LEASE; NO NEW HUMAN TEST AUTHORITY
+TESTER_FULL_RUN = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; EXIT 1; 1,781 COLLECTED; 1,780 SETUP ERRORS; 1 SKIP; 2 WARNINGS; 52.63s
+ROOT_CAUSE = CI_INFRASTRUCTURE_DEFECT / LOCAL_VERIFICATION_COMMAND_CONTRACT_DEFECT; MISSING PARENT FOR EXPLICIT BASETEMP
+CAUSE_EVIDENCE = PYTEST 8.4.2 CREATES ONLY THE EXPLICIT BASETEMP DIRECTORY; autouse `tmp_path` FIXTURE MAKES COMMON SETUP DEPEND ON IT; BUILDER DIAGNOSTIC PARENT EXISTED
+PREVENTION = CREATE/VERIFY BOUNDED REGISTERED RUN PARENT FIRST; KEEP LOG OUTSIDE ABSENT CHILD `t`; VALIDATE FRESHNESS/CONTAINMENT/BUDGET; NEVER PRECREATE `t`
+PRODUCT_CAUSATION = NOT_ESTABLISHED; NO PRODUCT SOURCE/TEST CHANGE
+VERIFICATION_STATE = TESTER FULL RUN REMAINS CONSUMED AND RED; TESTER HOLD; NO WHOLE-SUITE PASS
+REPLACEMENT_FULL_RUN = NOT AUTHORIZED; HUMAN AUTHORITY REQUIRED
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+SPINE_SYNC_STATE = PASS AFTER GOVERNANCE VALIDATION
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = PLANNER PRESENTS THE PROVED COMMAND-CONTRACT DEFECT AND REQUESTS HUMAN AUTHORITY FOR ONE REPLACEMENT FULL SEQUENTIAL TESTER RUN
+~~~

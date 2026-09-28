@@ -438,3 +438,47 @@ CODE_OR_TEST_EDIT = NONE; TDD BEHAVIOR CHANGE NOT ACTIVATED
 SCOPE_EXPANSION_REQUIRED = NOT ESTABLISHED; NO ROOT CAUSE OR FIX FOUND
 NEXT = PLANNER DISPOSES THE NON-REPRODUCING DIAGNOSTIC HOLD AND DECIDES WHETHER NEW AUTHORITY IS WARRANTED
 ```
+
+### G1-C01 Planner root-cause reconciliation — command contract failure confirmed
+
+After the Builder return, Planner independently resolved the setup failure from
+the admitted Tester invocation and repository pytest 8.4.2 runtime behavior.
+With explicit `--basetemp`, `TempPathFactory.getbasetemp` removes the target if
+present, then calls `basetemp.mkdir(mode=0o700)` without creating missing
+parents. Tester correctly required fresh parent `.tmp/w3/d9e71b` to be absent
+but passed child `.tmp/w3/d9e71b/t`; the parent therefore remained absent and
+pytest could not create the child. `tests/conftest.py` has an autouse fixture
+requiring `tmp_path`, so every executing test entered this setup path; the one
+skipped test did not. The captured Tester output had lost the traceback, so
+this cause is a Planner source/runtime reconciliation, not a traceback
+recovered from that run.
+
+The Builder's single-node diagnostic passed because `.tmp/w3/fce7de` had
+already been created to retain `diagnostic.log`, allowing pytest to create
+child `t`. That pass does not turn the Tester run into a pass or establish
+product correctness. The Tester attempt remains a real failed verification
+attempt with 1,780 setup errors, one skip, two warnings, exit 1. It is
+classified as a local verification command-contract / runner setup defect,
+not a proven G1 product defect.
+
+Prevention for any future authorized nested compact basetemp is to create and
+verify the bounded registered run parent first, retain stdout/stderr at that
+parent outside the child, then invoke pytest with the absent child `t`.
+Validate freshness, containment and budgets before invocation. Never precreate
+`t`, because pytest owns and removes that child. This is a command-contract
+correction only; no source or test file changed. The one full-suite budget is
+consumed. A replacement full sequential run remains unauthorized until Human
+grants a new bounded authority; Tester remains HOLD until then.
+
+```text
+ROOT_CAUSE_CLASSIFICATION = CI_INFRASTRUCTURE_DEFECT / LOCAL_VERIFICATION_COMMAND_CONTRACT_DEFECT
+PYTEST_RUNTIME = REPOSITORY .venv PYTEST 8.4.2; EXPLICIT BASETEMP CREATION USES mkdir(mode=0o700) WITHOUT parents=True
+TESTER_PARENT_CHILD = FRESH PARENT .tmp/w3/d9e71b ABSENT; CHILD .tmp/w3/d9e71b/t PASSED AS --basetemp
+COMMON_SETUP = tests/conftest.py AUTOSETUP FIXTURE REQUIRES tmp_path; 1,780 EXECUTING TESTS FAILED DURING SETUP; 1 SKIP DID NOT ENTER SETUP
+BUILDER_DIAGNOSTIC_PARENT = .tmp/w3/fce7de ALREADY EXISTED FOR diagnostic.log; PYTEST CREATED CHILD t; NODE PASSED; DOES NOT PROVE WHOLE-SUITE CORRECTNESS
+PREVENTION = CREATE/VERIFY BOUNDED RUN PARENT FIRST; RETAIN LOG OUTSIDE ABSENT CHILD t; VERIFY FRESHNESS/CONTAINMENT/BUDGET; NEVER PRECREATE t
+PRODUCT_CAUSATION = NOT_ESTABLISHED; NO SOURCE/TEST CHANGE
+FULL_RUN = CONSUMED AND RED; REPLACEMENT FULL SEQUENTIAL RUN NOT AUTHORIZED; HUMAN AUTHORITY REQUIRED
+TESTER_STATE = HOLD UNTIL A HUMAN-AUTHORIZED CORRECTED RUN IS VERIFIED
+NEXT = PLANNER PRESENTS THE PROVED COMMAND-CONTRACT DEFECT AND REQUESTS HUMAN AUTHORITY FOR ONE REPLACEMENT FULL SEQUENTIAL TESTER RUN
+```
