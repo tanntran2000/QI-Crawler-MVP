@@ -35,7 +35,8 @@ RATIONALE: This Micro-WP adds hosted verification evidence and governance handof
 - **Canonical checkout:** `D:\QI Technology\QI Crawler\egp-crawler-python`.
 - **Expected origin:** `https://github.com/tanntran2000/QI-Crawler-MVP.git`.
 - **Branch:** `codex/workbench-impact-readiness-01`.
-- **Initial candidate and code head:** `e9fc731a6aa2ec2b8e6dc80a09ee9c37543ed809`.
+- **Initial held candidate and terminal reviewed document head:** `e9fc731a6aa2ec2b8e6dc80a09ee9c37543ed809`.
+- **Underlying last audited code/test head:** `db58d5abbaf35c24ff6fe44d13290bfbce813ada`; final Reviewer evidence records WIR-R01 PASS for the exact-string static contract. Do not label the later document/checkpoint head `e9fc731` as the code/test head.
 - **Live main:** `51463a1ba01af9cd499e0b7c7cc961c19771bbf4`, independently re-resolved by Planner and rechecked with `git ls-remote` immediately before and after the checkpoint push on 2026-09-28.
 - **Final Reviewer evidence:** `WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01-REVIEWER-TERMINAL-20260928-05`, source task `/root/workbench_impact_readiness_reviewer`, audited object `e9fc731a6aa2ec2b8e6dc80a09ee9c37543ed809`; `WIR-R01 PASS`, `WIR-R02 PASS`, `WIR-R03 HOLD`; scoped candidate `PASS`, whole Parent `HOLD`, merge `NO`.
 - **Initial integration range:** `51463a1ba01af9cd499e0b7c7cc961c19771bbf4..e9fc731a6aa2ec2b8e6dc80a09ee9c37543ed809`; 11 text paths: ten Parent-WP paths plus the inherited storage-closeout plan from `51d2e9efc7d96334b629dc0ea97c6feb97966355`. The inherited plan is not attributed to this Parent. No runtime, raw-log, user-config, business-data, or binary path is in this range.
@@ -140,3 +141,45 @@ RATIONALE: Existing required jobs cover the held candidate's static test and rep
 Before any Stage B or later action, re-resolve canonical checkout, top-level, git-dir/common-dir, origin, branch, exact `HEAD`, local and live `origin/main`, remote feature SHA, ancestry, and tracked/index status. Stop on drift, tracked dirt, a non-fast-forward/conflicting ref, identity mismatch, or an out-of-scope need. Unknown untracked contents remain untouched.
 
 The active handoff must retain the Parent's whole-local `HOLD`, WIR-R03 failure, scratch-cap `FAIL`, repo Ruff limitation, and Codebase Memory `HOLD`. Keep these distinct from the Micro-WP's remote checkpoint and later hosted-CI result. `SPINE_IMPACT`, `SPINE_TARGET_FILES`, and `SPINE_SYNC_STATE` must be truthful before a role handoff. Stage A next authority is Planner `/root` for governance review; no PR is opened at this stage.
+
+## Plugin applicability and evidence contract
+
+Applicability values in this Micro-WP are only `REQUIRED` or `NOT_APPLICABLE`. A future Planner-opened correction must update a conditional `NOT_APPLICABLE` to `REQUIRED` before the action it governs, and must define its exact seed queries, radii, scope, and fallback where applicable. Installed or configured status does not prove use.
+
+| Plugin | Current applicability | Trigger and boundary |
+| --- | --- | --- |
+| `qi-context-boot` | `REQUIRED` | Governed entry/takeover. Stage A correction re-entry invocation and limits are recorded below. |
+| `verification-before-completion` | `REQUIRED` | Invoke before any exact-head hosted-CI execution or terminal `PASS`/`DONE` claim. No such invocation/result is claimed for this docs-only Stage A correction. |
+| CodeGraph | `NOT_APPLICABLE` | Stages A-C/E are governance and remote-evidence work. If Planner opens a Stage D implementation correction, change to `REQUIRED` before edit and specify seed queries, impact/edit/test radii, and fallback. |
+| `codebase-memory` | `NOT_APPLICABLE` | No index attempt is authorized; readiness remains `HOLD_WITH_DIAGNOSIS`. |
+| `systematic-debugging` | `NOT_APPLICABLE` | Until a hosted incident is classified and Planner opens a correction. That correction must set `REQUIRED` before any fix. |
+| `test-driven-development` | `NOT_APPLICABLE` | Until Planner opens a behavior/contract correction; that correction must set `REQUIRED` before behavior edits. A docs-only governance correction does not create TDD evidence. |
+| `skill-creator` | `NOT_APPLICABLE` | Until Planner opens a `qi-impact-map` skill edit; that correction must set `REQUIRED` before skill edits. |
+
+Every actual `REQUIRED` use/evidence packet must include all fields below. Use only the listed result classifications; a required use that has not reached its trigger has no invocation/result claim yet.
+
+```text
+PLUGIN
+PURPOSE
+INVOCATION
+RESULT = USED_AND_SUCCEEDED | USED_WITH_FALLBACK | TOOL_UNAVAILABLE | NOT_APPLICABLE
+FALLBACK
+IMPACT_RADIUS
+EDIT_RADIUS
+TEST_RADIUS
+LIMITATION
+```
+
+Stage A correction-entry evidence:
+
+```text
+PLUGIN = qi-context-boot
+PURPOSE = Read-only governed entry reconciliation for this forward documentation correction.
+INVOCATION = Read and applied plugins/qi-agent-workbench/skills/qi-context-boot/SKILL.md; rechecked exact canonical checkout, branch, HEAD, origin, tracked/index state, remote refs, active Work Order, CURRENT, and correction scope before this correction edit.
+RESULT = USED_AND_SUCCEEDED
+FALLBACK = NONE; the repository skill was readable and its documented read-only checks were followed.
+IMPACT_RADIUS = GOVERNANCE/ENTRY CONTEXT ONLY; NO PRODUCT OR RUNTIME IMPACT
+EDIT_RADIUS = docs/superpowers/plans/WP-ENG-QI-WORKBENCH-HOSTED-VERIFICATION-01.md; docs/agent_handoff/CURRENT.md
+TEST_RADIUS = NONE; NO TESTS AUTHORIZED OR RUN
+LIMITATION = This evidence covers the governed correction re-entry only. It does not retroactively claim qi-context-boot governed the earlier e9fc731 checkpoint push; the skill supplies no edit, commit, push, CI, merge, or release authority.
+```
