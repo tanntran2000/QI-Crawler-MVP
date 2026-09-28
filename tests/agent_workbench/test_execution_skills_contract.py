@@ -250,6 +250,11 @@ def _impact_readiness_contract_valid(skill_text: str, overview_section: str) -> 
         "GRAPH OUTPUT GRANTS SCOPE = NO",
         "STATIC_ROUTING_CONTRACT_VERIFIED = STATIC MARKDOWN ONLY; RUNTIME ENFORCEMENT NOT PROVEN",
     )
+    skill_forbidden = (
+        "GRAPH OUTPUT GRANTS SCOPE = YES",
+        "STATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
+        "FULL_REPOSITORY_COVERAGE = PROVEN",
+    )
     overview_required = (
         "Codebase Memory readiness",
         "`qi-impact-map` owns the detailed routing contract",
@@ -263,6 +268,7 @@ def _impact_readiness_contract_valid(skill_text: str, overview_section: str) -> 
     normalized_overview = " ".join(overview_section.split()).casefold()
     return (
         all(item in skill_text for item in skill_required)
+        and not any(item in skill_text for item in skill_forbidden)
         and all(item.casefold() in normalized_overview for item in overview_required)
         and not any(item.casefold() in normalized_overview for item in overview_forbidden)
     )
@@ -303,6 +309,9 @@ def test_impact_readiness_routes_graph_coverage_and_bounded_fallback() -> None:
             "STATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
             1,
         ),
+        skill + "\nGRAPH OUTPUT GRANTS SCOPE = YES",
+        skill + "\nSTATIC_ROUTING_CONTRACT_VERIFIED = RUNTIME ENFORCEMENT VERIFIED",
+        skill + "\nFULL_REPOSITORY_COVERAGE = PROVEN",
     )
     assert all(not _impact_readiness_contract_valid(mutant, overview) for mutant in mutants)
 
