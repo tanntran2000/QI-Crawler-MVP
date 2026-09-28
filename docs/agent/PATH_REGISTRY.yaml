@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "revision": "1.0.19",
+  "revision": "1.0.20",
   "enforcement": {
     "agent_gate": "PROSPECTIVE_LOCAL_POLICY",
     "machine_gate": "NOT_IMPLEMENTED",
@@ -1042,6 +1042,26 @@
         "plugins/qi-agent-workbench/skills-lock.json"
       ],
       "relation": "LOCATOR_ONLY_FOR_HOSTED_VERIFICATION_MICRO_WP; stage authority and later Planner-opened correction boundaries remain in this Work Order and CURRENT; registration adds no scope, CI change, merge, release, B09, or product authority."
+    },
+    {
+      "wp_id": "WP-ENG-QI-WORKBENCH-LOCAL-VERIFICATION-DISPOSITION-01",
+      "authority_ref": "docs/superpowers/plans/WP-ENG-QI-WORKBENCH-LOCAL-VERIFICATION-DISPOSITION-01.md",
+      "roadmap_ref": "docs/agent/MASTER_ROADMAP.md#engineering-toolbox--plugins; RD-0013 in docs/agent/MASTER_ROADMAP_DELTA.md",
+      "path_ids": [
+        "PATH.GOV.PLAN",
+        "PATH.GOV.DOCUMENT",
+        "PATH.GOV.HANDOFF",
+        "PATH.DEV.TEST_TEMP",
+        "PATH.EVIDENCE.WP_RUN"
+      ],
+      "artifact_inventory_ref": "docs/agent_handoff/CURRENT.md",
+      "scope_paths": [
+        "docs/superpowers/plans/WP-ENG-QI-WORKBENCH-LOCAL-VERIFICATION-DISPOSITION-01.md",
+        "docs/agent/PATH_REGISTRY.yaml",
+        "docs/agent_handoff/CURRENT.md",
+        "docs/agent/KNOWN_FAILURE_MODES.md"
+      ],
+      "relation": "LOCATOR_ONLY_FOR_BOUNDED_LOCAL_VERIFICATION_DISPOSITION; KNOWN_FAILURE_MODES.md is conditional on the Work Order trigger; retained logs are read-only; registration grants no diagnostic execution, implementation, CI, merge, release, B09, or product authority."
     },
     {
       "wp_id": "WP-REL-V010-B09-BRIDGE-A-WAL-SNAPSHOT-COHERENCE-01",
