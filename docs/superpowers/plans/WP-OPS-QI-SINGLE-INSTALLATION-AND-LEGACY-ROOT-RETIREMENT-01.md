@@ -565,3 +565,28 @@ G1_C02_WHOLE_SUITE = STILL CONSUMED RED WITH 1 DOCUMENT FAILURE; NATIVE EXIT OF 
 G1_C02_TERMINAL_RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT, BUILD, TAG, RELEASE, INSTALLATION OR CAPABILITY CHANGE
 G1_C02_BUILDER_NEXT = RETURN EXACT GOVERNANCE/DOC COMMITS AND BOUNDED TEST EVIDENCE TO PLANNER; NO REMOTE OR OPERATIONAL EFFECTS
 ```
+
+### G1-C03 — preserve both changelog heading contracts
+
+At exact candidate HEAD a1096bb2f80bc89adb52883765df498acceb1309, Tester used the Human-authorized replacement full-run allowance once, with a directly captured native process exit. The run collected 1,781 tests and reported 1,775 passed, 5 governed skips, 1 failed and 2 cache warnings in 1,112.01 seconds. The exact failure was tests/test_release_governance.py::test_changelog_has_target_release_section: the prior G1-C02 edit had replaced ## Unreleased with ## 0.10.1 - Internal, unreleased, satisfying the CLI synchronization test but violating this separate retained CHANGELOG contract. The run was one launch, exit 1, with the stated resource caps passing. Its RED history and .tmp/w3/78fe92/t evidence remain retained.
+
+The Human A0 authority for that exact post-C02 full sequential run is recorded in Feedback entry FB-0060. This does not authorize another full run. The bounded G1-C03 correction is to restore an exact ## Unreleased heading above the existing ## 0.10.1 - Internal, unreleased section, preserving all 0.10.1 content and historical release headings. Both exact heading consumers must remain satisfied together. No test, Vietnamese guide, source, version constant, runtime, build, release, installation or capability change is authorized. After the governance sync, one targeted invocation may run both exact heading tests together; there is no full-suite rerun, Ruff, retry or remote authority.
+
+~~~text
+G1_C03_TESTER_REPORT = PLANNER-ADMITTED TESTER EVIDENCE; REPORT ID NOT SUPPLIED
+G1_C03_FULL_RUN_HEAD = a1096bb2f80bc89adb52883765df498acceb1309
+G1_C03_FULL_RUN = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/78fe92/t; PID 26204; NATIVE PROCESS EXIT 1; ONE LAUNCH / NO RETRY
+G1_C03_RESULT = 1,781 COLLECTED; 1,775 PASSED; 5 GOVERNED SKIPS WITH CAPTURED REASONS; 1 FAILED; 2 CACHE WARNINGS; 1,112.01s
+G1_C03_FAILED_NODE = tests/test_release_governance.py::test_changelog_has_target_release_section; exact required heading ## Unreleased missing
+G1_C03_ROOT_CAUSE = G1-C02 PRESERVED THE 0.10.1 INTERNAL/UNRELEASED HEADING BUT REMOVED A SEPARATE REQUIRED ## Unreleased CONTRACT; BOTH MUST COEXIST
+G1_C03_SCRATCH = .tmp/w3/78fe92/t; resource caps PASS; retained; no cleanup; unknown/untracked artifacts KEEP
+G1_C03_HUMAN_AUTHORITY = HUMAN A0 AUTHORIZED THIS EXACT POST-C02 FULL RUN; ROUTED AS FB-0060; NO FURTHER FULL-RUN AUTHORITY
+G1_C03_EDIT_SCOPE = CHANGELOG.md ONLY; RESTORE ## Unreleased ABOVE ## 0.10.1 - Internal, unreleased; preserve all section content/order
+G1_C03_TDD = RETAINED FULL-RUN RED IS THE DISCRIMINATING EVIDENCE; DO NOT RERUN RED; ONE TARGETED GREEN INVOCATION CONTAINS BOTH EXACT CONTRACT NODES
+G1_C03_TARGET_NODES = tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents; tests/test_release_governance.py::test_changelog_has_target_release_section
+G1_C03_TARGETED_BUDGET = ONE INVOCATION; MAX 5 MINUTES / 5,000 FILES / 256 MiB; >=10 GiB D: FREE; FRESH REGISTERED PARENT, ABSENT PYTEST-OWNED CHILD t; RETAIN COMPLETE STDOUT/STDERR/METADATA AND NATIVE PROCESS EXIT; NO RETRY
+G1_C03_FAILURE_MEMORY = SHARED DOCUMENT CONTRACT PARTIAL-EDIT FINDING; FM-055; PRESERVE BOTH INDEPENDENT HEADING REQUIREMENTS AND RUN BOTH EXACT NODES TOGETHER
+G1_C03_RELEASE_IMPACT = SOURCE METADATA REMAINS 0.10.1 INTERNAL/UNRELEASED; NO VERSION INCREMENT, OFFICIAL RELEASE, BUILD, TAG, INSTALLATION, RUNTIME, CAPABILITY OR MATURITY CHANGE
+G1_C03_WHOLE_SUITE = FULL-RUN RED PRESERVED; TARGETED GREEN DOES NOT PROMOTE WHOLE WP; NO FURTHER FULL RUN OR RUFF AUTHORIZED
+G1_C03_NEXT = BUILDER RESTORES THE MISSING UNRELEASED HEADING, RUNS ONE TWO-NODE TARGETED GREEN AND RETURNS EXACT EVIDENCE TO PLANNER
+~~~

@@ -2082,3 +2082,26 @@ G1_C02_DOC_COMMIT = 38ab35d0362379ae64b19bba3f06ee0c9fabf732; EXACTLY CHANGELOG.
 G1_C02_VERIFICATION_STATE = TARGETED DOC CONTRACT PASS; WHOLE SEQUENTIAL GATE STILL RED / EXIT NOT INDEPENDENTLY PROVEN
 NEXT = PLANNER REVIEWS BUILDER RESULT AND DECIDES THE NEXT GOVERNED VERIFICATION STEP
 ~~~
+
+## Single-installation G1-C03 — preserve both changelog heading contracts
+
+At exact candidate HEAD a1096bb2f80bc89adb52883765df498acceb1309, the one Human-authorized post-C02 sequential Tester run used native process-object exit capture and returned exit 1: 1,781 collected, 1,775 passed, 5 governed skips, 1 failed and 2 warnings in 1,112.01s. The failed node was tests/test_release_governance.py::test_changelog_has_target_release_section, which requires ## Unreleased. G1-C02 had preserved ## 0.10.1 - Internal, unreleased but removed this separate heading. CodeGraph confirmed the CLI synchronization node independently requires ## 0.10.1 and the guide's Co gi moi trong 0.10.1 text. The complete correction restores ## Unreleased above the existing 0.10.1 section in CHANGELOG only. Both independent exact-heading contracts must remain satisfied together.
+
+Human A0 authority for the exact full run is routed as FB-0060. That allowance is consumed; no second full run or Ruff invocation is authorized here. The retained full-run RED is not a runtime, release or GitHub Actions failure. One targeted invocation may run the two exact heading nodes together after the governance sync. The internal source version remains 0.10.1 unreleased; no build, tag, release, install, capability or maturity change occurs.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C03-CHANGELOG-DUAL-CONTRACT-20260929
+AUTHORITY = PLANNER-OPENED BOUNDED CORRECTION UNDER EXISTING HUMAN-APPROVED G1 LEASE; EXACT FULL-RUN AUTHORITY ROUTED FROM HUMAN A0 AS FB-0060
+CANDIDATE_HEAD = a1096bb2f80bc89adb52883765df498acceb1309
+TESTER_FULL_RUN = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/78fe92/t; PID 26204; native exit 1; one launch/no retry
+RESULT = 1,781 COLLECTED; 1,775 PASSED; 5 GOVERNED SKIPS; 1 FAILED; 2 WARNINGS; 1,112.01s; scratch resource caps PASS; RED RETAINED
+FAILED_NODE = tests/test_release_governance.py::test_changelog_has_target_release_section; requires exact ## Unreleased
+CONTRACT_PAIR = CLI SYNC TEST REQUIRES ## 0.10.1 AND Co gi moi trong 0.10.1; RELEASE-GOVERNANCE TEST ALSO REQUIRES ## Unreleased; ALL THREE EXACT MARKERS MUST COEXIST
+ROOT_CAUSE = PRIOR DOC CORRECTION PRESERVED THE INTERNAL 0.10.1 HEADING BUT REMOVED AN INDEPENDENT UNRELEASED CONTRACT; DOCUMENTATION-ONLY DEFECT
+AUTHORIZED_EDIT = CHANGELOG.md ONLY; RESTORE ## Unreleased ABOVE THE EXISTING ## 0.10.1 - Internal, unreleased SECTION; NO TEST/GUIDE/SOURCE EDIT
+TARGETED_CHECK = ONE INVOCATION WITH BOTH EXACT CONTRACT NODES; FRESH BOUNDED PARENT / ABSENT PYTEST CHILD t; NATIVE EXIT CAPTURE; NO RETRY
+FULL_RUN_AUTHORITY = CONSUMED; NO SECOND FULL RUN; NO RUFF; NO GITHUB ACTIONS FAILURE CLAIM
+FAILURE_MEMORY = FM-055; PRESERVE BOTH DISTINCT HEADING REQUIREMENTS AND VERIFY BOTH EXACT TEST NODES TOGETHER
+RELEASE_IMPACT = INTERNAL 0.10.1 REMAINS UNRELEASED; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/RUNTIME/CAPABILITY/MATURITY CHANGE
+SCRATCH = .tmp/w3/78fe92/t; RETAINED; UNKNOWN/UNTRACKED KEEP; NO CLEANUP
+~~~

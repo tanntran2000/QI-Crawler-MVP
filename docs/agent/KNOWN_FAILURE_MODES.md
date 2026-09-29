@@ -1135,6 +1135,25 @@ CURRENT_EVIDENCE = .tmp/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01/20260927T145300Z
 PERMANENT_PREVENTION = PROPOSED_PENDING_NOT_IMPLEMENTED; before future governed full local runs, set a justified file cap from evidence and define a bounded observable count/checkpoint strategy before execution; verify the shortest task-owned basetemp and deepest-path headroom using FM-051/FM-052 controls; stop/HOLD on breach; retain exact invocation, logs, and counts.
 LIMIT = Do not retroactively raise the approved limit, rewrite historical run evidence, claim prevention is implemented, or attribute all 65 failing nodes to environment or product. The 276-character A3 path leaves the known Windows path-risk unresolved. Product or candidate defect causation is not established.
 
+## FM-055 — Internal version heading correction removed a separate changelog contract
+
+ID = FM-055
+TITLE = Internal version heading correction removed a separate changelog contract
+STATE = OPEN; G1-C03 CHANGELOG FIX PENDING
+SEVERITY_AT_DETECTION = MINOR
+DISPOSITION = G1-C03 DOCS-ONLY CORRECTION; WHOLE G1 SUITE REMAINS RED
+DETECTED_BY = Tester full sequential run admitted by Planner; exact node tests/test_release_governance.py::test_changelog_has_target_release_section
+SCOPE = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01; CHANGELOG heading contract for internal version 0.10.1
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / RELEASE DOCUMENT GOVERNANCE
+SYMPTOM = The C02 synchronization edit preserved ## 0.10.1 - Internal, unreleased for one consumer but removed exact ## Unreleased, causing a separate retained release-governance test to fail. The CLI consumer also requires the Vietnamese guide marker Co gi moi trong 0.10.1.
+ROOT_CAUSE = Multiple tests consume separate exact headings in the same shared changelog; the prior one-node targeted verification covered only the CLI consumer and did not exercise the independent Unreleased-order contract.
+WHY_EXISTING_CHECKS_MISSED_IT = C02 targeted single-node GREEN did not include test_changelog_has_target_release_section; the next authorized full run exposed the second contract.
+FIX = PENDING: restore ## Unreleased above the existing internal/unreleased ## 0.10.1 heading in CHANGELOG only; preserve all release history and content.
+FIX_HEAD = PENDING G1-C03 CHANGELOG CORRECTION COMMIT
+REGRESSION_GUARD = Run both exact heading-contract nodes together after changelog heading edits; retain both ## Unreleased and ## 0.10.1 in required order; do not infer the shared document contract from one consumer.
+INDEPENDENT_AUDIT = PLANNER-OPENED G1-C03; REVIEWER AUDIT PENDING
+CURRENT_EVIDENCE = Tester full run at a1096bb2; retained .tmp/w3/78fe92/t; routed through FB-0060, Work Order, Delta and CURRENT
+LIMIT = Documentation-only failure. No runtime, source, test, official release, build, install or capability defect/change is established. The authorized full-run budget is consumed; targeted two-node verification does not turn the historical full run into PASS.
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

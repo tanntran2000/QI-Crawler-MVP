@@ -1527,3 +1527,22 @@ Boundary: No push/PR/merge/release, live operation, cleanup, code/test change, r
 Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
 Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
 ~~~
+
+### FB-0060 — Human A0 authorization for the post-C02 exact full run
+
+~~~text
+State: ACCEPTED / EXACT_POST_C02_FULL_RUN_AUTHORIZED_AND_CONSUMED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 authorization relayed in Planner task /root, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C03 CHANGELOG dual-contract correction
+Decision:
+  POST_C02_FULL_SEQUENTIAL_PYTEST = EXACTLY ONE; exact Tester preflight HEAD a1096bb2f80bc89adb52883765df498acceb1309; no code/test change
+  TESTER_RESULT = native process exit 1; 1,781 collected; 1,775 passed / 5 governed skips / 1 failed / 2 warnings; 1,112.01s
+  FAILURE = tests/test_release_governance.py::test_changelog_has_target_release_section; exact ## Unreleased heading missing after C02
+  EVIDENCE = .tmp/w3/78fe92/t; retain full run and its RED status; resource caps reported PASS; no cleanup
+Boundary: This authority covered only the one exact post-C02 full sequential run. It does not authorize another full run, Ruff, tests beyond the separately Planner-opened single targeted two-node correction check, test/source/runtime/release/build/install changes, remote action, cleanup, merge, release or any operational update.
+Disposition: ACCEPTED / ROUTED_TO_G1_C03_WORK_ORDER_DELTA_CURRENT_AND_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~
