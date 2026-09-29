@@ -709,3 +709,26 @@ G1_C05_PLANNER_RECONCILIATION = MACHINE_VERIFICATION_STATE=PASS_FOR_REVIEWER_HAN
 G1_C05_WHOLE_WP = NOT COMPLETE; INDEPENDENT REVIEWER AUDIT AND PLANNER POST-REVIEW RECONCILIATION REQUIRED; REMOTE_READY=NO
 G1_C05_NEXT = PLANNER AUDITS EXACT TERMINAL SYNC/SCOPE THEN DISPATCHES INDEPENDENT REVIEWER; NO REMOTE ACTION
 ~~~
+
+
+### G1 post-review reconciliation — governed integration pending
+
+Reviewer report `WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01` returns `AUDIT_VERDICT=PASS`, `CANDIDATE_CONTRACT_VERDICT=PASS`, `LOCAL_INTEGRATION_READINESS=PASS_WITH_RECORDED_LIMITATIONS`, `CI_FITNESS_CLASSIFICATION=FIT_WITH_ADDITION`, `LOCAL_REVIEW_FITNESS=FIT`, `CLEAN_CHECKOUT_HOSTED_CI=REQUIRED_AND_PENDING`, and `FINDINGS=NONE`. The exact audited identities remain distinct: code/test head `795c554246c13b838e4cb9a6d434159ab09efbfe`; full-pytest candidate `ec0d4af193711957876764a0681c441ccbb8a87a`; tracked-manifest Ruff governance head `bd423085611bd70b3f23629d20bcdb0f25fb4365`; audited documentation head `0491e5c31c06514b1ed47635a83793c2e4bac2ea`. Planner accepts the Reviewer PASS for that exact object.
+
+Local evidence remains bounded: the exact full sequential pytest run at `ec0d4af` collected 1,781, passed 1,776, skipped 5 governed tests, and had zero failures. Tracked-manifest Ruff passed once over 255 tracked Python paths at `bd423085`. The earlier broad local Ruff command remains failed under preserved unknown `$RECYCLE.BIN` content; candidate causation is not established. A clean-checkout hosted CI run is still required. This does not establish live/runtime/release readiness, authorize a build, or promote roadmap maturity or `PROJECT_MEMORY` before merge. The historical plan-allowlist omission and Builder scope deviation remain recorded; the exact test delta is retained only under the later Human-approved forward disposition.
+
+This transition authorizes the previously approved remote integration sequence only after fresh remote identity and open-PR checks. In this Builder session, both `git ls-remote` and `gh pr list` failed because network access was unavailable. The local cached `origin/main` remains `caf983691da60d4eaf990d09e9e1788692aabaac`, which is not a fresh live ref. Current live main, feature-ref and PR state are therefore unverified; no push or PR mutation occurred. Stage B must wait for Planner-provided fresh remote evidence and explicit release to proceed. If compatible, only a normal fast-forward push and one PR into `main` are authorized; hosted checks must then bind to the exact PR head. Human retains manual merge authority. No merge, release, build, live update, cleanup or other operational action is authorized.
+
+~~~text
+G1_REVIEWER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01
+G1_REVIEWER_VERDICT = PASS; CANDIDATE_CONTRACT=PASS; LOCAL_INTEGRATION_READINESS=PASS_WITH_RECORDED_LIMITATIONS; CI_FITNESS=FIT_WITH_ADDITION; LOCAL_REVIEW_FITNESS=FIT; FINDINGS=NONE
+G1_REVIEWED_HEADS = CODE/TEST 795c554246c13b838e4cb9a6d434159ab09efbfe; PYTEST ec0d4af193711957876764a0681c441ccbb8a87a; TRACKED RUFF bd423085611bd70b3f23629d20bcdb0f25fb4365; DOCS 0491e5c31c06514b1ed47635a83793c2e4bac2ea
+G1_LOCAL_PYTEST = 1,781 COLLECTED; 1,776 PASSED; 5 GOVERNED SKIPS; 0 FAILED; EXACT CANDIDATE ec0d4af; NO RERUN
+G1_TRACKED_RUFF = PASS ON 255 TRACKED PYTHON PATHS AT bd423085; HISTORICAL BROAD `ruff check .` FAILURE UNDER PRESERVED UNKNOWN `$RECYCLE.BIN` CONTENT RETAINED; CANDIDATE CAUSATION NOT_ESTABLISHED
+G1_HOSTED_CI = REQUIRED_AND_PENDING; CLEAN-CHECKOUT CHECKS HAVE NOT BEEN OBSERVED FOR THIS CANDIDATE
+G1_PLANNER_POST_REVIEW = ACCEPTED INDEPENDENT REVIEWER PASS FOR THE EXACT OBJECT; NO ROADMAP MATURITY OR PROJECT_MEMORY PROMOTION BEFORE MERGE
+G1_REMOTE_PREFLIGHT = `git ls-remote` AND `gh pr list` FAILED DUE NETWORK ACCESS; LIVE main/feature REF AND OPEN-PR STATE UNVERIFIED; LOCAL CACHED origin/main=caf983691da60d4eaf990d09e9e1788692aabaac IS NOT FRESH LIVE EVIDENCE
+G1_REMOTE_EFFECTS = NONE; NO PUSH OR PR MUTATION
+G1_NEXT = PLANNER PROVIDES FRESH REMOTE FEATURE/MAIN/OPEN-PR EVIDENCE AND RELEASES STAGE B ONLY IF COMPATIBLE; THEN FAST-FORWARD PUSH AND ONE PR MAY PROCEED
+G1_MERGE_RELEASE = HUMAN MANUAL MERGE ONLY; NO MERGE/RELEASE/BUILD/LIVE OPERATION/CLEANUP AUTHORITY
+~~~

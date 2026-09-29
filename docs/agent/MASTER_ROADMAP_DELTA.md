@@ -2194,3 +2194,22 @@ HISTORICAL_BROAD_RUFF = EXIT 1 PRESERVED; CANDIDATE CAUSATION NOT_ESTABLISHED; H
 PLANNER_RECONCILIATION = LOCAL_CANDIDATE_GATES PASS_WITH_RECORDED_LIMITATIONS; WHOLE WP NOT COMPLETE; REVIEWER + PLANNER POST-REVIEW REQUIRED
 NEXT = PLANNER EXACT-SCOPE AUDIT THEN INDEPENDENT REVIEWER DISPATCH; REMOTE READY NO
 ~~~
+
+
+## Single-installation G1 — independent review and remote integration gate
+
+Reviewer report `WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01` returns PASS with no findings for the exact G1 audit object. Planner accepts the verdict. Local readiness is `PASS_WITH_RECORDED_LIMITATIONS`, local review fitness is FIT, and CI fitness is FIT_WITH_ADDITION; clean-checkout hosted CI remains required and pending. The audited code/test, pytest, tracked-Ruff and documentation heads remain distinct: `795c554`, `ec0d4af`, `bd423085` and `0491e5c`, respectively. The full pytest result and tracked-manifest Ruff PASS remain as recorded. The historical broad local Ruff failure under preserved unknown `$RECYCLE.BIN` content remains a failure, with candidate causation not established.
+
+Fresh live-ref and pull-request reads failed in the Builder session because network access was unavailable. The local cached `origin/main` value `caf983691da60d4eaf990d09e9e1788692aabaac` is not fresh live evidence. Live main, feature-ref and PR state are unverified; no push or PR mutation occurred. The already-approved integration sequence may proceed only after Planner supplies fresh remote evidence and releases Stage B. A clean-checkout hosted CI result is required after integration. No merge, release, build, live operation, cleanup, roadmap maturity change or `PROJECT_MEMORY` promotion is authorized by this reconciliation; Human retains manual merge authority.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-REVIEW-AND-INTEGRATION-GATE-20260929
+REVIEWER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01
+REVIEWER = PASS; CANDIDATE_CONTRACT=PASS; LOCAL_INTEGRATION_READINESS=PASS_WITH_RECORDED_LIMITATIONS; CI_FITNESS=FIT_WITH_ADDITION; LOCAL_REVIEW_FITNESS=FIT; FINDINGS=NONE
+AUDITED_HEADS = CODE/TEST 795c554246c13b838e4cb9a6d434159ab09efbfe; PYTEST ec0d4af193711957876764a0681c441ccbb8a87a; TRACKED_RUFF bd423085611bd70b3f23629d20bcdb0f25fb4365; DOCS 0491e5c31c06514b1ed47635a83793c2e4bac2ea
+LOCAL_EVIDENCE = PYTEST 1,781 COLLECTED / 1,776 PASSED / 5 GOVERNED SKIPS / 0 FAILED; TRACKED-MANIFEST RUFF PASS / 255 PATHS; BROAD LOCAL RUFF FAILURE RETAINED; CANDIDATE CAUSATION NOT_ESTABLISHED
+HOSTED_CI = CLEAN-CHECKOUT REQUIRED AND PENDING
+REMOTE_STATE = UNVERIFIED; `git ls-remote` AND `gh pr list` FAILED DUE NETWORK ACCESS; LOCAL CACHED origin/main=caf983691da60d4eaf990d09e9e1788692aabaac IS NOT A FRESH LIVE REF; NO REMOTE EFFECTS
+NEXT = PLANNER OBTAINS FRESH FEATURE/MAIN/OPEN-PR STATE AND RELEASES STAGE B ONLY IF COMPATIBLE; THEN ONE NORMAL FAST-FORWARD PUSH AND ONE PR MAY PROCEED
+AUTHORITY = HUMAN RETAINS MANUAL MERGE; NO RELEASE/BUILD/LIVE OPERATION/CLEANUP OR ROADMAP MATURITY PROMOTION
+~~~
