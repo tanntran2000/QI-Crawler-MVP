@@ -763,3 +763,28 @@ G1_C06_PLUGIN_CODEBASE_MEMORY = PLUGIN codebase-memory; PURPOSE=STRUCTURAL INDEX
 G1_C06_CANDIDATE = LOCAL BOUNDED CHECKS PASS; HOSTED CI ON CORRECTION HEAD NOT RUN; TESTER/REVIEWER AND PLANNER REVIEW PENDING
 G1_C06_NEXT = PLANNER REVIEWS THE EXACT CANDIDATE AND ASSIGNS CANONICAL TESTER; NO PUSH/PR/CI RERUN UNTIL GOVERNED HANDOFF
 ~~~
+
+
+## G1-C06 — Tester/Reviewer reconciliation and hosted checkpoint
+
+Tester report `WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-TESTER-20260929-01` passes the local bounded verification at candidate head `366f2ce4a6b0e1de54346228208af928903d438d`. Its fresh root `.tmp/w3/d3a1c6` ran the two affected test files with native exit 0: 170 passed, 3 skipped, 0 failed, one non-failing pytest cache warning; pytest 158.02s / wall 159.752s. Skips were two symlink-creation limitations and one test that only asserts unsupported non-Windows behavior. Scoped Ruff on the two changed test files exited 0 in 1.089s. The retained root contains 1,999 files / 12,257,808 bytes; D: free space was 16,046,854,144 bytes before and 16,027,299,840 after. No retry or cleanup occurred.
+
+Reviewer report `WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-REVIEWER-20260929-01` is `PASS` with no findings for code/test/script head `36073ac0d7cd4999869d45541fe26627bbc2df8e` and docs head `366f2ce4a6b0e1de54346228208af928903d438d`. Planner accepted both exact local dispositions and `FORWARD_HOSTED_CORRECTION_ELIGIBILITY=PASS`. The hosted Linux RED at `ab1b566` remains preserved and is not overwritten by local evidence. The prior corrected affected matrix and command-harness exit 4 remain recorded; no full suite or second correction attempt occurred.
+
+Before the terminal governance sync, live refs were re-read: `main=caf983691da60d4eaf990d09e9e1788692aabaac`; feature branch `ab1b5667438066d2104ed7505c626e3035e8c32f`; PR #137 is the sole PR, OPEN, non-draft, unmerged, base `main` at `caf9836`. After the local governance commit, the authorized action is a normal fast-forward push of the exact terminal head to that same branch and PR; no new PR is authorized. Required hosted jobs must report against the exact resulting source head. Hosted CI remains PENDING until that evidence is observed. No merge or release follows automatically from green checks: Human retains merge authority. The whole Parent remains HOLD; release, build, live operation, DB/config mutation, and cleanup remain unauthorized.
+
+~~~text
+G1_C06_TESTER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-TESTER-20260929-01
+G1_C06_TESTER_VERDICT = PASS_LOCAL_BOUNDED_VERIFICATION; CANDIDATE 366f2ce4a6b0e1de54346228208af928903d438d
+G1_C06_TESTER_PYTEST = .tmp/w3/d3a1c6; NATIVE EXIT 0; 170 PASSED / 3 SKIPPED / 0 FAILED / 1 NON-FAILING PytestCacheWarning; 158.02s PYTEST / 159.752s WALL; PID 15656
+G1_C06_TESTER_SKIP_REASONS = TWO SYMLINK-CREATION LIMITATIONS; ONE TEST THAT ONLY ASSERTS UNSUPPORTED NON-WINDOWS BEHAVIOR
+G1_C06_TESTER_RUFF = SCOPED TWO-FILE RUN; EXIT 0; 1.089s; 19-BYTE SUCCESS STDOUT; STDERR EMPTY
+G1_C06_TESTER_SCRATCH = 1,999 FILES / 12,257,808 BYTES; D: FREE 16,046,854,144 BEFORE / 16,027,299,840 AFTER; RETAINED; NO RETRY/CLEANUP
+G1_C06_REVIEWER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-REVIEWER-20260929-01
+G1_C06_REVIEWER_VERDICT = PASS; FINDINGS=NONE; CODE/TEST/SCRIPT 36073ac0d7cd4999869d45541fe26627bbc2df8e; DOCS 366f2ce4a6b0e1de54346228208af928903d438d
+G1_C06_PLANNER_RECONCILIATION = ACCEPTED BOTH LOCAL REPORTS; FORWARD_HOSTED_CORRECTION_ELIGIBILITY=PASS; WHOLE_PARENT=HOLD; HOSTED_CI=PENDING
+G1_C06_PRE_PUSH_REMOTE = LIVE main caf983691da60d4eaf990d09e9e1788692aabaac; FEATURE ab1b5667438066d2104ed7505c626e3035e8c32f; PR #137 OPEN/NON-DRAFT/UNMERGED; BASE main; ONE PR ONLY
+G1_C06_NEXT = FAST-FORWARD PUSH TERMINAL HEAD TO EXISTING PR #137; VERIFY EXACT PR HEAD; OBSERVE REQUIRED EXACT-HEAD CHECKS; RETURN TO PLANNER
+G1_C06_LIMITS = PRIOR HOSTED RED PRESERVED; LOCAL PASS DOES NOT REPLACE HOSTED CI; NO MERGE/RELEASE/BUILD/LIVE/DB/CONFIG/CLEANUP AUTHORITY
+G1_C06_SPINE = IMPACT MULTIPLE; TARGET Work Order / MASTER_ROADMAP_DELTA / CURRENT; SYNC PASS
+~~~
