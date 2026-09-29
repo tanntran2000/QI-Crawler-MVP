@@ -649,3 +649,34 @@ G1_C04_HUMAN_AUTHORITY = EXACT ec0d4af FULL SEQUENTIAL RUN, RUFF/STATIC FOLLOW-O
 G1_C04_WHOLE_CANDIDATE = HOLD; REVIEWER_HANDOFF_READY=NO; REMOTE_READY=NO
 G1_C04_NEXT = PLANNER REVIEWS THE EVIDENCE AND PRESENTS THE BOUNDED SCOPE/RUFF DISPOSITION RECOMMENDATION TO HUMAN A0
 ~~~
+
+
+### G1-C05 — Human forward disposition and tracked-manifest Ruff authority
+
+Human A0 explicitly approved G1-C05 in the Planner task after reviewing the concrete G1-C04 scope/Ruff disposition. No separate decision ID was supplied. This is a forward disposition: from this decision onward, retain exactly the existing tests/test_repo_hygiene.py delta from commit 795c554246c13b838e4cb9a6d434159ab09efbfe as the accepted G1 correction baseline. Preserve both historical PLAN_ALLOWLIST_OMISSION and BUILDER_SCOPE_BREACH; the original allowlist is not rewritten and the earlier edit is not described as authorized when made. The retained delta directly tests authorized G1.2 scripts/clean_dev.ps1 behavior: exact Git top-level, rejection of D:\QI-Crawler/nonrepo/nested roots, and preservation of release_staging evidence and published candidates.
+
+The exact retained test-file diff is identified by SHA-256 e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027 over 4,428 bytes from this deterministic command: `git -c core.quotePath=true diff --no-ext-diff --no-color --binary 795c554246c13b838e4cb9a6d434159ab09efbfe^ 795c554246c13b838e4cb9a6d434159ab09efbfe -- tests/test_repo_hygiene.py`. The commit changed seven paths; this identity covers only the retained tests/test_repo_hygiene.py delta (59 added lines), not the complete commit.
+
+Human A0 authorizes the canonical Tester to run exactly one replacement Ruff verification over an immutable manifest produced by `git ls-files -- '*.py' '*.pyi' '*.ipynb'` at Tester preflight (expected 255 paths). Tester must retain the exact manifest bytes, path count, manifest SHA-256, exact Git/code identity and proof that no tracked Python path differs from tested candidate ec0d4af193711957876764a0681c441ccbb8a87a, plus native exit, stdout and stderr. Run Ruff only against those listed tracked paths; do not inspect or modify unknown files, alter Ruff configuration or pyproject.toml, retry, or rerun pytest. Budget: 10 minutes; scratch at most 20,000 files / 1 GiB; retain at least 10 GiB free on D:; no cleanup.
+
+If the replacement Ruff and prescribed static identity/scope checks pass, Tester returns evidence to Planner for Reviewer handoff. Tester does not declare the whole WP PASS or contact Human. The prior repository-wide Ruff failure remains a failed historical command; its eight findings were under unknown untracked content and candidate causation is not established. The original pytest PASS at ec0d4af remains valid. No push, PR, merge, release, build, live operation or cleanup is authorized.
+
+Feedback entry FB-0062 routes this Human decision. The earlier allowlist omission and scope breach remain historical facts; this forward acceptance does not rewrite history.
+
+~~~text
+G1_C05_HUMAN_AUTHORITY = HUMAN A0 APPROVED G1-C05 IN PLANNER TASK AFTER REVIEWING G1-C04 DISPOSITION; NO SEPARATE DECISION ID SUPPLIED; ROUTED AS FB-0062
+G1_C05_RETAINED_TEST_COMMIT = 795c554246c13b838e4cb9a6d434159ab09efbfe; PATH tests/test_repo_hygiene.py; 59 INSERTIONS
+G1_C05_TEST_DELTA_IDENTITY_COMMAND = git -c core.quotePath=true diff --no-ext-diff --no-color --binary 795c554246c13b838e4cb9a6d434159ab09efbfe^ 795c554246c13b838e4cb9a6d434159ab09efbfe -- tests/test_repo_hygiene.py
+G1_C05_TEST_DELTA_IDENTITY = SHA256 e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027; 4,428 DIFF BYTES
+G1_C05_RETENTION_REASON = DIRECT CLEAN-DEV REGRESSION COVERAGE: EXACT GIT TOP-LEVEL; REJECT D:\QI-CRAWLER/NONREPO/NESTED ROOTS; PRESERVE release_staging EVIDENCE/PUBLISHED CANDIDATE
+G1_C05_HISTORICAL_DEVIATION = PLAN_ALLOWLIST_OMISSION=YES; BUILDER_SCOPE_BREACH=YES; ORIGINAL ALLOWLIST UNCHANGED; OLD EDIT NOT CLAIMED AUTHORIZED WHEN MADE
+G1_C05_FORWARD_BASELINE = HUMAN A0 ACCEPTS EXACT EXISTING tests/test_repo_hygiene.py DELTA AS G1 CORRECTION BASELINE FROM THIS DECISION FORWARD
+G1_C05_TESTER_AUTHORITY = EXACTLY ONE REPLACEMENT RUFF OVER IMMUTABLE GIT-TRACKED PYTHON MANIFEST; NO PYTEST RERUN; NO UNKNOWN-FILE INSPECTION/MUTATION; NO RUFF CONFIG CHANGE; NO RETRY
+G1_C05_MANIFEST_COMMAND = git ls-files -- '*.py' '*.pyi' '*.ipynb'; EXPECTED 255 PATHS; RETAIN EXACT MANIFEST BYTES/COUNT/SHA256
+G1_C05_CODE_IDENTITY_GATE = RECORD EXACT TESTER HEAD AND PROVE NO TRACKED PYTHON PATH DIFF FROM TESTED CANDIDATE ec0d4af193711957876764a0681c441ccbb8a87a
+G1_C05_TESTER_EVIDENCE = NATIVE RUFF EXIT; STDOUT/STDERR; EXACT GIT/ CODE IDENTITY; MANIFEST COUNT/SHA; STATIC IDENTITY/SCOPE CHECKS
+G1_C05_RUFF_BUDGET = 10 MINUTES; <=20,000 SCRATCH FILES; <=1 GiB; >=10 GiB D: FREE; NO RETRY/CLEANUP
+G1_C05_HANDOFF = IF RUFF AND STATIC IDENTITY/SCOPE PASS, RETURN TO PLANNER FOR REVIEWER HANDOFF; TESTER DOES NOT DECLARE WHOLE WP PASS OR CONTACT HUMAN
+G1_C05_WHOLE_WP = HOLD PENDING REPLACEMENT RUFF AND REVIEW; PRIOR FULL PYTEST PASS PRESERVED; ORIGINAL FULL RUFF FAILURE PRESERVED
+G1_C05_NEXT = PLANNER REVIEWS THIS FORWARD DISPOSITION AND DISPATCHES CANONICAL TESTER; NO OTHER ACTION
+~~~

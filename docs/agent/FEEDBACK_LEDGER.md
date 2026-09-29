@@ -1567,3 +1567,26 @@ Outcome: Full sequential pytest PASS; local full Ruff FAIL; static gates PASS; s
 Disposition: ROUTED_TO_G1_C04_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
 Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
 ~~~
+
+
+### FB-0062 — Human A0 forward disposition for G1-C05
+
+~~~text
+State: ACCEPTED / FORWARD_DISPOSITION_AND_ONE_TRACKED_MANIFEST_RUFF_AUTHORITY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Explicit Human A0 approval in Planner task after review of the G1-C04 scope/Ruff disposition; 2026-09-29; no separate decision ID supplied
+Type: SCOPE_DISPOSITION / LOCAL_VERIFICATION_AUTHORITY
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C05
+Decision:
+  FORWARD_BASELINE = Retain exactly the existing tests/test_repo_hygiene.py delta from 795c554246c13b838e4cb9a6d434159ab09efbfe as the accepted G1 correction baseline from this decision forward.
+  RETAINED_DELTA_IDENTITY = SHA256 e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027 over 4,428 bytes emitted by the deterministic binary diff command recorded in the Work Order; 59 added lines; no test-file edit in this correction.
+  HISTORICAL_FACTS = PLAN_ALLOWLIST_OMISSION=YES and BUILDER_SCOPE_BREACH=YES remain recorded; original allowlist is not rewritten and the earlier edit is not claimed authorized when made.
+  RETENTION_RATIONALE = Exact regression coverage for authorized G1.2 scripts/clean_dev.ps1 behavior: exact Git top-level, rejection of D:\QI-Crawler/nonrepo/nested roots, and preservation of release_staging evidence/published candidate.
+  REPLACEMENT_RUFF = Exactly one canonical Tester invocation over the immutable manifest from git ls-files -- '*.py' '*.pyi' '*.ipynb' (expected 255 paths); retain exact manifest bytes/count/SHA-256, exact Git/code identity, proof of no tracked Python delta since ec0d4af193711957876764a0681c441ccbb8a87a, native exit, stdout and stderr.
+  BUDGET = 10 minutes; scratch <=20,000 files / 1 GiB; D: free >=10 GiB; no cleanup, retry, pytest rerun, unknown-file inspection/mutation, or Ruff config/pyproject change.
+  NEXT = If replacement Ruff and prescribed static identity/scope checks pass, Tester returns Planner for Reviewer handoff; Tester does not declare whole WP PASS or contact Human.
+Boundary: No source/test edit, push/PR/merge/release/build/live operation, operational data action or cleanup is authorized. The old repository-wide Ruff exit 1 remains a failed historical result. This forward baseline decision preserves, but does not rewrite, the prior scope deviation.
+Disposition: ROUTED_TO_G1_C05_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~

@@ -2149,3 +2149,23 @@ PLANNER_RECOMMENDATION = SEEK HUMAN A0 FORWARD DISPOSITION OF THE EXISTING EXACT
 HUMAN_AUTHORITY = EXACT ec0d4af PYTEST/RUFF/STATIC FOLLOW-ON AND TERMINAL DOC EVIDENCE RULE; ROUTED AS FB-0061; CONSUMED
 G1_CANDIDATE = HOLD; REVIEWER HANDOFF NO; REMOTE READY NO
 ~~~
+
+
+## Single-installation G1-C05 — Human forward disposition
+
+Human A0 approved the G1-C04 disposition after reviewing the exact scope/Ruff recommendation. From this decision forward, retain exactly the existing `tests/test_repo_hygiene.py` delta in `795c554246c13b838e4cb9a6d434159ab09efbfe` as the accepted G1 correction baseline. Keep the historical allowlist omission and Builder scope breach visible; do not rewrite the original allowlist or describe the prior edit as authorized at the time. The 59-line test delta directly covers authorized `scripts/clean_dev.ps1` protections: exact Git top-level, rejection of operational/nonrepo/nested roots, and preservation of `release_staging` evidence/published candidates. Reproducible identity: SHA-256 `e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027` over 4,428 bytes emitted by the exact binary diff command recorded in the Work Order.
+
+Human A0 authorizes exactly one replacement Ruff invocation by the canonical Tester, using the immutable tracked manifest from `git ls-files -- '*.py' '*.pyi' '*.ipynb'` (expected 255 paths). Tester records manifest bytes/count/SHA, exact Git/code head, proves no tracked Python delta since tested candidate `ec0d4af193711957876764a0681c441ccbb8a87a`, and retains native exit/stdout/stderr. The single invocation has a 10-minute limit, maximum 20,000 scratch files / 1 GiB, and at least 10 GiB D: free; no retry, pytest rerun, unknown-file inspection/mutation, Ruff config edit or cleanup. If it and prescribed static identity/scope checks pass, Tester returns to Planner for Reviewer handoff. This does not declare the whole WP PASS.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C05-FORWARD-DISPOSITION-20260929
+HUMAN_AUTHORITY = G1-C05 APPROVED BY HUMAN A0 IN PLANNER TASK; FEEDBACK FB-0062; NO SEPARATE DECISION ID SUPPLIED
+ACCEPTED_FORWARD_BASELINE = EXACT tests/test_repo_hygiene.py DELTA FROM 795c554; HISTORICAL PLAN_ALLOWLIST_OMISSION/BUILDER_SCOPE_BREACH REMAIN TRUE
+TEST_DELTA_SHA256 = e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027; 4,428 BINARY DIFF BYTES; 59 INSERTIONS; EXACT COMMAND IN WORK ORDER
+REPLACEMENT_RUFF = EXACTLY ONE TESTER RUN OVER IMMUTABLE `git ls-files -- '*.py' '*.pyi' '*.ipynb'` MANIFEST; EXPECTED 255; MANIFEST/COUNT/SHA/HEAD/NATIVE EXIT/STDOUT/STDERR RETAINED
+CODE_IDENTITY = PROVE NO TRACKED PYTHON DELTA SINCE ec0d4af; NO PYTEST RERUN; NO UNKNOWN FILE ACCESS/MUTATION; NO CONFIG CHANGE; NO RETRY
+BUDGET = 10 MIN; 20,000 FILES / 1 GiB SCRATCH MAX; >=10 GiB D: FREE; NO CLEANUP
+HANDOFF = TESTER RETURNS PASSING VERIFICATION TO PLANNER FOR REVIEWER HANDOFF; WHOLE WP NOT PROMOTED BY THIS DECISION
+CURRENT_STATE = C04 PYTEST PASS AND FULL RUFF FAILURE BOTH PRESERVED; CANDIDATE HOLD UNTIL AUTHORIZED CHECK AND REVIEW
+NEXT = PLANNER REVIEWS G1-C05 GOVERNANCE AND DISPATCHES TESTER
+~~~
