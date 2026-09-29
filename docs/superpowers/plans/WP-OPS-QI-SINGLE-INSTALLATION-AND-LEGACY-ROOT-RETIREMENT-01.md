@@ -732,3 +732,34 @@ G1_REMOTE_EFFECTS = NONE; NO PUSH OR PR MUTATION
 G1_NEXT = PLANNER PROVIDES FRESH REMOTE FEATURE/MAIN/OPEN-PR EVIDENCE AND RELEASES STAGE B ONLY IF COMPATIBLE; THEN FAST-FORWARD PUSH AND ONE PR MAY PROCEED
 G1_MERGE_RELEASE = HUMAN MANUAL MERGE ONLY; NO MERGE/RELEASE/BUILD/LIVE OPERATION/CLEANUP AUTHORITY
 ~~~
+
+
+## G1-C06 — PR #137 hosted Linux CI correction attempt 1
+
+Hosted run `36520514587` tested source `ab1b5667438066d2104ed7505c626e3035e8c32f` with merge preview `d75673ec4d441ebe8bfb825ade1aa4f3085fb7f0`. Ubuntu 3.12 and Ubuntu 3.11 each failed with 86 failed / 1,593 passed / 102 skipped; Windows 3.12 and Code Quality passed. The retained log is `.tmp/w3/ci137a1/failed.log`, 2,782,097 bytes, SHA-256 `DA7D49545C14D9A3248DBFCE58324BDEF6F14DB54A827D7086B9389F26B70280`. No CI retry occurred.
+
+The bounded diagnosis identified three portability seams without finding a production Python defect: G1 synthetic tests called public APIs that correctly require Windows protection; two projected-path fixtures used POSIX `Path` for Windows drive-root semantics; and PowerShell publisher path composition used Windows-only separators. The correction kept the public non-Windows guard fail-closed, confined the synthetic platform stand-in to tests, used host-independent projected paths, and made publisher containment/path composition platform-neutral while retaining the path/reparse/archive gates.
+
+The first local targeted invocation in `.tmp/w3/c06d9f` exited 4 before collection because `Start-Process -ArgumentList` flattened the basetemp argument containing the repository's spaces (`Technology\QI`). Planner classified this as `COMMAND_HARNESS_DEFECT`, not a test or hosted-CI retry. The one authorized corrected invocation used PowerShell's call operator and a fresh precreated run parent with absent pytest-owned child `t`: `.venv\Scripts\python.exe -m pytest -ra --basetemp .tmp/w3/c06e18/t tests/test_operational_update.py tests/test_windows_installer.py`. Native exit was 0: 170 passed, 3 skipped, 0 failed, one non-failing cache warning; pytest 212.47s / wall 215.26s. The skips were two symlink-creation limitations and one unsupported-non-Windows-only assertion. Scratch was 2,749 files / 13,039,696 bytes; D: free bytes were 15,896,924,160 before and 15,873,998,848 after. No retry or cleanup occurred.
+
+Scoped Ruff on the two changed Python test files passed. Final collection-only passed with 1,782 tests and zero errors (baseline 1,781); `git diff --check` passed. Implementation commits are `2e55285b898f604a1e1a993040b282b8fc62cc3c` (`test(update): make synthetic Windows checks portable`) and `36073ac0d7cd4999869d45541fe26627bbc2df8e` (`fix(release): use native path separators for publishing`). They are local and unpushed. The correction head has not received hosted CI or independent Tester/Reviewer audit; attempt 1 remains RED history. No source Python, workflow, dependency, operational, release, or remote change was made.
+
+~~~text
+G1_C06_HOSTED_RED = RUN 36520514587; SOURCE ab1b5667438066d2104ed7505c626e3035e8c32f; MERGE PREVIEW d75673ec4d441ebe8bfb825ade1aa4f3085fb7f0; BOTH UBUNTU JOBS 86 FAILED / 1,593 PASSED / 102 SKIPPED; WINDOWS 3.12 AND CODE QUALITY PASS; NO RETRY
+G1_C06_LOG = .tmp/w3/ci137a1/failed.log; 2,782,097 BYTES; SHA256 DA7D49545C14D9A3248DBFCE58324BDEF6F14DB54A827D7086B9389F26B70280
+G1_C06_ROOT_CAUSES = TEST-LOCAL PLATFORM SEAM FOR SYNTHETIC WINDOWS APIS; POSIX PATH IN TWO WINDOWS-LENGTH TESTS; WINDOWS-ONLY SEPARATORS IN PUBLISHER; PRODUCTION WINDOWS GUARD PRESERVED
+G1_C06_HARNESS_FAILURE = .tmp/w3/c06d9f; Start-Process ARGUMENT FLATTENING SPLIT SPACE-CONTAINING BASETEMP; EXIT 4 BEFORE COLLECTION; PLANNER CLASSIFICATION COMMAND_HARNESS_DEFECT; RETAINED; NO RETRY CLAIMED AS TEST EVIDENCE
+G1_C06_TARGETED = .venv\Scripts\python.exe -m pytest -ra --basetemp .tmp/w3/c06e18/t tests/test_operational_update.py tests/test_windows_installer.py; NATIVE EXIT 0; 170 PASSED / 3 SKIPPED / 0 FAILED / 1 NON-FAILING PytestCacheWarning; 212.47s PYTEST / 215.26s WALL
+G1_C06_TARGETED_SCRATCH = .tmp/w3/c06e18; 2,749 FILES / 13,039,696 BYTES; D: FREE 15,896,924,160 BEFORE / 15,873,998,848 AFTER; RETAINED; NO RETRY/CLEANUP
+G1_C06_RUFF = SCOPED TO tests/test_operational_update.py AND tests/test_windows_installer.py; PASS
+G1_C06_COLLECTION = BASELINE 1,781; FINAL 1,782; ZERO COLLECTION ERRORS; FINAL RUN .tmp/w3/c06f32
+G1_C06_DIFF = git diff --check PASS; EXACT IMPLEMENTATION SCOPE THREE AUTHORIZED PATHS; NO DELETIONS
+G1_C06_COMMITS = 2e55285b898f604a1e1a993040b282b8fc62cc3c; 36073ac0d7cd4999869d45541fe26627bbc2df8e; LOCAL ONLY / UNPUSHED
+G1_C06_PLUGIN_CODEGRAPH = PLUGIN CodeGraph; PURPOSE=STRUCTURAL CALLER/PUBLISHER IMPACT; INVOCATION=`codegraph explore "apply_operational_application_update recover_operational_application_update publish_windows_release"`; RESULT=USED_WITH_FALLBACK, 35 SYMBOLS/1 SOURCE FILE AND UPDATE TEST RELATION; FALLBACK=BOUNDED HOSTED LOG + POWERSHELL SOURCE READ; IMPACT_RADIUS=UPDATE ENTRYPOINTS/PUBLISHER; EDIT_RADIUS=2 TEST FILES + PUBLISH SCRIPT; TEST_RADIUS=2 AFFECTED TEST FILES; LIMITATION=GRAPH DID NOT SUPPLY HOSTED FAILURE TRACE
+G1_C06_PLUGIN_SYSTEMATIC_DEBUGGING = PLUGIN systematic-debugging; PURPOSE=CLASSIFY IDENTICAL UBUNTU FAILURES; INVOCATION=READ RETAINED RUN LOG AND COMPARE CALL GUARDS, PATH FIXTURES AND PUBLISHER PATH USE BEFORE EDIT; RESULT=USED_AND_SUCCEEDED; FALLBACK=BOUNDED SOURCE/TEST READ; IMPACT_RADIUS=THREE HOSTED FAILURE FAMILIES; EDIT_RADIUS=2 TEST FILES + PUBLISH SCRIPT; TEST_RADIUS=2 AFFECTED FILES; LIMITATION=NO PRODUCTION PYTHON DEFECT ESTABLISHED
+G1_C06_PLUGIN_TDD = PLUGIN test-driven-development; PURPOSE=FIX HOSTED RED SEAMS; INVOCATION=RETAINED HOSTED RED, THEN ONE CORRECTED AFFECTED MATRIX; RESULT=USED_AND_SUCCEEDED; FALLBACK=NONE; IMPACT_RADIUS=THREE IDENTIFIED SEAMS; EDIT_RADIUS=3 AUTHORIZED IMPLEMENTATION/TEST PATHS; TEST_RADIUS=2 AFFECTED FILES; LIMITATION=LOCAL WINDOWS GREEN DOES NOT REPLACE HOSTED LINUX VERIFICATION
+G1_C06_PLUGIN_VERIFICATION = PLUGIN verification-before-completion; PURPOSE=BUILDER HANDOFF; INVOCATION=CHECK NATIVE EXIT/COLLECTION/RUFF/DIFF/SCOPE/TREE; RESULT=USED_AND_SUCCEEDED; FALLBACK=NONE; IMPACT_RADIUS=G1-C06 CLAIMS; EDIT_RADIUS=AUTHORIZED DOCS ONLY FOR SYNC; TEST_RADIUS=NO ADDITIONAL RUN; LIMITATION=HOSTED CORRECTION HEAD STILL UNVERIFIED
+G1_C06_PLUGIN_CODEBASE_MEMORY = PLUGIN codebase-memory; PURPOSE=STRUCTURAL INDEX READINESS; INVOCATION=NONE, NO INDEX AUTHORIZED; RESULT=TOOL_UNAVAILABLE/NOT_INDEXED PER CURRENT ZERO-PROJECT STATE; FALLBACK=CodeGraph + bounded direct reads; IMPACT_RADIUS=NONE; EDIT_RADIUS=NONE; TEST_RADIUS=NONE; LIMITATION=NO OPERATIONAL READINESS CLAIM
+G1_C06_CANDIDATE = LOCAL BOUNDED CHECKS PASS; HOSTED CI ON CORRECTION HEAD NOT RUN; TESTER/REVIEWER AND PLANNER REVIEW PENDING
+G1_C06_NEXT = PLANNER REVIEWS THE EXACT CANDIDATE AND ASSIGNS CANONICAL TESTER; NO PUSH/PR/CI RERUN UNTIL GOVERNED HANDOFF
+~~~
