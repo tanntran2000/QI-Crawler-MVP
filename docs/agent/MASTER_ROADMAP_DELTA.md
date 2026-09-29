@@ -2105,3 +2105,23 @@ FAILURE_MEMORY = FM-055; PRESERVE BOTH DISTINCT HEADING REQUIREMENTS AND VERIFY 
 RELEASE_IMPACT = INTERNAL 0.10.1 REMAINS UNRELEASED; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/RUNTIME/CAPABILITY/MATURITY CHANGE
 SCRATCH = .tmp/w3/78fe92/t; RETAINED; UNKNOWN/UNTRACKED KEEP; NO CLEANUP
 ~~~
+
+### G1-C03 Builder result — paired heading contracts passed
+
+Builder committed the governance sync as cadbaab7ae945a06a2ef7b1ff22a3e13a6730652, restored ## Unreleased above the unchanged ## 0.10.1 - Internal, unreleased section, and committed the one-file CHANGELOG correction as da3496838b4b320aca50a4f60e331397113c8916. The correction commit has parent cadbaab7ae945a06a2ef7b1ff22a3e13a6730652.
+
+One exact targeted invocation at the governance head ran both consumers: tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents and tests/test_release_governance.py::test_changelog_has_target_release_section. The native process object returned exit 0; 2 passed with one non-failing .pytest_cache WinError 5 warning (pytest 3.81s; wall 6.63s). Output and metadata are retained under .tmp/w3/c03a61, a five-file, 915,725-byte task-owned run root. D: had 17,410,375,680 bytes free after the run. No cleanup occurred.
+
+The authorized full sequential run remains RED and consumed. The targeted pass verifies only the paired heading contracts; no full-suite rerun, Ruff, source/test change or release action occurred.
+
+~~~text
+G1_C03_GOVERNANCE_COMMIT = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; EXACT FIVE GOVERNANCE PATHS
+G1_C03_DOC_COMMIT = da3496838b4b320aca50a4f60e331397113c8916; EXACTLY CHANGELOG.md; PARENT cadbaab7ae945a06a2ef7b1ff22a3e13a6730652
+G1_C03_TARGETED_HEAD = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; CHANGELOG correction was the only uncommitted tracked path
+G1_C03_TARGETED_COMMAND = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/c03a61/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents tests/test_release_governance.py::test_changelog_has_target_release_section
+G1_C03_TARGETED_RESULT = NATIVE PROCESS OBJECT EXIT 0; 2 PASSED; ONE NON-FAILING PytestCacheWarning WinError 5; pytest 3.81s; wall 6.63s
+G1_C03_TARGETED_SCRATCH = .tmp/w3/c03a61; 5 FILES / 915,725 BYTES; logs/metadata/proof/pytest-owned t retained; D: free 17,410,375,680 bytes; no cleanup
+G1_C03_RELEASE_IMPACT = SOURCE METADATA REMAINS 0.10.1 INTERNAL/UNRELEASED; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/RUNTIME/CAPABILITY/MATURITY CHANGE
+G1_C03_VERIFICATION_STATE = PAIRED TARGETED GREEN; FULL SEQUENTIAL GATE REMAINS CONSUMED RED WITH ONE DOCUMENT FAILURE
+NEXT = PLANNER REVIEWS EXACT C03 GOVERNANCE/DOC/TERMINAL SYNC AND DECIDES THE NEXT REVIEW TRANSITION
+~~~

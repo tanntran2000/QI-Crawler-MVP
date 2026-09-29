@@ -590,3 +590,26 @@ G1_C03_RELEASE_IMPACT = SOURCE METADATA REMAINS 0.10.1 INTERNAL/UNRELEASED; NO V
 G1_C03_WHOLE_SUITE = FULL-RUN RED PRESERVED; TARGETED GREEN DOES NOT PROMOTE WHOLE WP; NO FURTHER FULL RUN OR RUFF AUTHORIZED
 G1_C03_NEXT = BUILDER RESTORES THE MISSING UNRELEASED HEADING, RUNS ONE TWO-NODE TARGETED GREEN AND RETURNS EXACT EVIDENCE TO PLANNER
 ~~~
+
+### G1-C03 Builder result — paired heading contracts passed
+
+After governance commit cadbaab7ae945a06a2ef7b1ff22a3e13a6730652, Builder restored the exact ## Unreleased heading immediately above the unchanged ## 0.10.1 - Internal, unreleased section. This was committed as da3496838b4b320aca50a4f60e331397113c8916 with CHANGELOG.md as the only changed path.
+
+One invocation then ran both exact heading consumers together. Native Start-Process exit was 0; both tests passed. Pytest reported one non-failing PytestCacheWarning (WinError 5 writing repository .pytest_cache), 3.81 seconds; wall time was 6.63 seconds. The fresh run root .tmp/w3/c03a61 contains five files totaling 915,725 bytes, including complete stdout/stderr, metadata, parent-writability proof and pytest-owned child t. D: free space after the run was 17,410,375,680 bytes. All task budgets passed; all evidence remains retained, with no cleanup.
+
+The full sequential run remains consumed RED with one documentation failure. The paired targeted pass proves the two exact heading assertions only; it does not replace or promote the full run. No full-suite rerun, Ruff, source/test change, version increment, build, tag, release, installation, runtime, capability or maturity change occurred.
+
+~~~text
+G1_C03_GOVERNANCE_COMMIT = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; EXACT FIVE GOVERNANCE PATHS
+G1_C03_TARGETED_HEAD = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; only uncommitted CHANGELOG heading correction; no source/test change
+G1_C03_DOC_COMMIT = da3496838b4b320aca50a4f60e331397113c8916; exactly CHANGELOG.md; parent cadbaab7ae945a06a2ef7b1ff22a3e13a6730652
+G1_C03_TARGETED_COMMAND = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/c03a61/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents tests/test_release_governance.py::test_changelog_has_target_release_section
+G1_C03_TARGETED_RESULT = PROCESS OBJECT EXIT 0; 2 PASSED; 1 NON-FAILING PytestCacheWarning WinError 5; pytest 3.81s; wall 6.63s
+G1_C03_TARGETED_PID = 15884; START 2026-09-29T08:58:40.2388217+07:00; END 2026-09-29T08:58:46.8710124+07:00
+G1_C03_TARGETED_LOGS = .tmp/w3/c03a61/targeted.stdout.log; .tmp/w3/c03a61/targeted.stderr.log; .tmp/w3/c03a61/targeted-run-metadata.txt
+G1_C03_TARGETED_SCRATCH = .tmp/w3/c03a61; 5 FILES / 915,725 BYTES; pytest child t created by pytest and retained; D: free after 17,410,375,680 bytes; no cleanup
+G1_C03_TARGETED_SCOPE = BOTH EXACT HEADING CONTRACT NODES PASSED; CHANGELOG.md ONLY TEST EDIT INPUT; NO TEST/GUIDE/SOURCE/VERSION CONSTANT CHANGE
+G1_C03_WHOLE_SUITE = FULL SEQUENTIAL RED PRESERVED; NO SECOND FULL RUN OR RUFF AUTHORIZED; PAIRED TARGETED PASS DOES NOT MEAN WHOLE-SUITE PASS
+G1_C03_RELEASE_IMPACT = INTERNAL SOURCE VERSION REMAINS 0.10.1 UNRELEASED; NO VERSION INCREMENT, BUILD, TAG, OFFICIAL RELEASE, INSTALLATION, RUNTIME, CAPABILITY OR MATURITY CHANGE
+G1_C03_NEXT = RETURN GOVERNANCE, CHANGELOG AND TARGETED EVIDENCE TO PLANNER; NO REMOTE/OPERATIONAL EFFECTS
+~~~
