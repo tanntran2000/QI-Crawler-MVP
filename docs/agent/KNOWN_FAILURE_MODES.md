@@ -993,13 +993,17 @@ LIMIT = Source/test correction only. Existing live config was not changed, the a
 
 ```text
 ID = FM-049
-STATE = LOCAL_CORRECTION_PENDING_INDEPENDENT_AUDIT
+STATE = SOURCE_CORRECTION_MERGED; OLDER_INSTALLED_BINARY_FAILURE_REPRODUCED; RUNTIME_REMEDIATION_PENDING
 PRODUCT_HOUSE_LAYER = APPLICATION / OPERATIONAL DATABASE STARTUP
 SYMPTOM = A fixture-backed real authorization path rejected startup after one committed legitimate SQLite write with OPERATIONAL_DATABASE_SHA_MISMATCH.
 ROOT_CAUSE = Startup compared the current mutable DB file SHA to the immutable cutover acceptance SHA.
 CORRECTION = Treat acceptance.database_sha256 as historical promotion-baseline evidence equal to migration_receipt.output_db_sha256; retain exact path, schema/readability, release identity and migration receipt checks.
 PREVENTION = RED/GREEN restart regression proves persisted write survives; wrong schema, unusable DB and tampered receipt controls remain fail-closed. A new application build cannot truthfully reuse the v1 receipt's coupled source/migration SHA without a separate update contract.
-LIMIT = No live startup, DB mutation, app replacement or new promotion. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host.
+MERGED_SOURCE_CORRECTION = PR #130; source 0d9a3c41e71d368aa4c21aefdd970dc41343e6af; merge 179c0712a14161ea25096e66a127f6022bf696fd; present in origin/main caf983691da60d4eaf990d09e9e1788692aabaac; Reviewer PASS per admitted Planner evidence.
+LIVE_OLD_BINARY_EVIDENCE = Tester report WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-TESTER-20260928T083433Z; one direct launch of installed EXE source SHA 79b62ec93547f210aad162dcbf926c0bd2c81ab1; self-exit code 1 after 4.73 seconds; no GUI/log/event; operational DB/config/AppData DB/schema/shortcut unchanged.
+PLANNER_ADMITTED_FIRST_FAILING_CONDITION = OPERATIONAL_DATABASE_SHA_MISMATCH before file logging; receipt expected DB SHA c35e1f3618871d453ee2950f37cbcce1466435948e5692360b9d0512461a8f2a; current legitimate operational DB SHA 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee. Other directly checked gates passed; runtime root/database behavior after that gate remains inconclusive.
+RUNTIME_STATUS = NEW_RUNTIME_BINARY_REQUIRED=YES; installed binary predates the merged correction; separate approved build/update/replacement is pending. No additional FM-049 source correction is presently identified.
+LIMIT = No live remediation, receipt rewrite, original 0020-to-0022 promotion/migration rerun, app build/replacement or shortcut edit. Startup schema/readability is not a full SQLite integrity scan; Windows symlink creation was unavailable in the local test host. ORIGINAL_REPORTED_FAILURE remains UNRESOLVED beyond the first proven failing gate.
 ```
 
 ## FM-050 — Host suspension invalidated a local full-sequential verification run
@@ -1064,8 +1068,22 @@ FIX_HEAD = N/A; runner setup correction only; candidate remains f6519cfeb544a642
 REGRESSION_GUARD = Exact-candidate local full suite: 1,678 exact node set; 1,674 passed; 4 skipped; 0 failed; 0 errors; 965 seconds. Static targeted 37 PASS; Agent Workbench 64 PASS; lock 10 PASS; tracked-Python Ruff 255 PASS; diff and collection PASS.
 INDEPENDENT_AUDIT = PLANNER_ADMITTED_TESTER_REPORT; REVIEWER_AUDIT_PENDING
 CURRENT_EVIDENCE = release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T011319Z/; release_staging/evidence/WP-GOV-QI-AGENT-LOOP-BOUNDED-DELEGATION-01-20260927T021019Z/
-PERMANENT_PREVENTION = Resolve the registered task-owned short path; reject reparse escape; ensure basetemp is absent; create and writability-check its parent; use a separate retained probe; precreate the evidence directory; check process conflict, free space, and path headroom; then launch exactly once. Do not prune or retry on unknown setup state.
+EARLIER_PREVENTION = Resolve the registered task-owned short path; reject reparse escape; ensure basetemp is absent; create and writability-check its parent; use a separate retained probe; precreate the evidence directory; check process conflict, free space, and path headroom; then launch exactly once. Do not prune or retry on unknown setup state.
 LIMIT = Local Windows evidence only; hosted CI was not run. `ruff check .` separately failed in this environment on preserved unknown `$RECYCLE.BIN`; a clean-checkout hosted CI result remains required. No product fix, hosted-CI proof, cleanup, or remote action is implied.
+
+ADDITIONAL_CONFIRMED_OCCURRENCE = G1-C01-FULL-SUITE-SETUP-DIAGNOSIS, 2026-09-29; Tester report admitted by Planner; exact Tester output lost the common traceback
+ADDITIONAL_AFFECTED_COMMAND = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; parent `.tmp/w3/d9e71b` was required fresh and absent; pytest was given nested child `t`
+ADDITIONAL_RUNTIME_EVIDENCE = Repository `.venv` pytest 8.4.2 explicit-basetemp path removes target if present and calls `basetemp.mkdir(mode=0o700)` without `parents=True`; `tests/conftest.py` autouse setup requires `tmp_path`; 1,780 executing tests failed in setup and one skipped test did not enter setup
+ADDITIONAL_CLASSIFICATION = VERIFIED LOCAL VERIFICATION-COMMAND DEFECT SUFFICIENT TO CAUSE WIDESPREAD SETUP FAILURE; LOST TRACEBACKS DO NOT PROVE IT WAS THE SOLE CAUSE OF ALL 1,780 ERRORS; CI_INFRASTRUCTURE_DEFECT IS LOCAL ONLY, NOT A GITHUB ACTIONS CLAIM; NO G1 PRODUCT DEFECT ESTABLISHED
+ADDITIONAL_CONTROL = Builder's one-node diagnostic passed because `.tmp/w3/fce7de` already existed to retain `diagnostic.log`, then pytest created child `t`; this does not prove whole-suite correctness
+PERMANENT_PREVENTION = Resolve the registered task-owned short path; reject reparse escape; ensure child basetemp `<run-root>/t` is absent; create and verify the bounded registered `<run-root>` first; retain stdout/stderr at that parent outside the child; verify freshness, containment, process conflict, free space, path headroom and artifact budgets; then invoke pytest exactly once. Never precreate `t`, which pytest owns/removes. Preserve the exact invocation and output; do not prune or retry on unknown setup state. A consumed full-suite attempt is not repeated without new Human authority.
+ADDITIONAL_LIMIT = The command-contract mechanism is verified and sufficient to cause widespread setup failure, but the lost Tester tracebacks mean it is not independently proven as the sole cause of all 1,780 errors. The replacement full run later occurred under G1-C02 and remains consumed RED with one document-synchronization failure; its native exit was not independently captured. See the G1-C02 fields below. No GitHub Actions failure, product/source/test change or PASS is implied.
+
+ADDITIONAL_G1_C02_OCCURRENCE = 2026-09-29; REPLACEMENT FULL-RUN CANDIDATE 90806b72df381334632ae7b760cba53216409d6c REPORTED 1,775 PASSED / 5 SKIPPED / 1 FAILED / 2 WARNINGS; SCRATCH `.tmp/w3/f2a913` 15,791 FILES / 621,117,062 BYTES; RETAINED
+ADDITIONAL_G1_C02_FAILURE = `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`; TWO 0.10.1 DOCUMENT HEADINGS WERE NOT SYNCHRONIZED; PLANNER CLASSIFIED WP_CODE_DEFECT; DOCS-ONLY CORRECTION AUTHORIZED
+ADDITIONAL_G1_C02_EXIT_EVIDENCE = NATIVE PYTEST EXIT CODE NOT INDEPENDENTLY PROVEN BECAUSE POWERSHELL WRAPPER REUSED RESERVED `$PID`; RETAINED OUTPUT HAS FAILURE SUMMARY; NO GITHUB ACTIONS FAILURE CLAIM
+ADDITIONAL_G1_C02_PREVENTION = USE NON-RESERVED `$pytestProcessId` AND CAPTURE THE PROCESS OBJECT `.ExitCode` DIRECTLY BEFORE ANY OTHER COMMAND; NO FULL-RUN RETRY OR RUFF AUTHORIZED IN THIS CORRECTION
+ADDITIONAL_G1_C02_DISPOSITION = FULL-RUN RED PRESERVED; TWO HEADING-ONLY DOC FIX COMMITTED; TARGETED NODE PASSED 1 TEST WITH PROCESS EXIT 0 AND ONE NON-FAILING `.pytest_cache` WINERROR 5 WARNING; NO TEST/SOURCE/RUNTIME/RELEASE CHANGE; NO FULL-RUN/RETRY/CLEANUP
 
 ## FM-053 — Destructive cleanup receipt omitted full protected-path baseline arrays
 
@@ -1117,6 +1135,45 @@ CURRENT_EVIDENCE = .tmp/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01/20260927T145300Z
 PERMANENT_PREVENTION = PROPOSED_PENDING_NOT_IMPLEMENTED; before future governed full local runs, set a justified file cap from evidence and define a bounded observable count/checkpoint strategy before execution; verify the shortest task-owned basetemp and deepest-path headroom using FM-051/FM-052 controls; stop/HOLD on breach; retain exact invocation, logs, and counts.
 LIMIT = Do not retroactively raise the approved limit, rewrite historical run evidence, claim prevention is implemented, or attribute all 65 failing nodes to environment or product. The 276-character A3 path leaves the known Windows path-risk unresolved. Product or candidate defect causation is not established.
 
+## FM-055 — Internal version heading correction removed a separate changelog contract
+
+ID = FM-055
+TITLE = Internal version heading correction removed a separate changelog contract
+STATE = OPEN; G1-C03 CHANGELOG FIX COMMITTED; INDEPENDENT AUDIT PENDING
+SEVERITY_AT_DETECTION = MINOR
+DISPOSITION = G1-C03 DOCS-ONLY CORRECTION; WHOLE G1 SUITE REMAINS RED
+DETECTED_BY = Tester full sequential run admitted by Planner; exact node tests/test_release_governance.py::test_changelog_has_target_release_section
+SCOPE = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01; CHANGELOG heading contract for internal version 0.10.1
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / RELEASE DOCUMENT GOVERNANCE
+SYMPTOM = The C02 synchronization edit preserved ## 0.10.1 - Internal, unreleased for one consumer but removed exact ## Unreleased, causing a separate retained release-governance test to fail. The CLI consumer also requires the Vietnamese guide marker Co gi moi trong 0.10.1.
+ROOT_CAUSE = Multiple tests consume separate exact headings in the same shared changelog; the prior one-node targeted verification covered only the CLI consumer and did not exercise the independent Unreleased-order contract.
+WHY_EXISTING_CHECKS_MISSED_IT = C02 targeted single-node GREEN did not include test_changelog_has_target_release_section; the next authorized full run exposed the second contract.
+FIX = Restore ## Unreleased above the existing internal/unreleased ## 0.10.1 heading in CHANGELOG only; preserve all release history and content.
+FIX_HEAD = da3496838b4b320aca50a4f60e331397113c8916; CHANGELOG.md ONLY
+REGRESSION_GUARD = Run both exact heading-contract nodes together after changelog heading edits; retain both ## Unreleased and ## 0.10.1 in required order; do not infer the shared document contract from one consumer.
+INDEPENDENT_AUDIT = PLANNER-OPENED G1-C03; REVIEWER AUDIT PENDING
+CURRENT_EVIDENCE = Tester full run at a1096bb2 retained under .tmp/w3/78fe92/t; FB-0060; paired targeted pass under .tmp/w3/c03a61; Work Order, Delta and CURRENT
+LIMIT = Documentation-only failure. No runtime, source, test, official release, build, install or capability defect/change is established. The authorized full-run budget is consumed; targeted two-node verification does not turn the historical full run into PASS.
+
+## FM-056 — Repository-wide local Ruff traversed preserved unknown workspace content
+
+ID = FM-056
+TITLE = Repository-wide local Ruff traversed preserved unknown workspace content
+STATE = ORIGINAL BROAD LOCAL FULL-RUFF FAILED; ONE TRACKED-MANIFEST REPLACEMENT PASS; CANDIDATE CAUSATION NOT_ESTABLISHED
+SEVERITY_AT_DETECTION = IMPORTANT
+DISPOSITION = TESTER PASS FOR THE ONE HUMAN-AUTHORIZED TRACKED-MANIFEST CHECK; ORIGINAL BROAD FAILURE REMAINS; CLEAN-CHECKOUT HOSTED RUFF STILL REQUIRED
+DETECTED_BY = Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04
+SCOPE = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01; local repository-wide Ruff verification on the persistent checkout
+PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
+SYMPTOM = Authorized command .venv\Scripts\python.exe -m ruff check . returned native exit 1 with 8 findings exclusively under preserved unknown untracked $RECYCLE.BIN\...\School.py. Tester did not open, change or narrow that input; no candidate path was reported.
+ROOT_CAUSE = The repository-wide local invocation traversed unknown untracked workspace content. Whether findings indicate any candidate issue is not established.
+WHY_EXISTING_CHECKS_MISSED_IT = The local broad command included untracked content in this persistent workspace; the exact candidate did not isolate Ruff input to tracked source files.
+FIX = NONE; no product/config fix. Do not modify or delete unknown files; the sole authorized replacement is over the immutable tracked Python manifest, not unknown workspace paths.
+FIX_HEAD = N/A; evidence/governance only
+REGRESSION_GUARD = ONE AUTHORIZED TRACKED-MANIFEST RUN PASSED: 255 paths; manifest SHA256 83b1283f2c425a6a402b3228d006ad911f5bb7db14f49ab160daac81eb2b97ca; exact code identity/no Python delta verified; native exit 0. Preserve the original broad failure and candidate-causation limit; clean-checkout hosted Ruff remains required later.
+INDEPENDENT_AUDIT = TESTER REPORT WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01 PASSES THE TRACKED-MANIFEST GATE; INDEPENDENT REVIEWER AUDIT AND PLANNER POST-REVIEW PENDING
+CURRENT_EVIDENCE = original broad failure: ec0d4af / report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04 / .tmp/w3/9541a1; replacement pass: bd423085 / report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01 / .tmp/w3/c780f5; FB-0062
+LIMIT = Eight findings from the original broad run remain under unknown untracked workspace content; candidate causation is NOT_ESTABLISHED. The replacement proves only the enumerated tracked files, not that the original broad command passed or that hosted verification is complete. Preserve and do not inspect unknown content.
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new

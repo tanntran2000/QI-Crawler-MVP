@@ -1875,3 +1875,467 @@ HISTORY = PRIOR_WIP_AND_HOLD_ENTRIES_PRESERVED; NO_REWRITE
 ROADMAP_IMPACT = NO_PRODUCT_CAPABILITY_OR_MATURITY_CHANGE; RD-0013_REMAINS_OPEN
 REMOTE_MUTATION = NONE
 ~~~
+
+## Installed startup recovery — merged source correction, old runtime still fails
+
+This current operational delivery delta supersedes the earlier F1/F2
+pending-audit wording while preserving that prior snapshot. The PR #130 source
+correction is merged and reviewed; the installed executable predates it. A
+single exact direct launch reproduced the silent exit signature, and the
+Planner-admitted first failing condition is the old mutable-database SHA check.
+This is operational evidence, not a product-capability or maturity promotion.
+
+~~~text
+DELTA_ID = QI-INSTALLED-STARTUP-RECOVERY-FM049-20260928-01
+ROADMAP_NODE = CROSS-CUTTING WINDOWS / TEAM BID DELIVERY; ENGINEERING TOOLBOX / PLUGINS SUPPORTING
+AUTHORITY = HUMAN-APPROVED WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01 rev2; PLANNER-ADMITTED TESTER AND ROOT-CAUSE RECONCILIATION
+SUPERSEDES = B09_POSTPROMOTION_RUNTIME_CONTRACT_CORRECTION F1/F2 SOURCE_CORRECTED_PENDING_AUDIT; PR130 SOURCE AUDIT COMPLETE; HISTORY PRESERVED
+TESTER_REPORT = WP-OPS-QI-INSTALLED-STARTUP-RECOVERY-01-TESTER-20260928T083433Z; ONE DIRECT LAUNCH; EXIT 1 AFTER 4.73 SECONDS; NO GUI/LOG/EVENT/STATE MUTATION
+SOURCE_CORRECTION = 0d9a3c41e71d368aa4c21aefdd970dc41343e6af; PR #130; MERGE 179c0712a14161ea25096e66a127f6022bf696fd; INCLUDED IN origin/main caf983691da60d4eaf990d09e9e1788692aabaac; REVIEWER PASS PER PLANNER-ADMITTED EVIDENCE
+INSTALLED_BINARY = SOURCE SHA 79b62ec93547f210aad162dcbf926c0bd2c81ab1; PREDATES SOURCE CORRECTION
+PLANNER_ADMITTED_FIRST_FAIL = OPERATIONAL_DATABASE_SHA_MISMATCH; RECEIPT EXPECTED c35e1f3618871d453ee2950f37cbcce1466435948e5692360b9d0512461a8f2a; CURRENT DB 33a3a5adaca15514a18714dbd9281c224c174b8471341eeb8c333c11748818ee
+SOURCE_FIX = MERGED; NO ADDITIONAL FM-049 SOURCE CORRECTION IDENTIFIED
+F1_F2_SOURCE_STATUS = CONFIG-BINDING AND MUTABLE-DB-BASELINE SOURCE CORRECTIONS MERGED AND REVIEWED IN PR #130; THIS DOES NOT CLAIM THE INSTALLED RUNTIME WAS UPDATED
+RUNTIME_REMEDIATION = NEW_RUNTIME_BINARY_REQUIRED; NOT BUILT OR DEPLOYED; FUTURE BOUNDED OBJECTIVE PROPOSED ONLY
+SHORTCUT = EDIT_INELIGIBLE; DIRECT STARTUP FAILED; ORIGINAL_REPORTED_FAILURE=UNRESOLVED
+DATA_AND_ARTIFACTS = DB/CONFIG/APPDATA/SHORTCUT/SCHEMA UNCHANGED; COLD BACKUP KEEP_RECOVERY; CLEANUP NOT_AUTHORIZED/NOT_EXECUTED
+NEXT_PROPOSED_OBJECTIVE = Build from main containing 0d9a3c4; verify exact build/release identity; then a separately Human-approved operational update/replacement preserving Data and rollback. NOT AUTHORIZED BY THIS DELTA.
+ROADMAP_IMPACT = NO PRODUCT CAPABILITY OR MATURITY PROMOTION; NO B09 ENGINE OR LIVE UPDATE AUTHORITY
+~~~
+
+## Single-installation G1 authorized under the existing delivery architecture — 2026-09-28
+
+The proposed runtime follow-up from the preceding installed-startup entry is now
+the subject of a separate Human-approved G1 Work Order. It is source and
+synthetic-test work for one root-local app-only update/recovery contract; no
+runtime binary is built and no operational update is performed. The prior
+installed-startup facts and B09 history remain unchanged. This entry supports
+Windows/Team Bid delivery and does not promote product capability maturity.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-LEGACY-ROOT-RETIREMENT-G1-20260928-01
+ROADMAP_NODE = Cross-cutting Windows / Team Bid delivery; Engineering Toolbox / Plugins
+AUTHORITY = Human-approved WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; Planner baseline reconciliation
+SUPERSEDES = PREVIOUS ENTRY NEXT_PROPOSED_OBJECTIVE STATUS ONLY; PRESERVE THE PRIOR STARTUP/PR130 EVIDENCE
+CANONICAL_ROOT = D:\QI-Crawler; NO SECOND OPERATIONAL ROOT
+WORK_ORDER = G1.0/G1.1/G1.2; ACCEPTANCE V1 COMPATIBILITY; V2 APP/MIGRATION IDENTITY SEPARATION; JOURNALED SYNTHETIC RECOVERY; PRESERVE DATA/DB/CONFIG/WAL/SHM
+ENTRY_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac; ACTIVE BRANCH START 211c0ddbfdcfc7fb249cebd2b449f65d6ea91186; TEN CARRIED GOVERNANCE COMMITS PRESERVED IN ORDER
+CURRENT_STAGE = G1.0 DESIGN/PATH RECONCILIATION; BEHAVIOR IMPLEMENTATION NOT YET STARTED
+OUT_OF_SCOPE = G2 BUILD; LIVE INSTALL/UPDATE/LAUNCH; SHORTCUT; MIGRATION/RESTORE; CRAWL/IMPORT; B09; G3 REAL ARCHIVE; CLEANUP; MERGE/RELEASE/PUBLISH
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = BUILDER COMPLETES GOVERNED G1 STAGES UNDER THE WORK ORDER; STOP ON ITS LISTED GATES
+~~~
+
+## Single-installation G1.2 — Builder candidate evidence, 2026-09-29
+
+This forward status records G1.2 repository artifact and lifecycle work under
+the existing Human-approved G1 Work Order. The sole operational root remains
+`D:\QI-Crawler`; the product frontier and capability maturity do not change.
+Repository candidate/archive paths are technical artifacts only, and the
+legacy-root archive/receipt remain reserved locators for a separately
+authorized G3. No build, release, publication, live update, archive, or cleanup
+was performed.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-LEGACY-ROOT-RETIREMENT-G1-20260928-01-RESULT
+AUTHORITY = G1.2 BUILDER EVIDENCE UNDER HUMAN-APPROVED WP; NO NEW HUMAN DECISION
+PARENT_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac; carried governance lineage preserved
+CURRENT_STAGE = G1.0/G1.1/G1.2 BUILDER CANDIDATE; PLANNER REVIEW PENDING
+OPERATIONAL_ROOT = D:\QI-Crawler; `.update/<update_id>` FINITE TRANSIENT; CLEANUP DISPOSITION REQUIRED AFTER SUCCESS; DELETION REQUIRES SEPARATE AUTHORITY; FAILURE/RECOVERY_REQUIRED RETAINED
+ARTIFACT_LANE = INTERNAL SOURCE METADATA 0.10.1; repository-owned `release_staging/candidate` and immutable `release_staging/published`; no Data clone; no build/publish/install/release
+PUBLISHER = EXACT REPO-LOCAL ROOT; CLEAN MAIN/SOURCE SHA; IDENTITY-BOUND COLLISION-REJECTED ARCHIVE; PROJECTED PATH/REPARSE GATES; NO SIBLING INSTALL LAYOUT
+CLEAN_DEV = EXACT GIT TOP-LEVEL ONLY; RELEASE_STAGING AND DURABLE EVIDENCE PRESERVED
+FUTURE_G3 = SYNTHETIC/LOCATOR CONTRACT ONLY; real archive/cleanup separately authorized
+TEST_EVIDENCE = INVALID LONG-BASE TEMP RUN 147 PASS/3 SKIP/9 FAIL; VALID SHORT ROOT 155 PASS/3 SKIP/1 LEGACY VERSION EXPECTATION FAIL; exact corrected legacy node 1 PASS; no full sequential suite by Builder
+SCRATCH = `w3` token mapped to this Parent; valid affected run 1,757 files/31,850,472 bytes; exact-node run 16 files/3,659,972 bytes; all retained; invalid run retained
+LIMITATIONS = `.pytest_cache` WinError 5 warning; symlink/reparse behavior untested where link creation unavailable; full sequential pytest reserved for Tester; repo-wide Ruff not run by Builder
+CODEBASE_MEMORY = HOLD_WITH_DIAGNOSIS; no Builder index; Planner made three accidental index calls, all `aborted_previous_preserved`; zero projects/artifacts; no retry
+REMOTE = NONE; NO PUSH/PR/MERGE/RELEASE
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = PLANNER_REVIEWS_BUILDER_RESULT_AND_ASSIGNS_TESTER
+~~~
+
+## Single-installation G1-C01 — full-suite setup diagnosis
+
+The independent Tester consumed the single authorized full sequential run, but
+the captured output lost the shared setup traceback. Planner assigned one
+bounded single-node diagnostic before any code correction. The setup root cause
+is unknown until that traceback is recovered; the aggregate setup-error count
+does not identify the failing component. This is engineering verification
+evidence under the existing Windows/Team Bid delivery architecture, with no
+product capability or maturity promotion.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-SETUP-DIAGNOSIS-20260929-01
+AUTHORITY = PLANNER-ASSIGNED DIAGNOSTIC UNDER HUMAN-APPROVED G1 PARENT; NO NEW HUMAN DECISION
+TESTER_REPORT_ID = NOT_SUPPLIED_IN_PLANNER_PACKET; SOURCE=PLANNER-ADMITTED TESTER SUMMARY
+TESTER_RUN = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; EXIT 1; 1,781 COLLECTED; 1,780 SETUP ERRORS; 1 SKIP; 2 WARNINGS; 52.63s
+TRACEBACK = SHARED SETUP TRACEBACK LOST; ROOT CAUSE UNKNOWN
+SCRATCH = `.tmp/w3/d9e71b` ABSENT AFTER RUN; 0 FILES / 0 BYTES; D: FREE 18,849,390,592 BYTES
+DIAGNOSTIC_AUTHORITY = AT MOST ONE SIMPLE COLLECTED NODE WITH `-x -vv --tb=long`; FRESH COMPACT REGISTERED `w3` ROOT; 5 MINUTES / 5,000 FILES / 256 MiB / >10 GiB FREE; NO RETRY
+FULL_SUITE = CONSUMED AND RED; REPLACEMENT FULL RUN NOT AUTHORIZED
+REMOTE_MAIN = LIVE UNVERIFIED; `git ls-remote` COULD NOT CONNECT; LOCAL `origin/main` REMAINS caf983691da60d4eaf990d09e9e1788692aabaac
+SCOPE = ROOT CAUSE MUST BE PROVED BEFORE FIX; EXISTING G1 ALLOWLIST ONLY; OUT-OF-SCOPE FIX REQUIRES PLANNER HOLD/RECONCILIATION
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = BUILDER RECOVERS AND TRACES THE SHARED SETUP TRACEBACK USING THE SINGLE AUTHORIZED NODE
+~~~
+
+## Single-installation G1-C01 — diagnostic did not reproduce setup failure
+
+The one Planner-authorized test-node diagnostic passed, including the
+session-scoped Alembic template fixture and autouse database-preparation
+fixture. It did not reproduce the Tester run's 1,780 setup errors and did not
+recover the lost traceback. Therefore the root cause remains unknown; the
+result supports neither product-defect nor environment-only classification.
+The diagnostic budget is consumed, no code correction was made, and no
+replacement full-suite run is authorized. This is a bounded verification
+blocker under the existing delivery architecture, not a product capability or
+maturity change.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-SETUP-DIAGNOSIS-20260929-RESULT
+AUTHORITY = PLANNER-ASSIGNED SINGLE-NODE DIAGNOSTIC; BUILDER EVIDENCE; NO NEW REVIEWER/HUMAN DECISION
+NODE = `tests/test_parser.py::test_parse_money_vnd`
+COMMAND = `.venv\Scripts\python.exe -m pytest -n 0 -x -vv --tb=long --basetemp=.tmp/w3/fce7de/t tests/test_parser.py::test_parse_money_vnd`
+RESULT = EXIT 0; 1 PASSED; 1 NON-FAILING PytestCacheWarning; 1.31s
+TRACEBACK = NOT RECOVERED; TESTER TRACEBACK LOST; NODE DID NOT REPRODUCE COMMON SETUP ERRORS
+ROOT_CAUSE = UNKNOWN; NO PRODUCT/ENVIRONMENT CAUSATION CLAIM
+LOG = `.tmp/w3/fce7de/diagnostic.log`; 1,190 BYTES; SHA256 374738A04811028D068CB02710CB14DBA6FAAE158822F4D5317779F8A21D9A49
+SCRATCH = 2 FILES / 914,598 BYTES; TEMPLATE DB + LOG; RETAINED; NO CLEANUP; D: FREE 18,848,382,976 BYTES
+DIAGNOSTIC_BUDGET = 1/1 CONSUMED; NO RETRY OR SECOND NODE AUTHORIZED
+FULL_SUITE = TESTER'S ONE RUN CONSUMED AND RED; REPLACEMENT RUN NOT AUTHORIZED
+EDITS = NONE; TDD NOT ACTIVATED; SCOPE EXPANSION NOT ESTABLISHED
+NEXT = PLANNER DISPOSES THE NON-REPRODUCING DIAGNOSTIC HOLD AND DECIDES WHETHER NEW AUTHORITY IS WARRANTED
+~~~
+
+## Single-installation G1-C01 — Planner root-cause reconciliation
+
+Planner reconciled the admitted Tester command against repository pytest 8.4.2
+`TempPathFactory.getbasetemp` behavior and the shared `tmp_path` setup fixture.
+For an explicit basetemp pytest removes the target if present, then creates
+only that directory with `mkdir(mode=0o700)`; it does not create missing
+parents. Tester required `.tmp/w3/d9e71b` to be fresh/absent while passing
+`.tmp/w3/d9e71b/t`, so pytest could not create the child. The autouse fixture
+requires `tmp_path`, accounting for setup failure in every executing node;
+the skipped node did not enter setup. Builder's node passed because
+`.tmp/w3/fce7de` already existed to hold the diagnostic log. This verifies a
+local runner/verification-command defect sufficient to cause widespread
+setup failure, but the lost Tester tracebacks mean it is not independently
+proven as the sole cause of all 1,780 setup errors. No G1 product defect is
+established. `CI_INFRASTRUCTURE_DEFECT` is used only as a local verification
+infrastructure umbrella; it does not claim a GitHub Actions failure. The
+original Tester run remains failed verification, not PASS.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C01-ROOT-CAUSE-RECONCILIATION-20260929
+AUTHORITY = PLANNER-ADMITTED ROOT-CAUSE RECONCILIATION UNDER EXISTING HUMAN-APPROVED G1 LEASE; NO NEW HUMAN TEST AUTHORITY
+TESTER_FULL_RUN = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/d9e71b/t`; EXIT 1; 1,781 COLLECTED; 1,780 SETUP ERRORS; 1 SKIP; 2 WARNINGS; 52.63s
+ROOT_CAUSE = LOCAL_VERIFICATION_COMMAND_CONTRACT_DEFECT; CI_INFRASTRUCTURE_DEFECT LABEL MEANS LOCAL VERIFICATION INFRASTRUCTURE ONLY, NOT GITHUB ACTIONS
+CAUSE_EVIDENCE = PYTEST 8.4.2 CREATES ONLY THE EXPLICIT BASETEMP DIRECTORY; autouse `tmp_path` FIXTURE MAKES COMMON SETUP DEPEND ON IT; BUILDER DIAGNOSTIC PARENT EXISTED; SUFFICIENT TO CAUSE WIDESPREAD SETUP FAILURE, NOT PROVEN SOLE CAUSE OF ALL 1,780 WITHOUT TRACEBACKS
+PREVENTION = CREATE/VERIFY BOUNDED REGISTERED RUN PARENT FIRST; KEEP LOG OUTSIDE ABSENT CHILD `t`; VALIDATE FRESHNESS/CONTAINMENT/BUDGET; NEVER PRECREATE `t`
+PRODUCT_CAUSATION = NOT_ESTABLISHED; NO PRODUCT SOURCE/TEST CHANGE
+VERIFICATION_STATE = OLD TESTER FULL RUN REMAINS CONSUMED AND RED; PRESERVE HISTORY; NO WHOLE-SUITE PASS
+REPLACEMENT_FULL_RUN = HUMAN A0 AUTHORIZED EXACTLY ONCE; NO CODE/TEST CHANGE; TESTER MUST RESOLVE EXACT HEAD AT PREFLIGHT
+RUN_CONTRACT = FRESH ABSENT REGISTERED `.tmp/w3/<new-six-hex>/` PARENT; VERIFY CONTAINMENT/REPARSE/FRESHNESS/OWNERSHIP; CREATE PARENT AND RETAIN WRITABILITY PROOF; CHILD `t` ABSENT FOR PYTEST TO CREATE/REMOVE
+RUN_EVIDENCE = RETAIN COMPLETE STDOUT/STDERR/TRACEBACK, TRUE EXIT, START/END, SUMMARY, EXACT COMMAND/WORKING DIRECTORY OUTSIDE `t`; PRESERVE PYTEST EXIT THROUGH PIPELINE
+RUN_BUDGET = 30 MINUTES; 20,000 FILES; 1 GiB; >=10 GiB D: FREE; ONE RUN; NO RETRY/CLEANUP
+FOLLOW_ON_GATES = IF PYTEST PASS ONLY, ONE FULL `python -m ruff check .` AND PRESCRIBED READ-ONLY STATICS; ANY REQUIRED FAILURE RETURNS TO PLANNER; NO FIX/SCOPE EXPANSION
+TESTER_STATE = HOLD UNTIL AUTHORIZED REPLACEMENT RUN AND APPLICABLE GATES ARE RECONCILED
+REMOTE_OR_LIVE_AUTHORITY = NONE
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md; docs/agent/FEEDBACK_LEDGER.md
+SPINE_SYNC_STATE = PASS AFTER GOVERNANCE VALIDATION
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+NEXT = PLANNER REVIEWS THIS AUTHORITY SYNC AND ASSIGNS TESTER THE ONE REPLACEMENT FULL SEQUENTIAL RUN ON EXACT HEAD RESOLVED AT PREFLIGHT
+~~~
+
+## Single-installation G1-C02 — version-document synchronization failure
+
+Tester ran the one Human-authorized replacement sequential suite at exact candidate HEAD `90806b72df381334632ae7b760cba53216409d6c`: 1,781 collected, 1,775 passed, 5 skipped, 1 failed and 2 warnings in 879.33 seconds. The failed node is `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`; CodeGraph showed it asserts both the changelog and Vietnamese guide headings. Planner classifies this as a documentation synchronization `WP_CODE_DEFECT`, not a runtime or release defect. The wrapper reused reserved PowerShell `$PID`, so the native process exit code is not independently proven despite the retained failure summary. This is not a GitHub Actions failure claim. The failed full run remains consumed RED history.
+
+The bounded correction aligns only those two headings with internal, unreleased 0.10.1 source metadata. No source, test, version constant, runtime, capability or release state changes. A single targeted test may verify the correction after the governance sync; no full-suite rerun, Ruff run or retry is authorized here. Preserve scratch `.tmp/w3/f2a913` (15,791 files / 621,117,062 bytes); no cleanup.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C02-VERSION-DOCUMENT-SYNC-20260929
+AUTHORITY = PLANNER-ADMITTED TESTER RESULT AND PLANNER-OPENED BOUNDED DOCS CORRECTION UNDER EXISTING HUMAN-APPROVED G1 LEASE
+CANDIDATE_HEAD = 90806b72df381334632ae7b760cba53216409d6c
+TEST_RESULT = 1,781 COLLECTED; 1,775 PASSED; 5 SKIPPED; 1 FAILED; 2 WARNINGS; 879.33s; RETAINED FULL-RUN RED
+FAILED_NODE = `tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`; TEST REQUIRES `## 0.10.1` AND `Co gi moi trong 0.10.1`
+ROOT_CAUSE = DOCUMENT HEADINGS DO NOT SATISFY SYNCHRONIZATION CONTRACT; MINIMUM FIX IS TWO DOC HEADINGS; NO RUNTIME/RELEASE DEFECT
+PROCESS_EXIT = NOT_INDEPENDENTLY_PROVEN; POWERSHELL WRAPPER REUSED RESERVED `$PID`; NO GITHUB ACTIONS FAILURE CLAIM
+SCRATCH = `.tmp/w3/f2a913`; 15,791 FILES / 621,117,062 BYTES; RETAINED; NO CLEANUP
+PREVENTION = USE NON-RESERVED PROCESS-ID VARIABLE AND CAPTURE NATIVE PROCESS OBJECT `.ExitCode` DIRECTLY BEFORE ANY OTHER COMMAND
+AUTHORIZED_CHECK = ONE TARGETED GREEN AFTER GOVERNANCE SYNC; NO RED RERUN/FULL SUITE/RUFF/RETRY
+RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/CAPABILITY CHANGE
+PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
+~~~
+
+### G1-C02 Builder result — exact heading contract passed
+
+After the governance sync, Builder changed only the CHANGELOG and Vietnamese guide headings and ran the exact failing node once. With `HEAD=8d6eeac0bcacc8a443c9bc27548fb8b197be7a47` and only those two document edits in the worktree, `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/c02f29/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents` returned native process-object exit code 0: 1 passed, with one non-failing `.pytest_cache` WinError 5 warning (pytest 2.47s; elapsed 4.43s). The two heading edits are committed as `38ab35d0362379ae64b19bba3f06ee0c9fabf732`.
+
+The full sequential run remains consumed RED; the targeted node result does not convert it to a whole-suite PASS. The full-run wrapper's native exit remains unproven. No full-suite rerun, Ruff run or retry was performed or authorized. The source version remains internal/unreleased 0.10.1; no build, tag, release, installation or capability change occurred.
+
+~~~text
+G1_C02_TARGETED_SCRATCH = `.tmp/w3/c02f29`; 5 FILES / 915,100 BYTES; stdout/stderr, metadata, parent proof and pytest child retained; D: free 18,171,588,608 bytes; no cleanup
+G1_C02_DOC_COMMIT = 38ab35d0362379ae64b19bba3f06ee0c9fabf732; EXACTLY CHANGELOG.md AND HUONG_DAN_SU_DUNG.md
+G1_C02_VERIFICATION_STATE = TARGETED DOC CONTRACT PASS; WHOLE SEQUENTIAL GATE STILL RED / EXIT NOT INDEPENDENTLY PROVEN
+NEXT = PLANNER REVIEWS BUILDER RESULT AND DECIDES THE NEXT GOVERNED VERIFICATION STEP
+~~~
+
+## Single-installation G1-C03 — preserve both changelog heading contracts
+
+At exact candidate HEAD a1096bb2f80bc89adb52883765df498acceb1309, the one Human-authorized post-C02 sequential Tester run used native process-object exit capture and returned exit 1: 1,781 collected, 1,775 passed, 5 governed skips, 1 failed and 2 warnings in 1,112.01s. The failed node was tests/test_release_governance.py::test_changelog_has_target_release_section, which requires ## Unreleased. G1-C02 had preserved ## 0.10.1 - Internal, unreleased but removed this separate heading. CodeGraph confirmed the CLI synchronization node independently requires ## 0.10.1 and the guide's Co gi moi trong 0.10.1 text. The complete correction restores ## Unreleased above the existing 0.10.1 section in CHANGELOG only. Both independent exact-heading contracts must remain satisfied together.
+
+Human A0 authority for the exact full run is routed as FB-0060. That allowance is consumed; no second full run or Ruff invocation is authorized here. The retained full-run RED is not a runtime, release or GitHub Actions failure. One targeted invocation may run the two exact heading nodes together after the governance sync. The internal source version remains 0.10.1 unreleased; no build, tag, release, install, capability or maturity change occurs.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C03-CHANGELOG-DUAL-CONTRACT-20260929
+AUTHORITY = PLANNER-OPENED BOUNDED CORRECTION UNDER EXISTING HUMAN-APPROVED G1 LEASE; EXACT FULL-RUN AUTHORITY ROUTED FROM HUMAN A0 AS FB-0060
+CANDIDATE_HEAD = a1096bb2f80bc89adb52883765df498acceb1309
+TESTER_FULL_RUN = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/78fe92/t; PID 26204; native exit 1; one launch/no retry
+RESULT = 1,781 COLLECTED; 1,775 PASSED; 5 GOVERNED SKIPS; 1 FAILED; 2 WARNINGS; 1,112.01s; scratch resource caps PASS; RED RETAINED
+FAILED_NODE = tests/test_release_governance.py::test_changelog_has_target_release_section; requires exact ## Unreleased
+CONTRACT_PAIR = CLI SYNC TEST REQUIRES ## 0.10.1 AND Co gi moi trong 0.10.1; RELEASE-GOVERNANCE TEST ALSO REQUIRES ## Unreleased; ALL THREE EXACT MARKERS MUST COEXIST
+ROOT_CAUSE = PRIOR DOC CORRECTION PRESERVED THE INTERNAL 0.10.1 HEADING BUT REMOVED AN INDEPENDENT UNRELEASED CONTRACT; DOCUMENTATION-ONLY DEFECT
+AUTHORIZED_EDIT = CHANGELOG.md ONLY; RESTORE ## Unreleased ABOVE THE EXISTING ## 0.10.1 - Internal, unreleased SECTION; NO TEST/GUIDE/SOURCE EDIT
+TARGETED_CHECK = ONE INVOCATION WITH BOTH EXACT CONTRACT NODES; FRESH BOUNDED PARENT / ABSENT PYTEST CHILD t; NATIVE EXIT CAPTURE; NO RETRY
+FULL_RUN_AUTHORITY = CONSUMED; NO SECOND FULL RUN; NO RUFF; NO GITHUB ACTIONS FAILURE CLAIM
+FAILURE_MEMORY = FM-055; PRESERVE BOTH DISTINCT HEADING REQUIREMENTS AND VERIFY BOTH EXACT TEST NODES TOGETHER
+RELEASE_IMPACT = INTERNAL 0.10.1 REMAINS UNRELEASED; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/RUNTIME/CAPABILITY/MATURITY CHANGE
+SCRATCH = .tmp/w3/78fe92/t; RETAINED; UNKNOWN/UNTRACKED KEEP; NO CLEANUP
+~~~
+
+### G1-C03 Builder result — paired heading contracts passed
+
+Builder committed the governance sync as cadbaab7ae945a06a2ef7b1ff22a3e13a6730652, restored ## Unreleased above the unchanged ## 0.10.1 - Internal, unreleased section, and committed the one-file CHANGELOG correction as da3496838b4b320aca50a4f60e331397113c8916. The correction commit has parent cadbaab7ae945a06a2ef7b1ff22a3e13a6730652.
+
+One exact targeted invocation at the governance head ran both consumers: tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents and tests/test_release_governance.py::test_changelog_has_target_release_section. The native process object returned exit 0; 2 passed with one non-failing .pytest_cache WinError 5 warning (pytest 3.81s; wall 6.63s). Output and metadata are retained under .tmp/w3/c03a61, a five-file, 915,725-byte task-owned run root. D: had 17,410,375,680 bytes free after the run. No cleanup occurred.
+
+The authorized full sequential run remains RED and consumed. The targeted pass verifies only the paired heading contracts; no full-suite rerun, Ruff, source/test change or release action occurred.
+
+~~~text
+G1_C03_GOVERNANCE_COMMIT = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; EXACT FIVE GOVERNANCE PATHS
+G1_C03_DOC_COMMIT = da3496838b4b320aca50a4f60e331397113c8916; EXACTLY CHANGELOG.md; PARENT cadbaab7ae945a06a2ef7b1ff22a3e13a6730652
+G1_C03_TARGETED_HEAD = cadbaab7ae945a06a2ef7b1ff22a3e13a6730652; CHANGELOG correction was the only uncommitted tracked path
+G1_C03_TARGETED_COMMAND = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/c03a61/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents tests/test_release_governance.py::test_changelog_has_target_release_section
+G1_C03_TARGETED_RESULT = NATIVE PROCESS OBJECT EXIT 0; 2 PASSED; ONE NON-FAILING PytestCacheWarning WinError 5; pytest 3.81s; wall 6.63s
+G1_C03_TARGETED_SCRATCH = .tmp/w3/c03a61; 5 FILES / 915,725 BYTES; logs/metadata/proof/pytest-owned t retained; D: free 17,410,375,680 bytes; no cleanup
+G1_C03_RELEASE_IMPACT = SOURCE METADATA REMAINS 0.10.1 INTERNAL/UNRELEASED; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/RUNTIME/CAPABILITY/MATURITY CHANGE
+G1_C03_VERIFICATION_STATE = PAIRED TARGETED GREEN; FULL SEQUENTIAL GATE REMAINS CONSUMED RED WITH ONE DOCUMENT FAILURE
+NEXT = PLANNER REVIEWS EXACT C03 GOVERNANCE/DOC/TERMINAL SYNC AND DECIDES THE NEXT REVIEW TRANSITION
+~~~
+
+## Single-installation G1-C04 — final verification and scope hold
+
+Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04 verified candidate ec0d4af193711957876764a0681c441ccbb8a87a. The one authorized full sequential run passed: 1,781 collected; 1,776 passed; 5 governed skips; zero failures; one PytestCacheWarning; 1,143.19s pytest / 1,148.401s wall. Its .tmp/w3/9541a1 evidence is retained (15,796 files / 621,125,467 bytes after pytest and Ruff); all run budgets passed and there was no retry or cleanup.
+
+The authorized .venv\Scripts\python.exe -m ruff check . invocation failed with native exit 1 and 8 findings exclusively under preserved unknown untracked $RECYCLE.BIN\...\School.py. The file was not opened or changed and the command was not narrowed; no candidate path was reported. Record LOCAL_FULL_RUFF_GATE=FAIL and candidate causation NOT_ESTABLISHED. Planner classifies Ruff fitness for this persistent local workspace as OVERBROAD because it traverses untracked content; clean-checkout hosted Ruff remains required later. This does not convert the failed command to PASS or authorize another invocation.
+
+Static gates passed, including diff-check, registry revision 1.0.23 with 65 unique PATH_IDs / 21 WP bindings / no unresolved refs, CURRENT's 142 unique mandatory keys, changelog/guide markers, no deletion and clean tracked/index state. The candidate nevertheless remains HOLD because commit 795c554246c13b838e4cb9a6d434159ab09efbfe changed tests/test_repo_hygiene.py, absent from the exact write allowlist. That test delta checks the in-scope clean-dev safety requirements. Preserve the fact as PLAN_ALLOWLIST_OMISSION and BUILDER_SCOPE_BREACH; do not claim retroactive authorization or rewrite history.
+
+Planner recommends that Human A0 decide whether a forward governance correction may retain exactly that existing test delta as the accepted G1 baseline while recording the deviation, and whether to authorize one replacement Ruff over the immutable list of all tracked Python files (currently 255; capture list/count/SHA/native exit). This recommendation grants no authority. No replacement Ruff, pytest, fix, Reviewer handoff or remote action is performed. Human authority for the exact test/Ruff/static sequence is routed as FB-0061 and consumed. Unknown files remain KEEP.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C04-FINAL-VERIFICATION-SCOPE-HOLD-20260929
+TESTER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04
+TESTED_HEAD = ec0d4af193711957876764a0681c441ccbb8a87a
+PYTEST = NATIVE EXIT 0; 1,781 COLLECTED; 1,776 PASSED; 5 GOVERNED SKIPS; 0 FAILED; 1 WARNING; 1,143.19s / 1,148.401s WALL; .tmp/w3/9541a1; 15,796 FILES / 621,125,467 BYTES; BUDGETS PASS
+RUFF = .venv\Scripts\python.exe -m ruff check .; NATIVE EXIT 1; 8 FINDINGS UNDER PRESERVED UNKNOWN UNTRACKED $RECYCLE.BIN\...\School.py; LOCAL GATE FAIL
+RUFF_CLASSIFICATION = PERSISTENT DIRTY-WORKSPACE FITNESS OVERBROAD; CLEAN-CHECKOUT HOSTED CHECK REQUIRED LATER; FAILED COMMAND NOT PASS; CANDIDATE CAUSATION NOT_ESTABLISHED
+STATIC_GATES = PASS; DIFF-CHECK; REGISTRY 1.0.23/65 PATH_IDS/21 WP BINDINGS/NO UNRESOLVED REFS; CURRENT 142 KEYS; MARKERS; NO DELETION; TRACKED/INDEX CLEAN
+SCOPE = HOLD; PLAN_ALLOWLIST_OMISSION=YES; BUILDER_SCOPE_BREACH=YES; tests/test_repo_hygiene.py WAS CHANGED BY 795c554 BUT WAS NOT IN THE EXACT G1 WRITE ALLOWLIST
+PLANNER_RECOMMENDATION = SEEK HUMAN A0 FORWARD DISPOSITION OF THE EXISTING EXACT TEST DELTA AND ONE TRACKED-PYTHON-PATH RUFF CHECK; NO AUTHORIZATION GRANTED BY THIS RECOMMENDATION
+HUMAN_AUTHORITY = EXACT ec0d4af PYTEST/RUFF/STATIC FOLLOW-ON AND TERMINAL DOC EVIDENCE RULE; ROUTED AS FB-0061; CONSUMED
+G1_CANDIDATE = HOLD; REVIEWER HANDOFF NO; REMOTE READY NO
+~~~
+
+
+## Single-installation G1-C05 — Human forward disposition
+
+Human A0 approved the G1-C04 disposition after reviewing the exact scope/Ruff recommendation. From this decision forward, retain exactly the existing `tests/test_repo_hygiene.py` delta in `795c554246c13b838e4cb9a6d434159ab09efbfe` as the accepted G1 correction baseline. Keep the historical allowlist omission and Builder scope breach visible; do not rewrite the original allowlist or describe the prior edit as authorized at the time. The 59-line test delta directly covers authorized `scripts/clean_dev.ps1` protections: exact Git top-level, rejection of operational/nonrepo/nested roots, and preservation of `release_staging` evidence/published candidates. Reproducible identity: SHA-256 `e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027` over 4,428 bytes emitted by the exact binary diff command recorded in the Work Order.
+
+Human A0 authorizes exactly one replacement Ruff invocation by the canonical Tester, using the immutable tracked manifest from `git ls-files -- '*.py' '*.pyi' '*.ipynb'` (expected 255 paths). Tester records manifest bytes/count/SHA, exact Git/code head, proves no tracked Python delta since tested candidate `ec0d4af193711957876764a0681c441ccbb8a87a`, and retains native exit/stdout/stderr. The single invocation has a 10-minute limit, maximum 20,000 scratch files / 1 GiB, and at least 10 GiB D: free; no retry, pytest rerun, unknown-file inspection/mutation, Ruff config edit or cleanup. If it and prescribed static identity/scope checks pass, Tester returns to Planner for Reviewer handoff. This does not declare the whole WP PASS.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C05-FORWARD-DISPOSITION-20260929
+HUMAN_AUTHORITY = G1-C05 APPROVED BY HUMAN A0 IN PLANNER TASK; FEEDBACK FB-0062; NO SEPARATE DECISION ID SUPPLIED
+ACCEPTED_FORWARD_BASELINE = EXACT tests/test_repo_hygiene.py DELTA FROM 795c554; HISTORICAL PLAN_ALLOWLIST_OMISSION/BUILDER_SCOPE_BREACH REMAIN TRUE
+TEST_DELTA_SHA256 = e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027; 4,428 BINARY DIFF BYTES; 59 INSERTIONS; EXACT COMMAND IN WORK ORDER
+REPLACEMENT_RUFF = EXACTLY ONE TESTER RUN OVER IMMUTABLE `git ls-files -- '*.py' '*.pyi' '*.ipynb'` MANIFEST; EXPECTED 255; MANIFEST/COUNT/SHA/HEAD/NATIVE EXIT/STDOUT/STDERR RETAINED
+CODE_IDENTITY = PROVE NO TRACKED PYTHON DELTA SINCE ec0d4af; NO PYTEST RERUN; NO UNKNOWN FILE ACCESS/MUTATION; NO CONFIG CHANGE; NO RETRY
+BUDGET = 10 MIN; 20,000 FILES / 1 GiB SCRATCH MAX; >=10 GiB D: FREE; NO CLEANUP
+HANDOFF = TESTER RETURNS PASSING VERIFICATION TO PLANNER FOR REVIEWER HANDOFF; WHOLE WP NOT PROMOTED BY THIS DECISION
+AUTHORIZATION_TIME_STATE = AT C05 AUTHORIZATION: C04 PYTEST PASS AND BROAD RUFF FAILURE PRESERVED; REPLACEMENT CHECK PENDING THEN; SEE FOLLOWING TESTER-PASS SECTION; REVIEW STILL REQUIRED
+NEXT = PLANNER REVIEWS G1-C05 GOVERNANCE AND DISPATCHES TESTER
+~~~
+
+
+## Single-installation G1-C05 — Tester tracked-manifest result
+
+Tester report `WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01` passes the authorized tracked-manifest Ruff/static gate only on governance HEAD `bd423085611bd70b3f23629d20bcdb0f25fb4365`. It proves no tracked Python delta since pytest-tested candidate `ec0d4af193711957876764a0681c441ccbb8a87a`; the exact G1-C05 retained test delta remains `e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027` (4,428 bytes) from `795c554` only at `tests/test_repo_hygiene.py`. The earlier full sequential pytest PASS at `ec0d4af193711957876764a0681c441ccbb8a87a` remains valid and was not rerun.
+
+The immutable manifest `.tmp/w3/c780f5/tracked-python-manifest.bin` is 9,412 bytes / 255 Git-tracked `.py`, `.pyi` and `.ipynb` paths, zero duplicates/missing, SHA-256 `83b1283f2c425a6a402b3228d006ad911f5bb7db14f49ab160daac81eb2b97ca`. One Ruff invocation over all 255 paths exited 0 (PID 16948, 0.284s); stdout is 19 bytes `All checks passed!`, SHA-256 `82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18`; stderr is empty, SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. Scratch was 7 files / 35,454 bytes; D: reserve passed; no retry, cleanup, pytest, edit or remote action.
+
+Prescribed static identity/scope checks passed with zero unexplained paths, no deletions, registry 1.0.23 / 65 PATH_IDs / 21 bindings / no unresolved refs, CURRENT 164 unique mandatory keys, markers present and tracked/index clean. Planner has reconciled `PASS_FOR_REVIEWER_HANDOFF`, forward scope disposition PASS with the historical omission/breach preserved, and candidate gates PASS with recorded limitations. The prior full repository-wide Ruff failure remains a failure with candidate causation not established; a clean-checkout hosted Ruff check is still required later. Whole WP is not complete; Reviewer and Planner post-review reconciliation remain mandatory.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C05-TESTER-PASS-20260929
+TESTER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01
+TESTER_VERDICT = PASS_FOR_PLANNER_REVIEWER_HANDOFF; TRACKED-MANIFEST RUFF/STATIC GATE ONLY
+RUFF_GOVERNANCE_HEAD = bd423085611bd70b3f23629d20bcdb0f25fb4365; TESTED_CANDIDATE = ec0d4af193711957876764a0681c441ccbb8a87a; AUDIT_TARGET_CODE_HEAD = 795c554246c13b838e4cb9a6d434159ab09efbfe
+TRACKED_PYTHON_DELTA = NONE FROM ec0d4af193711957876764a0681c441ccbb8a87a TO bd423085611bd70b3f23629d20bcdb0f25fb4365
+RETAINED_TEST_DELTA = 795c554246c13b838e4cb9a6d434159ab09efbfe:tests/test_repo_hygiene.py; 4,428 BYTES; SHA256 e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027
+MANIFEST = .tmp/w3/c780f5/tracked-python-manifest.bin; 9,412 BYTES; 255 PATHS; 0 DUPLICATES/MISSING; SHA256 83b1283f2c425a6a402b3228d006ad911f5bb7db14f49ab160daac81eb2b97ca
+RUFF = ONE RUN; 255 DISCRETE PATHS; PID 16948; EXIT 0; 0.284s; stdout `All checks passed!` 19 bytes SHA256 82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18; empty stderr SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+SCRATCH = 7 FILES / 35,454 BYTES; D: RESERVE PASS; NO RETRY/CLEANUP/PYTEST/EDIT
+STATICS = PASS; ZERO UNEXPLAINED SCOPE PATHS; NO DELETIONS; REGISTRY 1.0.23/65/21/NO UNRESOLVED; CURRENT 164 KEYS; MARKERS; CLEAN TRACKED/INDEX
+HISTORICAL_BROAD_RUFF = EXIT 1 PRESERVED; CANDIDATE CAUSATION NOT_ESTABLISHED; HOSTED CLEAN-CHECKOUT RUFF STILL REQUIRED
+PLANNER_RECONCILIATION = LOCAL_CANDIDATE_GATES PASS_WITH_RECORDED_LIMITATIONS; WHOLE WP NOT COMPLETE; REVIEWER + PLANNER POST-REVIEW REQUIRED
+NEXT = PLANNER EXACT-SCOPE AUDIT THEN INDEPENDENT REVIEWER DISPATCH; REMOTE READY NO
+~~~
+
+
+## Single-installation G1 — independent review and remote integration gate
+
+Reviewer report `WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01` returns PASS with no findings for the exact G1 audit object. Planner accepts the verdict. Local readiness is `PASS_WITH_RECORDED_LIMITATIONS`, local review fitness is FIT, and CI fitness is FIT_WITH_ADDITION; clean-checkout hosted CI remains required and pending. The audited code/test, pytest, tracked-Ruff and documentation heads remain distinct: `795c554`, `ec0d4af`, `bd423085` and `0491e5c`, respectively. The full pytest result and tracked-manifest Ruff PASS remain as recorded. The historical broad local Ruff failure under preserved unknown `$RECYCLE.BIN` content remains a failure, with candidate causation not established.
+
+Fresh live-ref and pull-request reads failed in the Builder session because network access was unavailable. The local cached `origin/main` value `caf983691da60d4eaf990d09e9e1788692aabaac` is not fresh live evidence. Live main, feature-ref and PR state are unverified; no push or PR mutation occurred. The already-approved integration sequence may proceed only after Planner supplies fresh remote evidence and releases Stage B. A clean-checkout hosted CI result is required after integration. No merge, release, build, live operation, cleanup, roadmap maturity change or `PROJECT_MEMORY` promotion is authorized by this reconciliation; Human retains manual merge authority.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-REVIEW-AND-INTEGRATION-GATE-20260929
+REVIEWER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-G1-REVIEWER-20260929-01
+REVIEWER = PASS; CANDIDATE_CONTRACT=PASS; LOCAL_INTEGRATION_READINESS=PASS_WITH_RECORDED_LIMITATIONS; CI_FITNESS=FIT_WITH_ADDITION; LOCAL_REVIEW_FITNESS=FIT; FINDINGS=NONE
+AUDITED_HEADS = CODE/TEST 795c554246c13b838e4cb9a6d434159ab09efbfe; PYTEST ec0d4af193711957876764a0681c441ccbb8a87a; TRACKED_RUFF bd423085611bd70b3f23629d20bcdb0f25fb4365; DOCS 0491e5c31c06514b1ed47635a83793c2e4bac2ea
+LOCAL_EVIDENCE = PYTEST 1,781 COLLECTED / 1,776 PASSED / 5 GOVERNED SKIPS / 0 FAILED; TRACKED-MANIFEST RUFF PASS / 255 PATHS; BROAD LOCAL RUFF FAILURE RETAINED; CANDIDATE CAUSATION NOT_ESTABLISHED
+HOSTED_CI = CLEAN-CHECKOUT REQUIRED AND PENDING
+REMOTE_STATE = UNVERIFIED; `git ls-remote` AND `gh pr list` FAILED DUE NETWORK ACCESS; LOCAL CACHED origin/main=caf983691da60d4eaf990d09e9e1788692aabaac IS NOT A FRESH LIVE REF; NO REMOTE EFFECTS
+NEXT = PLANNER OBTAINS FRESH FEATURE/MAIN/OPEN-PR STATE AND RELEASES STAGE B ONLY IF COMPATIBLE; THEN ONE NORMAL FAST-FORWARD PUSH AND ONE PR MAY PROCEED
+AUTHORITY = HUMAN RETAINS MANUAL MERGE; NO RELEASE/BUILD/LIVE OPERATION/CLEANUP OR ROADMAP MATURITY PROMOTION
+~~~
+
+
+## Single-installation G1-C06 — hosted Linux correction, local verification pending review
+
+Pre-transition alignment remains the Engineering Toolbox / Windows delivery support node; product frontier and maturity are unchanged. Hosted run `36520514587` on source `ab1b5667438066d2104ed7505c626e3035e8c32f` failed both Ubuntu jobs (86 failed / 1,593 passed / 102 skipped each), while Windows 3.12 and Code Quality passed. The bounded diagnosis found test-local synthetic-platform assumptions, POSIX Windows-path fixtures, and PowerShell-only separator assumptions. The production Windows protection guard was preserved. Two local forward commits (`2e55285b` and `36073ac0`) correct these seams; the bounded Windows affected matrix, scoped Ruff, collection-only and diff check pass. Hosted CI for the new correction head and independent verification remain pending. This delta does not promote product capability or operational/release readiness.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C06-HOSTED-LINUX-CORRECTION-20260929
+PRE_ALIGNMENT = ENGINEERING TOOLBOX / WINDOWS TEAM BID DELIVERY SUPPORT; PRODUCT FRONTIER UNIFIED TENDER WAREHOUSE PARTIAL; NO MATURITY PROMOTION
+TRIGGER = PR #137 HOSTED RUN 36520514587 RED ON UBUNTU 3.12 / 3.11; WINDOWS 3.12 AND CODE QUALITY PASS
+ROOT_CAUSE = SYNTHETIC WINDOWS TEST ENTRYPOINTS HIT CORRECT PUBLIC GUARD; WINDOWS DRIVE-PATH TESTS USED POSIX Path; PUBLISHER ASSUMED WINDOWS SEPARATORS
+CORRECTION = 2e55285b898f604a1e1a993040b282b8fc62cc3c + 36073ac0d7cd4999869d45541fe26627bbc2df8e; ONLY G1-C06 ALLOWLIST; NO PRODUCTION PYTHON CHANGE; PUBLIC NON-WINDOWS GUARD PRESERVED
+LOCAL_POST_CHECK = 170 PASSED / 3 SKIPPED / 0 FAILED; SCOPED RUFF PASS; COLLECTION 1,782 (BASELINE 1,781); DIFF-CHECK PASS
+COMMAND_HARNESS_EVENT = FIRST LOCAL ATTEMPT EXIT 4 BEFORE COLLECTION FROM ARGUMENT FLATTENING; PLANNER CLASSIFIED COMMAND_HARNESS_DEFECT; ONE CORRECTED LOCAL INVOCATION PASSED; NOT HOSTED CI EVIDENCE
+POST_ALIGNMENT = ENGINEERING SUPPORT CORRECTION ONLY; HOSTED CI ON CORRECTION HEAD AND TESTER/REVIEWER REVIEW PENDING; NO REMOTE ACTION; PRODUCT MATURITY UNCHANGED
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS AFTER C06 GOVERNANCE COMMIT AND SCOPE CHECK
+NEXT = PLANNER REVIEWS EXACT LOCAL C06 CANDIDATE AND DISPATCHES CANONICAL TESTER; NO PUSH/PR OR CI RERUN BEFORE GOVERNED HANDOFF
+~~~
+
+
+## Single-installation G1-C06 — post-review hosted checkpoint
+
+The Tester passes bounded local verification and the independent Reviewer passes the exact C06 implementation/document objects with no findings; Planner accepts those dispositions. Code/test/script head `36073ac0d7cd4999869d45541fe26627bbc2df8e` and reviewed docs head `366f2ce4a6b0e1de54346228208af928903d438d` remain distinct. The original Ubuntu hosted RED at `ab1b566` remains history. Live main is `caf983691da60d4eaf990d09e9e1788692aabaac`; PR #137 is OPEN, non-draft, unmerged and has not yet advanced from source `ab1b566` at the pre-push check. A fast-forward push of the terminal sync to this same PR is authorized, after which exact-head hosted CI remains required. No second PR, merge, release, operational action, or product maturity promotion is authorized.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C06-POST-REVIEW-HOSTED-CHECKPOINT-20260929
+TESTER = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-TESTER-20260929-01; PASS LOCAL BOUNDED VERIFICATION; 170 PASSED / 3 SKIPPED / 0 FAILED; SCOPED RUFF PASS
+REVIEWER = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-G1-C06-REVIEWER-20260929-01; PASS; NO FINDINGS; CODE 36073ac; DOCS 366f2ce
+PLANNER = ACCEPTS EXACT LOCAL TESTER/REVIEWER RESULTS; FORWARD_HOSTED_CORRECTION_ELIGIBILITY=PASS; WHOLE_PARENT=HOLD
+HOSTED_RED_HISTORY = RUN 36520514587 ON ab1b566; BOTH UBUNTU JOBS RED; WINDOWS AND CODE QUALITY PASS; PRESERVED
+PRE_PUSH_REMOTE = main caf983691da60d4eaf990d09e9e1788692aabaac; feature ab1b5667438066d2104ed7505c626e3035e8c32f; PR #137 OPEN/NON-DRAFT/UNMERGED; no second PR
+POST_PUSH_GATE = NORMAL FAST-FORWARD PUSH OF TERMINAL HEAD TO SAME BRANCH/PR; EXACT-HEAD REQUIRED CHECKS PENDING; GREEN IS NOT MERGE AUTHORITY
+ALIGNMENT = ENGINEERING TOOL SUPPORT ONLY; PRODUCT FRONTIER/MATURITY UNCHANGED; NO RELEASE/LIVE/BUILD/CLEANUP AUTHORITY; HUMAN MERGE AUTHORITY RETAINED
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS FOR THIS POST-REVIEW DOCUMENTATION SYNC; HOSTED CI IS SEPARATE AND PENDING
+NEXT = PLANNER RECONCILES EXACT-HEAD HOSTED CI AFTER THE AUTHORIZED FAST-FORWARD PUSH; NO MERGE
+~~~
+
+
+## Single-installation G1-C07 — final Linux test-seam correction attempt
+
+PR #137's exact-head run `36528853589` failed the same exclusive-data-handle parameter on Ubuntu 3.11 and 3.12; Windows, Code Quality and CodeQL passed. The test seam had captured the Windows-only exclusive file opener, then forced the module's `os.name` to `nt` on Linux. The resulting `ModuleNotFoundError: msvcrt` bypassed the intended injected config-open denial and was normalized to `UPDATE_RECOVERY_STATE_UNCERTAIN`. This is classified as `WP_TEST_SEAM_DEFECT`; no production updater defect is established.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C07-PR137-EXCLUSIVE-OPEN-SEAM-20260929
+TRIGGER = RUN 36528853589 AT bc2f06a; UBUNTU 3.11 JOB 109277760197 AND UBUNTU 3.12 JOB 109277760275 FAIL SAME NODE; WINDOWS 3.12 AND CODE QUALITY PASS; REQUIRED GATE FAIL; CODEQL PASS
+ROOT_CAUSE = TEST CAPTURED _open_exclusive_database_file BEFORE SYNTHETIC WINDOWS PATCH; LINUX THEN IMPORTED msvcrt UNDER FORCED os.name=nt BEFORE THE INJECTED THIRD-CALL PermissionError
+CLASSIFICATION = WP_TEST_SEAM_DEFECT; PRODUCTION DEFECT NOT ESTABLISHED; PRODUCTION WINDOWS GUARD REMAINS FAIL-CLOSED
+CORRECTION = FINAL HUMAN-AUTHORIZED ATTEMPT 2/2; ONE TEST FILE ONLY; HOST-VALID READ-ONLY OPEN FOR THE NON-WINDOWS SYNTHETIC TEST BRANCH; REAL WINDOWS OPENER RETAINED ON WINDOWS
+LOCAL_RESULT = BUILDER-REPORTED PASS AT THE TIME; RAW ROOTS LATER MARKED INADMISSIBLE_FOR_REMOTE_TRANSITION BY REVIEWER FINDING G1-C07-R01
+ALIGNMENT = ENGINEERING TOOL SUPPORT ONLY; PRODUCT FRONTIER/MATURITY UNCHANGED; NO LIVE, BUILD, RELEASE, MERGE OR CLEANUP AUTHORITY
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS FOR G1-C07 OPENING SYNC AFTER STATIC VALIDATION
+NEXT = BUILDER RUNS THE SINGLE AUTHORIZED EXACT-NODE GREEN, THEN BOUNDED MATRIX/SCOPED RUFF IF GREEN; RETURN TO PLANNER; NO PUSH
+~~~
+
+
+## Single-installation G1-C07 — Builder-reported local runs (historical)
+
+The Builder reported local results for the host-valid test seam at test-only commit `285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab`, using `.tmp/w3/c07a31`, `.tmp/w3/c07b42`, and `.tmp/w3/c07c19`. The canonical Tester later found those roots absent at its checkpoint; their later visibility has no governed restoration/identity chain. Reviewer finding `G1-C07-R01` therefore makes the Builder's raw outputs, hashes, counts, and timings inadmissible for remote transition. Preserve these only as historic Builder-reported evidence. The earlier hosted RED at `bc2f06a` remains preserved.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C07-LOCAL-VERIFICATION-20260929
+TRIGGER = LOCAL TEST-ONLY COMMIT 285fb34 AFTER HOSTED RUN 36528853589 RED AT bc2f06a
+ROOT_CAUSE = WP_TEST_SEAM_DEFECT; CAPTURED WINDOWS-ONLY OPENER IMPORTED msvcrt UNDER SYNTHETIC os.name=nt ON LINUX BEFORE THE INTENDED INJECTED PermissionError
+CORRECTION = NON-WINDOWS SYNTHETIC BRANCH USES HOST-VALID READ-ONLY HANDLE; WINDOWS BRANCH RETAINS REAL EXCLUSIVE OPENER; PRODUCTION MODULE UNCHANGED
+TARGETED = EXACT NODE; NATIVE EXIT 0; 1 PASSED; 1 NON-FAILING PytestCacheWarning; 1.96s; .tmp/w3/c07a31; 22 FILES / 1,035,737 BYTES
+MATRIX = tests/test_operational_update.py + tests/test_windows_installer.py; NATIVE EXIT 0; 170 PASSED / 3 SKIPPED / 0 FAILED; 1 NON-FAILING PytestCacheWarning; 171.06s; .tmp/w3/c07b42; 2,749 FILES / 13,039,694 BYTES
+SCOPED_RUFF = tests/test_operational_update.py; NATIVE EXIT 0
+COLLECTION = 1,782; ZERO ERRORS; BASELINE PRESERVED; NATIVE EXIT 0
+CLASSIFICATION = LOCAL GREEN FOR THE AUTHORIZED SYNTHETIC TEST-SEAM CORRECTION; NO PRODUCTION DEFECT ESTABLISHED; HOSTED CI ON THE NEW HEAD PENDING
+ALIGNMENT = ENGINEERING TOOL SUPPORT ONLY; PRODUCT FRONTIER/MATURITY UNCHANGED; NO BUILD/RELEASE/LIVE/MERGE/CLEANUP AUTHORITY
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS FOR BUILDER-REPORTED RESULT; SUPERSEDED FOR REMOTE-TRANSITION EVIDENCE BY G1-C07-R01 RECONCILIATION BELOW
+NEXT = PLANNER RECONCILES CANONICAL TESTER EVIDENCE; REVIEWER RE-AUDIT REQUIRED; NO REMOTE ACTION
+~~~
+
+
+## Single-installation G1-C07 — canonical Tester evidence and R01 reconciliation
+
+Canonical Tester evidence at candidate HEAD `d4efd4aa6955d3f929f49991689b3627934100ba` supersedes the inadmissible Builder raw-run claims for verification. The affected matrix and scoped Ruff passed; collection passed with 1,782 tests and zero errors. Tester ran on Windows, so the POSIX branch remains unproven until exact-head hosted Ubuntu CI. This docs correction resolves the evidence-provenance finding only; correction attempt 2/2 is consumed, the whole Parent remains HOLD, and Reviewer re-audit is required before the handoff is ready.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C07-REVIEWER-R01-EVIDENCE-PROVENANCE-20260929
+REVIEWER_FINDING = G1-C07-R01; IMPORTANT/BLOCKING; BUILDER ROOTS c07a31/c07b42/c07c19 ABSENT AT TESTER CHECKPOINT; LATER VISIBILITY WITHOUT GOVERNED IDENTITY CHAIN DOES NOT REPAIR PROVENANCE
+BUILDER_RUN_DISPOSITION = HISTORY PRESERVED; RAW ROOTS/OUTPUTS/HASHES/COUNTS/TIMINGS INADMISSIBLE_FOR_REMOTE_TRANSITION; NOT INSPECTED OR RE-ADMITTED
+TESTER_CANDIDATE = d4efd4aa6955d3f929f49991689b3627934100ba; REPORT ID NOT INCLUDED IN ADMITTED CORRECTION PACKET; RESULTS ADMITTED BY PLANNER
+TESTER_MATRIX = .tmp/w3/e31c5a; NATIVE EXIT 0; 173 COLLECTED / 170 PASSED / 3 GOVERNED SKIPPED / 0 FAILED; 171.447s; 2,755 FILES / 13,044,608 BYTES; STDOUT SHA256 F24245535269A2EB674F63B5930F77A8605FB0D64040439C9C8BC20B017FB2F1; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+TESTER_RUFF = SCOPED PASS AT d4efd4a
+TESTER_COLLECTION = .tmp/w3/e31c5b; NATIVE EXIT 0; 1,782 COLLECTED / ZERO ERRORS; STDOUT SHA256 3751037F6D69812BB0839A795B810F5802C367E752CFD205A12D87BA3CE7D702; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+PLATFORM_LIMIT = TESTER HOST WINDOWS; POSIX BRANCH REMAINS UNPROVEN UNTIL EXACT-HEAD HOSTED UBUNTU CI
+CORRECTION_ACCOUNTING = ATTEMPT 2/2 CONSUMED; NO NEW CODE OR CI CORRECTION ATTEMPT
+WHOLE_PARENT = HOLD; HOSTED RUN 36528853589 RED AT bc2f06a PRESERVED; HUMAN-ONLY MERGE/RELEASE/LIVE BOUNDARIES UNCHANGED
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS FOR CORRECTED EVIDENCE-PROVENANCE DOC OBJECT ONLY
+HANDOFF_READY = NO UNTIL REVIEWER RE-AUDIT OF THIS DOC OBJECT
+NEXT = REVIEWER RE-AUDITS THE CORRECTED THREE-DOCUMENT EVIDENCE-PROVENANCE OBJECT
+~~~
+
+
+## Single-installation G1-C07 — post-review hosted verification handoff
+
+Reviewer re-audit `WP-OPS-QI-SINGLE-INSTALLATION-G1-C07-R01-REAUDIT-20260929-01` passes both the seven-line test correction `285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab` and corrected docs provenance object `d546189fe6cbc6993d57c8f41af1a2f5d8f8d584`, resolves R01, and reports no remaining findings. Planner accepts test correction `285fb34` for exact-head hosted verification. The Tester’s canonical results are located at source task `/root/workbench_impact_readiness_tester` (no report ID assigned), candidate/docs head `d4efd4aa6955d3f929f49991689b3627934100ba`, matrix `.tmp/w3/e31c5a`, and collection `.tmp/w3/e31c5b`; the recorded stdout hashes are `F24245535269A2EB674F63B5930F77A8605FB0D64040439C9C8BC20B017FB2F1` and `3751037F6D69812BB0839A795B810F5802C367E752CFD205A12D87BA3CE7D702`. Builder roots remain inadmissible. After Reviewer PASS/re-audit and Planner reconciliation, the authorized fast-forward update to existing PR #137 may trigger hosted CI; exact-head hosted CI must pass before merge readiness. Push is not CI PASS or G1 completion. Correction attempt accounting remains 2/2 consumed, the whole Parent remains HOLD, and Human retains manual merge authority.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C07-POST-REVIEW-HOSTED-HANDOFF-20260929
+REVIEWER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-G1-C07-R01-REAUDIT-20260929-01; PASS; AUDITED SEVEN-LINE TEST CORRECTION 285fb34 AND DOCS PROVENANCE OBJECT d546189; R01 RESOLVED; REMAINING FINDINGS NONE
+PLANNER = ACCEPTS REVIEWER PASS AND TEST CORRECTION 285fb34 FOR EXACT-HEAD HOSTED VERIFICATION
+TESTER_REPORT_LOCATOR = SOURCE_TASK_ID=/root/workbench_impact_readiness_tester; TESTER_REPORT_ID=NOT_ASSIGNED; CANDIDATE/DOCS HEAD d4efd4aa6955d3f929f49991689b3627934100ba; MATRIX .tmp/w3/e31c5a SHA256 F24245535269A2EB674F63B5930F77A8605FB0D64040439C9C8BC20B017FB2F1; COLLECTION .tmp/w3/e31c5b SHA256 3751037F6D69812BB0839A795B810F5802C367E752CFD205A12D87BA3CE7D702
+EVIDENCE_PROVENANCE = TESTER ROOTS e31c5a/e31c5b ADMITTED; BUILDER ROOTS c07a31/c07b42/c07c19 PRESERVED AS REPORTED HISTORY BUT INADMISSIBLE_FOR_REMOTE_TRANSITION
+CORRECTION_ACCOUNTING = ATTEMPT 2/2 CONSUMED; THIS IS FINAL HOSTED VERIFICATION, NOT A NEW CORRECTION
+PRE_PUSH_REMOTE = main caf983691da60d4eaf990d09e9e1788692aabaac; feature bc2f06a8faedc74bcc9959a04f803f82041f10a7; PR #137 OPEN/NON-DRAFT/UNMERGED; ONE EXISTING PR
+REMOTE_STEP = AFTER REVIEWER PASS/RE-AUDIT AND PLANNER RECONCILIATION, AUTHORIZED FAST-FORWARD UPDATE TO SAME BRANCH/PR #137 MAY TRIGGER HOSTED CI; EXACT-HEAD REQUIRED CI AND CODEQL MUST PASS BEFORE MERGE READINESS; PUSH IS NOT CI PASS/G1 COMPLETE; NO MANUAL RERUN/NEW PR
+HOSTED_CI = PENDING; RUN 36528853589 RED AT bc2f06a PRESERVED; POSIX BRANCH REQUIRES EXACT-HEAD UBUNTU VERIFICATION
+WHOLE_PARENT = HOLD; HUMAN MANUAL MERGE ONLY AFTER GREEN; NO RELEASE/BUILD/LIVE/CLEANUP AUTHORITY
+SPINE_IMPACT = MULTIPLE
+SPINE_TARGET_FILES = docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md
+SPINE_SYNC_STATE = PASS FOR THIS POST-REVIEW DOC SYNC; HANDOFF_READY=YES_FOR_REMOTE_HOSTED_CI_ONLY
+NEXT = FAST-FORWARD PUSH TERMINAL LOCAL HEAD TO THE EXISTING PR #137; VERIFY PR HEAD AND OBSERVE EXACT-HEAD CI; RETURN TO PLANNER; NO MERGE
+~~~

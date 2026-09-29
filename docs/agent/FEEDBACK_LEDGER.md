@@ -1485,3 +1485,108 @@ Boundary: This decision authorizes only the exact implementation/governance allo
 Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_AND_PATH_REGISTRY
 Promoted to: docs/superpowers/plans/WP-ENG-QI-WORKBENCH-IMPACT-READINESS-01.md; docs/agent_handoff/CURRENT.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml
 ~~~
+
+### FB-0058 — Human A0 single-installation G1 update and recovery work
+
+~~~text
+State: ACCEPTED / G1_BOUNDED_WORK_PACKAGE_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human approval in the Builder assignment for WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1, 2026-09-28; Planner baseline reconciliation
+Type: OPERATIONAL_ARCHITECTURE / DATA_PRESERVATION / EXECUTION_ORDER
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1
+Decision:
+  CANONICAL_OPERATIONAL_ROOT = D:\QI-Crawler
+  G1 = SYNTHETIC-TESTABLE APP-ONLY UPDATE/RECOVERY; PRESERVE DATA AND MIGRATION PROVENANCE
+  CARRIED_GOVERNANCE_BASE = origin/main caf983691da60d4eaf990d09e9e1788692aabaac..211c0ddbfdcfc7fb249cebd2b449f65d6ea91186; 10 COMMITS; PRESERVE IN ORDER
+  INTERNAL_PATCH_CANDIDATE = 0.10.1; NOT A RELEASE, BUILD, INSTALL, OR DEPLOYMENT
+  REMOTE = ONE EXACT FEATURE-BRANCH CHECKPOINT AFTER COHERENT LOCAL CANDIDATE OR MATERIAL HOLD; ONE LATER PR ONLY AFTER PLANNER/TESTER/REVIEWER TRANSITIONS
+Boundary: No second operational root; no live update/launch, shortcut edit, migration/restore, crawl/import, B09, build, release/tag/publish, cleanup, ACL action, G2/G3, merge, or operational mutation. Human retains merge, release, and official publish authority.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_CURRENT_DELTA_HANDOFF_AND_PATH_REGISTRY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent/PATH_REGISTRY.yaml; docs/agent_handoff/CURRENT.md
+~~~
+
+### FB-0059 — Human A0 single replacement verification run
+
+~~~text
+State: ACCEPTED / ONE_REPLACEMENT_TESTER_RUN_AUTHORIZED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct approval relayed in Planner task `/root`, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C01 replacement verification
+Decision:
+  REPLACEMENT_FULL_SEQUENTIAL_PYTEST = EXACTLY_ONE; SEQUENTIAL (`-n 0`); NO CODE/TEST CHANGE; TESTER RECORDS EXACT HEAD AT PREFLIGHT
+  RUN_PARENT = FRESH ABSENT REGISTERED `.tmp/w3/<new-six-hex>/`; VERIFY CONTAINMENT/REPARSE/FRESHNESS/OWNERSHIP; CREATE PARENT AND RETAIN WRITABILITY PROOF
+  PYTEST_CHILD = `t` ABSENT BEFORE INVOCATION; PYTEST ALONE CREATES/REMOVES IT
+  RETAINED_EVIDENCE = COMPLETE STDOUT/STDERR/TRACEBACK/TRUE EXIT/START/END/SUMMARY/COMMAND/WORKING DIRECTORY OUTSIDE `t`; PRESERVE EXIT THROUGH PIPELINE
+  BUDGET = 30 MINUTES; 20,000 FILES; 1 GiB; >=10 GiB D: FREE; NO RETRY; NO CLEANUP
+  FOLLOW_ON = ONLY AFTER PYTEST PASS, ONE FULL `python -m ruff check .` AND PRESCRIBED READ-ONLY STATICS; FAILURE RETURNS TO PLANNER; NO TESTER FIX/SCOPE EXPANSION
+  OLD_RED_RUN = PRESERVE AS CONSUMED FAILED VERIFICATION; NEVER REWRITE AS PASS OR ERASE
+Boundary: No push/PR/merge/release, live operation, cleanup, code/test change, retry, or other scope expansion is authorized. The command-contract defect is local verification infrastructure and does not assert GitHub Actions failure or prove it was the sole cause of all 1,780 prior setup errors. No G1 product defect is established by that failed run. Tester execution follows Planner review and exact-head preflight.
+Disposition: ACCEPTED / ROUTED_TO_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~
+
+### FB-0060 — Human A0 authorization for the post-C02 exact full run
+
+~~~text
+State: ACCEPTED / EXACT_POST_C02_FULL_RUN_AUTHORIZED_AND_CONSUMED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 authorization relayed in Planner task /root, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C03 CHANGELOG dual-contract correction
+Decision:
+  POST_C02_FULL_SEQUENTIAL_PYTEST = EXACTLY ONE; exact Tester preflight HEAD a1096bb2f80bc89adb52883765df498acceb1309; no code/test change
+  TESTER_RESULT = native process exit 1; 1,781 collected; 1,775 passed / 5 governed skips / 1 failed / 2 warnings; 1,112.01s
+  FAILURE = tests/test_release_governance.py::test_changelog_has_target_release_section; exact ## Unreleased heading missing after C02
+  EVIDENCE = .tmp/w3/78fe92/t; retain full run and its RED status; resource caps reported PASS; no cleanup
+Boundary: This authority covered only the one exact post-C02 full sequential run. It does not authorize another full run, Ruff, tests beyond the separately Planner-opened single targeted two-node correction check, test/source/runtime/release/build/install changes, remote action, cleanup, merge, release or any operational update.
+Disposition: ACCEPTED / ROUTED_TO_G1_C03_WORK_ORDER_DELTA_CURRENT_AND_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~
+
+### FB-0061 — Human A0 exact-candidate verification authority
+
+~~~text
+State: ACCEPTED / EXACT_HEAD_TEST_AND_FOLLOW_ON_AUTHORITY_CONSUMED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 packet relayed in Planner task /root, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION / TERMINAL_DOC_SYNC
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1 final verification
+Decision:
+  TESTED_CANDIDATE_HEAD = ec0d4af193711957876764a0681c441ccbb8a87a
+  FULL_SEQUENTIAL_PYTEST = ONE RUN; native exit 0; 1,781 collected; 1,776 passed / 5 governed skips / 0 failed; no retry
+  FOLLOW_ON = ONE REPOSITORY Ruff invocation and prescribed read-only static gates were authorized after pytest PASS
+  TERMINAL_DOC_SYNC = RECORD exact evidence and limitations in Work Order, Delta, CURRENT and applicable Feedback/Failure Memory authorities
+  TESTER_EVIDENCE = report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04; retained .tmp/w3/9541a1
+Boundary: The verification authority is consumed. The Ruff invocation returned native exit 1 with eight findings in preserved unknown untracked content; this does not authorize a replacement or narrowed Ruff invocation. The packet does not retroactively authorize the existing tests/test_repo_hygiene.py delta outside the exact G1 write allowlist. No test/source fix, rerun, cleanup, remote operation, Reviewer handoff, release or operational action is authorized by this entry.
+Outcome: Full sequential pytest PASS; local full Ruff FAIL; static gates PASS; scope gate HOLD due the recorded allowlist omission and Builder scope breach. Candidate causation from Ruff is not established.
+Disposition: ROUTED_TO_G1_C04_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~
+
+
+### FB-0062 — Human A0 forward disposition for G1-C05
+
+~~~text
+State: ACCEPTED / FORWARD_DISPOSITION_AND_ONE_TRACKED_MANIFEST_RUFF_AUTHORITY
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Explicit Human A0 approval in Planner task after review of the G1-C04 scope/Ruff disposition; 2026-09-29; no separate decision ID supplied
+Type: SCOPE_DISPOSITION / LOCAL_VERIFICATION_AUTHORITY
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1-C05
+Decision:
+  FORWARD_BASELINE = Retain exactly the existing tests/test_repo_hygiene.py delta from 795c554246c13b838e4cb9a6d434159ab09efbfe as the accepted G1 correction baseline from this decision forward.
+  RETAINED_DELTA_IDENTITY = SHA256 e7f68da20c6afa6e619150f519384734bc81509b93294c8794745faa263ac027 over 4,428 bytes emitted by the deterministic binary diff command recorded in the Work Order; 59 added lines; no test-file edit in this correction.
+  HISTORICAL_FACTS = PLAN_ALLOWLIST_OMISSION=YES and BUILDER_SCOPE_BREACH=YES remain recorded; original allowlist is not rewritten and the earlier edit is not claimed authorized when made.
+  RETENTION_RATIONALE = Exact regression coverage for authorized G1.2 scripts/clean_dev.ps1 behavior: exact Git top-level, rejection of D:\QI-Crawler/nonrepo/nested roots, and preservation of release_staging evidence/published candidate.
+  REPLACEMENT_RUFF = Exactly one canonical Tester invocation over the immutable manifest from git ls-files -- '*.py' '*.pyi' '*.ipynb' (expected 255 paths); retain exact manifest bytes/count/SHA-256, exact Git/code identity, proof of no tracked Python delta since ec0d4af193711957876764a0681c441ccbb8a87a, native exit, stdout and stderr.
+  BUDGET = 10 minutes; scratch <=20,000 files / 1 GiB; D: free >=10 GiB; no cleanup, retry, pytest rerun, unknown-file inspection/mutation, or Ruff config/pyproject change.
+  NEXT = If replacement Ruff and prescribed static identity/scope checks pass, Tester returns Planner for Reviewer handoff; Tester does not declare whole WP PASS or contact Human.
+Boundary: No source/test edit, push/PR/merge/release/build/live operation, operational data action or cleanup is authorized. The old repository-wide Ruff exit 1 remains a failed historical result. This forward baseline decision preserves, but does not rewrite, the prior scope deviation.
+Disposition: ROUTED_TO_G1_C05_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~

@@ -4,10 +4,15 @@ Tai lieu nay ghi lai nhung thay doi quan trong cua QI-Crawler theo tung phien ba
 
 ## Unreleased
 
+## 0.10.1 - Internal, unreleased
+
 - Correct the operational promotion contract so persisted storage paths bind to
   the final root and legitimate database writes do not block a later restart.
-  This source correction is pending independent audit; the existing live
-  installation remains on hold for a separately authorized remediation.
+  The source correction merged in PR #130; the installed 0.10.0 runtime still
+  predates it and remains on hold for a separately authorized remediation.
+- Prepare internal source metadata version 0.10.1 and repository-only immutable
+  candidate-artifact paths. This is not an EXE or installer build, publication,
+  tag, release, installation, or deployment; the live runtime remains 0.10.0.
 - Align the Team Bid desktop workflows for location-filter state, persistent
   package/revision context, exact-release managed-document inspection,
   no-overwrite child-folder export and a distinct Tender Completeness view.

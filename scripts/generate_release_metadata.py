@@ -63,7 +63,7 @@ def generate_installed_metadata(
     )
     _write_text(
         bundle / "WHAT_IS_NEW.txt",
-        """QI-Crawler 0.10.0 - expected cumulative changes from operational 0.9.0
+        f"""QI-Crawler {__version__} - internal candidate metadata; expected cumulative changes from operational 0.9.0
 
 - Human-Light Excel Screening
 - Team Bid operational screening profile
@@ -76,7 +76,7 @@ This metadata describes the candidate content. Runtime acceptance is not yet cla
     )
     _write_text(
         bundle / "CAPABILITIES.txt",
-        """QI-Crawler 0.10.0 capability contract
+        f"""QI-Crawler {__version__} capability contract
 
 State: INCLUDED / EXPECTED / NOT_YET_RUNTIME_VERIFIED
 

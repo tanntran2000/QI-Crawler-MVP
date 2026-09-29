@@ -10,7 +10,7 @@ ROOT = Path(__file__).parent.parent
 
 
 def test_approved_release_version_is_canonical_package_value() -> None:
-    assert __version__ == "0.10.0"
+    assert __version__ == "0.10.1"
 
 
 def test_pyproject_derives_distribution_version_from_package() -> None:
@@ -109,7 +109,7 @@ def test_installed_release_metadata_is_generated_inside_bundle_without_installer
     assert manifest == {
         "metadata_schema_version": "qi-crawler-installed-release-v1",
         "product": "QI-Crawler",
-        "version": "0.10.0",
+        "version": __version__,
         "source_git_sha": "a" * 40,
         "source_branch": "release/v0.10-candidate-prep-01",
         "build_timestamp_utc": "2026-09-17T10:00:00Z",
@@ -118,7 +118,61 @@ def test_installed_release_metadata_is_generated_inside_bundle_without_installer
         "portable_exe_sha256": "B358919033006252FDEAF8AE8CBD8B405FBFD4792E4F1CF764CF4DCB965BAF72",
     }
     assert "installer_sha256" not in manifest
-    assert "NOT_YET_RUNTIME_VERIFIED" in (bundle / "CAPABILITIES.txt").read_text(encoding="utf-8")
+    what_is_new = (bundle / "WHAT_IS_NEW.txt").read_text(encoding="utf-8")
+    capabilities = (bundle / "CAPABILITIES.txt").read_text(encoding="utf-8")
+    assert what_is_new.startswith(f"QI-Crawler {__version__}")
+    assert capabilities.startswith(f"QI-Crawler {__version__}")
+    assert "NOT_YET_RUNTIME_VERIFIED" in capabilities
+
+
+def test_single_installation_path_registry_has_locator_only_g1_and_g3_paths() -> None:
+    registry = json.loads((ROOT / "docs" / "agent" / "PATH_REGISTRY.yaml").read_text(encoding="utf-8"))
+    assert registry["revision"] == "1.0.23"
+    paths = registry["paths"]
+    ids = [path["id"] for path in paths]
+    assert len(ids) == len(set(ids))
+    by_id = {path["id"]: path for path in paths}
+    expected = {
+        "PATH.DEV.RELEASE_CANDIDATE": (
+            "ROOT.REPO",
+            "release_staging/candidate/{relative_path}",
+        ),
+        "PATH.DEV.RELEASE_PUBLISHED": (
+            "ROOT.REPO",
+            "release_staging/published/{identity}/{relative_path}",
+        ),
+        "PATH.RUNTIME.OPERATIONAL_LEGACY_ARCHIVE": (
+            "ROOT.OPERATIONAL",
+            "Data/data/backups/legacy-roots/{archive_id}/{relative_path}",
+        ),
+        "PATH.RUNTIME.OPERATIONAL_LEGACY_RETIREMENT_RECEIPT": (
+            "ROOT.OPERATIONAL",
+            "control/legacy-root-retirement/{archive_id}.json",
+        ),
+    }
+    for path_id, (root_id, template) in expected.items():
+        assert by_id[path_id]["root_id"] == root_id
+        assert by_id[path_id]["relative_template"] == template
+        assert by_id[path_id]["status"] == "RESERVED"
+
+    bindings = [
+        binding
+        for binding in registry["wp_bindings"]
+        if binding["wp_id"] == "WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01"
+    ]
+    assert len(bindings) == 1
+    binding = bindings[0]
+    assert set(expected) <= set(binding["path_ids"])
+    prior_b09_update_volume_ids = {
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_STATE",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_ROLLBACK",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_STAGE",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_FAILED_GENERATION",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_HELD_OLD_EXE",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_LOCK",
+        "PATH.RUNTIME.OPERATIONAL_UPDATE_LOCK_METADATA",
+    }
+    assert not prior_b09_update_volume_ids.intersection(binding["path_ids"])
 
 
 def test_external_artifact_receipt_owns_installer_hash() -> None:

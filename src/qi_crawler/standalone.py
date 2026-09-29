@@ -191,11 +191,24 @@ def authorize_frozen_runtime(arguments: list[str]) -> str:
             raise StandaloneResourceError("CANDIDATE_RELEASE_CHANNEL_INVALID")
         if executable.parent.parent.name != "Current":
             raise StandaloneResourceError("OPERATIONAL_LAYOUT_INVALID")
-        from .operational_release import OPERATIONAL_ROOT, bind_operational_runtime_environment
+        from .operational_release import (
+            OPERATIONAL_ROOT,
+            bind_operational_runtime_environment,
+            operational_paths,
+        )
+        from .operational_update import (
+            OperationalUpdateError,
+            assert_operational_startup_allowed,
+        )
 
         operational_root = executable.parent.parent.parent.resolve(strict=False)
         if operational_root != OPERATIONAL_ROOT.resolve(strict=False):
             raise StandaloneResourceError("OPERATIONAL_ROOT_MISMATCH")
+
+        try:
+            assert_operational_startup_allowed(operational_paths(operational_root))
+        except OperationalUpdateError as exc:
+            raise StandaloneResourceError(str(exc)) from exc
 
         bind_operational_runtime_environment(executable)
         return "ACCEPTED_OPERATIONAL"

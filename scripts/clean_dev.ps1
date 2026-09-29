@@ -5,8 +5,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path -LiteralPath $Root).Path
+$normalizedRoot = [IO.Path]::GetFullPath($repositoryRoot).TrimEnd('\')
+if ([string]::Equals($normalizedRoot, 'D:\QI-Crawler', [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing cleanup for the operational installation root"
+}
+$gitTopLevel = (& git -C $repositoryRoot rev-parse --show-toplevel 2>$null)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$gitTopLevel)) {
+    throw "Cleanup root must be a Git repository top-level"
+}
+$resolvedTopLevel = [IO.Path]::GetFullPath(([string]$gitTopLevel).Trim()).TrimEnd('\')
+if (-not [string]::Equals($resolvedTopLevel, $normalizedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Cleanup root must be the exact Git top-level"
+}
 $allowedTargets = @(
-    ".pytest_cache", ".ruff_cache", "__pycache__", "build", "dist", "release_staging", ".tmp"
+    ".pytest_cache", ".ruff_cache", "__pycache__", "build", "dist", ".tmp"
 )
 
 function Test-TrackedPath([string]$RelativePath) {

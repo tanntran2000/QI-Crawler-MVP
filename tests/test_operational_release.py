@@ -67,6 +67,7 @@ def _write_metadata(
     channel: str = "INTERNAL_PILOT",
     source_sha: str = SOURCE_SHA,
     source_branch: str = "release/v0.10-b09-operational-rebind-01",
+    version: str = operational_release.__version__,
 ) -> dict[str, str]:
     executable = bundle / "QI-Crawler.exe"
     executable.write_bytes(b"synthetic-operational-executable")
@@ -74,7 +75,7 @@ def _write_metadata(
     manifest = {
         "metadata_schema_version": "qi-crawler-installed-release-v1",
         "product": "QI-Crawler",
-        "version": "0.10.0",
+        "version": version,
         "source_git_sha": source_sha,
         "source_branch": source_branch,
         "build_timestamp_utc": "2026-09-22T00:00:00Z",
@@ -158,6 +159,88 @@ def _write_operational_fixture(
             json.dumps(receipt, indent=2) + "\n", encoding="utf-8"
         )
     return paths.executable, paths.database_path
+
+
+def test_operational_acceptance_v2_separates_application_and_migration_sources(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "operational"
+    executable, _ = _write_operational_fixture(root)
+    paths = operational_paths(root)
+    migration_bytes = paths.migration_receipt_path.read_bytes()
+
+    manifest = json.loads(paths.release_manifest_path.read_text(encoding="utf-8"))
+    manifest["source_git_sha"] = VERIFIED_MAIN_SHA
+    paths.release_manifest_path.write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    paths.build_info_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
+        encoding="utf-8",
+    )
+
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["acceptance_schema_version"] = "qi-crawler-operational-acceptance-v2"
+    acceptance["source_git_sha"] = VERIFIED_MAIN_SHA
+    acceptance["release_manifest_sha256"] = _sha256(paths.release_manifest_path).lower()
+    acceptance["build_info_sha256"] = _sha256(paths.build_info_path).lower()
+    assert acceptance["migration_source_sha"] == SOURCE_SHA
+    paths.acceptance_path.write_text(
+        json.dumps(acceptance, indent=2) + "\n", encoding="utf-8"
+    )
+
+    validated = validate_operational_acceptance(executable)
+
+    assert validated["source_git_sha"] == VERIFIED_MAIN_SHA
+    assert validated["migration_source_sha"] == SOURCE_SHA
+    assert paths.migration_receipt_path.read_bytes() == migration_bytes
+
+
+def test_acceptance_payload_keeps_migration_database_hash_immutable(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "operational"
+    _, database = _write_operational_fixture(root)
+    paths = operational_paths(root)
+    migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
+    baseline_sha = migration["output_db_sha256"]
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE runtime_only(value TEXT NOT NULL)")
+        connection.commit()
+    assert _sha256(database).lower() != baseline_sha.lower()
+
+    bundle = operational_release._bundle_identity(paths.application_root)
+    payload = operational_release._operational_acceptance_payload(paths, bundle, migration)
+
+    assert payload["database_sha256"] == baseline_sha.lower()
+
+
+def test_operational_acceptance_v1_keeps_source_identity_equality(tmp_path: Path) -> None:
+    root = tmp_path / "operational"
+    executable, _ = _write_operational_fixture(root)
+    paths = operational_paths(root)
+
+    manifest = json.loads(paths.release_manifest_path.read_text(encoding="utf-8"))
+    manifest["source_git_sha"] = VERIFIED_MAIN_SHA
+    paths.release_manifest_path.write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    paths.build_info_path.write_text(
+        "\n".join(f"{key}={value}" for key, value in manifest.items()) + "\n",
+        encoding="utf-8",
+    )
+    acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
+    acceptance["source_git_sha"] = VERIFIED_MAIN_SHA
+    acceptance["release_manifest_sha256"] = _sha256(paths.release_manifest_path)
+    acceptance["build_info_sha256"] = _sha256(paths.build_info_path)
+    paths.acceptance_path.write_text(
+        json.dumps(acceptance, indent=2) + "\n", encoding="utf-8"
+    )
+
+    with pytest.raises(
+        OperationalReleaseError, match="OPERATIONAL_MIGRATION_PROVENANCE_MISMATCH"
+    ):
+        validate_operational_acceptance(executable)
 
 
 def test_internal_pilot_requires_operational_acceptance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -314,6 +397,7 @@ def test_successful_synthetic_promotion_is_internally_coherent(tmp_path: Path) -
     assert paths.database_path.is_file()
     acceptance = validate_operational_acceptance(paths.executable)
     assert acceptance["operational_root"] == str(destination.resolve())
+    assert acceptance["acceptance_schema_version"] == "qi-crawler-operational-acceptance-v2"
     migration = json.loads(paths.migration_receipt_path.read_text(encoding="utf-8"))
     assert acceptance["database_sha256"] == migration["output_db_sha256"]
     storage = yaml.safe_load(paths.config_path.read_text(encoding="utf-8"))["storage"]
@@ -365,7 +449,11 @@ def test_pre_cutover_config_is_rebound_only_after_stage_acceptance(
     stage_validated = False
     prebound = False
 
-    def validate(executable: Path, *, expected_version: str = "0.10.0") -> dict[str, object]:
+    def validate(
+        executable: Path,
+        *,
+        expected_version: str = operational_release.__version__,
+    ) -> dict[str, object]:
         nonlocal stage_validated
         if ".stage-" in str(executable):
             stage_paths = operational_paths(executable.parent.parent.parent)
@@ -524,7 +612,12 @@ def _live_promotion_inputs(
 ) -> tuple[Path, Path, Path, str]:
     source_bundle = tmp_path / "candidate" / "app" / "QI-Crawler"
     source_bundle.mkdir(parents=True)
-    _write_metadata(source_bundle, source_sha=source_sha, source_branch="main")
+    _write_metadata(
+        source_bundle,
+        source_sha=source_sha,
+        source_branch="main",
+        version=operational_release.LIVE_VERSION,
+    )
     source_data = tmp_path / "appdata" / "QI-Crawler"
     _create_database_at_0020(source_data / "data" / "database" / "egp.db", source_data)
     (source_data / "config.yaml").write_text("storage: {}\n", encoding="utf-8")
@@ -557,6 +650,16 @@ def _live_promotion_inputs(
         lambda root: source_sha,
     )
     return source_bundle, source_data, destination, source_sha
+
+
+def test_live_promotion_fixture_preserves_legacy_0100_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _, _, _ = _live_promotion_inputs(tmp_path, monkeypatch)
+    manifest = json.loads((bundle / "release_manifest.json").read_text(encoding="utf-8"))
+
+    assert operational_release.LIVE_VERSION == "0.10.0"
+    assert manifest["version"] == operational_release.LIVE_VERSION
 
 
 def test_live_promotion_rejects_premerge_sha_against_verified_main_head(
@@ -1065,7 +1168,10 @@ def test_live_promotion_success_is_coherent_and_preserves_source(
         execute=True,
     )
     assert result["status"] == "PROMOTED_LIVE"
-    assert validate_operational_acceptance(operational_paths(destination).executable)["operational_root"] == str(destination.resolve())
+    assert validate_operational_acceptance(
+        operational_paths(destination).executable,
+        expected_version=operational_release.LIVE_VERSION,
+    )["operational_root"] == str(destination.resolve())
     assert Path(result["rollback_root"]).is_dir()
     assert operational_release._tree_snapshot(bundle) == before_bundle
     assert operational_release._tree_snapshot(source_data) == before_data
