@@ -809,13 +809,37 @@ G1_C07_FAILED_NODE = tests/test_operational_update.py::test_non_cooperative_old_
 G1_C07_ROOT_CAUSE = WP_TEST_SEAM_DEFECT; CAPTURED PRODUCTION OPENER RUNS UNDER SYNTHETIC os.name=nt AND IMPORTS msvcrt ON LINUX; ModuleNotFoundError BYPASSES THE INJECTED THIRD-CALL PermissionError; PRODUCTION DEFECT NOT ESTABLISHED
 G1_C07_WRITE_SCOPE = tests/test_operational_update.py ONLY; NO PRODUCTION SOURCE/SCRIPT, WORKFLOW OR DEPENDENCY CHANGE
 G1_C07_RED = HOSTED EXACT-HEAD FAILURE IS THE TDD RED; NO LOCAL RED RETRY
-G1_C07_GREEN = NOT YET RUN; NOT CLAIMED
+G1_C07_GREEN = LOCAL GREEN VERIFIED AT 285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab; EXACT NODE 1 PASSED; AFFECTED MATRIX 170 PASSED / 3 SKIPPED / 0 FAILED; SCOPED RUFF PASS
 G1_C07_COLLECTION_BASELINE = 1,782; ZERO COLLECTION ERRORS; FINAL MUST NOT DECREASE
 G1_C07_PLUGIN_CODEGRAPH = USED_AND_SUCCEEDED; exact test/helper/opener queried before source read; blast radius bounded to synthetic test and read-only production opener; edit radius one test file; test radius exact node; limitation graph is impact evidence only
 G1_C07_PLUGIN_SYSTEMATIC_DEBUGGING = USED_AND_SUCCEEDED; retained Ubuntu traceback + test-helper/opener data-flow traced; root cause isolated to captured Windows-only opener under Linux synthetic os.name; no production defect established
-G1_C07_PLUGIN_TDD = USED_AND_SUCCEEDED; prior hosted exact-node RED; smallest test-seam-only fix; one targeted GREEN pending
-G1_C07_PLUGIN_VERIFICATION = REQUIRED before Builder return; impact/edit/test radii limited to G1-C07; fresh native exit/count, scoped Ruff, collection, diff/scope/tree evidence required
+G1_C07_PLUGIN_TDD = USED_AND_SUCCEEDED; hosted exact-node RED retained; one test-seam-only correction; exact local GREEN and one affected matrix PASS
+G1_C07_PLUGIN_VERIFICATION = USED_AND_SUCCEEDED; exact native exits/counts, scoped Ruff, final collection, diff/scope/tree evidence checked before Builder return; no full-suite or hosted-green claim
 G1_C07_CODEBASE_MEMORY = NOT_INDEXED/NO INDEX AUTHORIZED; no readiness or runtime claim
-G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS for opening sync after static validation
-G1_C07_NEXT = BUILDER IMPLEMENTS THE ONE TEST-ONLY CHANGE, RUNS AUTHORIZED LOCAL CHECKS, THEN RETURNS TO PLANNER; NO PUSH UNTIL TESTER/REVIEWER/PLANNER RECONCILIATION
+G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS for terminal local-result sync after static validation
+G1_C07_NEXT = PLANNER REVIEWS THIS LOCAL CANDIDATE AND ASSIGNS CANONICAL TESTER/REVIEWER; NO PUSH UNTIL THEIR EXACT-HEAD EVIDENCE AND PLANNER RECONCILIATION
+~~~
+
+### G1-C07 local verification result
+
+The minimal test-only seam correction is committed at `285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab`. On non-Windows synthetic runs, the exclusive-data-handle branch now uses a host-valid read-only file handle for non-denied opens; on Windows it retains the captured production exclusive opener. The intended injected third-call `PermissionError`, expected `UPDATE_DATA_RESOURCE_HELD`, `FAILED_NO_MUTATION`, identity preservation, and absent-marker assertions were unchanged. Production source remains byte-for-byte unchanged.
+
+The exact parameterized node passed once. The one authorized affected-file matrix passed, scoped Ruff passed, and final collection matched the 1,782 baseline with zero errors. The prior hosted RED remains attached only to source `bc2f06a`; there is no hosted run for `285fb34`. No full local suite, retry, push, or CI rerun occurred.
+
+~~~text
+G1_C07_IMPLEMENTATION_COMMIT = 285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab; PARENT d697eb5ad82a98b51bc8eb851f050d479d1099c4; EXACT PATH tests/test_operational_update.py; 7 INSERTIONS
+G1_C07_TARGETED_COMMAND = python -m pytest -ra --basetemp .tmp/w3/c07a31/t 'tests/test_operational_update.py::test_non_cooperative_old_binary_census_fails_before_app_mutation[exclusive_data_handle-UPDATE_DATA_RESOURCE_HELD]'
+G1_C07_TARGETED_RESULT = NATIVE EXIT 0; 1 PASSED / 0 FAILED; 1 NON-FAILING PytestCacheWarning; PYTEST 1.96s; RUN .tmp/w3/c07a31; 22 FILES / 1,035,737 BYTES; STDOUT 1,075 BYTES SHA256 0BDB2F7FF7852902A65802AA328AD9B0DD8402704CF0F705FD13AB00F65EFBA6; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+G1_C07_TARGETED_D_FREE = 16,023,425,024 BEFORE / 16,022,368,256 AFTER
+G1_C07_MATRIX_COMMAND = python -m pytest -ra --basetemp .tmp/w3/c07b42/t tests/test_operational_update.py tests/test_windows_installer.py
+G1_C07_MATRIX_RESULT = NATIVE EXIT 0; 170 PASSED / 3 SKIPPED / 0 FAILED; 1 NON-FAILING PytestCacheWarning; PYTEST 171.06s; RUN .tmp/w3/c07b42; 2,749 FILES / 13,039,694 BYTES; STDOUT 2,031 BYTES SHA256 735CAD5E0E03E9D2FED6A36540C9D2F78960E8B7AD28A1915B23F8209618D305; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+G1_C07_MATRIX_SKIP_REASONS = TWO SYMLINK-CREATION LIMITATIONS; ONE UNSUPPORTED NON-WINDOWS BEHAVIOR TEST
+G1_C07_MATRIX_D_FREE = 16,022,368,256 BEFORE / 16,000,983,040 AFTER
+G1_C07_SCOPED_RUFF = .venv\Scripts\python.exe -m ruff check tests/test_operational_update.py; NATIVE EXIT 0; ALL CHECKS PASSED
+G1_C07_FINAL_COLLECTION = .venv\Scripts\python.exe -m pytest --collect-only -q --basetemp .tmp/w3/c07c19/t; NATIVE EXIT 0; 1,782 COLLECTED; ZERO ERRORS; BASELINE 1,782; RUN .tmp/w3/c07c19; 2 FILES / 176,864 BYTES; STDOUT SHA256 13596F4D18A54A2D6073C6E34A0E887AE05EE77A3947DBA343CE36AAEF38C173
+G1_C07_FINAL_COLLECTION_D_FREE = 16,000,983,040 BEFORE / 16,004,014,080 AFTER
+G1_C07_STATIC_SCOPE = git diff --check PASS; IMPLEMENTATION COMMIT EXACTLY ONE AUTHORIZED TEST PATH; NO PRODUCTION SOURCE/SCRIPT/WORKFLOW/DEPENDENCY DELTA; TRACKED/INDEX CLEAN; UNKNOWN UNTRACKED PRESERVED
+G1_C07_HOSTED_STATE = PRIOR RUN 36528853589 RED ONLY AT bc2f06a; NO HOSTED CHECK ON 285fb34; HOSTED CI PENDING CANONICAL TESTER/REVIEWER/PLANNER
+G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; DOCS TERMINAL SYNC REQUIRED BEFORE PLANNER RETURN
+G1_C07_NEXT = PLANNER REVIEWS EXACT LOCAL CANDIDATE AND DISPATCHES CANONICAL TESTER/REVIEWER; NO PUSH UNTIL GOVERNED RECONCILIATION
 ~~~
