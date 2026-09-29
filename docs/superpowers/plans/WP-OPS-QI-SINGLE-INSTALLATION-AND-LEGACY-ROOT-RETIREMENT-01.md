@@ -809,22 +809,22 @@ G1_C07_FAILED_NODE = tests/test_operational_update.py::test_non_cooperative_old_
 G1_C07_ROOT_CAUSE = WP_TEST_SEAM_DEFECT; CAPTURED PRODUCTION OPENER RUNS UNDER SYNTHETIC os.name=nt AND IMPORTS msvcrt ON LINUX; ModuleNotFoundError BYPASSES THE INJECTED THIRD-CALL PermissionError; PRODUCTION DEFECT NOT ESTABLISHED
 G1_C07_WRITE_SCOPE = tests/test_operational_update.py ONLY; NO PRODUCTION SOURCE/SCRIPT, WORKFLOW OR DEPENDENCY CHANGE
 G1_C07_RED = HOSTED EXACT-HEAD FAILURE IS THE TDD RED; NO LOCAL RED RETRY
-G1_C07_GREEN = LOCAL GREEN VERIFIED AT 285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab; EXACT NODE 1 PASSED; AFFECTED MATRIX 170 PASSED / 3 SKIPPED / 0 FAILED; SCOPED RUFF PASS
+G1_C07_GREEN = CANONICAL TESTER PASS AT DOCS/CANDIDATE HEAD d4efd4aa6955d3f929f49991689b3627934100ba; MATRIX 170 PASSED / 3 GOVERNED SKIPPED / 0 FAILED; SCOPED RUFF AND COLLECTION PASS
 G1_C07_COLLECTION_BASELINE = 1,782; ZERO COLLECTION ERRORS; FINAL MUST NOT DECREASE
 G1_C07_PLUGIN_CODEGRAPH = USED_AND_SUCCEEDED; exact test/helper/opener queried before source read; blast radius bounded to synthetic test and read-only production opener; edit radius one test file; test radius exact node; limitation graph is impact evidence only
 G1_C07_PLUGIN_SYSTEMATIC_DEBUGGING = USED_AND_SUCCEEDED; retained Ubuntu traceback + test-helper/opener data-flow traced; root cause isolated to captured Windows-only opener under Linux synthetic os.name; no production defect established
 G1_C07_PLUGIN_TDD = USED_AND_SUCCEEDED; hosted exact-node RED retained; one test-seam-only correction; exact local GREEN and one affected matrix PASS
 G1_C07_PLUGIN_VERIFICATION = USED_AND_SUCCEEDED; exact native exits/counts, scoped Ruff, final collection, diff/scope/tree evidence checked before Builder return; no full-suite or hosted-green claim
 G1_C07_CODEBASE_MEMORY = NOT_INDEXED/NO INDEX AUTHORIZED; no readiness or runtime claim
-G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS for terminal local-result sync after static validation
-G1_C07_NEXT = PLANNER REVIEWS THIS LOCAL CANDIDATE AND ASSIGNS CANONICAL TESTER/REVIEWER; NO PUSH UNTIL THEIR EXACT-HEAD EVIDENCE AND PLANNER RECONCILIATION
+G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS FOR CORRECTED EVIDENCE-PROVENANCE DOCS; HANDOFF_READY=NO UNTIL REVIEWER RE-AUDIT
+G1_C07_NEXT = REVIEWER RE-AUDITS THIS CORRECTED THREE-DOCUMENT EVIDENCE-PROVENANCE OBJECT; HOSTED CHECK ON EXACT CODE HEAD STILL REQUIRED BEFORE ANY REMOTE TRANSITION
 ~~~
 
 ### G1-C07 local verification result
 
 The minimal test-only seam correction is committed at `285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab`. On non-Windows synthetic runs, the exclusive-data-handle branch now uses a host-valid read-only file handle for non-denied opens; on Windows it retains the captured production exclusive opener. The intended injected third-call `PermissionError`, expected `UPDATE_DATA_RESOURCE_HELD`, `FAILED_NO_MUTATION`, identity preservation, and absent-marker assertions were unchanged. Production source remains byte-for-byte unchanged.
 
-The exact parameterized node passed once. The one authorized affected-file matrix passed, scoped Ruff passed, and final collection matched the 1,782 baseline with zero errors. The prior hosted RED remains attached only to source `bc2f06a`; there is no hosted run for `285fb34`. No full local suite, retry, push, or CI rerun occurred.
+The exact parameterized node, one affected-file matrix, scoped Ruff, and final collection were reported as passing by the Builder at the time. The raw run roots `.tmp/w3/c07a31`, `.tmp/w3/c07b42`, and `.tmp/w3/c07c19` were absent at the canonical Tester checkpoint; they later became visible without a governed restoration/identity chain. Reviewer finding `G1-C07-R01` therefore makes those Builder raw-evidence claims inadmissible for remote transition. Preserve their historic Builder-reported status only; do not inspect or re-admit the roots. Canonical Tester evidence below supersedes them.
 
 ~~~text
 G1_C07_IMPLEMENTATION_COMMIT = 285fb34f2b1cb4490dabed8bf95b9016bbd2b6ab; PARENT d697eb5ad82a98b51bc8eb851f050d479d1099c4; EXACT PATH tests/test_operational_update.py; 7 INSERTIONS
@@ -840,6 +840,27 @@ G1_C07_FINAL_COLLECTION = .venv\Scripts\python.exe -m pytest --collect-only -q -
 G1_C07_FINAL_COLLECTION_D_FREE = 16,000,983,040 BEFORE / 16,004,014,080 AFTER
 G1_C07_STATIC_SCOPE = git diff --check PASS; IMPLEMENTATION COMMIT EXACTLY ONE AUTHORIZED TEST PATH; NO PRODUCTION SOURCE/SCRIPT/WORKFLOW/DEPENDENCY DELTA; TRACKED/INDEX CLEAN; UNKNOWN UNTRACKED PRESERVED
 G1_C07_HOSTED_STATE = PRIOR RUN 36528853589 RED ONLY AT bc2f06a; NO HOSTED CHECK ON 285fb34; HOSTED CI PENDING CANONICAL TESTER/REVIEWER/PLANNER
-G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; DOCS TERMINAL SYNC REQUIRED BEFORE PLANNER RETURN
-G1_C07_NEXT = PLANNER REVIEWS EXACT LOCAL CANDIDATE AND DISPATCHES CANONICAL TESTER/REVIEWER; NO PUSH UNTIL GOVERNED RECONCILIATION
+G1_C07_BUILDER_LOCAL_SYNC = HISTORIC BUILDER RESULT SYNC; RAW ROOT CLAIMS NOW INADMISSIBLE_FOR_REMOTE_TRANSITION BY R01
+G1_C07_BUILDER_LOCAL_NEXT = PLANNER-REVIEW HANDOFF WAS THE PRIOR BUILDER STATE; SUPERSEDED BY CANONICAL TESTER EVIDENCE AND REVIEWER RE-AUDIT
+~~~
+
+### G1-C07 canonical Tester evidence and R01 provenance disposition
+
+Reviewer finding `G1-C07-R01` is IMPORTANT/BLOCKING because the raw Builder evidence roots were absent when the canonical Tester checked them, and their later visibility has no governed provenance chain. The Work Order retains the fact that the Builder reported runs at `.tmp/w3/c07a31`, `.tmp/w3/c07b42`, and `.tmp/w3/c07c19`, but marks their raw output, hashes, counts, and timings `INADMISSIBLE_FOR_REMOTE_TRANSITION`. Those roots were not inspected or re-admitted for this correction.
+
+Canonical Tester evidence at exact candidate HEAD `d4efd4aa6955d3f929f49991689b3627934100ba` supersedes those Builder claims. The Tester matrix and scoped Ruff passed, and collect-only passed with 1,782 tests and zero errors. Tester ran on Windows; the POSIX branch remains unproven until hosted Ubuntu CI reports for the exact code head. The hosted RED at `bc2f06a`, correction attempt accounting `2/2`, and whole-Parent HOLD remain unchanged.
+
+~~~text
+G1_C07_REVIEWER_FINDING = G1-C07-R01; IMPORTANT/BLOCKING; BUILDER RUN ROOTS ABSENT AT CANONICAL TESTER CHECKPOINT; LATER VISIBILITY WITHOUT GOVERNED RESTORATION/IDENTITY CHAIN DOES NOT REPAIR PROVENANCE
+G1_C07_BUILDER_RAW_ROOTS = .tmp/w3/c07a31 / .tmp/w3/c07b42 / .tmp/w3/c07c19; HISTORICALLY REPORTED BY BUILDER; NOT INSPECTED OR RE-ADMITTED
+G1_C07_BUILDER_RAW_EVIDENCE_STATUS = INADMISSIBLE_FOR_REMOTE_TRANSITION; PRESERVE REPORTED HISTORY ONLY; RAW COUNTS/HASHES/TIMINGS NOT ACCEPTANCE EVIDENCE
+G1_C07_CANONICAL_TESTER_CANDIDATE = d4efd4aa6955d3f929f49991689b3627934100ba; TESTER REPORT ID WAS NOT INCLUDED IN THE ADMITTED CORRECTION PACKET; PLANNER-ADMITTED CANONICAL TESTER RESULTS
+G1_C07_TESTER_MATRIX = .tmp/w3/e31c5a; NATIVE EXIT 0; 173 COLLECTED / 170 PASSED / 3 GOVERNED SKIPPED / 0 FAILED; 171.447s; 2,755 FILES / 13,044,608 BYTES; STDOUT SHA256 F24245535269A2EB674F63B5930F77A8605FB0D64040439C9C8BC20B017FB2F1; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+G1_C07_TESTER_RUFF = SCOPED RUFF PASS AT d4efd4a
+G1_C07_TESTER_COLLECTION = .tmp/w3/e31c5b; NATIVE EXIT 0; 1,782 COLLECTED / ZERO ERRORS; STDOUT SHA256 3751037F6D69812BB0839A795B810F5802C367E752CFD205A12D87BA3CE7D702; STDERR EMPTY SHA256 E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
+G1_C07_TESTER_PLATFORM_LIMIT = TESTER HOST WINDOWS; POSIX BRANCH REMAINS UNPROVEN UNTIL EXACT-HEAD HOSTED UBUNTU CI
+G1_C07_REVIEWER_REAUDIT = REQUIRED; CORRECTED DOCUMENTS ARE NOT YET REVIEWED; HANDOFF_READY=NO UNTIL RE-AUDIT
+G1_C07_CORRECTION_BUDGET = 2/2 CONSUMED; NO FURTHER CODE/CI CORRECTION ATTEMPT AUTHORIZED
+G1_C07_R01_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS FOR THIS CORRECTED DOC OBJECT ONLY
+G1_C07_R01_NEXT = REVIEWER RE-AUDITS THE CORRECTED THREE-DOCUMENT EVIDENCE-PROVENANCE OBJECT; NO REMOTE ACTION
 ~~~
