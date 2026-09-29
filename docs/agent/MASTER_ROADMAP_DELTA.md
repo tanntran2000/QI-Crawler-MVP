@@ -2125,3 +2125,27 @@ G1_C03_RELEASE_IMPACT = SOURCE METADATA REMAINS 0.10.1 INTERNAL/UNRELEASED; NO V
 G1_C03_VERIFICATION_STATE = PAIRED TARGETED GREEN; FULL SEQUENTIAL GATE REMAINS CONSUMED RED WITH ONE DOCUMENT FAILURE
 NEXT = PLANNER REVIEWS EXACT C03 GOVERNANCE/DOC/TERMINAL SYNC AND DECIDES THE NEXT REVIEW TRANSITION
 ~~~
+
+## Single-installation G1-C04 — final verification and scope hold
+
+Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04 verified candidate ec0d4af193711957876764a0681c441ccbb8a87a. The one authorized full sequential run passed: 1,781 collected; 1,776 passed; 5 governed skips; zero failures; one PytestCacheWarning; 1,143.19s pytest / 1,148.401s wall. Its .tmp/w3/9541a1 evidence is retained (15,796 files / 621,125,467 bytes after pytest and Ruff); all run budgets passed and there was no retry or cleanup.
+
+The authorized .venv\Scripts\python.exe -m ruff check . invocation failed with native exit 1 and 8 findings exclusively under preserved unknown untracked $RECYCLE.BIN\...\School.py. The file was not opened or changed and the command was not narrowed; no candidate path was reported. Record LOCAL_FULL_RUFF_GATE=FAIL and candidate causation NOT_ESTABLISHED. Planner classifies Ruff fitness for this persistent local workspace as OVERBROAD because it traverses untracked content; clean-checkout hosted Ruff remains required later. This does not convert the failed command to PASS or authorize another invocation.
+
+Static gates passed, including diff-check, registry revision 1.0.23 with 65 unique PATH_IDs / 21 WP bindings / no unresolved refs, CURRENT's 142 unique mandatory keys, changelog/guide markers, no deletion and clean tracked/index state. The candidate nevertheless remains HOLD because commit 795c554246c13b838e4cb9a6d434159ab09efbfe changed tests/test_repo_hygiene.py, absent from the exact write allowlist. That test delta checks the in-scope clean-dev safety requirements. Preserve the fact as PLAN_ALLOWLIST_OMISSION and BUILDER_SCOPE_BREACH; do not claim retroactive authorization or rewrite history.
+
+Planner recommends that Human A0 decide whether a forward governance correction may retain exactly that existing test delta as the accepted G1 baseline while recording the deviation, and whether to authorize one replacement Ruff over the immutable list of all tracked Python files (currently 255; capture list/count/SHA/native exit). This recommendation grants no authority. No replacement Ruff, pytest, fix, Reviewer handoff or remote action is performed. Human authority for the exact test/Ruff/static sequence is routed as FB-0061 and consumed. Unknown files remain KEEP.
+
+~~~text
+DELTA_ID = QI-SINGLE-INSTALLATION-G1-C04-FINAL-VERIFICATION-SCOPE-HOLD-20260929
+TESTER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04
+TESTED_HEAD = ec0d4af193711957876764a0681c441ccbb8a87a
+PYTEST = NATIVE EXIT 0; 1,781 COLLECTED; 1,776 PASSED; 5 GOVERNED SKIPS; 0 FAILED; 1 WARNING; 1,143.19s / 1,148.401s WALL; .tmp/w3/9541a1; 15,796 FILES / 621,125,467 BYTES; BUDGETS PASS
+RUFF = .venv\Scripts\python.exe -m ruff check .; NATIVE EXIT 1; 8 FINDINGS UNDER PRESERVED UNKNOWN UNTRACKED $RECYCLE.BIN\...\School.py; LOCAL GATE FAIL
+RUFF_CLASSIFICATION = PERSISTENT DIRTY-WORKSPACE FITNESS OVERBROAD; CLEAN-CHECKOUT HOSTED CHECK REQUIRED LATER; FAILED COMMAND NOT PASS; CANDIDATE CAUSATION NOT_ESTABLISHED
+STATIC_GATES = PASS; DIFF-CHECK; REGISTRY 1.0.23/65 PATH_IDS/21 WP BINDINGS/NO UNRESOLVED REFS; CURRENT 142 KEYS; MARKERS; NO DELETION; TRACKED/INDEX CLEAN
+SCOPE = HOLD; PLAN_ALLOWLIST_OMISSION=YES; BUILDER_SCOPE_BREACH=YES; tests/test_repo_hygiene.py WAS CHANGED BY 795c554 BUT WAS NOT IN THE EXACT G1 WRITE ALLOWLIST
+PLANNER_RECOMMENDATION = SEEK HUMAN A0 FORWARD DISPOSITION OF THE EXISTING EXACT TEST DELTA AND ONE TRACKED-PYTHON-PATH RUFF CHECK; NO AUTHORIZATION GRANTED BY THIS RECOMMENDATION
+HUMAN_AUTHORITY = EXACT ec0d4af PYTEST/RUFF/STATIC FOLLOW-ON AND TERMINAL DOC EVIDENCE RULE; ROUTED AS FB-0061; CONSUMED
+G1_CANDIDATE = HOLD; REVIEWER HANDOFF NO; REMOTE READY NO
+~~~

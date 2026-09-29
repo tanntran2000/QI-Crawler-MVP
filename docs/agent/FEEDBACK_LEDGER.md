@@ -1546,3 +1546,24 @@ Boundary: This authority covered only the one exact post-C02 full sequential run
 Disposition: ACCEPTED / ROUTED_TO_G1_C03_WORK_ORDER_DELTA_CURRENT_AND_FAILURE_MEMORY
 Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
 ~~~
+
+### FB-0061 — Human A0 exact-candidate verification authority
+
+~~~text
+State: ACCEPTED / EXACT_HEAD_TEST_AND_FOLLOW_ON_AUTHORITY_CONSUMED
+Author: Human A0
+Role: HUMAN_AUTHORITY
+Authority: Direct Human A0 packet relayed in Planner task /root, 2026-09-29; no separate decision ID supplied
+Type: LOCAL_VERIFICATION / TEST_AUTHORITY / EVIDENCE_RETENTION / TERMINAL_DOC_SYNC
+WP: WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01 rev2-corr1; G1 final verification
+Decision:
+  TESTED_CANDIDATE_HEAD = ec0d4af193711957876764a0681c441ccbb8a87a
+  FULL_SEQUENTIAL_PYTEST = ONE RUN; native exit 0; 1,781 collected; 1,776 passed / 5 governed skips / 0 failed; no retry
+  FOLLOW_ON = ONE REPOSITORY Ruff invocation and prescribed read-only static gates were authorized after pytest PASS
+  TERMINAL_DOC_SYNC = RECORD exact evidence and limitations in Work Order, Delta, CURRENT and applicable Feedback/Failure Memory authorities
+  TESTER_EVIDENCE = report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04; retained .tmp/w3/9541a1
+Boundary: The verification authority is consumed. The Ruff invocation returned native exit 1 with eight findings in preserved unknown untracked content; this does not authorize a replacement or narrowed Ruff invocation. The packet does not retroactively authorize the existing tests/test_repo_hygiene.py delta outside the exact G1 write allowlist. No test/source fix, rerun, cleanup, remote operation, Reviewer handoff, release or operational action is authorized by this entry.
+Outcome: Full sequential pytest PASS; local full Ruff FAIL; static gates PASS; scope gate HOLD due the recorded allowlist omission and Builder scope breach. Candidate causation from Ruff is not established.
+Disposition: ROUTED_TO_G1_C04_WORK_ORDER_DELTA_CURRENT_FAILURE_MEMORY
+Promoted to: docs/superpowers/plans/WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01.md; docs/agent/MASTER_ROADMAP_DELTA.md; docs/agent_handoff/CURRENT.md; docs/agent/KNOWN_FAILURE_MODES.md
+~~~

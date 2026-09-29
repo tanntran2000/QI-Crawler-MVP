@@ -613,3 +613,39 @@ G1_C03_WHOLE_SUITE = FULL SEQUENTIAL RED PRESERVED; NO SECOND FULL RUN OR RUFF A
 G1_C03_RELEASE_IMPACT = INTERNAL SOURCE VERSION REMAINS 0.10.1 UNRELEASED; NO VERSION INCREMENT, BUILD, TAG, OFFICIAL RELEASE, INSTALLATION, RUNTIME, CAPABILITY OR MATURITY CHANGE
 G1_C03_NEXT = RETURN GOVERNANCE, CHANGELOG AND TARGETED EVIDENCE TO PLANNER; NO REMOTE/OPERATIONAL EFFECTS
 ~~~
+
+### G1-C04 — final verification and scope disposition
+
+Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04 verified exact candidate HEAD ec0d4af193711957876764a0681c441ccbb8a87a from a clean tracked/index state. The one authorized full sequential run exited 0: 1,781 collected, 1,776 passed, 5 governed skips, zero failures, one PytestCacheWarning, 1,143.19 seconds pytest time and 1,148.401 seconds wall time. The retained .tmp/w3/9541a1 run had 15,796 files and 621,125,467 bytes after pytest plus Ruff; all declared run budgets passed. There was no retry or cleanup.
+
+The authorized follow-on command .venv\Scripts\python.exe -m ruff check . returned native exit 1 with 8 findings exclusively beneath preserved unknown untracked $RECYCLE.BIN\...\School.py. Tester did not open or alter that file and did not narrow the command. No candidate path was reported. Local full Ruff is FAIL; candidate causation is NOT_ESTABLISHED. Planner classifies the persistent local workspace Ruff fitness as OVERBROAD because the command traverses preserved untracked content; a clean-checkout hosted Ruff check remains required later. This classification does not convert the failed invocation to PASS or authorize a replacement invocation.
+
+Static gates passed: git diff --check; registry revision 1.0.23 with 65 unique PATH_IDs and 21 WP bindings and no unresolved references; CURRENT had 142 unique mandatory keys; changelog/guide markers were present; no deletion was recorded; tracked/index state was clean.
+
+A scope hold remains. G1 commit 795c554246c13b838e4cb9a6d434159ab09efbfe modified tests/test_repo_hygiene.py, which is absent from the exact G1 write allowlist. Its tests directly check the authorized clean-dev behavior: exact Git root, rejection of operational/non-repository roots, and preservation of release_staging evidence and published candidates. Record this as both PLAN_ALLOWLIST_OMISSION and BUILDER_SCOPE_BREACH. The useful test delta is not retroactively authorized by recording it. No amend, rebase or history rewrite is permitted.
+
+The Planner-recommended bounded Human A0 disposition is to authorize a forward governance correction retaining exactly the existing tests/test_repo_hygiene.py delta from 795c554 as the accepted G1 correction baseline while preserving the recorded deviation, and to authorize exactly one replacement Ruff verification over the immutable list of all tracked .py, .pyi and .ipynb paths (currently 255 paths, with path list/count/SHA and native exit captured). This is a recommendation only; it is not an authorization. No replacement Ruff, test rerun, fix, Reviewer handoff or remote transition is authorized by this sync.
+
+Human authority for the exact ec0d4af full run, Ruff/static follow-on and terminal docs-only evidence rule is routed in Feedback entry FB-0061. Its verification allowance is consumed. Preserve unknown untracked content; no cleanup. The candidate remains HOLD pending Human A0 disposition after Planner review.
+
+~~~text
+G1_C04_TESTER_REPORT_ID = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04
+G1_C04_TESTED_CANDIDATE_HEAD = ec0d4af193711957876764a0681c441ccbb8a87a; CLEAN TRACKED/INDEX STATE AT ENTRY AND END
+G1_C04_PYTEST_COMMAND = .venv\Scripts\python.exe -m pytest -n 0 -ra --basetemp=.tmp/w3/9541a1/t
+G1_C04_PYTEST_RESULT = NATIVE EXIT 0; 1,781 COLLECTED; 1,776 PASSED; 5 GOVERNED SKIPS; 0 FAILED; 1 PytestCacheWarning; 1,143.19s PYTEST / 1,148.401s WALL; ONE RUN / NO RETRY
+G1_C04_SCRATCH = .tmp/w3/9541a1; 15,796 FILES / 621,125,467 BYTES AFTER PYTEST AND RUFF; ALL DECLARED BUDGETS PASS; RETAINED; NO CLEANUP
+G1_C04_RUFF_COMMAND = .venv\Scripts\python.exe -m ruff check .
+G1_C04_RUFF_RESULT = NATIVE EXIT 1; 8 FINDINGS EXCLUSIVELY UNDER PRESERVED UNKNOWN UNTRACKED $RECYCLE.BIN\...\School.py; TESTER DID NOT OPEN/ALTER FILE OR NARROW COMMAND
+G1_C04_LOCAL_RUFF_GATE = FAIL; LOCAL DIRTY-WORKSPACE CI FITNESS = OVERBROAD; CLEAN-CHECKOUT HOSTED RUFF REMAINS REQUIRED LATER; FAILED INVOCATION IS NOT PASS
+G1_C04_CANDIDATE_CAUSATION = NOT_ESTABLISHED; NO CANDIDATE PATH REPORTED BY RUFF
+G1_C04_STATIC_GATES = PASS; git diff --check; registry rev 1.0.23 / 65 unique PATH_IDs / 21 bindings / no unresolved refs; CURRENT 142 unique mandatory keys; changelog/guide markers; no deletion; tracked/index clean
+G1_C04_SCOPE_GATE = HOLD; PLAN_ALLOWLIST_OMISSION = YES; BUILDER_SCOPE_BREACH = YES
+G1_C04_OUT_OF_ALLOWLIST_PATH = tests/test_repo_hygiene.py in commit 795c554246c13b838e4cb9a6d434159ab09efbfe; exact G1 write allowlist omitted this path
+G1_C04_TEST_RATIONALE = EXISTING TEST DELTA DIRECTLY CHECKS AUTHORIZED clean_dev.ps1 BEHAVIOR: EXACT GIT ROOT; REJECT OPERATIONAL/NONREPO ROOTS; PRESERVE release_staging EVIDENCE/PUBLISHED CANDIDATE
+G1_C04_NO_RETROACTIVE_AUTHORITY = RECORDING THE DEVIATION DOES NOT AUTHORIZE IT; NO AMEND/REBASE/HISTORY REWRITE
+G1_C04_PLANNER_RECOMMENDATION = HUMAN A0 MAY AUTHORIZE A FORWARD GOVERNANCE CORRECTION RETAINING EXACT EXISTING tests/test_repo_hygiene.py DELTA AS G1 BASELINE WHILE PRESERVING THE DEVIATION; AND EXACTLY ONE REPLACEMENT RUFF OVER IMMUTABLE TRACKED .py/.pyi/.ipynb LIST (CURRENTLY 255; CAPTURE LIST/COUNT/SHA/NATIVE EXIT); RECOMMENDATION ONLY, NO ACTION AUTHORITY
+G1_C04_REPLACEMENT_RUFF = NOT_AUTHORIZED; NO TEST RERUN; NO FIX/SCOPE EXPANSION
+G1_C04_HUMAN_AUTHORITY = EXACT ec0d4af FULL SEQUENTIAL RUN, RUFF/STATIC FOLLOW-ON AND TERMINAL DOCS-ONLY EVIDENCE RULE; ROUTED AS FB-0061; RUN AUTHORITY CONSUMED
+G1_C04_WHOLE_CANDIDATE = HOLD; REVIEWER_HANDOFF_READY=NO; REMOTE_READY=NO
+G1_C04_NEXT = PLANNER REVIEWS THE EVIDENCE AND PRESENTS THE BOUNDED SCOPE/RUFF DISPOSITION RECOMMENDATION TO HUMAN A0
+~~~
