@@ -10,7 +10,7 @@ import sys
 import time
 from contextlib import closing
 from dataclasses import replace
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from types import SimpleNamespace
 
 import pytest
@@ -132,6 +132,82 @@ def _app_update_fixture(root: Path) -> tuple[OperationalPaths, Path]:
         executable_bytes=b"synthetic new application",
     )
     return paths, new_bundle
+
+
+_REAL_OLD_RUNTIME_HOLDER_CHECK = operational_update._assert_no_old_runtime_holders
+_REAL_EXCLUSIVE_DATABASE_OPEN = operational_update._open_exclusive_database_file
+_REAL_PROCESS_CENSUS = operational_release._cim_process_census
+_REAL_RESTART_MANAGER_CENSUS = operational_update._restart_manager_resource_holders
+
+
+def _run_synthetic_windows_update(function, *args, **kwargs):
+    """Exercise the state machine with test-only Windows protection stand-ins."""
+    if os.name == "nt":
+        return function(*args, **kwargs)
+
+    synthetic_os = SimpleNamespace(**vars(operational_update.os))
+    synthetic_os.name = "nt"
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setattr(operational_update, "os", synthetic_os)
+        if operational_update._open_exclusive_database_file is _REAL_EXCLUSIVE_DATABASE_OPEN:
+            # POSIX read-only handles are a test seam, not Windows sharing proof.
+            patcher.setattr(
+                operational_update,
+                "_open_exclusive_database_file",
+                lambda path: path.open("rb"),
+            )
+        holder_census_is_synthetic = (
+            operational_release._cim_process_census is not _REAL_PROCESS_CENSUS
+            or operational_update._restart_manager_resource_holders
+            is not _REAL_RESTART_MANAGER_CENSUS
+        )
+        if (
+            operational_update._assert_no_old_runtime_holders
+            is _REAL_OLD_RUNTIME_HOLDER_CHECK
+            and not holder_census_is_synthetic
+        ):
+            patcher.setattr(
+                operational_update, "_assert_no_old_runtime_holders", lambda *_args: None
+            )
+        return function(*args, **kwargs)
+
+
+def _apply_synthetic_windows_update(*args, **kwargs):
+    return _run_synthetic_windows_update(
+        operational_update.apply_operational_application_update, *args, **kwargs
+    )
+
+
+def _recover_synthetic_windows_update(*args, **kwargs):
+    return _run_synthetic_windows_update(
+        operational_update.recover_operational_application_update, *args, **kwargs
+    )
+
+
+def test_public_app_update_entrypoints_fail_closed_off_windows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths, bundle = _app_update_fixture(tmp_path / "operational")
+    synthetic_posix = SimpleNamespace(**vars(operational_update.os))
+    synthetic_posix.name = "posix"
+    monkeypatch.setattr(operational_update, "os", synthetic_posix)
+
+    with pytest.raises(
+        operational_update.OperationalUpdateError,
+        match="UPDATE_WINDOWS_PROTECTION_REQUIRED",
+    ):
+        operational_update.apply_operational_application_update(
+            paths, bundle, confirmed=True
+        )
+    with pytest.raises(
+        operational_update.OperationalUpdateError,
+        match="UPDATE_WINDOWS_PROTECTION_REQUIRED",
+    ):
+        operational_update.recover_operational_application_update(paths)
+
+    assert not (paths.control_root / "update.lock").exists()
+    assert not (paths.control_root / "update_marker.json").exists()
+    assert not (paths.control_root / "updates").exists()
 
 
 def _install_uncheckpointed_wal(paths: OperationalPaths) -> None:
@@ -360,7 +436,7 @@ def test_synthetic_app_update_preserves_data_and_acceptance_baseline(
     }
     monkeypatch.setattr(operational_update, "_assert_no_old_runtime_holders", lambda *_args: None)
 
-    result = operational_update.apply_operational_application_update(
+    result = _apply_synthetic_windows_update(
         paths, bundle, confirmed=True
     )
 
@@ -418,7 +494,7 @@ def test_synthetic_app_update_preserves_uncheckpointed_wal_data_and_seals_snapsh
     assert data_before[str(Path(f"{paths.database_path}-shm"))]["exists"] is True
     monkeypatch.setattr(operational_update, "_assert_no_old_runtime_holders", lambda *_args: None)
 
-    result = operational_update.apply_operational_application_update(
+    result = _apply_synthetic_windows_update(
         paths, bundle, confirmed=True
     )
 
@@ -469,7 +545,7 @@ def test_recovery_rolls_back_exact_old_generation_after_rotation_interruption(
 
     monkeypatch.setattr(operational_update.os, "replace", replace_then_interrupt)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_FAILED"):
-        operational_update.apply_operational_application_update(
+        _apply_synthetic_windows_update(
             paths, bundle, confirmed=True
         )
 
@@ -483,7 +559,7 @@ def test_recovery_rolls_back_exact_old_generation_after_rotation_interruption(
     assert paths.acceptance_path.read_bytes() == old_acceptance
 
     monkeypatch.setattr(operational_update.os, "replace", original_replace)
-    result = operational_update.recover_operational_application_update(paths)
+    result = _recover_synthetic_windows_update(paths)
 
     recovered = json.loads(state_path.read_text(encoding="utf-8"))
     assert result["result"] == "ROLLED_BACK"
@@ -526,7 +602,7 @@ def test_sharing_violation_before_first_app_mutation_is_failed_no_mutation(
 
     monkeypatch.setattr(operational_update.os, "replace", reject_active_rotation)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_FAILED"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -576,7 +652,7 @@ def test_recovery_requires_exact_old_generation_binding_after_postcheck_interrup
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_POSTCHECK_ACCEPTANCE_FAILED"
     ):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     interrupted = json.loads(state_path.read_text(encoding="utf-8"))
@@ -590,7 +666,7 @@ def test_recovery_requires_exact_old_generation_binding_after_postcheck_interrup
         old_before = operational_update._generation_identity(old_path)
         acceptance_before = paths.acceptance_path.read_bytes()
         with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_RECOVERY_AMBIGUOUS"):
-            operational_update.recover_operational_application_update(paths)
+            _recover_synthetic_windows_update(paths)
         held = json.loads(state_path.read_text(encoding="utf-8"))
         assert held["result"] == "RECOVERY_REQUIRED"
         assert operational_update._generation_identity(paths.application_root) == active_before
@@ -599,7 +675,7 @@ def test_recovery_requires_exact_old_generation_binding_after_postcheck_interrup
         return
 
     monkeypatch.setattr(operational_release, "validate_operational_acceptance", original_validate)
-    result = operational_update.recover_operational_application_update(paths)
+    result = _recover_synthetic_windows_update(paths)
 
     recovered = json.loads(state_path.read_text(encoding="utf-8"))
     acceptance = json.loads(paths.acceptance_path.read_text(encoding="utf-8"))
@@ -631,7 +707,7 @@ def test_forward_recovery_requires_no_holders_and_immutable_data_recheck(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_POSTCHECK_ACCEPTANCE_FAILED"
     ):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     state_before = json.loads(state_path.read_text(encoding="utf-8"))
@@ -667,7 +743,7 @@ def test_forward_recovery_requires_no_holders_and_immutable_data_recheck(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_RUNTIME_RESOURCE_HELD"
     ):
-        operational_update.recover_operational_application_update(paths)
+        _recover_synthetic_windows_update(paths)
 
     held = json.loads(state_path.read_text(encoding="utf-8"))
     assert holder_calls == [(old_path / "QI-Crawler.exe",)]
@@ -699,7 +775,7 @@ def test_recovery_confirms_terminal_marker_removal_after_interruption(
 
     monkeypatch.setattr(Path, "unlink", unlink_then_interrupt)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_FAILED"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
     assert not (paths.control_root / "update_marker.json").exists()
     monkeypatch.setattr(Path, "unlink", original_unlink)
 
@@ -708,7 +784,7 @@ def test_recovery_confirms_terminal_marker_removal_after_interruption(
     assert state["result"] == "COMPLETE"
     assert state["pending_action"] == "CLEAR_ACTIVE_MARKER"
 
-    result = operational_update.recover_operational_application_update(paths)
+    result = _recover_synthetic_windows_update(paths)
 
     recovered = json.loads(state_path.read_text(encoding="utf-8"))
     assert result["result"] == "COMPLETE"
@@ -770,7 +846,7 @@ def test_hard_interruption_reconciles_acceptance_and_marker_intents(
     monkeypatch.setattr(operational_update, "_write_json_durable", interrupted_write)
     monkeypatch.setattr(Path, "unlink", interrupted_unlink)
     with pytest.raises(_SyntheticHardInterruption):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     interrupted = json.loads(state_path.read_text(encoding="utf-8"))
@@ -801,7 +877,7 @@ def test_hard_interruption_reconciles_acceptance_and_marker_intents(
 
     monkeypatch.setattr(operational_update, "_write_json_durable", original_write)
     monkeypatch.setattr(Path, "unlink", original_unlink)
-    result = operational_update.recover_operational_application_update(paths)
+    result = _recover_synthetic_windows_update(paths)
     recovered = json.loads(state_path.read_text(encoding="utf-8"))
 
     assert result["result"] == expected_result
@@ -895,7 +971,7 @@ def test_reparse_data_or_acceptance_path_is_rejected_before_attempt_creation(
     monkeypatch.setattr(Path, "lstat", mark_target_as_reparse)
     monkeypatch.setattr(operational_update, "_assert_no_old_runtime_holders", lambda *_args: None)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_.*PATH_UNSAFE"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     assert not (paths.control_root / "updates").exists()
     assert not (paths.control_root / "update_marker.json").exists()
@@ -937,7 +1013,7 @@ def _interrupted_update_for_path_test(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_POSTCHECK_ACCEPTANCE_FAILED"
     ):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     state = json.loads(state_path.read_text(encoding="utf-8"))
     assert state["result"] == "RECOVERY_REQUIRED"
@@ -1000,7 +1076,7 @@ def test_recovery_rejects_paths_redirected_outside_exact_attempt(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_.*PATH_UNSAFE"
     ):
-        operational_update.recover_operational_application_update(paths)
+        _recover_synthetic_windows_update(paths)
     assert sentinel.read_bytes() == sentinel_before
     assert operational_update._generation_identity(paths.application_root) == active_before
     assert paths.acceptance_path.read_bytes() == acceptance_before
@@ -1039,7 +1115,7 @@ def test_recovery_rejects_non_uuid_attempt_id_with_or_without_marker(
         (paths.control_root / "update_marker.json").unlink()
 
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_ID_INVALID"):
-        operational_update.recover_operational_application_update(paths)
+        _recover_synthetic_windows_update(paths)
 
 
 def test_unsafe_path_rejects_reparse_root_before_tree_hashing(
@@ -1073,11 +1149,11 @@ def test_app_update_lock_contention_is_normalized(operation: str, tmp_path: Path
     monkeypatch.setattr(operational_update._ExclusiveFileLock, "acquire", raise_busy)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_SINGLETON_BUSY"):
         if operation == "apply":
-            operational_update.apply_operational_application_update(
+            _apply_synthetic_windows_update(
                 paths, tmp_path / "unused-bundle", confirmed=True
             )
         else:
-            operational_update.recover_operational_application_update(paths)
+            _recover_synthetic_windows_update(paths)
 
 
 @pytest.mark.parametrize("operation", ["apply", "recover"])
@@ -1092,11 +1168,11 @@ def test_app_update_does_not_hide_unexpected_lock_errors(operation: str, tmp_pat
     monkeypatch.setattr(operational_update._ExclusiveFileLock, "acquire", raise_programming_error)
     with pytest.raises(ValueError, match="synthetic lock programming error"):
         if operation == "apply":
-            operational_update.apply_operational_application_update(
+            _apply_synthetic_windows_update(
                 paths, tmp_path / "unused-bundle", confirmed=True
             )
         else:
-            operational_update.recover_operational_application_update(paths)
+            _recover_synthetic_windows_update(paths)
 
 
 @pytest.mark.parametrize(
@@ -1163,7 +1239,7 @@ def test_non_cooperative_old_binary_census_fails_before_app_mutation(
             operational_update, "_open_exclusive_database_file", fail_data_barrier
         )
     with pytest.raises(operational_update.OperationalUpdateError, match=expected_error):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -1204,7 +1280,7 @@ def test_resource_holder_after_app_rotation_blocks_acceptance_commit(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_RUNTIME_RESOURCE_HELD"
     ):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     state_path = next((paths.control_root / "updates").glob("*/state.json"))
     state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -2215,7 +2291,7 @@ def test_malformed_update_journal_is_rejected_before_mutation(
         if entrypoint == "startup":
             operational_update.assert_operational_startup_allowed(paths)
         elif entrypoint == "recovery":
-            operational_update.recover_operational_application_update(paths)
+            _recover_synthetic_windows_update(paths)
         else:
             operational_update._append_update_transition(
                 state_path,
@@ -2239,7 +2315,7 @@ def test_update_tree_identity_enforces_projected_windows_path_boundary(
     bundle.mkdir()
     (bundle / "payload.bin").write_bytes(b"payload")
     filename = "payload.bin"
-    drive_root = Path("C:/")
+    drive_root = PureWindowsPath("C:/")
     component_length = projected_length - len(str(drive_root)) - 1 - len(filename)
     projected_root = drive_root / ("p" * component_length)
     projected_file = projected_root / filename
@@ -2264,7 +2340,7 @@ def test_update_tree_identity_checks_projected_empty_directory_paths(
 ) -> None:
     bundle = tmp_path / "bundle"
     bundle.mkdir()
-    projected_root = Path("C:/") / "projection"
+    projected_root = PureWindowsPath("C:/") / "projection"
     directory_name = "d" * (projected_length - len(str(projected_root)) - 1)
     directory = bundle / directory_name
     projected_path = projected_root / directory_name
@@ -2304,7 +2380,7 @@ def test_update_preflight_budgets_durable_json_temporary_names(
 ) -> None:
     paths, bundle = _app_update_fixture(tmp_path / "operational")
     update_id = "a" * 32
-    temp_path = Path("C:/") / ("t" * (projected_length - len("C:/")))
+    temp_path = PureWindowsPath("C:/") / ("t" * (projected_length - len("C:/")))
     assert len(str(temp_path)) == projected_length
     monkeypatch.setattr(
         operational_update, "_durable_json_temp_path", lambda _path: temp_path
@@ -2394,7 +2470,7 @@ def test_recovery_rejects_other_unresolved_attempt_when_marker_is_present(
     marker_before = (paths.control_root / "update_marker.json").read_bytes()
 
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_JOURNAL_ORPHAN"):
-        operational_update.recover_operational_application_update(paths)
+        _recover_synthetic_windows_update(paths)
 
     assert operational_update._generation_identity(paths.application_root) == active_before
     assert paths.acceptance_path.read_bytes() == acceptance_before
@@ -2418,7 +2494,7 @@ def test_orphan_attempt_directory_without_state_fails_closed(
         if entrypoint == "startup":
             operational_update.assert_operational_startup_allowed(paths)
         else:
-            operational_update.recover_operational_application_update(paths)
+            _recover_synthetic_windows_update(paths)
 
     assert operational_update._generation_identity(paths.application_root) == active_before
     assert paths.acceptance_path.read_bytes() == acceptance_before
@@ -2438,7 +2514,7 @@ def test_update_path_safety_preflight_runs_before_control_lock_creation(
 
     monkeypatch.setattr(Path, "lstat", mark_root_as_reparse)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_ROOT_PATH_UNSAFE"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
     assert not (paths.control_root / "update.lock").exists()
     assert not (paths.control_root / "updates").exists()
     assert not (paths.root / ".update").exists()
@@ -2450,7 +2526,7 @@ def test_update_path_safety_rejects_control_escape_before_lock_creation(
     paths, bundle = _app_update_fixture(tmp_path / "operational")
     escaped = replace(paths, control_root=paths.root.parent / "outside-control")
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_CONTROL_PATH_UNSAFE"):
-        operational_update.apply_operational_application_update(escaped, bundle, confirmed=True)
+        _apply_synthetic_windows_update(escaped, bundle, confirmed=True)
     assert not (paths.control_root / "update.lock").exists()
     assert not (escaped.control_root / "update.lock").exists()
     assert not (paths.control_root / "updates").exists()
@@ -2467,7 +2543,7 @@ def test_update_path_preflight_rejects_overlong_bundle_before_attempt_artifacts(
     monkeypatch.setattr(operational_update, "_assert_no_old_runtime_holders", lambda *_args: None)
 
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_PATH_TOO_LONG"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
 
     assert operational_update._generation_identity(paths.application_root) == active_before
     assert paths.acceptance_path.read_bytes() == acceptance_before
@@ -2493,7 +2569,7 @@ def test_update_preflight_rejects_same_volume_mismatch_before_attempt_artifacts(
     with pytest.raises(
         operational_update.OperationalUpdateError, match="UPDATE_ROTATION_VOLUME_MISMATCH"
     ):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
     assert not (paths.control_root / "updates").exists()
     assert not (paths.root / ".update").exists()
 
@@ -2523,7 +2599,7 @@ def test_update_preflight_rejects_reparse_paths_before_attempt_artifacts(
 
     monkeypatch.setattr(Path, "lstat", mark_target_as_reparse)
     with pytest.raises(operational_update.OperationalUpdateError, match="UPDATE_.*PATH_UNSAFE"):
-        operational_update.apply_operational_application_update(paths, bundle, confirmed=True)
+        _apply_synthetic_windows_update(paths, bundle, confirmed=True)
     assert not (paths.control_root / "updates").exists()
     assert not (paths.root / ".update" / ("1" * 32)).exists()
 
