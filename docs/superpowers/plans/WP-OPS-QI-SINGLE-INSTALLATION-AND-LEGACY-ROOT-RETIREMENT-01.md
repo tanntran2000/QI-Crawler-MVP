@@ -548,3 +548,20 @@ G1_C02_VERIFICATION = ONE TARGETED GREEN ONLY AFTER GOVERNANCE SYNC; NO RED RERU
 G1_C02_RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT, BUILD, TAG, RELEASE, INSTALLATION OR CAPABILITY CHANGE
 G1_C02_NEXT = BUILDER COMMITS GOVERNANCE SYNC, APPLIES THE TWO AUTHORIZED HEADING EDITS, RUNS ONE TARGETED GREEN AND RETURNS EVIDENCE TO PLANNER
 ```
+
+### G1-C02 Builder result — targeted document contract GREEN
+
+After governance commit `8d6eeac0bcacc8a443c9bc27548fb8b197be7a47`, Builder changed only the two authorized headings. The exact failing node passed once with the native `Start-Process` object's exit code captured directly before other commands. The run began at HEAD `8d6eeac`; the working tree contained only the two heading changes now committed as `38ab35d0362379ae64b19bba3f06ee0c9fabf732`.
+
+```text
+G1_C02_TARGETED_COMMAND = `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/c02f29/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents`
+G1_C02_TARGETED_RESULT = EXIT 0 FROM PROCESS OBJECT; 1 PASSED; 1 NON-FAILING PytestCacheWarning (WinError 5 writing repository `.pytest_cache`); pytest-reported 2.47s; wall 4.43s
+G1_C02_TARGETED_HEAD = 8d6eeac0bcacc8a443c9bc27548fb8b197be7a47; WORKTREE HAD ONLY CHANGELOG/GUIDE HEADING EDITS; COMMITTED AS 38ab35d0362379ae64b19bba3f06ee0c9fabf732
+G1_C02_TARGETED_TIMES = START 2026-09-29T06:11:25.6348784+07:00; END 2026-09-29T06:11:30.0641843+07:00
+G1_C02_TARGETED_LOGS = `.tmp/w3/c02f29/targeted.stdout.log`; `.tmp/w3/c02f29/targeted.stderr.log`; metadata and parent-writable proof retained outside pytest-owned `t`
+G1_C02_TARGETED_SCRATCH = `.tmp/w3/c02f29`; 5 FILES / 915,100 BYTES; child `t` created by pytest and retained; D: free after run 18,171,588,608 bytes; no cleanup
+G1_C02_TARGETED_SCOPE = CHANGELOG.md AND HUONG_DAN_SU_DUNG.md ONLY; exact assertions now pass; no test/source/version-constant change
+G1_C02_WHOLE_SUITE = STILL CONSUMED RED WITH 1 DOCUMENT FAILURE; NATIVE EXIT OF THE FULL RUN NOT INDEPENDENTLY PROVEN; NO SECOND FULL RUN, RUFF OR RETRY AUTHORIZED
+G1_C02_TERMINAL_RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT, BUILD, TAG, RELEASE, INSTALLATION OR CAPABILITY CHANGE
+G1_C02_BUILDER_NEXT = RETURN EXACT GOVERNANCE/DOC COMMITS AND BOUNDED TEST EVIDENCE TO PLANNER; NO REMOTE OR OPERATIONAL EFFECTS
+```

@@ -2069,3 +2069,16 @@ AUTHORIZED_CHECK = ONE TARGETED GREEN AFTER GOVERNANCE SYNC; NO RED RERUN/FULL S
 RELEASE_IMPACT = INTERNAL SOURCE METADATA REMAINS 0.10.1; NO VERSION INCREMENT/BUILD/TAG/RELEASE/INSTALL/CAPABILITY CHANGE
 PRODUCT_CAPABILITY_OR_MATURITY_PROMOTION = NONE
 ~~~
+
+### G1-C02 Builder result — exact heading contract passed
+
+After the governance sync, Builder changed only the CHANGELOG and Vietnamese guide headings and ran the exact failing node once. With `HEAD=8d6eeac0bcacc8a443c9bc27548fb8b197be7a47` and only those two document edits in the worktree, `.venv\Scripts\python.exe -m pytest -n 0 --basetemp=.tmp/w3/c02f29/t tests/test_cli_help.py::test_release_version_is_synchronized_across_user_documents` returned native process-object exit code 0: 1 passed, with one non-failing `.pytest_cache` WinError 5 warning (pytest 2.47s; elapsed 4.43s). The two heading edits are committed as `38ab35d0362379ae64b19bba3f06ee0c9fabf732`.
+
+The full sequential run remains consumed RED; the targeted node result does not convert it to a whole-suite PASS. The full-run wrapper's native exit remains unproven. No full-suite rerun, Ruff run or retry was performed or authorized. The source version remains internal/unreleased 0.10.1; no build, tag, release, installation or capability change occurred.
+
+~~~text
+G1_C02_TARGETED_SCRATCH = `.tmp/w3/c02f29`; 5 FILES / 915,100 BYTES; stdout/stderr, metadata, parent proof and pytest child retained; D: free 18,171,588,608 bytes; no cleanup
+G1_C02_DOC_COMMIT = 38ab35d0362379ae64b19bba3f06ee0c9fabf732; EXACTLY CHANGELOG.md AND HUONG_DAN_SU_DUNG.md
+G1_C02_VERIFICATION_STATE = TARGETED DOC CONTRACT PASS; WHOLE SEQUENTIAL GATE STILL RED / EXIT NOT INDEPENDENTLY PROVEN
+NEXT = PLANNER REVIEWS BUILDER RESULT AND DECIDES THE NEXT GOVERNED VERIFICATION STEP
+~~~
