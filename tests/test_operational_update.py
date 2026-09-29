@@ -1226,6 +1226,13 @@ def test_non_cooperative_old_binary_census_fails_before_app_mutation(
             operational_update, "_assert_no_old_runtime_holders", lambda *_args: None
         )
         original_open = operational_update._open_exclusive_database_file
+        if os.name != "nt":
+            # A POSIX read-only handle exercises the denial seam without
+            # importing the Windows-only msvcrt opener under synthetic nt.
+            def host_read_only_open(path: Path):
+                return path.open("rb")
+
+            original_open = host_read_only_open
         open_calls = 0
 
         def fail_data_barrier(path: Path):
