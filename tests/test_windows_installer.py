@@ -575,14 +575,29 @@ def test_publish_rejects_long_candidate_descendant_before_creating_publish_root(
     if shell is None:
         pytest.skip("PowerShell is required for the Windows publish behavior test")
     repo, candidate, source_sha = _provenance_candidate(tmp_path)
-    relative = Path("nested-" + "a" * 36) / ("nested-" + "b" * 36) / "payload.bin"
-    long_file = candidate / "QI-Crawler" / relative
+    archive_name = f"v{VERSION}-{source_sha[:12]}-20260823T0000000000000Z"
+    candidate_payload_root = candidate / "QI-Crawler"
+    projected_payload_root = (
+        repo / "release_staging" / "published" / archive_name / "QI-Crawler"
+    )
+    directory_prefix = "nested-"
+    filename = "payload.bin"
+    directory_name_length = (
+        240
+        - len(str(candidate_payload_root))
+        - 1
+        - len(directory_prefix)
+        - 1
+        - len(filename)
+    )
+    assert directory_name_length > 0
+    relative = Path(directory_prefix + "a" * directory_name_length) / filename
+    long_file = candidate_payload_root / relative
+    projected = projected_payload_root / relative
     long_file.parent.mkdir(parents=True)
     long_file.write_bytes(b"bounded-path-test")
 
-    archive_name = f"v{VERSION}-{source_sha[:12]}-20260823T0000000000000Z"
-    projected = repo / "release_staging" / "published" / archive_name / "QI-Crawler" / relative
-    assert len(str(long_file)) <= 240
+    assert len(str(long_file)) == 240
     assert len(str(projected)) > 240
 
     publish_root = repo / "release_staging" / "published"

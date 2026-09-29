@@ -22,6 +22,32 @@ function Get-Sha256([string]$PathValue) {
     return (Get-FileHash -LiteralPath $PathValue -Algorithm SHA256).Hash.ToUpperInvariant()
 }
 
+function Get-PathComparison() {
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        return [StringComparison]::OrdinalIgnoreCase
+    }
+    return [StringComparison]::Ordinal
+}
+
+function Get-NormalizedFullPath([string]$PathValue) {
+    $fullPath = [IO.Path]::GetFullPath($PathValue)
+    $root = [IO.Path]::GetPathRoot($fullPath)
+    while ($fullPath.Length -gt $root.Length -and
+        ($fullPath.EndsWith([string][IO.Path]::DirectorySeparatorChar) -or
+            $fullPath.EndsWith([string][IO.Path]::AltDirectorySeparatorChar))) {
+        $fullPath = $fullPath.Substring(0, $fullPath.Length - 1)
+    }
+    return $fullPath
+}
+
+function Get-ContainedPathPrefix([string]$NormalizedRoot) {
+    $separator = [string][IO.Path]::DirectorySeparatorChar
+    if ($NormalizedRoot.EndsWith($separator)) {
+        return $NormalizedRoot
+    }
+    return $NormalizedRoot + $separator
+}
+
 function Convert-UtcTimestamp([object]$Value, [string]$Label) {
     $parsedTimestamp = [DateTimeOffset]::MinValue
     if ($Value -is [DateTime]) {
@@ -136,9 +162,10 @@ function Assert-RepositoryReady([string]$Root) {
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($topLevel)) {
         throw "Khong the xac dinh Git top-level"
     }
-    $resolvedTopLevel = [IO.Path]::GetFullPath($topLevel).TrimEnd('\')
-    $resolvedRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
-    if (-not [string]::Equals($resolvedTopLevel, $resolvedRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    $resolvedTopLevel = Get-NormalizedFullPath $topLevel
+    $resolvedRoot = Get-NormalizedFullPath $Root
+    $comparison = Get-PathComparison
+    if (-not [string]::Equals($resolvedTopLevel, $resolvedRoot, $comparison)) {
         throw "RepoRoot phai la dung Git top-level"
     }
     $branch = (& git -C $Root branch --show-current).Trim()
@@ -155,11 +182,12 @@ function Assert-RepositoryReady([string]$Root) {
 }
 
 function Assert-NoReparsePathComponents([string]$Root, [string]$PathValue) {
-    $fullRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
-    $fullPath = [IO.Path]::GetFullPath($PathValue).TrimEnd('\')
-    $prefix = "$fullRoot\"
-    if (-not [string]::Equals($fullPath, $fullRoot, [StringComparison]::OrdinalIgnoreCase) -and
-        -not $fullPath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+    $fullRoot = Get-NormalizedFullPath $Root
+    $fullPath = Get-NormalizedFullPath $PathValue
+    $comparison = Get-PathComparison
+    $prefix = Get-ContainedPathPrefix $fullRoot
+    if (-not [string]::Equals($fullPath, $fullRoot, $comparison) -and
+        -not $fullPath.StartsWith($prefix, $comparison)) {
         throw "Duong dan publication vuot ngoai repository"
     }
     $cursor = $fullPath
@@ -170,7 +198,7 @@ function Assert-NoReparsePathComponents([string]$Root, [string]$PathValue) {
                 throw "Publication path khong duoc di qua reparse point: $cursor"
             }
         }
-        if ([string]::Equals($cursor, $fullRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        if ([string]::Equals($cursor, $fullRoot, $comparison)) {
             break
         }
         $cursor = Split-Path -Parent $cursor
@@ -181,7 +209,9 @@ function Assert-NoReparsePathComponents([string]$Root, [string]$PathValue) {
 }
 
 function Get-CandidateTreeEntries([string]$Root) {
-    $fullRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    $fullRoot = Get-NormalizedFullPath $Root
+    $prefix = Get-ContainedPathPrefix $fullRoot
+    $comparison = Get-PathComparison
     $pending = New-Object System.Collections.Stack
     $entries = New-Object 'System.Collections.Generic.List[object]'
     $pending.Push($fullRoot)
@@ -191,9 +221,8 @@ function Get-CandidateTreeEntries([string]$Root) {
             if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                 throw "Candidate tree khong duoc chua reparse point: $($item.FullName)"
             }
-            $fullItem = [IO.Path]::GetFullPath($item.FullName)
-            $prefix = "$fullRoot\"
-            if (-not $fullItem.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+            $fullItem = Get-NormalizedFullPath $item.FullName
+            if (-not $fullItem.StartsWith($prefix, $comparison)) {
                 throw "Candidate tree entry vuot ngoai candidate root: $fullItem"
             }
             $relative = $fullItem.Substring($prefix.Length)
@@ -307,13 +336,15 @@ if ($LASTEXITCODE -ne 0 -or $repoHead -notmatch '^[0-9A-Fa-f]{40}$') {
     throw "Khong the xac minh exact main source SHA"
 }
 
-$expectedPublishRoot = [IO.Path]::GetFullPath((Join-Path $repo "release_staging\published"))
+$releaseStagingRoot = Join-Path $repo "release_staging"
+$expectedPublishRoot = Get-NormalizedFullPath (Join-Path $releaseStagingRoot "published")
 if ($PublishRoot) {
-    $requestedPublishRoot = [IO.Path]::GetFullPath($PublishRoot)
+    $requestedPublishRoot = Get-NormalizedFullPath $PublishRoot
+    $comparison = Get-PathComparison
     if (-not [string]::Equals(
-        $requestedPublishRoot.TrimEnd('\'),
-        $expectedPublishRoot.TrimEnd('\'),
-        [StringComparison]::OrdinalIgnoreCase
+        $requestedPublishRoot,
+        $expectedPublishRoot,
+        $comparison
     )) {
         throw "PublishRoot chi duoc la repo-local release_staging\published"
     }
@@ -324,12 +355,13 @@ Assert-NoReparsePathComponents $repo $publishRootResolved
 if (-not $CandidateRoot) {
     throw "Can -CandidateRoot den mot thu muc candidate da duoc build va smoke-test"
 }
-$expectedCandidateRoot = [IO.Path]::GetFullPath((Join-Path $repo "release_staging\candidate"))
-$requestedCandidateRoot = [IO.Path]::GetFullPath($CandidateRoot)
+$expectedCandidateRoot = Get-NormalizedFullPath (Join-Path $releaseStagingRoot "candidate")
+$requestedCandidateRoot = Get-NormalizedFullPath $CandidateRoot
+$comparison = Get-PathComparison
 if (-not [string]::Equals(
-    $requestedCandidateRoot.TrimEnd('\'),
-    $expectedCandidateRoot.TrimEnd('\'),
-    [StringComparison]::OrdinalIgnoreCase
+    $requestedCandidateRoot,
+    $expectedCandidateRoot,
+    $comparison
 )) {
     throw "CandidateRoot chi duoc la repo-local release_staging\candidate"
 }
