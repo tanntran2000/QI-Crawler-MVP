@@ -1159,9 +1159,9 @@ LIMIT = Documentation-only failure. No runtime, source, test, official release, 
 
 ID = FM-056
 TITLE = Repository-wide local Ruff traversed preserved unknown workspace content
-STATE = OPEN; ORIGINAL LOCAL FULL-RUFF GATE FAILED; CANDIDATE CAUSATION NOT_ESTABLISHED; ONE TRACKED-MANIFEST REPLACEMENT AUTHORIZED BUT PENDING
+STATE = ORIGINAL BROAD LOCAL FULL-RUFF FAILED; ONE TRACKED-MANIFEST REPLACEMENT PASS; CANDIDATE CAUSATION NOT_ESTABLISHED
 SEVERITY_AT_DETECTION = IMPORTANT
-DISPOSITION = HUMAN A0 APPROVED ONE REPLACEMENT OVER THE IMMUTABLE TRACKED PYTHON MANIFEST; ORIGINAL FAILURE REMAINS; CLEAN-CHECKOUT HOSTED RUFF STILL REQUIRED
+DISPOSITION = TESTER PASS FOR THE ONE HUMAN-AUTHORIZED TRACKED-MANIFEST CHECK; ORIGINAL BROAD FAILURE REMAINS; CLEAN-CHECKOUT HOSTED RUFF STILL REQUIRED
 DETECTED_BY = Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04
 SCOPE = WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01; local repository-wide Ruff verification on the persistent checkout
 PRODUCT_HOUSE_LAYER = ENGINEERING TOOLBOX / LOCAL VERIFICATION INFRASTRUCTURE
@@ -1170,10 +1170,10 @@ ROOT_CAUSE = The repository-wide local invocation traversed unknown untracked wo
 WHY_EXISTING_CHECKS_MISSED_IT = The local broad command included untracked content in this persistent workspace; the exact candidate did not isolate Ruff input to tracked source files.
 FIX = NONE; no product/config fix. Do not modify or delete unknown files; the sole authorized replacement is over the immutable tracked Python manifest, not unknown workspace paths.
 FIX_HEAD = N/A; evidence/governance only
-REGRESSION_GUARD = ONE HUMAN-AUTHORIZED TESTER RUN OVER `git ls-files -- '*.py' '*.pyi' '*.ipynb'` (expected 255); retain manifest/count/SHA/exact code head/native exit/stdout/stderr; 10 min, <=20,000 files/1 GiB scratch, >=10 GiB D: free; no retry/pytest/cleanup; clean-checkout hosted Ruff remains required later. The old broad failure is not PASS.
-INDEPENDENT_AUDIT = HUMAN FORWARD DISPOSITION ROUTED AS FB-0062; TESTER RUN PENDING; WHOLE CANDIDATE HOLD; REVIEWER HANDOFF NOT READY
-CURRENT_EVIDENCE = exact candidate ec0d4af; Tester report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04; .tmp/w3/9541a1; C05 Tester authority FB-0062
-LIMIT = Eight Ruff findings are in unknown untracked workspace content; candidate causation is NOT_ESTABLISHED. Preserve and do not inspect unknown content. Only the exact tracked-manifest replacement Ruff is authorized; no pytest, config/test/source edit, remote action or cleanup.
+REGRESSION_GUARD = ONE AUTHORIZED TRACKED-MANIFEST RUN PASSED: 255 paths; manifest SHA256 83b1283f2c425a6a402b3228d006ad911f5bb7db14f49ab160daac81eb2b97ca; exact code identity/no Python delta verified; native exit 0. Preserve the original broad failure and candidate-causation limit; clean-checkout hosted Ruff remains required later.
+INDEPENDENT_AUDIT = TESTER REPORT WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01 PASSES THE TRACKED-MANIFEST GATE; INDEPENDENT REVIEWER AUDIT AND PLANNER POST-REVIEW PENDING
+CURRENT_EVIDENCE = original broad failure: ec0d4af / report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-04 / .tmp/w3/9541a1; replacement pass: bd423085 / report WP-OPS-QI-SINGLE-INSTALLATION-AND-LEGACY-ROOT-RETIREMENT-01-TESTER-20260929-G1-C05-01 / .tmp/w3/c780f5; FB-0062
+LIMIT = Eight findings from the original broad run remain under unknown untracked workspace content; candidate causation is NOT_ESTABLISHED. The replacement proves only the enumerated tracked files, not that the original broad command passed or that hosted verification is complete. Preserve and do not inspect unknown content.
 ## Routing
 
 Read only entries relevant to the active capability or failure path. A new
