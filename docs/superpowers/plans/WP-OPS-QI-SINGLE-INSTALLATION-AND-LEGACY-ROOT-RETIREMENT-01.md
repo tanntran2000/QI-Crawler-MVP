@@ -788,3 +788,34 @@ G1_C06_NEXT = FAST-FORWARD PUSH TERMINAL HEAD TO EXISTING PR #137; VERIFY EXACT 
 G1_C06_LIMITS = PRIOR HOSTED RED PRESERVED; LOCAL PASS DOES NOT REPLACE HOSTED CI; NO MERGE/RELEASE/BUILD/LIVE/DB/CONFIG/CLEANUP AUTHORITY
 G1_C06_SPINE = IMPACT MULTIPLE; TARGET Work Order / MASTER_ROADMAP_DELTA / CURRENT; SYNC PASS
 ~~~
+
+
+## G1-C07 — final hosted Linux test-seam correction (attempt 2/2)
+
+Planner opened this final Human-authorized correction after exact-head PR #137 run `36528853589` failed the same parameterized node on Ubuntu 3.11 and Ubuntu 3.12 at source head `bc2f06a8faedc74bcc9959a04f803f82041f10a7`. Windows 3.12, Code Quality, and CodeQL passed; Required CI Gate failed because both Ubuntu regression jobs failed. Each Linux job reported 1,679 passed, 102 skipped and one failed: `tests/test_operational_update.py::test_non_cooperative_old_binary_census_fails_before_app_mutation[exclusive_data_handle-UPDATE_DATA_RESOURCE_HELD]`. The assertion expected `UPDATE_DATA_RESOURCE_HELD` but received `UPDATE_RECOVERY_STATE_UNCERTAIN`.
+
+The retained traceback proves a test-seam defect, not a production updater defect: the test captures `_open_exclusive_database_file`, the synthetic Windows context sets the module's `os.name` to `nt`, and the captured production opener imports `msvcrt`; Linux raises `ModuleNotFoundError` before the intended third-call injected `PermissionError` on `config_path`. The exception is conservatively normalized to `UPDATE_RECOVERY_STATE_UNCERTAIN`. The public non-Windows guard, production module, and synthetic protection contract remain unchanged.
+
+G1-C07 is correction attempt `2/2`, final attempt. Edit only `tests/test_operational_update.py`: in the `exclusive_data_handle` test branch, retain the production exclusive opener on Windows and use a host-valid read-only handle for non-denied opens on non-Windows. Preserve the injected third-call/config-path `PermissionError`, expected `UPDATE_DATA_RESOURCE_HELD`, `FAILED_NO_MUTATION`, byte/identity preservation, and absence of the marker. Do not edit production source, weaken assertions, skip tests, change workflows or dependencies, or push before canonical Tester/Reviewer and Planner reconciliation.
+
+The exact affected node is the single local target. Use one fresh registered `.tmp/w3/<id>/t` run, direct argv-safe invocation, `-ra`, maximum 10 minutes / 10,000 files / 512 MiB scratch, with at least 10 GiB free on D:. If it passes, run at most one fresh affected matrix over `tests/test_operational_update.py` and `tests/test_windows_installer.py`, then one Ruff check on `tests/test_operational_update.py`. No full local suite, CI rerun, retry, cleanup, or further correction attempt is authorized in this transition.
+
+~~~text
+G1_C07_ID = G1-C07-PR137-LINUX-EXCLUSIVE-OPEN-TEST-SEAM
+G1_C07_AUTHORITY = FINAL HUMAN-AUTHORIZED CORRECTION ATTEMPT 2/2; PLANNER-OPENED AFTER EXACT-HEAD CI FAILURE
+G1_C07_ENTRY_HEAD = bc2f06a8faedc74bcc9959a04f803f82041f10a7; BRANCH codex/single-installation-legacy-root-retirement-01; PR #137 OPEN/UNMERGED; BASE caf983691da60d4eaf990d09e9e1788692aabaac
+G1_C07_HOSTED_RUN = 36528853589; PR #137; SOURCE bc2f06a8faedc74bcc9959a04f803f82041f10a7; UBUNTU 3.11 JOB 109277760197 FAIL / 1,679 PASS / 102 SKIP / 1 FAIL; UBUNTU 3.12 JOB 109277760275 SAME; WINDOWS JOB 109277760292 PASS; CODE QUALITY JOB 109277760216 PASS; REQUIRED CI GATE JOB 109280282948 FAIL; CODEQL RUN 36528849753 PASS
+G1_C07_FAILED_NODE = tests/test_operational_update.py::test_non_cooperative_old_binary_census_fails_before_app_mutation[exclusive_data_handle-UPDATE_DATA_RESOURCE_HELD]
+G1_C07_ROOT_CAUSE = WP_TEST_SEAM_DEFECT; CAPTURED PRODUCTION OPENER RUNS UNDER SYNTHETIC os.name=nt AND IMPORTS msvcrt ON LINUX; ModuleNotFoundError BYPASSES THE INJECTED THIRD-CALL PermissionError; PRODUCTION DEFECT NOT ESTABLISHED
+G1_C07_WRITE_SCOPE = tests/test_operational_update.py ONLY; NO PRODUCTION SOURCE/SCRIPT, WORKFLOW OR DEPENDENCY CHANGE
+G1_C07_RED = HOSTED EXACT-HEAD FAILURE IS THE TDD RED; NO LOCAL RED RETRY
+G1_C07_GREEN = NOT YET RUN; NOT CLAIMED
+G1_C07_COLLECTION_BASELINE = 1,782; ZERO COLLECTION ERRORS; FINAL MUST NOT DECREASE
+G1_C07_PLUGIN_CODEGRAPH = USED_AND_SUCCEEDED; exact test/helper/opener queried before source read; blast radius bounded to synthetic test and read-only production opener; edit radius one test file; test radius exact node; limitation graph is impact evidence only
+G1_C07_PLUGIN_SYSTEMATIC_DEBUGGING = USED_AND_SUCCEEDED; retained Ubuntu traceback + test-helper/opener data-flow traced; root cause isolated to captured Windows-only opener under Linux synthetic os.name; no production defect established
+G1_C07_PLUGIN_TDD = USED_AND_SUCCEEDED; prior hosted exact-node RED; smallest test-seam-only fix; one targeted GREEN pending
+G1_C07_PLUGIN_VERIFICATION = REQUIRED before Builder return; impact/edit/test radii limited to G1-C07; fresh native exit/count, scoped Ruff, collection, diff/scope/tree evidence required
+G1_C07_CODEBASE_MEMORY = NOT_INDEXED/NO INDEX AUTHORIZED; no readiness or runtime claim
+G1_C07_SPINE = MULTIPLE; Work Order / MASTER_ROADMAP_DELTA / CURRENT; SPINE_SYNC_STATE=PASS for opening sync after static validation
+G1_C07_NEXT = BUILDER IMPLEMENTS THE ONE TEST-ONLY CHANGE, RUNS AUTHORIZED LOCAL CHECKS, THEN RETURNS TO PLANNER; NO PUSH UNTIL TESTER/REVIEWER/PLANNER RECONCILIATION
+~~~
